@@ -1,0 +1,3 @@
+[submodule "NeuroCarto-python"]
+	path = NeuroCarto-python
+	url = git@github.com:AntonioST/NeuroCarto.git
