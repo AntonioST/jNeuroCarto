@@ -1,3 +1,5 @@
+import io.ast.jneurocarto.ProbeDescription;
+
 module io.ast.jneurocarto {
     requires static org.jspecify;
     requires info.picocli;
@@ -5,4 +7,5 @@ module io.ast.jneurocarto {
 
     opens io.ast.jneurocarto.cli to info.picocli;
 
+    uses ProbeDescription;
 }
