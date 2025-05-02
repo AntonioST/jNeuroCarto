@@ -4,7 +4,9 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.cli.CartoConfig;
 
+
 public class Main {
+
     public static void main(String[] args) {
         var config = new CartoConfig();
         var parser = CartoConfig.newParser(config);
