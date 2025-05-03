@@ -13,6 +13,16 @@ public record Electrode(
   boolean apHpFilter
 ) implements Comparable<Electrode> {
 
+    public Electrode {
+        if (shank < 0) throw new IllegalArgumentException("negative shank value : " + shank);
+        if (column < 0) throw new IllegalArgumentException("negative column value : " + column);
+        if (row < 0) throw new IllegalArgumentException("negative row value : " + row);
+    }
+
+    public Electrode(int shank, int column, int row) {
+        this(shank, column, row, true, 0, 0, false);
+    }
+
     @Override
     public int hashCode() {
         int result = shank;

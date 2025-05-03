@@ -193,46 +193,71 @@ public class ChannelMap {
           .toArray();
     }
 
-    public Electrode addElectrode(int electrode) {
-        //XXX Unsupported Operation ChannelMap.addElectrode
-        throw new UnsupportedOperationException();
+    public synchronized Electrode addElectrode(int electrode) {
+        var cr = ChannelMapUtil.e2cr(info, electrode);
+        return addElectrode(0, cr.c(), cr.r());
     }
 
-    public Electrode addElectrode(int shank, int electrode) {
-        //XXX Unsupported Operation ChannelMap.addElectrode
-        throw new UnsupportedOperationException();
+    public synchronized Electrode addElectrode(int shank, int electrode) {
+        var cr = ChannelMapUtil.e2cr(info, electrode);
+        return addElectrode(shank, cr.c(), cr.r());
     }
 
-    public Electrode addElectrode(int shank, int column, int row) {
+    public synchronized Electrode addElectrode(int shank, int column, int row) {
+        if (shank < 0 || shank >= info.nShank()) throw new IllegalArgumentException("shank value out of range: " + shank);
+        if (column < 0 || column >= info.nColumnPerShank()) throw new IllegalArgumentException("column value out of range: " + column);
+        if (row < 0 || row >= info.nRowPerShank()) throw new IllegalArgumentException("row value out of range: " + row);
 
+        var e = ChannelMapUtil.cr2e(info, column, row);
+        var c = ChannelMapUtil.e2c(info, shank, e);
+        var x = electrodes[c];
+        if (x == null) {
+            var ret = new Electrode(shank, column, row);
+            electrodes[c] = ret;
+            return ret;
+        } else if (x.shank() == shank && x.column() == column && x.row() == row) {
+            return x;
+        } else {
+            throw new ChannelHasBeenUsedException(this, x, shank, column, row);
+        }
     }
 
-    public Electrode addElectrode(Electrode e) {
+    public synchronized Electrode addElectrode(Electrode e) {
+        return addElectrode(e.shank(), e.column(), e.row());
     }
 
-    public Electrode addElectrode(int shank, Electrode e) {
+    public synchronized Electrode addElectrode(int shank, Electrode e) {
+        return addElectrode(shank, e.column(), e.row());
     }
 
-    public Electrode removeElectrode(int electrode) {
-        //XXX Unsupported Operation ChannelMap.remove
-        throw new UnsupportedOperationException();
+    public synchronized @Nullable Electrode removeElectrode(int electrode) {
+        var cr = ChannelMapUtil.e2cr(info, electrode);
+        return removeElectrode(0, cr.c(), cr.r());
     }
 
-    public @Nullable Electrode removeElectrode(int shank, int electrode) {
-        //XXX Unsupported Operation ChannelMap.remove
-        throw new UnsupportedOperationException();
+    public synchronized @Nullable Electrode removeElectrode(int shank, int electrode) {
+        var cr = ChannelMapUtil.e2cr(info, electrode);
+        return removeElectrode(shank, cr.c(), cr.r());
     }
 
-    public @Nullable Electrode removeElectrode(int shank, int column, int row) {
-
+    public synchronized @Nullable Electrode removeElectrode(int shank, int column, int row) {
+        for (int i = 0, length = electrodes.length; i < length; i++) {
+            var electrode = electrodes[i];
+            if (electrode != null && electrode.shank() == shank && electrode.column() == column && electrode.row() == row) {
+                electrodes[i] = null;
+                return electrode;
+            }
+        }
+        return null;
     }
 
-    public @Nullable Electrode removeElectrode(Electrode e) {
+    public synchronized @Nullable Electrode removeElectrode(Electrode e) {
+        return removeElectrode(e.shank(), e.column(), e.row());
     }
 
-    public @Nullable Electrode removeElectrode(int shank, Electrode e) {
+    public synchronized @Nullable Electrode removeElectrode(int shank, Electrode e) {
+        return removeElectrode(shank, e.column(), e.row());
     }
-
 
     @Override
     public int hashCode() {

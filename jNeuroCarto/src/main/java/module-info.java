@@ -7,6 +7,7 @@ module io.ast.jneurocarto {
     requires spring.boot;
     requires spring.boot.autoconfigure;
     requires flow.server;
+    requires jdk.incubator.vector;
 
     opens io.ast.jneurocarto.cli to info.picocli;
 
