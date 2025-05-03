@@ -1,42 +1,104 @@
 package io.ast.jneurocarto.probe_npx;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-@NullMarked
-public class ChannelMap {
+import io.ast.jneurocarto.probe_npx.io.Imro;
+import io.ast.jneurocarto.probe_npx.io.Meta;
 
+@NullMarked
+public class ChannelMap implements Iterable<@Nullable Electrode> {
+
+    private final NpxProbeType type;
     private final NpxProbeInfo info;
     private final @Nullable Electrode[] electrodes;
     private int reference = 0;
     private @Nullable NpxMeta meta = null;
 
     public ChannelMap(NpxProbeType type) {
-        this(type.info());
-    }
-
-    public ChannelMap(NpxProbeInfo info) {
-        this.info = info;
+        this.type = type;
+        info = type.info();
         electrodes = new Electrode[info.nChannel()];
     }
 
     public ChannelMap(ChannelMap map) {
-        this(map.info, map.channels(), map.meta);
+        this(map.type, map.channels(), map.meta);
     }
 
-    ChannelMap(NpxProbeInfo info, List<@Nullable Electrode> electrodes, @Nullable NpxMeta meta) {
-        this(info);
+    public ChannelMap(NpxProbeType type, List<@Nullable Electrode> electrodes, @Nullable NpxMeta meta) {
+        this(type);
+
+        this.meta = meta;
+
+        for (var electrode : electrodes) {
+            if (electrode != null) {
+                addElectrode(electrode);
+            }
+        }
+    }
+
+    public static ChannelMap fromImro(String source) {
+        try {
+            return Imro.read(source);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ChannelMap fromFile(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        if (filename.endsWith(".imro")) {
+            return Imro.read(file);
+        } else if (filename.endsWith(".meta")) {
+            return Meta.read(file);
+        } else {
+            throw new RuntimeException();
+        }
+    }
+
+    public String toImro() {
+        var buffer = new ByteArrayOutputStream();
+        try {
+            Imro.write(new PrintStream(buffer), this);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return buffer.toString();
+    }
+
+    public void toImro(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        if (filename.endsWith(".imro")) {
+            Imro.write(file, this);
+        } else {
+            throw new RuntimeException();
+        }
+    }
+
+    public NpxProbeType type() {
+        return type;
     }
 
     public NpxProbeInfo info() {
         return info;
+    }
+
+    public @Nullable NpxMeta getMeta() {
+        return meta;
+    }
+
+    public void setMeta(@Nullable NpxMeta meta) {
+        this.meta = meta;
     }
 
     public List<@Nullable Electrode> channels() {
@@ -127,7 +189,7 @@ public class ChannelMap {
     public final boolean equals(Object o) {
         if (!(o instanceof ChannelMap that)) return false;
 
-        return reference == that.reference && info.equals(that.info) && Arrays.equals(electrodes, that.electrodes);
+        return reference == that.reference && type.equals(that.type) && Arrays.equals(electrodes, that.electrodes);
     }
 
     public int[] channelShank() {
@@ -151,18 +213,18 @@ public class ChannelMap {
     }
 
     public @Nullable Electrode getElectrode(int electrode) {
-        //XXX Unsupported Operation ChannelMap.getElectrode
-        throw new UnsupportedOperationException();
+        var cr = ChannelMapUtil.e2cr(info, electrode);
+        return getElectrode(0, cr.c(), cr.r());
     }
 
     public @Nullable Electrode getElectrode(int shank, int electrode) {
-        //XXX Unsupported Operation ChannelMap.getElectrode
-        throw new UnsupportedOperationException();
+        var cr = ChannelMapUtil.e2cr(info, electrode);
+        return getElectrode(shank, cr.c(), cr.r());
     }
 
     public @Nullable Electrode getElectrode(int shank, int column, int row) {
         for (var electrode : electrodes) {
-            if (electrode != null && electrode.shank() == shank && electrode.column() == column && electrode.row() == row) {
+            if (electrode != null && electrode.shank == shank && electrode.column == column && electrode.row == row) {
                 return electrode;
             }
         }
@@ -170,11 +232,15 @@ public class ChannelMap {
     }
 
     public @Nullable Electrode getElectrode(Electrode electrode) {
-        return getElectrode(electrode.shank(), electrode.column(), electrode.row());
+        return getElectrode(electrode.shank, electrode.column, electrode.row);
     }
 
     public @Nullable Electrode getElectrode(int shank, Electrode electrode) {
-        return getElectrode(shank, electrode.column(), electrode.row());
+        return getElectrode(shank, electrode.column, electrode.row);
+    }
+
+    public List<@Nullable Electrode> getElectrodes() {
+        return Arrays.asList(electrodes);
     }
 
     public List<Electrode> getElectrodes(Predicate<Electrode> selector) {
@@ -185,6 +251,16 @@ public class ChannelMap {
             }
         }
         return ret;
+    }
+
+    @Override
+    public Iterator<@Nullable Electrode> iterator() {
+        return Arrays.asList(electrodes).iterator();
+    }
+
+    @Override
+    public void forEach(Consumer<? super @Nullable Electrode> action) {
+        Arrays.asList(electrodes).forEach(action);
     }
 
     public int[] getDisconnectChannels() {
@@ -215,7 +291,7 @@ public class ChannelMap {
             var ret = new Electrode(shank, column, row);
             electrodes[c] = ret;
             return ret;
-        } else if (x.shank() == shank && x.column() == column && x.row() == row) {
+        } else if (x.shank == shank && x.column == column && x.row == row) {
             return x;
         } else {
             throw new ChannelHasBeenUsedException(this, x, shank, column, row);
@@ -223,11 +299,15 @@ public class ChannelMap {
     }
 
     public synchronized Electrode addElectrode(Electrode e) {
-        return addElectrode(e.shank(), e.column(), e.row());
+        var ret = addElectrode(e.shank, e.column, e.row);
+        ret.copyFrom(e);
+        return ret;
     }
 
     public synchronized Electrode addElectrode(int shank, Electrode e) {
-        return addElectrode(shank, e.column(), e.row());
+        var ret = addElectrode(shank, e.column, e.row);
+        ret.copyFrom(e);
+        return ret;
     }
 
     public synchronized @Nullable Electrode removeElectrode(int electrode) {
@@ -243,7 +323,7 @@ public class ChannelMap {
     public synchronized @Nullable Electrode removeElectrode(int shank, int column, int row) {
         for (int i = 0, length = electrodes.length; i < length; i++) {
             var electrode = electrodes[i];
-            if (electrode != null && electrode.shank() == shank && electrode.column() == column && electrode.row() == row) {
+            if (electrode != null && electrode.shank == shank && electrode.column == column && electrode.row == row) {
                 electrodes[i] = null;
                 return electrode;
             }
@@ -252,11 +332,11 @@ public class ChannelMap {
     }
 
     public synchronized @Nullable Electrode removeElectrode(Electrode e) {
-        return removeElectrode(e.shank(), e.column(), e.row());
+        return removeElectrode(e.shank, e.column, e.row);
     }
 
     public synchronized @Nullable Electrode removeElectrode(int shank, Electrode e) {
-        return removeElectrode(shank, e.column(), e.row());
+        return removeElectrode(shank, e.column, e.row);
     }
 
     @Override

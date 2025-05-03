@@ -12,8 +12,8 @@ public final class ChannelMapUtil {
     public static int[] channelShank(ChannelMap map, boolean includeUnused) {
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
-            if (map.getChannel(i) instanceof Electrode e && (e.inUsed() || includeUnused)) {
-                ret[i] = e.shank();
+            if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
+                ret[i] = e.shank;
             } else {
                 ret[i] = -1;
             }
@@ -24,8 +24,8 @@ public final class ChannelMapUtil {
     public static int[] channelColumn(ChannelMap map, boolean includeUnused) {
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
-            if (map.getChannel(i) instanceof Electrode e && (e.inUsed() || includeUnused)) {
-                ret[i] = e.column();
+            if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
+                ret[i] = e.column;
             } else {
                 ret[i] = -1;
             }
@@ -36,8 +36,8 @@ public final class ChannelMapUtil {
     public static int[] channelRow(ChannelMap map, boolean includeUnused) {
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
-            if (map.getChannel(i) instanceof Electrode e && (e.inUsed() || includeUnused)) {
-                ret[i] = e.row();
+            if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
+                ret[i] = e.row;
             } else {
                 ret[i] = -1;
             }
@@ -51,8 +51,8 @@ public final class ChannelMapUtil {
 
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
-            if (map.getChannel(i) instanceof Electrode e && (e.inUsed() || includeUnused)) {
-                ret[i] = e.column() * pc + e.shank() * ps;
+            if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
+                ret[i] = e.column * pc + e.shank * ps;
             } else {
                 ret[i] = -1;
             }
@@ -65,8 +65,8 @@ public final class ChannelMapUtil {
 
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
-            if (map.getChannel(i) instanceof Electrode e && (e.inUsed() || includeUnused)) {
-                ret[i] = e.row() * pr;
+            if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
+                ret[i] = e.row * pr;
             } else {
                 ret[i] = -1;
             }
@@ -165,15 +165,15 @@ public final class ChannelMapUtil {
 
     public static XY e2xy(NpxProbeInfo info, Electrode electrode) {
         return new XY(
-          electrode.shank() * info.spacePerShank() + electrode.column() * info.spacePerColumn(),
-          electrode.row() * info.spacePerRow()
+          electrode.shank * info.spacePerShank() + electrode.column * info.spacePerColumn(),
+          electrode.row * info.spacePerRow()
         );
     }
 
     public static XY e2xy(NpxProbeInfo info, int shank, Electrode electrode) {
         return new XY(
-          shank * info.spacePerShank() + electrode.column() * info.spacePerColumn(),
-          electrode.row() * info.spacePerRow()
+          shank * info.spacePerShank() + electrode.column * info.spacePerColumn(),
+          electrode.row * info.spacePerRow()
         );
     }
 
@@ -202,7 +202,7 @@ public final class ChannelMapUtil {
     }
 
     public static CR e2cr(NpxProbeInfo info, Electrode electrode) {
-        return new CR(electrode.column(), electrode.row());
+        return new CR(electrode.column, electrode.row);
     }
 
     public static int cr2e(NpxProbeInfo info, int column, int row) {
@@ -212,7 +212,7 @@ public final class ChannelMapUtil {
 
     public static int cr2e(NpxProbeInfo info, Electrode electrode) {
         var nc = info.nColumnPerShank();
-        return electrode.column() + nc * electrode.row();
+        return electrode.column + nc * electrode.row;
     }
 
     public static int e2c(NpxProbeInfo info, int electrode) {
@@ -233,9 +233,9 @@ public final class ChannelMapUtil {
 
     public static CB e2cb(NpxProbeInfo info, int shank, int electrode) {
         return switch (info.code()) {
-            case 0 -> e2c0(info, electrode);
-            case 21 -> e2c21(info, electrode);
-            case 24 -> e2c24(info, shank, electrode);
+            case 0 -> e2c0(electrode);
+            case 21 -> e2c21(electrode);
+            case 24 -> e2c24(shank, electrode);
             default -> throw new IllegalArgumentException();
         };
     }
@@ -252,17 +252,15 @@ public final class ChannelMapUtil {
         return e2cb(info, shank, cr2e(info, electrode));
     }
 
-    public static CB e2c0(NpxProbeInfo info, int electrode) {
-        assert info.code() == 0;
-        var n = info.nChannel();
+    public static CB e2c0(int electrode) {
+        var n = NpxProbeType.NP1.info().nChannel();
         return new CB(electrode % n, electrode / n);
     }
 
-    public static CB e2c21(NpxProbeInfo info, int electrode) {
-        assert info.code() == 21;
+    public static CB e2c21(int electrode) {
+        var n = NpxProbeType.NP21.info().nChannel();
         var bf = ELECTRODE_MAP_21[0];
         var ba = ELECTRODE_MAP_21[0];
-        var n = info.nChannel();
         var bank = electrode / n;
         var e1 = electrode % n;
         var block = e1 / 32/*info.nElectrodePerBlock()*/;
@@ -273,9 +271,8 @@ public final class ChannelMapUtil {
         return new CB(channel, bank);
     }
 
-    public static CB e2c24(NpxProbeInfo info, int shank, int electrode) {
-        assert info.code() == 21;
-        var n = info.nChannel();
+    public static CB e2c24(int shank, int electrode) {
+        var n = NpxProbeType.NP24.info().nChannel();
         var bank = electrode / n;
         var e1 = electrode % n;
         var b1 = e1 / 48/*info.nElectrodePerBlock()*/;

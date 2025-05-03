@@ -3,24 +3,30 @@ package io.ast.jneurocarto.probe_npx;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public record Electrode(
-  int shank,
-  int column,
-  int row,
-  boolean inUsed,
-  int apBandGain,
-  int lfBandBain,
-  boolean apHpFilter
-) implements Comparable<Electrode> {
+public final class Electrode implements Comparable<Electrode> {
+    public final int shank;
+    public final int column;
+    public final int row;
 
-    public Electrode {
+    public boolean inUsed;
+    public int apBandGain = 0;
+    public int lfBandBain = 0;
+    public boolean apHpFilter = false;
+
+    public Electrode(int shank, int column, int row) {
         if (shank < 0) throw new IllegalArgumentException("negative shank value : " + shank);
         if (column < 0) throw new IllegalArgumentException("negative column value : " + column);
         if (row < 0) throw new IllegalArgumentException("negative row value : " + row);
+
+        this.shank = shank;
+        this.column = column;
+        this.row = row;
     }
 
-    public Electrode(int shank, int column, int row) {
-        this(shank, column, row, true, 0, 0, false);
+    public void copyFrom(Electrode ref) {
+        apBandGain = ref.apBandGain;
+        lfBandBain = ref.lfBandBain;
+        apHpFilter = ref.apHpFilter;
     }
 
     @Override
@@ -52,4 +58,6 @@ public record Electrode(
     public String toString() {
         return "Electrode[" + shank + "," + column + "," + row + "]";
     }
+
+
 }
