@@ -19,15 +19,13 @@ import io.ast.jneurocarto.probe_npx.io.Meta;
 public class ChannelMap implements Iterable<@Nullable Electrode> {
 
     private final NpxProbeType type;
-    private final NpxProbeInfo info;
     private final @Nullable Electrode[] electrodes;
     private int reference = 0;
     private @Nullable NpxMeta meta = null;
 
     public ChannelMap(NpxProbeType type) {
         this.type = type;
-        info = type.info();
-        electrodes = new Electrode[info.nChannel()];
+        electrodes = new Electrode[type.nChannel()];
     }
 
     public ChannelMap(ChannelMap map) {
@@ -89,10 +87,6 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
         return type;
     }
 
-    public NpxProbeInfo info() {
-        return info;
-    }
-
     public @Nullable NpxMeta getMeta() {
         return meta;
     }
@@ -131,42 +125,42 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
      * {@return number of shanks}
      */
     public int nShank() {
-        return info.nShank();
+        return type.nShank();
     }
 
     /**
      * {@return number of columns per shank}
      */
     public int nColumnPerShank() {
-        return info.nColumnPerShank();
+        return type.nColumnPerShank();
     }
 
     /**
      * {@return number of rows per shank}
      */
     public int nRowPerShank() {
-        return info.nRowPerShank();
+        return type.nRowPerShank();
     }
 
     /**
      * {@return number of electrodes per shank}
      */
     public int nElectrodePerShank() {
-        return info.nElectrodePerShank();
+        return type.nElectrodePerShank();
     }
 
     /**
      * {@return number of total channels}
      */
     public int nChannel() {
-        return info.nChannel();
+        return type.nChannel();
     }
 
     /**
      * {@return number of electrode blocks}
      */
     public int nElectrodePerBlock() {
-        return info.nElectrodePerBlock();
+        return type.nElectrodePerBlock();
     }
 
     public int getReference() {
@@ -174,7 +168,7 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     }
 
     public void setReference(int reference) {
-        if (reference < 0 || reference >= ReferenceInfo.maxReferenceValue(info)) {
+        if (reference < 0 || reference >= ReferenceInfo.maxReferenceValue(type)) {
             throw new IllegalArgumentException("illegal reference value: " + reference);
         }
 
@@ -182,7 +176,7 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     }
 
     public ReferenceInfo getReferenceInfo() {
-        return ReferenceInfo.of(info, reference);
+        return ReferenceInfo.of(type, reference);
     }
 
     @Override
@@ -213,12 +207,12 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     }
 
     public @Nullable Electrode getElectrode(int electrode) {
-        var cr = ChannelMapUtil.e2cr(info, electrode);
+        var cr = ChannelMapUtil.e2cr(type, electrode);
         return getElectrode(0, cr.c(), cr.r());
     }
 
     public @Nullable Electrode getElectrode(int shank, int electrode) {
-        var cr = ChannelMapUtil.e2cr(info, electrode);
+        var cr = ChannelMapUtil.e2cr(type, electrode);
         return getElectrode(shank, cr.c(), cr.r());
     }
 
@@ -270,22 +264,22 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     }
 
     public synchronized Electrode addElectrode(int electrode) {
-        var cr = ChannelMapUtil.e2cr(info, electrode);
+        var cr = ChannelMapUtil.e2cr(type, electrode);
         return addElectrode(0, cr.c(), cr.r());
     }
 
     public synchronized Electrode addElectrode(int shank, int electrode) {
-        var cr = ChannelMapUtil.e2cr(info, electrode);
+        var cr = ChannelMapUtil.e2cr(type, electrode);
         return addElectrode(shank, cr.c(), cr.r());
     }
 
     public synchronized Electrode addElectrode(int shank, int column, int row) {
-        if (shank < 0 || shank >= info.nShank()) throw new IllegalArgumentException("shank value out of range: " + shank);
-        if (column < 0 || column >= info.nColumnPerShank()) throw new IllegalArgumentException("column value out of range: " + column);
-        if (row < 0 || row >= info.nRowPerShank()) throw new IllegalArgumentException("row value out of range: " + row);
+        if (shank < 0 || shank >= type.nShank()) throw new IllegalArgumentException("shank value out of range: " + shank);
+        if (column < 0 || column >= type.nColumnPerShank()) throw new IllegalArgumentException("column value out of range: " + column);
+        if (row < 0 || row >= type.nRowPerShank()) throw new IllegalArgumentException("row value out of range: " + row);
 
-        var e = ChannelMapUtil.cr2e(info, column, row);
-        var c = ChannelMapUtil.e2c(info, shank, e);
+        var e = ChannelMapUtil.cr2e(type, column, row);
+        var c = ChannelMapUtil.e2c(type, shank, e);
         var x = electrodes[c];
         if (x == null) {
             var ret = new Electrode(shank, column, row);
@@ -311,12 +305,12 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     }
 
     public synchronized @Nullable Electrode removeElectrode(int electrode) {
-        var cr = ChannelMapUtil.e2cr(info, electrode);
+        var cr = ChannelMapUtil.e2cr(type, electrode);
         return removeElectrode(0, cr.c(), cr.r());
     }
 
     public synchronized @Nullable Electrode removeElectrode(int shank, int electrode) {
-        var cr = ChannelMapUtil.e2cr(info, electrode);
+        var cr = ChannelMapUtil.e2cr(type, electrode);
         return removeElectrode(shank, cr.c(), cr.r());
     }
 
@@ -341,7 +335,7 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
 
     @Override
     public int hashCode() {
-        int result = info.hashCode();
+        int result = type.hashCode();
         result = 31 * result + Arrays.hashCode(electrodes);
         result = 31 * result + reference;
         return result;

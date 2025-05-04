@@ -14,21 +14,13 @@ public record ReferenceInfo(
     }
 
     public static int maxReferenceValue(NpxProbeType type) {
-        return maxReferenceValue(type.info());
-    }
-
-    public static int maxReferenceValue(NpxProbeInfo info) {
-        var ns = info.nShank();
-        var refs = info.reference();
+        var ns = type.nShank();
+        var refs = type.reference();
         return 1 + ns + ns * refs.length;
     }
 
     public static ReferenceInfo of(NpxProbeType type, int reference) {
-        return of(type.info(), reference);
-    }
-
-    public static ReferenceInfo of(NpxProbeInfo info, int reference) {
-        var n = info.nShank();
+        var n = type.nShank();
 
         if (reference == 0) {
             return new ReferenceInfo(0, ReferenceType.EXT, 0, 0);
@@ -36,7 +28,7 @@ public record ReferenceInfo(
             return new ReferenceInfo(reference, ReferenceType.TIP, reference - 1, 0);
         }
 
-        var refs = info.reference();
+        var refs = type.reference();
         var r = reference - n - 1;
         var s = r / refs.length;
         var i = r % refs.length;

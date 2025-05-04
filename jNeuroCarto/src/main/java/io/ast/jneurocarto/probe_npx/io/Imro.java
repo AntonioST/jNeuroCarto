@@ -52,14 +52,14 @@ public final class Imro {
             case null:
                 code = NpxProbeType.of(part[0]);
                 break;
-            case NpxProbeType.NP1: {// NP0
+            case NpxProbeType.NP1 _: {
                 var channel = part[0];
                 var bank = part[1];
                 ref = part[2];
                 var ap = part[3];
                 var lf = part[4];
                 var ft = part[4];
-                var cr = ChannelMapUtil.e2cr(code.info(), channel);
+                var cr = ChannelMapUtil.e2cr(code, channel);
                 var e = new Electrode(0, cr.c(), cr.r());
                 e.apBandGain = ap;
                 e.lfBandBain = lf;
@@ -67,26 +67,26 @@ public final class Imro {
                 electrodes.add(e);
                 break;
             }
-            case NpxProbeType.NP21: {// NP21
+            case NpxProbeType.NP21 _: {
                 var channel = part[0];
                 var bank = part[1];
                 ref = part[2];
                 var ec = part[3];
-                var cb = ChannelMapUtil.e2cb(code.info(), ec);
+                var cb = ChannelMapUtil.e2cb(code, ec);
                 assert cb.channel() == channel && cb.bank() == bank;
-                var cr = ChannelMapUtil.e2cr(code.info(), ec);
+                var cr = ChannelMapUtil.e2cr(code, ec);
                 electrodes.add(new Electrode(0, cr.c(), cr.r()));
                 break;
             }
-            case NpxProbeType.NP24: { // NP24
+            case NpxProbeType.NP24 _: {
                 var channel = part[0];
                 var shank = part[1];
                 var bank = part[2];
                 ref = part[3];
                 var ec = part[4];
-                var cb = ChannelMapUtil.e2cb(code.info(), ec);
+                var cb = ChannelMapUtil.e2cb(code, ec);
                 assert cb.channel() == channel && cb.bank() == bank;
-                var cr = ChannelMapUtil.e2cr(code.info(), ec);
+                var cr = ChannelMapUtil.e2cr(code, ec);
                 electrodes.add(new Electrode(shank, cr.c(), cr.r()));
                 break;
             }
@@ -128,31 +128,31 @@ public final class Imro {
         }
 
         // header
-        out.printf("(%d,%d)", chmap.info().code(), chmap.nChannel());
+        out.printf("(%d,%d)", chmap.type().code(), chmap.nChannel());
 
         // channels
         var reference = chmap.getReference();
-        var info = chmap.info();
-        switch (chmap.type()) {
-        case NP1:
+        var type = chmap.type();
+        switch (type) {
+        case NpxProbeType.NP1 _:
             for (int i = 0, n = chmap.nChannel(); i < n; i++) {
                 var electrode = chmap.getChannel(i);
                 assert electrode != null;
                 out.printf("(%d 0 %d %d %d %d)", i, reference, electrode.apBandGain, electrode.lfBandBain, electrode.apHpFilter ? 1 : 0);
             }
             break;
-        case NP21:
+        case NpxProbeType.NP21 _:
             for (var electrode : chmap) {
                 assert electrode != null;
-                var e = ChannelMapUtil.cr2e(info, electrode);
+                var e = ChannelMapUtil.cr2e(type, electrode);
                 var cb = ChannelMapUtil.e2c21(e);
                 out.printf("(%d %d %d %d)", cb.channel(), cb.bank(), reference, e);
             }
             break;
-        case NP24:
+        case NpxProbeType.NP24 _:
             for (var electrode : chmap) {
                 assert electrode != null;
-                var e = ChannelMapUtil.cr2e(info, electrode);
+                var e = ChannelMapUtil.cr2e(type, electrode);
                 var cb = ChannelMapUtil.e2c24(electrode.shank, e);
                 out.printf("(%d %d %d %d %d)", cb.channel(), electrode.shank, cb.bank(), reference, e);
             }
