@@ -1,9 +1,15 @@
 package io.ast.jneurocarto.core;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
 import java.util.ServiceLoader;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public interface ProbeDescription<T> {
 
     /**
@@ -42,10 +48,84 @@ public interface ProbeDescription<T> {
     /**
      * All supported probe type.
      *
-     * @param <E>
      * @return
      */
-    <E extends Enum<E>> Class<? extends E> supportedProbeType();
+    List<String> supportedProbeType();
+
+    String probeTypeDescription(String code);
+
+    List<String> availableStates();
+
+    List<String> availableCategories();
+
+    List<String> channelMapFileSuffix();
+
+    T load(Path file) throws IOException;
+
+    void save(Path file, T chmap) throws IOException;
+
+    @Nullable
+    default String channelmapCode(String code) {
+        return supportedProbeType().contains(code) ? code : null;
+    }
+
+    @Nullable
+    String channelmapCode(Object chmap);
+
+    T newChannelmap(String code);
+
+    default T newChannelmap(T chmap) {
+        return newChannelmap(Objects.requireNonNull(channelmapCode(chmap)));
+    }
+
+    T copyChannelmap(T chmap);
+
+    String despChannelmap(@Nullable T chmap);
+
+    List<ElectrodeDescription> allElectrodes(String code);
+
+    default List<ElectrodeDescription> allElectrodes(T chmap) {
+        var code = channelmapCode(chmap);
+        if (code == null) throw new IllegalArgumentException("Not a channelmap of " + getClass().getName());
+        return allElectrodes(code);
+    }
+
+    List<ElectrodeDescription> allChannels(T chmap);
+
+    List<ElectrodeDescription> allChannels(T chmap, List<ElectrodeDescription> subset);
+
+    boolean validateChannelmap(T chmap);
+
+    default @Nullable ElectrodeDescription getElectrode(List<ElectrodeDescription> electrodes, Object identify) {
+        if (identify instanceof ElectrodeDescription desp) {
+            return getElectrode(electrodes, desp.electrode());
+        }
+
+        for (var electrode : electrodes) {
+            if (Objects.equals(identify, electrode)) {
+                return electrode;
+            }
+        }
+
+        return null;
+    }
+
+    default @Nullable ElectrodeDescription addElectrode(T chmap, ElectrodeDescription e) {
+        return addElectrode(chmap, e, false);
+    }
+
+    @Nullable
+    ElectrodeDescription addElectrode(T chmap, ElectrodeDescription e, boolean force);
+
+    default boolean removeElectrode(T chmap, ElectrodeDescription e) {
+        return removeElectrode(chmap, e, true);
+    }
+
+    boolean removeElectrode(T chmap, ElectrodeDescription e, boolean force);
+
+    List<ElectrodeDescription> clearElectrodes(T chmap);
+
+    List<ElectrodeDescription> copyElectrodes(List<ElectrodeDescription> electrodes);
 
     static @Nullable ProbeDescription<?> getProbeDescription(String family) {
         for (var provider : ServiceLoader.load(ProbeProvider.class)) {

@@ -25,9 +25,9 @@ public sealed interface NpxProbeType {
 
     static NpxProbeType of(String code) {
         return switch (code) {
-            case "0" -> NP1;
-            case "21", "NP2_1", "PRB2_1_2_0640_0", "PRB2_1_4_0480_1", "NP2000", "NP2003", "NP2004" -> NP21;
-            case "24", "NP2_4", "PRB2_4_2_0640_0", "NP2010", "NP2013", "NP2014" -> NP24;
+            case "0", "NP0" -> NP1;
+            case "21", "NP21", "NP2_1", "PRB2_1_2_0640_0", "PRB2_1_4_0480_1", "NP2000", "NP2003", "NP2004" -> NP21;
+            case "24", "NP24", "NP2_4", "PRB2_4_2_0640_0", "NP2010", "NP2013", "NP2014" -> NP24;
             default -> throw new IllegalArgumentException("unknown Neuropixels probe code : " + code);
         };
     }

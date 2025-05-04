@@ -30,6 +30,7 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
 
     public ChannelMap(ChannelMap map) {
         this(map.type, map.channels(), map.meta);
+        reference = map.reference;
     }
 
     public ChannelMap(NpxProbeType type, List<@Nullable Electrode> electrodes, @Nullable NpxMeta meta) {
@@ -331,6 +332,30 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
 
     public synchronized @Nullable Electrode removeElectrode(int shank, Electrode e) {
         return removeElectrode(shank, e.column, e.row);
+    }
+
+    public synchronized List<Electrode> removeElectrodes(Predicate<Electrode> selector) {
+        var ret = new ArrayList<Electrode>();
+        for (int i = 0, length = electrodes.length; i < length; i++) {
+            var electrode = electrodes[i];
+            if (electrode != null && selector.test(electrode)) {
+                ret.add(electrode);
+                electrodes[i] = null;
+            }
+        }
+        return ret;
+    }
+
+    public synchronized List<Electrode> clearElectrodes() {
+        var ret = new ArrayList<Electrode>();
+        for (int i = 0, length = electrodes.length; i < length; i++) {
+            var electrode = electrodes[i];
+            if (electrode != null) {
+                ret.add(electrode);
+                electrodes[i] = null;
+            }
+        }
+        return ret;
     }
 
     @Override
