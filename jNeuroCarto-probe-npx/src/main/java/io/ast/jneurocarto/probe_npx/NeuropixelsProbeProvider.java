@@ -1,6 +1,6 @@
 package io.ast.jneurocarto.probe_npx;
 
-import io.ast.jneurocarto.ProbeProvider;
+import io.ast.jneurocarto.core.ProbeProvider;
 
 @SuppressWarnings("unused")
 public class NeuropixelsProbeProvider implements ProbeProvider {

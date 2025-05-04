@@ -10,8 +10,80 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>jNeuroCarto-core</module>
+        <module>jNeuroCarto-probe-npx</module>
         <module>jNeuroCarto</module>
     </modules>
 
+    <properties>
+        <maven.compiler.source>24</maven.compiler.source>
+        <maven.compiler.target>24</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <slf4j.version>2.0.14</slf4j.version>
+        <junit.version>5.12.2</junit.version>
+    </properties>
 
+    <dependencyManagement>
+        <dependencies>
+
+            <!--logging-->
+
+            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!--Annotations-->
+
+            <!-- https://mvnrepository.com/artifact/org.jspecify/jspecify -->
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>1.0.0</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.3.1</version>
+                    <configuration>
+                        <argLine>--enable-preview</argLine>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>

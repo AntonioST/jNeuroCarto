@@ -2,7 +2,7 @@ package io.ast.jneurocarto;
 
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.cli.CartoConfig;
+import io.ast.jneurocarto.core.cli.CartoConfig;
 
 
 public class Main {

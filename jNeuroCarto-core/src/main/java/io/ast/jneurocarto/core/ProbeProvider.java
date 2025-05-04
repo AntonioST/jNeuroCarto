@@ -1,4 +1,4 @@
-package io.ast.jneurocarto;
+package io.ast.jneurocarto.core;
 
 public interface ProbeProvider {
 
