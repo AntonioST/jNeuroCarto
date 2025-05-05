@@ -3,14 +3,14 @@ package io.ast.jneurocarto.probe_npx;
 import io.ast.jneurocarto.core.ProbeProvider;
 
 @SuppressWarnings("unused")
-public class NeuropixelsProbeProvider implements ProbeProvider {
+public class NpxProbeProvider implements ProbeProvider {
     @Override
     public String provideProbeFamily() {
         return "npx";
     }
 
     @Override
-    public NeuropixelsProbeDescription getProbeDescription() {
-        return new NeuropixelsProbeDescription();
+    public NpxProbeDescription getProbeDescription() {
+        return new NpxProbeDescription();
     }
 }

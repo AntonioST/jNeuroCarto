@@ -2,7 +2,7 @@ package io.ast.jneurocarto.core;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -36,12 +36,15 @@ public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implement
     @Override
     public T select(D desp, T chmap, List<ElectrodeDescription> blueprint) {
         var ret = desp.newChannelmap(chmap);
-        var cand = desp.allElectrodes(chmap);
+        var cand = desp.allElectrodes(chmap).stream().collect(Collectors.toMap(
+          e -> e,
+          e -> e,
+          (_, _) -> {
+              throw new RuntimeException("duplicated electrode");
+          }
+        ));
         for (var electrode : blueprint) {
-            var index = indexOf(cand, electrode);
-            if (index >= 0) {
-                cand.get(index).category(electrode.category());
-            }
+            cand.get(electrode).category(electrode.category());
         }
 
         if (!ignorePreSelected) {
@@ -63,14 +66,7 @@ public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implement
         return selectLoop(desp, ret, cand);
     }
 
-    private int indexOf(List<ElectrodeDescription> electrodes, ElectrodeDescription electrode) {
-        for (int i = 0, length = electrodes.size(); i < length; i++) {
-            if (Objects.equals(electrodes.get(i), electrode)) return i;
-        }
-        return -1;
-    }
-
-    private T selectLoop(D desp, T chmap, List<ElectrodeDescription> cand) {
+    private T selectLoop(D desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand) {
         while (!cand.isEmpty()) {
             var e = pickElectrode(cand);
             if (e != null && !(e.category() == ProbeDescription.CATE_EXCLUDED && ignoreExclude)) {
@@ -80,16 +76,16 @@ public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implement
         return chmap;
     }
 
-    private @Nullable ElectrodeDescription pickElectrode(List<ElectrodeDescription> cand) {
+    private @Nullable ElectrodeDescription pickElectrode(Map<ElectrodeDescription, ElectrodeDescription> cand) {
         if (cand.isEmpty()) return null;
         int pick = (int) (Math.random() * cand.size());
-        return cand.get(pick);
+        return cand.keySet().stream().skip(pick).findFirst().orElse(null);
     }
 
-    private void add(D desp, T chmap, List<ElectrodeDescription> cand, ElectrodeDescription electrode) {
+    private void add(D desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand, ElectrodeDescription electrode) {
         var added = desp.addElectrode(chmap, electrode);
         if (added != null) {
-            cand.removeAll(desp.getInvalidElectrodes(chmap, added, cand));
+            desp.getInvalidElectrodes(chmap, added, cand.keySet()).forEach(cand::remove);
         }
     }
 }

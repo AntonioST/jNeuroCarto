@@ -8,14 +8,28 @@ import org.jspecify.annotations.NullMarked;
 @NullMarked
 public interface ElectrodeSelector<D extends ProbeDescription<T>, T> {
 
+    /**
+     * {@return get option map}.
+     */
     default Map<String, String> getOptions() {
         return Map.of();
     }
 
+    /**
+     * set options by a map.
+     *
+     * @param options option map
+     */
     default void setOptions(Map<String, String> options) {
         options.forEach(this::setOption);
     }
 
+    /**
+     * set option with a string value.
+     *
+     * @param name  option name
+     * @param value option value
+     */
     default void setOption(String name, String value) {
     }
 

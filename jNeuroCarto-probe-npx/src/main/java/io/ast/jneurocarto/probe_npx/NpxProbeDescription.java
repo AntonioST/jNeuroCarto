@@ -12,7 +12,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
 @NullMarked
-public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap> {
+public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     /**
      * electrode full-density category.
