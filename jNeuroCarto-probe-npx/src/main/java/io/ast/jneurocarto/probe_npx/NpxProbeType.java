@@ -10,13 +10,13 @@ import org.jspecify.annotations.NullMarked;
 @NullMarked
 public sealed interface NpxProbeType {
 
-    NpxProbeType NP1 = new NP1();
+    NpxProbeType NP0 = new NP1();
     NpxProbeType NP21 = new NP21();
     NpxProbeType NP24 = new NP24();
 
     static NpxProbeType of(int code) {
         return switch (code) {
-            case 0 -> NP1;
+            case 0 -> NP0;
             case 21 -> NP21;
             case 24 -> NP24;
             default -> throw new IllegalArgumentException("unknown Neuropixels probe code : " + code);
@@ -25,7 +25,7 @@ public sealed interface NpxProbeType {
 
     static NpxProbeType of(String code) {
         return switch (code) {
-            case "0", "NP0" -> NP1;
+            case "0", "NP0" -> NP0;
             case "21", "NP21", "NP2_1", "PRB2_1_2_0640_0", "PRB2_1_4_0480_1", "NP2000", "NP2003", "NP2004" -> NP21;
             case "24", "NP24", "NP2_4", "PRB2_4_2_0640_0", "NP2010", "NP2013", "NP2014" -> NP24;
             default -> throw new IllegalArgumentException("unknown Neuropixels probe code : " + code);
@@ -33,6 +33,8 @@ public sealed interface NpxProbeType {
     }
 
     int code();
+
+    String name();
 
     /**
      * {@return number of shank}
@@ -96,10 +98,19 @@ public sealed interface NpxProbeType {
         return nChannel() / nElectrodePerBlock();
     }
 
+    default int nElectrode() {
+        return nElectrodePerShank() * nShank();
+    }
+
     final class NP1 implements NpxProbeType {
         @Override
         public int code() {
             return 0;
+        }
+
+        @Override
+        public String name() {
+            return "NP0";
         }
 
         @Override
@@ -160,6 +171,11 @@ public sealed interface NpxProbeType {
         }
 
         @Override
+        public String name() {
+            return "NP21";
+        }
+
+        @Override
         public int nShank() {
             return 1;
         }
@@ -216,6 +232,10 @@ public sealed interface NpxProbeType {
             return 24;
         }
 
+        @Override
+        public String name() {
+            return "NP24";
+        }
         @Override
         public int nShank() {
             return 4;

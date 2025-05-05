@@ -202,20 +202,7 @@ public final class ChannelMapUtilVec {
     public static int[] e2c(NpxProbeType type, int[][] scr) {
         var e = cr2e(type, scr);
         var cb = e2cb(type, scr[0], e);
-
-        var n = type.nChannel();
-        var ret = new int[e.length];
-
-        int i = 0;
-        for (int u = I.loopBound(ret.length); i < u; i += I.length()) {
-            var c = IntVector.fromArray(I, cb[0], i);
-            var b = IntVector.fromArray(I, cb[1], i);
-            b.lanewise(FMA, n, c).intoArray(ret, i);
-        }
-        for (int length = ret.length; i < length; i++) {
-            ret[i] = cb[0][i] + cb[1][i] * n;
-        }
-        return ret;
+        return cb[0];
     }
 
     public static int[][] e2cb(NpxProbeType type, int shank, int[] electrode) {
@@ -237,7 +224,7 @@ public final class ChannelMapUtilVec {
     }
 
     public static int[][] e2c0(int[] electrode) {
-        var n = NpxProbeType.NP1.nChannel();
+        var n = NpxProbeType.NP0.nChannel();
         var ret = empty(2, electrode.length);
         int i = 0;
         for (int u = I.loopBound(electrode.length); i < u; i += I.length()) {

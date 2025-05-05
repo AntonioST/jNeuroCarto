@@ -28,6 +28,10 @@
             <artifactId>jspecify</artifactId>
         </dependency>
         <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
         </dependency>
@@ -46,6 +50,10 @@
             <version>0.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+        </dependency>
 
 
     </dependencies>
@@ -58,6 +66,18 @@
                     <source>24</source>
                     <target>24</target>
                     <compilerArgs>--enable-preview</compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <mainClass>io.ast.jneurocarto.probe_npx.cli.Main</mainClass>
+                    <arguments>
+                        <argument>--enable-preview</argument>
+                    </arguments>
                 </configuration>
             </plugin>
         </plugins>

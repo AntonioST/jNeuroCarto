@@ -3,7 +3,7 @@ package io.ast.jneurocarto.probe_npx;
 @SuppressWarnings("unused")
 public final class ChannelMapUtil {
 
-    private static final boolean USE_VECTOR = !System.getProperty("io.ast.jneurocarto.probe_npx.use_vector").isEmpty();
+    private static final boolean USE_VECTOR = !System.getProperty("io.ast.jneurocarto.probe_npx.use_vector", "").isEmpty();
 
     private ChannelMapUtil() {
         throw new RuntimeException();
@@ -223,14 +223,12 @@ public final class ChannelMapUtil {
 
     public static int e2c(NpxProbeType type, int electrode) {
         var cb = e2cb(type, electrode);
-        var n = type.nChannel();
-        return cb.channel + cb.bank * n;
+        return cb.channel;
     }
 
     public static int e2c(NpxProbeType type, int shank, int electrode) {
         var cb = e2cb(type, shank, electrode);
-        var n = type.nChannel();
-        return cb.channel + cb.bank * n;
+        return cb.channel;
     }
 
     public static int[] e2c(NpxProbeType type, int[][] scr) {
@@ -289,7 +287,7 @@ public final class ChannelMapUtil {
     }
 
     public static CB e2c0(int electrode) {
-        var n = NpxProbeType.NP1.nChannel();
+        var n = NpxProbeType.NP0.nChannel();
         return new CB(electrode % n, electrode / n);
     }
 

@@ -146,12 +146,7 @@ public final class ChannelMapUtilPlain {
     public static int[] e2c(NpxProbeType type, int[][] scr) {
         var e = cr2e(type, scr);
         var cb = e2cb(type, scr[0], e);
-        var n = type.nChannel();
-        var ret = new int[e.length];
-        for (int i = 0, length = ret.length; i < length; i++) {
-            ret[i] = cb[0][i] + cb[1][i] * n;
-        }
-        return ret;
+        return cb[0];
     }
 
     public static int[][] e2cb(NpxProbeType type, int shank, int[] electrode) {

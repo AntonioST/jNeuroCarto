@@ -100,7 +100,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         if (chmap == null) {
             return "0/0";
         } else {
-            return "" + chmap.length() + "/" + chmap.nChannel();
+            return "" + chmap.size() + "/" + chmap.nChannel();
         }
     }
 
@@ -124,7 +124,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     @Override
     public List<ElectrodeDescription> allChannels(ChannelMap chmap) {
         var type = chmap.type();
-        var ret = new ArrayList<ElectrodeDescription>(chmap.length());
+        var ret = new ArrayList<ElectrodeDescription>(chmap.size());
         for (var electrode : chmap) {
             if (electrode != null) {
                 var sxy = ChannelMapUtil.e2xy(type, electrode);
@@ -140,7 +140,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public List<ElectrodeDescription> allChannels(ChannelMap chmap, List<ElectrodeDescription> subset) {
-        var ret = new ArrayList<ElectrodeDescription>(chmap.length());
+        var ret = new ArrayList<ElectrodeDescription>(chmap.size());
         for (var electrode : chmap) {
             if (electrode != null) {
                 getElectrode(subset, electrode).ifPresent(ret::add);
@@ -151,7 +151,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public boolean validateChannelmap(ChannelMap chmap) {
-        return chmap.length() == chmap.nChannel();
+        return chmap.size() == chmap.nChannel();
     }
 
     @Override
@@ -201,12 +201,33 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     }
 
     @Override
+    public List<ElectrodeDescription> loadBlueprint(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        if (!filename.endsWith(".npy")) throw new IllegalArgumentException("not a .npy filename : " + filename);
+
+        var data = Numpy.read(file);
+        var length = data[0].length;
+
+        for (var code : supportedProbeType()) {
+            if (NpxProbeType.of(code).nElectrode() == length) {
+                return readBlueprint(data, allElectrodes(code));
+            }
+        }
+
+        throw new RuntimeException("cannot not found match probe type.");
+    }
+
+    @Override
     public List<ElectrodeDescription> loadBlueprint(Path file, ChannelMap chmap) throws IOException {
         var filename = file.getFileName().toString();
         if (!filename.endsWith(".npy")) throw new IllegalArgumentException("not a .npy filename : " + filename);
 
-        var ret = allElectrodes(chmap);
         var data = Numpy.read(file);
+
+        return readBlueprint(data, allElectrodes(chmap));
+    }
+
+    private List<ElectrodeDescription> readBlueprint(int[][] data, List<ElectrodeDescription> ret) throws IOException {
         var length = data[0].length;
         for (int i = 0; i < length; i++) {
             var s = data[0][i];

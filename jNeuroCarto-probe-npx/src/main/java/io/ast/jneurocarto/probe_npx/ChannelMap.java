@@ -103,7 +103,7 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     /**
      * {@return number of channels set}
      */
-    public int length() {
+    public int size() {
         int count = 0;
         for (Electrode electrode : electrodes) {
             if (electrode != null) count++;

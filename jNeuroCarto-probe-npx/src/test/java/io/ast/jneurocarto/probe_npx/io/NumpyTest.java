@@ -98,7 +98,6 @@ public class NumpyTest {
 
     @Test
     void readWriteNumpyArray() throws IOException {
-        var file = Files.createTempFile(Path.of("target"), "test-", ".npy");
         var data = new int[5][];
         for (int i = 0; i < 5; i++) {
             data[i] = new int[12];
@@ -106,12 +105,18 @@ public class NumpyTest {
                 data[i][j] = (int) (64 * Math.random());
             }
         }
-
         assert2DArrayEquals(data, data);
-        Numpy.write(file, data);
 
-        var back = Numpy.read(file);
-        assert2DArrayEquals(data, back);
+        var file = Files.createTempFile(Path.of("target"), "test-", ".npy");
+
+        try {
+            Numpy.write(file, data);
+
+            var back = Numpy.read(file);
+            assert2DArrayEquals(data, back);
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 
     private static void assert2DArrayEquals(int[][] expect, int[][] actual) {

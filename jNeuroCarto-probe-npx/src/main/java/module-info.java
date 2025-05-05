@@ -8,8 +8,12 @@ module io.ast.jneurocarto.probe_npx {
     requires jdk.incubator.vector;
 
     requires io.ast.jneurocarto.core;
+    requires info.picocli;
+    requires java.sql;
 
     exports io.ast.jneurocarto.probe_npx;
+    exports io.ast.jneurocarto.probe_npx.select;
+    opens io.ast.jneurocarto.probe_npx.cli to info.picocli;
 
     provides ProbeProvider with NpxProbeProvider;
     provides ElectrodeSelectorProvider with io.ast.jneurocarto.probe_npx.select.ElectrodeSelectorProvider;

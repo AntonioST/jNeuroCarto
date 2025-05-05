@@ -53,6 +53,17 @@
                 <scope>provided</scope>
             </dependency>
 
+            <!--CLI-->
+
+            <!-- https://mvnrepository.com/artifact/info.picocli/picocli -->
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>4.7.7</version>
+            </dependency>
+
+            <!--Test-->
+
             <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>

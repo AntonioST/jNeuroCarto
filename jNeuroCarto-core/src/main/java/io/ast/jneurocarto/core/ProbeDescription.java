@@ -109,7 +109,7 @@ public interface ProbeDescription<T> {
         }
 
         for (var electrode : electrodes) {
-            if (Objects.equals(identify, electrode)) {
+            if (Objects.equals(identify, electrode.electrode())) {
                 return Optional.of(electrode);
             }
         }
@@ -166,6 +166,8 @@ public interface ProbeDescription<T> {
         }
         throw new IllegalArgumentException("");
     }
+
+    List<ElectrodeDescription> loadBlueprint(Path file) throws IOException;
 
     List<ElectrodeDescription> loadBlueprint(Path file, T chmap) throws IOException;
 

@@ -104,7 +104,7 @@ public final class Imro {
 
 
     public static void write(Path file, ChannelMap chmap) throws IOException {
-        if (chmap.length() != chmap.nChannel()) {
+        if (chmap.size() != chmap.nChannel()) {
             throw new RuntimeException("incomplete chmap");
         }
 
@@ -123,7 +123,7 @@ public final class Imro {
     }
 
     public static void write(PrintStream out, ChannelMap chmap) throws IOException {
-        if (chmap.length() != chmap.nChannel()) {
+        if (chmap.size() != chmap.nChannel()) {
             throw new RuntimeException("incomplete chmap");
         }
 
