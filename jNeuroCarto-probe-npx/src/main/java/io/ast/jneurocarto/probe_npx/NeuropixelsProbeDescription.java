@@ -114,8 +114,7 @@ public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap>
             ret.add(new ElectrodeDescription(
               sxy[0][i], sxy[1][i], sxy[2][i],
               new Electrode(scr[0][i], scr[1][i], scr[2][i]),
-              c[i],
-              STATE_UNUSED, CATE_UNSET
+              c[i]
             ));
         }
         return ret;
@@ -131,8 +130,7 @@ public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap>
                 var c = ChannelMapUtil.e2c(type, electrode);
                 ret.add(new ElectrodeDescription(
                   sxy.s(), sxy.x(), sxy.y(),
-                  electrode, c,
-                  STATE_UNUSED, CATE_UNSET
+                  electrode, c
                 ));
             }
         }
@@ -173,7 +171,7 @@ public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap>
     private static ElectrodeDescription asDesp(NpxProbeType t, Electrode r) {
         var xy = ChannelMapUtil.e2xy(t, r);
         var c = ChannelMapUtil.e2c(t, r);
-        return new ElectrodeDescription(r.shank, xy.x(), xy.y(), r, c, STATE_UNUSED, CATE_UNSET);
+        return new ElectrodeDescription(r.shank, xy.x(), xy.y(), r, c);
     }
 
     @Override
@@ -195,6 +193,11 @@ public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap>
           e.channel(),
           e.state(), e.category()
         );
+    }
+
+    @Override
+    public boolean isElectrodeCompatible(ChannelMap chmap, ElectrodeDescription e1, ElectrodeDescription e2) {
+        return (int) e1.channel() != (int) e2.channel();
     }
 
     @Override

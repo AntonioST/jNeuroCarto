@@ -9,7 +9,7 @@ import io.ast.jneurocarto.probe_npx.NeuropixelsProbeDescription;
 
 public class WeakerElectrodeSelector implements ElectrodeSelector<NeuropixelsProbeDescription, ChannelMap> {
     @Override
-    public ChannelMap select(NeuropixelsProbeDescription desp, ChannelMap chmap, List<ElectrodeDescription> electrodes) {
+    public ChannelMap select(NeuropixelsProbeDescription desp, ChannelMap chmap, List<ElectrodeDescription> blueprint) {
         return null;
     }
 }

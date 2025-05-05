@@ -2,10 +2,7 @@ package io.ast.jneurocarto.core;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.ServiceLoader;
+import java.util.*;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -137,8 +134,20 @@ public interface ProbeDescription<T> {
 
     ElectrodeDescription copyElectrode(ElectrodeDescription e);
 
-    default List<ElectrodeDescription> copyElectrodes(List<ElectrodeDescription> electrodes) {
+    default List<ElectrodeDescription> copyElectrodes(Collection<ElectrodeDescription> electrodes) {
         return electrodes.stream().map(this::copyElectrode).toList();
+    }
+
+    boolean isElectrodeCompatible(T chmap, ElectrodeDescription e1, ElectrodeDescription e2);
+
+    default List<ElectrodeDescription> getInvalidElectrodes(T chmap, ElectrodeDescription e, Collection<ElectrodeDescription> electrodes) {
+        return electrodes.stream().filter(it -> !isElectrodeCompatible(chmap, e, it)).toList();
+    }
+
+    default List<ElectrodeDescription> getInvalidElectrodes(T chmap, Collection<ElectrodeDescription> e, Collection<ElectrodeDescription> electrodes) {
+        return electrodes.stream()
+          .filter(it -> e.stream().anyMatch(r -> !isElectrodeCompatible(chmap, r, it)))
+          .toList();
     }
 
     default List<String> getElectrodeSelectors() {
