@@ -74,6 +74,10 @@ public final class ChannelMapUtil {
         return ret;
     }
 
+    /**
+     * @param type
+     * @return {0: shank, 1: column, 2: row} by int[nShank*nElectrodePerShank]
+     */
     public static int[][] electrodePosSCR(NpxProbeType type) {
         if (USE_VECTOR) {
             return ChannelMapUtilVec.electrodePosSCR(type);
@@ -83,6 +87,10 @@ public final class ChannelMapUtil {
     }
 
 
+    /**
+     * @param type
+     * @return {0: shank, 1: x, 2: y} by int[nShank*nElectrodePerShank]
+     */
     public static int[][] electrodePosXY(NpxProbeType type) {
         if (USE_VECTOR) {
             return ChannelMapUtilVec.electrodePosXY(type);
@@ -103,10 +111,10 @@ public final class ChannelMapUtil {
       {5, 7, 1, 3, 0, 2, 4, 6},
     };
 
-    public record XY(int x, int y) {
+    public record XY(int s, int x, int y) {
     }
 
-    public record CR(int c, int r) {
+    public record CR(int s, int c, int r) {
     }
 
     public record CB(int channel, int bank) {
@@ -115,6 +123,7 @@ public final class ChannelMapUtil {
     public static XY e2xy(NpxProbeType type, int electrode) {
         var cr = e2cr(type, electrode);
         return new XY(
+          0,
           cr.c() * type.spacePerColumn(),
           cr.r() * type.spacePerRow()
         );
@@ -127,6 +136,7 @@ public final class ChannelMapUtil {
     public static XY e2xy(NpxProbeType type, int shank, int electrode) {
         var cr = e2cr(type, electrode);
         return new XY(
+          shank,
           shank * type.spacePerShank() + cr.c() * type.spacePerColumn(),
           cr.r() * type.spacePerRow()
         );
@@ -142,17 +152,10 @@ public final class ChannelMapUtil {
 
     public static XY e2xy(NpxProbeType type, int shank, int column, int row) {
         return new XY(
+          shank,
           shank * type.spacePerShank() + column * type.spacePerColumn(),
           row * type.spacePerRow()
         );
-    }
-
-    public static int[][] e2xy(NpxProbeType type, int shank, int[][] cr) {
-        if (USE_VECTOR) {
-            return ChannelMapUtilVec.e2xy(type, shank, cr);
-        } else {
-            return ChannelMapUtilPlain.e2xy(type, shank, cr);
-        }
     }
 
     public static int[][] e2xy(NpxProbeType type, int[][] scr) {
@@ -165,14 +168,8 @@ public final class ChannelMapUtil {
 
     public static XY e2xy(NpxProbeType type, Electrode electrode) {
         return new XY(
+          electrode.shank,
           electrode.shank * type.spacePerShank() + electrode.column * type.spacePerColumn(),
-          electrode.row * type.spacePerRow()
-        );
-    }
-
-    public static XY e2xy(NpxProbeType type, int shank, Electrode electrode) {
-        return new XY(
-          shank * type.spacePerShank() + electrode.column * type.spacePerColumn(),
           electrode.row * type.spacePerRow()
         );
     }
@@ -180,6 +177,7 @@ public final class ChannelMapUtil {
     public static CR e2cr(NpxProbeType type, int electrode) {
         var nc = type.nColumnPerShank();
         return new CR(
+          0,
           electrode % nc,
           electrode / nc
         );
@@ -194,20 +192,28 @@ public final class ChannelMapUtil {
     }
 
     public static CR e2cr(NpxProbeType type, int shank, int column, int row) {
-        return new CR(column, row);
+        return new CR(shank, column, row);
     }
 
-    public static int[][] e2cr(NpxProbeType type, int[][] cr) {
-        return cr;
+    public static int[][] e2cr(NpxProbeType type, int[][] scr) {
+        return scr;
     }
 
     public static CR e2cr(NpxProbeType type, Electrode electrode) {
-        return new CR(electrode.column, electrode.row);
+        return new CR(electrode.shank, electrode.column, electrode.row);
     }
 
     public static int cr2e(NpxProbeType type, int column, int row) {
         var nc = type.nColumnPerShank();
         return column + nc * row;
+    }
+
+    public static int[] cr2e(NpxProbeType type, int[][] scr) {
+        if (USE_VECTOR) {
+            return ChannelMapUtilVec.cr2e(type, scr);
+        } else {
+            return ChannelMapUtilPlain.cr2e(type, scr);
+        }
     }
 
     public static int cr2e(NpxProbeType type, Electrode electrode) {
@@ -227,14 +233,16 @@ public final class ChannelMapUtil {
         return cb.channel + cb.bank * n;
     }
 
-    public static int e2c(NpxProbeType type, Electrode electrode) {
-        var cb = e2cb(type, electrode);
-        var n = type.nChannel();
-        return cb.channel + cb.bank * n;
+    public static int[] e2c(NpxProbeType type, int[][] scr) {
+        if (USE_VECTOR) {
+            return ChannelMapUtilVec.e2c(type, scr);
+        } else {
+            return ChannelMapUtilPlain.e2c(type, scr);
+        }
     }
 
-    public static int e2c(NpxProbeType type, int shank, Electrode electrode) {
-        var cb = e2cb(type, shank, electrode);
+    public static int e2c(NpxProbeType type, Electrode electrode) {
+        var cb = e2cb(type, electrode);
         var n = type.nChannel();
         return cb.channel + cb.bank * n;
     }
@@ -256,12 +264,28 @@ public final class ChannelMapUtil {
         return e2cb(type, shank, cr2e(type, column, row));
     }
 
-    public static CB e2cb(NpxProbeType type, Electrode electrode) {
-        return e2cb(type, 0, cr2e(type, electrode));
+    public static int[][] e2cb(NpxProbeType type, int[] electrode) {
+        return e2cb(type, 0, electrode);
     }
 
-    public static CB e2cb(NpxProbeType type, int shank, Electrode electrode) {
-        return e2cb(type, shank, cr2e(type, electrode));
+    public static int[][] e2cb(NpxProbeType type, int shank, int[] electrode) {
+        if (USE_VECTOR) {
+            return ChannelMapUtilVec.e2cb(type, shank, electrode);
+        } else {
+            return ChannelMapUtilPlain.e2cb(type, shank, electrode);
+        }
+    }
+
+    public static int[][] e2cb(NpxProbeType type, int[] shank, int[] electrode) {
+        if (USE_VECTOR) {
+            return ChannelMapUtilVec.e2cb(type, shank, electrode);
+        } else {
+            return ChannelMapUtilPlain.e2cb(type, shank, electrode);
+        }
+    }
+
+    public static CB e2cb(NpxProbeType type, Electrode electrode) {
+        return e2cb(type, electrode.shank, cr2e(type, electrode));
     }
 
     public static CB e2c0(int electrode) {
@@ -272,7 +296,7 @@ public final class ChannelMapUtil {
     public static CB e2c21(int electrode) {
         var n = NpxProbeType.NP21.nChannel();
         var bf = ELECTRODE_MAP_21[0];
-        var ba = ELECTRODE_MAP_21[0];
+        var ba = ELECTRODE_MAP_21[1];
         var bank = electrode / n;
         var e1 = electrode % n;
         var block = e1 / 32/*type.nElectrodePerBlock()*/;

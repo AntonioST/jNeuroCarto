@@ -2,6 +2,7 @@ package io.ast.jneurocarto.probe_npx;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.jspecify.annotations.NullMarked;
@@ -104,20 +105,50 @@ public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap>
 
     @Override
     public List<ElectrodeDescription> allElectrodes(String code) {
-        //XXX Unsupported Operation NeuropixelsProbeDescription.allElectrodes
-        throw new UnsupportedOperationException();
+        var type = NpxProbeType.of(code);
+        var scr = ChannelMapUtil.electrodePosSCR(type);
+        var c = ChannelMapUtil.e2c(type, scr);
+        var sxy = ChannelMapUtil.e2xy(type, scr);
+        var ret = new ArrayList<ElectrodeDescription>(c.length);
+        for (int i = 0, length = c.length; i < length; i++) {
+            ret.add(new ElectrodeDescription(
+              sxy[0][i], sxy[1][i], sxy[2][i],
+              new Electrode(scr[0][i], scr[1][i], scr[2][i]),
+              c[i],
+              STATE_UNUSED, CATE_UNSET
+            ));
+        }
+        return ret;
     }
 
     @Override
     public List<ElectrodeDescription> allChannels(ChannelMap chmap) {
-        //XXX Unsupported Operation NeuropixelsProbeDescription.allChannels
-        throw new UnsupportedOperationException();
+        var type = chmap.type();
+        var ret = new ArrayList<ElectrodeDescription>(chmap.length());
+        for (var electrode : chmap) {
+            if (electrode != null) {
+                var sxy = ChannelMapUtil.e2xy(type, electrode);
+                var c = ChannelMapUtil.e2c(type, electrode);
+                ret.add(new ElectrodeDescription(
+                  sxy.s(), sxy.x(), sxy.y(),
+                  electrode, c,
+                  STATE_UNUSED, CATE_UNSET
+                ));
+            }
+        }
+        return ret;
     }
 
     @Override
     public List<ElectrodeDescription> allChannels(ChannelMap chmap, List<ElectrodeDescription> subset) {
-        //XXX Unsupported Operation NeuropixelsProbeDescription.allChannels
-        throw new UnsupportedOperationException();
+        ElectrodeDescription found;
+        var ret = new ArrayList<ElectrodeDescription>(chmap.length());
+        for (var electrode : chmap) {
+            if (electrode != null && (found = getElectrode(subset, electrode)) != null) {
+                ret.add(found);
+            }
+        }
+        return ret;
     }
 
     @Override
@@ -157,8 +188,24 @@ public class NeuropixelsProbeDescription implements ProbeDescription<ChannelMap>
     }
 
     @Override
-    public List<ElectrodeDescription> copyElectrodes(List<ElectrodeDescription> electrodes) {
-        //XXX Unsupported Operation NeuropixelsProbeDescription.copyElectrodes
+    public ElectrodeDescription copyElectrode(ElectrodeDescription e) {
+        return new ElectrodeDescription(
+          e.s(), e.x(), e.y(),
+          new Electrode((Electrode) e.electrode()),
+          e.channel(),
+          e.state(), e.category()
+        );
+    }
+
+    @Override
+    public void loadBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException {
+        //XXX Unsupported Operation NeuropixelsProbeDescription.loadBlueprint
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void saveBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException {
+        //XXX Unsupported Operation NeuropixelsProbeDescription.saveBlueprint
         throw new UnsupportedOperationException();
     }
 }

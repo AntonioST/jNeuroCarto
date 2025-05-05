@@ -2,6 +2,7 @@ package io.ast.jneurocarto.core;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.ServiceLoader;
@@ -44,6 +45,15 @@ public interface ProbeDescription<T> {
      * electrode low-priority category.
      */
     int CATE_LOW = 3;
+
+    static @Nullable ProbeDescription<?> getProbeDescription(String family) {
+        for (var provider : ServiceLoader.load(ProbeProvider.class)) {
+            if (provider.provideProbeFamily().equals(family)) {
+                return provider.getProbeDescription();
+            }
+        }
+        return null;
+    }
 
     /**
      * All supported probe type.
@@ -125,14 +135,31 @@ public interface ProbeDescription<T> {
 
     List<ElectrodeDescription> clearElectrodes(T chmap);
 
-    List<ElectrodeDescription> copyElectrodes(List<ElectrodeDescription> electrodes);
+    ElectrodeDescription copyElectrode(ElectrodeDescription e);
 
-    static @Nullable ProbeDescription<?> getProbeDescription(String family) {
-        for (var provider : ServiceLoader.load(ProbeProvider.class)) {
-            if (provider.provideProbeFamily().equals(family)) {
-                return provider.getProbeDescription();
+    default List<ElectrodeDescription> copyElectrodes(List<ElectrodeDescription> electrodes) {
+        return electrodes.stream().map(this::copyElectrode).toList();
+    }
+
+    default List<String> getElectrodeSelectors() {
+        var ret = new ArrayList<String>();
+        for (var provider : ServiceLoader.load(ElectrodeSelectorProvider.class)) {
+            ret.addAll(provider.name(this));
+        }
+        return ret;
+    }
+
+    default <D extends ProbeDescription<?>> ElectrodeSelector<D, ?> newElectrodeSelector(String name) {
+        for (var provider : ServiceLoader.load(ElectrodeSelectorProvider.class)) {
+            if (provider.name(this).contains(name)) {
+                return provider.newSelector(name);
             }
         }
-        return null;
+        throw new IllegalArgumentException("");
     }
+
+    void loadBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException;
+
+    void saveBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException;
+
 }

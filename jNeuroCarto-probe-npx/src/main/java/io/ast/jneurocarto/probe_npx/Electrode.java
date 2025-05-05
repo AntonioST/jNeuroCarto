@@ -23,6 +23,11 @@ public final class Electrode implements Comparable<Electrode> {
         this.row = row;
     }
 
+    public Electrode(Electrode ref) {
+        this(ref.shank, ref.column, ref.row);
+        copyFrom(ref);
+    }
+
     public void copyFrom(Electrode ref) {
         apBandGain = ref.apBandGain;
         lfBandBain = ref.lfBandBain;

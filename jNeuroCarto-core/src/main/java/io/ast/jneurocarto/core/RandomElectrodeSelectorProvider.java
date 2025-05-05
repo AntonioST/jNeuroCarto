@@ -4,15 +4,15 @@ import java.util.List;
 
 public class RandomElectrodeSelectorProvider implements ElectrodeSelectorProvider {
     @Override
-    public List<String> name() {
+    public List<String> name(ProbeDescription<?> desp) {
         return List.of("random");
     }
 
     @Override
-    public <D extends ProbeDescription<?>> ElectrodeSelector<D, ?> newSelector(String name, ProbeDescription<?> desp) {
+    public <D extends ProbeDescription<?>> ElectrodeSelector<D, ?> newSelector(String name) {
         if (!name.equals("random")) {
             throw new IllegalArgumentException();
         }
-        return new RandomElectrodeSelector();
+        return (ElectrodeSelector<D, ?>) new RandomElectrodeSelector();
     }
 }
