@@ -3,7 +3,7 @@ package io.ast.jneurocarto.probe_npx;
 @SuppressWarnings("unused")
 public final class ChannelMapUtil {
 
-    private static final boolean USE_VECTOR = !System.getProperty("io.ast.jneurocarto.use_vector").isEmpty();
+    private static final boolean USE_VECTOR = !System.getProperty("io.ast.jneurocarto.probe_npx.use_vector").isEmpty();
 
     private ChannelMapUtil() {
         throw new RuntimeException();
@@ -317,4 +317,269 @@ public final class ChannelMapUtil {
         return new CB(48 * block + index, bank);
     }
 
+    public static ChannelMap npx24SingleShank(int shank, double row) {
+        var type = NpxProbeType.NP24;
+        try {
+            return npx24SingleShank(shank, (int) (row / type.spacePerRow()));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().startsWith("row over range : ")) {
+                throw new IllegalArgumentException("row over range : " + row + " um", e);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    public static ChannelMap npx24SingleShank(int shank, int row) {
+        var type = NpxProbeType.NP24;
+        if (!(0 <= shank && shank < type.nShank())) {
+            throw new IllegalArgumentException("shank over range : " + shank);
+        }
+
+        var nc = type.nColumnPerShank();
+        var nr = type.nChannel() / nc;
+        if (!(0 <= row && row + nr < type.nRowPerShank())) {
+            throw new IllegalArgumentException("row over range : " + row);
+        }
+
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < nr; r++) {
+            for (int c = 0; c < nc; c++) {
+                try {
+                    ret.addElectrode(shank, c, r + row);
+                } catch (ChannelHasBeenUsedException e) {
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static ChannelMap npx24Stripe(int shank, double row) {
+        var type = NpxProbeType.NP24;
+        try {
+            return npx24Stripe(shank, (int) (row / type.spacePerRow()));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().startsWith("row over range : ")) {
+                throw new IllegalArgumentException("row over range : " + row + " um", e);
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    public static ChannelMap npx24Stripe(int shank, int row) {
+        var type = NpxProbeType.NP24;
+        var ns = type.nShank();
+        if (!(0 <= shank && shank < ns)) {
+            throw new IllegalArgumentException("shank over range : " + shank);
+        }
+
+        var nc = type.nColumnPerShank();
+        var nr = type.nChannel() / (nc * ns);
+        if (!(0 <= row && row + nr < type.nRowPerShank())) {
+            throw new IllegalArgumentException("row over range : " + row);
+        }
+
+        var ret = new ChannelMap(type);
+        for (int s = 0; s < ns; s++) {
+            for (int r = 0; r < nr; r++) {
+                for (int c = 0; c < nc; c++) {
+                    try {
+                        ret.addElectrode(s, c, r + row);
+                    } catch (ChannelHasBeenUsedException e) {
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static ChannelMap npx24HalfDensity(int shank, double row) {
+        var type = NpxProbeType.NP24;
+        return npx24HalfDensity(shank, (int) (row / type.spacePerRow()));
+    }
+
+    public static ChannelMap npx24HalfDensity(int s1, int s2, double row) {
+        var type = NpxProbeType.NP24;
+        return npx24HalfDensity(s1, s2, (int) (row / type.spacePerRow()));
+    }
+
+    public static ChannelMap npx24HalfDensity(int shank, int row) {
+        var type = NpxProbeType.NP24;
+        if (!(0 <= shank && shank < type.nShank())) {
+            throw new IllegalArgumentException("shank over range : " + shank);
+        }
+
+        var nc = type.nColumnPerShank();
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < 192; r += 2) {
+            addElectrode(ret, shank, 0, r + row);
+            addElectrode(ret, shank, 1, r + row + 1);
+        }
+        for (int r = 192; r < 384; r += 2) {
+            addElectrode(ret, shank, 1, r + row);
+            addElectrode(ret, shank, 0, r + row + 1);
+        }
+
+        return ret;
+    }
+
+    public static ChannelMap npx24HalfDensity(int s1, int s2, int row) {
+        var type = NpxProbeType.NP24;
+        var ns = type.nShank();
+        if (!(0 <= s1 && s1 < ns)) {
+            throw new IllegalArgumentException("shank (s1) over range : " + s1);
+        }
+        if (!(0 <= s2 && s2 < ns)) {
+            throw new IllegalArgumentException("shank (s2) over range : " + s2);
+        }
+
+        var nc = type.nColumnPerShank();
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < 192; r += 2) {
+            addElectrode(ret, s1, 0, r + row);
+            addElectrode(ret, s1, 1, r + row + 1);
+        }
+        for (int r = 0; r < 192; r += 2) {
+            addElectrode(ret, s2, 1, r + row);
+            addElectrode(ret, s2, 0, r + row + 1);
+        }
+
+        return ret;
+    }
+
+    public static ChannelMap npx24HalfQuarter(double row) {
+        var type = NpxProbeType.NP24;
+        return npx24HalfQuarter((int) (row / type.spacePerRow()));
+    }
+
+    public static ChannelMap npx24HalfQuarter(int shank, double row) {
+        var type = NpxProbeType.NP24;
+        return npx24HalfQuarter(shank, (int) (row / type.spacePerRow()));
+    }
+
+    public static ChannelMap npx24HalfQuarter(int s1, int s2, double row) {
+        var type = NpxProbeType.NP24;
+        return npx24HalfQuarter(s1, s2, (int) (row / type.spacePerRow()));
+    }
+
+    public static ChannelMap npx24HalfQuarter(int row) {
+        var type = NpxProbeType.NP24;
+        var nc = type.nColumnPerShank();
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < 192; r += 4) {
+            addElectrode(ret, 0, 0, r + row);
+            addElectrode(ret, 0, 1, r + row + 2);
+            addElectrode(ret, 1, 1, r + row);
+            addElectrode(ret, 1, 0, r + row + 2);
+            addElectrode(ret, 2, 0, r + row + 1);
+            addElectrode(ret, 2, 1, r + row + 3);
+            addElectrode(ret, 3, 1, r + row + 1);
+            addElectrode(ret, 3, 0, r + row + 3);
+        }
+
+
+        return ret;
+    }
+
+    public static ChannelMap npx24HalfQuarter(int shank, int row) {
+        var type = NpxProbeType.NP24;
+        if (!(0 <= shank && shank < type.nShank())) {
+            throw new IllegalArgumentException("shank over range : " + shank);
+        }
+
+        var nc = type.nColumnPerShank();
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < 192; r += 4) {
+            addElectrode(ret, shank, 0, r + row);
+            addElectrode(ret, shank, 1, r + row + 2);
+        }
+        for (int r = 192; r < 384; r += 4) {
+            addElectrode(ret, shank, 1, r + row);
+            addElectrode(ret, shank, 0, r + row + 2);
+        }
+        for (int r = 384; r < 576; r += 4) {
+            addElectrode(ret, shank, 0, r + row + 1);
+            addElectrode(ret, shank, 1, r + row + 3);
+        }
+        for (int r = 576; r < 768; r += 4) {
+            addElectrode(ret, shank, 1, r + row + 1);
+            addElectrode(ret, shank, 0, r + row + 3);
+        }
+
+        return ret;
+    }
+
+    public static ChannelMap npx24HalfQuarter(int s1, int s2, int row) {
+        var type = NpxProbeType.NP24;
+        var ns = type.nShank();
+        if (!(0 <= s1 && s1 < ns)) {
+            throw new IllegalArgumentException("shank (s1) over range : " + s1);
+        }
+        if (!(0 <= s2 && s2 < ns)) {
+            throw new IllegalArgumentException("shank (s2) over range : " + s2);
+        }
+
+        var nc = type.nColumnPerShank();
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < 192; r += 4) {
+            addElectrode(ret, s1, 0, r + row);
+            addElectrode(ret, s1, 1, r + row + 2);
+            addElectrode(ret, s2, 1, r + row + 1);
+            addElectrode(ret, s2, 0, r + row + 3);
+        }
+        for (int r = 192; r < 384; r += 4) {
+            addElectrode(ret, s1, 1, r + row);
+            addElectrode(ret, s1, 0, r + row + 2);
+            addElectrode(ret, s2, 0, r + row + 1);
+            addElectrode(ret, s2, 1, r + row + 3);
+        }
+
+        return ret;
+    }
+
+
+    public static ChannelMap npx24OneEightDensity(double row) {
+        var type = NpxProbeType.NP24;
+        return npx24OneEightDensity((int) (row / type.spacePerRow()));
+    }
+
+    public static ChannelMap npx24OneEightDensity(int row) {
+        var type = NpxProbeType.NP24;
+
+        var nc = type.nColumnPerShank();
+
+        var ret = new ChannelMap(type);
+        for (int r = 0; r < 192; r += 8) {
+            addElectrode(ret, 0, 0, r + row);
+            addElectrode(ret, 1, 0, r + row + 1);
+            addElectrode(ret, 2, 0, r + row + 2);
+            addElectrode(ret, 3, 0, r + row + 3);
+            addElectrode(ret, 0, 1, r + row + 5);
+            addElectrode(ret, 1, 1, r + row + 6);
+            addElectrode(ret, 2, 1, r + row + 7);
+            addElectrode(ret, 3, 1, r + row + 8);
+        }
+        for (int r = 192; r < 384; r += 8) {
+            addElectrode(ret, 0, 1, r + row);
+            addElectrode(ret, 1, 1, r + row + 1);
+            addElectrode(ret, 2, 1, r + row + 2);
+            addElectrode(ret, 3, 1, r + row + 3);
+            addElectrode(ret, 0, 0, r + row + 5);
+            addElectrode(ret, 1, 0, r + row + 6);
+            addElectrode(ret, 2, 0, r + row + 7);
+            addElectrode(ret, 3, 0, r + row + 8);
+        }
+
+        return ret;
+    }
+
+    private static void addElectrode(ChannelMap ret, int shank, int column, int row) {
+        try {
+            ret.addElectrode(shank, column, row);
+        } catch (ChannelHasBeenUsedException | IllegalArgumentException e) {
+        }
+    }
 }
