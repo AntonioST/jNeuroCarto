@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.probe_npx.io.Numpy;
 
 @NullMarked
 public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
@@ -139,11 +140,10 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public List<ElectrodeDescription> allChannels(ChannelMap chmap, List<ElectrodeDescription> subset) {
-        ElectrodeDescription found;
         var ret = new ArrayList<ElectrodeDescription>(chmap.length());
         for (var electrode : chmap) {
-            if (electrode != null && (found = getElectrode(subset, electrode)) != null) {
-                ret.add(found);
+            if (electrode != null) {
+                getElectrode(subset, electrode).ifPresent(ret::add);
             }
         }
         return ret;
@@ -201,14 +201,50 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     }
 
     @Override
-    public void loadBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException {
-        //XXX Unsupported Operation NeuropixelsProbeDescription.loadBlueprint
-        throw new UnsupportedOperationException();
+    public List<ElectrodeDescription> loadBlueprint(Path file, ChannelMap chmap) throws IOException {
+        var filename = file.getFileName().toString();
+        if (!filename.endsWith(".npy")) throw new IllegalArgumentException("not a .npy filename : " + filename);
+
+        var ret = allElectrodes(chmap);
+        var data = Numpy.read(file);
+        var length = data[0].length;
+        for (int i = 0; i < length; i++) {
+            var s = data[0][i];
+            var c = data[1][i];
+            var r = data[2][i];
+
+            var j = i;
+            getElectrode(ret, new Electrode(s, c, r)).ifPresent(e -> {
+                e.state(data[3][j]);
+                e.category(data[4][j]);
+            });
+        }
+
+        return ret;
     }
 
     @Override
     public void saveBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException {
-        //XXX Unsupported Operation NeuropixelsProbeDescription.saveBlueprint
-        throw new UnsupportedOperationException();
+        var filename = file.getFileName().toString();
+        if (!filename.endsWith(".npy")) throw new IllegalArgumentException("not a .npy filename : " + filename);
+
+        var length = electrodes.size();
+
+        var ret = new int[5][];
+        for (int i = 0; i < 5; i++) {
+            ret[i] = new int[length];
+        }
+
+        for (int i = 0; i < length; i++) {
+            var e = electrodes.get(i);
+            var t = (Electrode) e.electrode();
+            ret[0][i] = t.shank;
+            ret[1][i] = t.column;
+            ret[2][i] = t.row;
+            ret[3][i] = e.state();
+            ret[4][i] = e.category();
+        }
+
+        Numpy.write(file, ret);
     }
 }

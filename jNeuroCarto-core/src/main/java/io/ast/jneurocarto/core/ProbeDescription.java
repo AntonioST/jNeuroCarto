@@ -103,18 +103,18 @@ public interface ProbeDescription<T> {
 
     boolean validateChannelmap(T chmap);
 
-    default @Nullable ElectrodeDescription getElectrode(List<ElectrodeDescription> electrodes, Object identify) {
+    default Optional<ElectrodeDescription> getElectrode(List<ElectrodeDescription> electrodes, Object identify) {
         if (identify instanceof ElectrodeDescription desp) {
             return getElectrode(electrodes, desp.electrode());
         }
 
         for (var electrode : electrodes) {
             if (Objects.equals(identify, electrode)) {
-                return electrode;
+                return Optional.of(electrode);
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     default @Nullable ElectrodeDescription addElectrode(T chmap, ElectrodeDescription e) {
@@ -167,7 +167,7 @@ public interface ProbeDescription<T> {
         throw new IllegalArgumentException("");
     }
 
-    void loadBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException;
+    List<ElectrodeDescription> loadBlueprint(Path file, T chmap) throws IOException;
 
     void saveBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException;
 
