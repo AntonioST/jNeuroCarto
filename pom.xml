@@ -12,6 +12,7 @@
     <modules>
         <module>jNeuroCarto-core</module>
         <module>jNeuroCarto-probe-npx</module>
+        <module>jNeuroCarto-probe-npx-jmh</module>
         <module>jNeuroCarto</module>
     </modules>
 

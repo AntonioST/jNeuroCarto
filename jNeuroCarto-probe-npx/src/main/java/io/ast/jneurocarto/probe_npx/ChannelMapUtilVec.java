@@ -8,7 +8,6 @@ import jdk.incubator.vector.VectorSpecies;
 
 import static io.ast.jneurocarto.probe_npx.ChannelMapUtil.ELECTRODE_MAP_21;
 import static io.ast.jneurocarto.probe_npx.ChannelMapUtilPlain.*;
-import static jdk.incubator.vector.VectorOperators.FMA;
 
 @SuppressWarnings("unused")
 public final class ChannelMapUtilVec {
@@ -190,7 +189,7 @@ public final class ChannelMapUtilVec {
         for (int u = I.loopBound(ret.length); i < u; i += I.length()) {
             var c = IntVector.fromArray(I, scr[1], i);
             var r = IntVector.fromArray(I, scr[2], i);
-            r.lanewise(FMA, nc, c).intoArray(ret, i);
+            r.mul(nc).add(c).intoArray(ret, i);
         }
         for (int length = ret.length; i < length; i++) {
             ret[i] = scr[1][i] + scr[2][i] * nc;
@@ -266,8 +265,8 @@ public final class ChannelMapUtilVec {
             var r = IntVector.fromArray(I, bf, 0, ret[1], i);
             var c = IntVector.fromArray(I, ba, 0, ret[1], i);
             var d = divmod(r.mul(c), 16).mod();
-            var b = block.lanewise(FMA, 32, column);
-            var channel = d.lanewise(FMA, 2, b);
+            var b = block.mul(32).add(column);
+            var channel = d.mul(2).add(b);
             channel.intoArray(ret[0], i);
         }
 
@@ -309,7 +308,7 @@ public final class ChannelMapUtilVec {
             var index = t2.mod();
 
             var block = IntVector.fromArray(I, s, 0, b.toArray(), 0);
-            var channel = block.lanewise(FMA, 48, index);
+            var channel = block.mul(48).add(index);
             channel.intoArray(ret[0], i);
         }
         for (int length = electrode.length; i < length; i++) {
@@ -339,9 +338,9 @@ public final class ChannelMapUtilVec {
             var b1 = t2.div();
             var index = t2.mod();
 
-            var b2 = s.lanewise(FMA, z, b1);
+            var b2 = s.mul(z).add(b1);
             var block = IntVector.fromArray(I, ELECTRODE_MAP_24, 0, b2.toArray(), 0);
-            var channel = block.lanewise(FMA, 48, index);
+            var channel = block.mul(48).add(index);
             channel.intoArray(ret[0], i);
         }
         for (int length = electrode.length; i < length; i++) {
