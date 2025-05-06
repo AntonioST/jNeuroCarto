@@ -3,12 +3,14 @@ package io.ast.jneurocarto.probe_npx.cli;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
@@ -41,6 +43,10 @@ public final class Select implements Callable<Integer> {
 
     @CommandLine.Option(names = "-O", paramLabel = "NAME=VALUE")
     Map<String, String> options = Map.of();
+
+    @CommandLine.Option(names = {"-p", "--print"},
+      description = "print channelmap result.")
+    boolean printResult;
 
     @CommandLine.Option(names = "--list-options", help = true)
     boolean listOptions;
@@ -102,6 +108,8 @@ public final class Select implements Callable<Integer> {
             useOutputFile = newOutputChannelmapFile(chmapFile);
         } else if (Files.isDirectory(outputFile)) {
             useOutputFile = outputFile.resolve(chmapFile.getFileName());
+        } else if (outputFile.getFileName().toString().equals("-")) {
+            useOutputFile = null;
         } else {
             useOutputFile = outputFile;
         }
@@ -112,7 +120,7 @@ public final class Select implements Callable<Integer> {
 
         if (!Files.exists(chmapFile)) throw new RuntimeException("channelmap file not existed : " + chmapFile);
         if (!Files.exists(blueprintFile)) throw new RuntimeException("blueprint file not existed : " + blueprintFile);
-        if (Files.exists(useOutputFile)) System.err.println("output file will be overwritten");
+        if (useOutputFile == null || Files.exists(useOutputFile)) System.err.println("output file will be overwritten");
 
         var desp = new NpxProbeDescription();
 
@@ -139,8 +147,17 @@ public final class Select implements Callable<Integer> {
             return 1;
         }
 
-        log.debug("save(outputFile)");
-        desp.save(useOutputFile, newChmap);
+        if (useOutputFile == null) {
+            log.debug("save(stdout)");
+            System.out.println(newChmap.toImro());
+        } else {
+            log.debug("save(outputFile)");
+            desp.save(useOutputFile, newChmap);
+        }
+
+        if (printResult) {
+            ChannelMapUtil.printProbe(System.out, List.of(chmap, newChmap), true);
+        }
 
         if (outputFile == null) {
             System.err.println("Output file : " + useOutputFile);

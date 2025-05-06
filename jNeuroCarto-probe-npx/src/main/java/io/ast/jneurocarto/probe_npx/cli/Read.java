@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
+import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
@@ -92,6 +93,8 @@ public final class Read implements Runnable {
         if (meta != null) {
             System.out.printf("%-16s %s\n", "serialNumber", meta.serialNumber());
         }
+
+        ChannelMapUtil.printProbe(System.out, chmap, true);
     }
 
     public void printBlueprint(Path file, List<ElectrodeDescription> electrodes) {

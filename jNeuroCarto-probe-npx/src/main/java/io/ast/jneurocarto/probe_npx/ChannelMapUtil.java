@@ -1,6 +1,14 @@
 package io.ast.jneurocarto.probe_npx;
 
-@SuppressWarnings("unused")
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.jspecify.annotations.NullMarked;
+
+@NullMarked
 public final class ChannelMapUtil {
 
     private static final boolean USE_VECTOR = !System.getProperty("io.ast.jneurocarto.probe_npx.use_vector", "").isEmpty();
@@ -574,5 +582,249 @@ public final class ChannelMapUtil {
             ret.addElectrode(shank, column, row);
         } catch (ChannelHasBeenUsedException | IllegalArgumentException e) {
         }
+    }
+
+    public static String printProbe(ChannelMap chmap) {
+        return printProbe(chmap, false, false);
+    }
+
+    public static String printProbe(ChannelMap chmap, boolean truncate) {
+        return printProbe(chmap, truncate, false);
+    }
+
+    public static String printProbe(ChannelMap chmap, boolean truncate, boolean um) {
+        var sb = new StringBuilder();
+        try {
+            printProbe(sb, chmap, truncate, um);
+        } catch (IOException e) {
+        }
+        return sb.toString();
+    }
+
+    public static void printProbe(PrintStream out, ChannelMap chmap) {
+        printProbe(out, chmap, false, false);
+    }
+
+    public static void printProbe(PrintStream out, ChannelMap chmap, boolean truncate) {
+        printProbe(out, chmap, truncate, false);
+    }
+
+    public static void printProbe(PrintStream out, ChannelMap chmap, boolean truncate, boolean um) {
+        try {
+            printProbe((Appendable) out, chmap, truncate, um);
+        } catch (IOException e) {
+        }
+    }
+
+    public static void printProbe(Appendable out, ChannelMap chmap) throws IOException {
+        printProbe(out, chmap, false, false);
+    }
+
+    public static void printProbe(Appendable out, ChannelMap chmap, boolean truncate) throws IOException {
+        printProbe(out, chmap, truncate, false);
+    }
+
+    public static void printProbe(Appendable out, ChannelMap chmap, boolean truncate, boolean um) throws IOException {
+        var type = chmap.type();
+        var nr = type.nRowPerShank() / 2;
+
+        var sr = um ? type.spacePerRow() : 1;
+        String[] lines = new String[nr]; // line number
+        for (int i = 0; i < nr; i++) {
+            lines[i] = Integer.toString(2 * i * sr);
+        }
+        int maxNrLength = Arrays.stream(lines).mapToInt(String::length).max().orElse(0);
+
+        var body = printProbeRaw(chmap);
+
+        // body
+        boolean checkTruncate = truncate;
+        for (int r = nr - 1; r >= 0; r--) {
+            var row = body.get(r);
+            //noinspection AssignmentUsedAsCondition
+            if (checkTruncate && (checkTruncate = isRowEmpty(row))) continue;
+
+            for (int i = 0; i < maxNrLength - lines[r].length(); i++) out.append(' ');
+            out.append(lines[r]);
+            out.append(row);
+            out.append('\n');
+        }
+
+        // tip
+        for (int i = 0; i < maxNrLength; i++) out.append(' ');
+        out.append(getProbeTip(type));
+        out.append('\n');
+    }
+
+
+    public static String printProbe(List<ChannelMap> chmap) {
+        return printProbe(chmap, false);
+    }
+
+    public static String printProbe(List<ChannelMap> chmap, boolean truncate) {
+        var sb = new StringBuilder();
+        try {
+            printProbe(sb, chmap, truncate);
+        } catch (IOException e) {
+        }
+        return sb.toString();
+    }
+
+    public static void printProbe(PrintStream out, List<ChannelMap> chmap) {
+        printProbe(out, chmap, false);
+    }
+
+    public static void printProbe(PrintStream out, List<ChannelMap> chmap, boolean truncate) {
+        try {
+            printProbe((Appendable) out, chmap, truncate);
+        } catch (IOException e) {
+        }
+    }
+
+    public static void printProbe(Appendable out, List<ChannelMap> chmap) throws IOException {
+        printProbe(out, chmap, false);
+    }
+
+    public static void printProbe(Appendable out, List<ChannelMap> chmap, boolean truncate) throws IOException {
+        var nr = chmap.stream().mapToInt(it -> it.nRowPerShank() / 2).max().orElse(0);
+        String[] rows = new String[nr];
+        for (int i = 0; i < nr; i++) {
+            rows[i] = Integer.toString(2 * i);
+        }
+        int maxNrLength = Arrays.stream(rows).mapToInt(String::length).max().orElse(0);
+
+        var bodies = chmap.stream().map(ChannelMapUtil::printProbeRaw).toList();
+
+        // body
+        boolean checkTruncate = truncate;
+        for (int r = nr - 1; r >= 0; r--) {
+            int rr = r;
+            if (checkTruncate) {
+                checkTruncate = bodies.stream()
+                  .map(it -> getRemappedRowContent(it, rr))
+                  .allMatch(ChannelMapUtil::isRowEmpty);
+                if (checkTruncate) continue;
+            }
+
+            for (int i = 0; i < maxNrLength - rows[r].length(); i++) out.append(' ');
+            out.append(rows[r]);
+
+            for (var body : bodies) {
+                out.append(getRemappedRowContent(body, r));
+                out.append("  ");
+            }
+            out.append('\n');
+        }
+
+        // tip
+        for (int i = 0; i < maxNrLength; i++) out.append(' ');
+        for (var m : chmap) {
+            out.append(getProbeTip(m.type()));
+            out.append("  ");
+        }
+        out.append('\n');
+    }
+
+    private static String getRemappedRowContent(List<String> content, int r) {
+        if (r < content.size()) {
+            return content.get(r);
+        } else {
+            return " ".repeat(content.get(0).length());
+        }
+    }
+
+    private static final char[] PRINT_PROBE_UNICODE_SYMBOL = new char[]{
+      ' ', '▖', '▘', '▌', '▗', '▄', '▚', '▙', '▝', '▞', '▀', '▛', '▐', '▟', '▜', '█',
+    };
+    private static final char[] PRINT_PROBE_UNICODE_SHAPE = new char[]{
+      '▕', '▏',
+    };
+
+    private static List<String> printProbeRaw(ChannelMap chmap) {
+        var type = chmap.type();
+        var ns = type.nShank();
+        var nr = type.nRowPerShank() / 2;
+        var nc = type.nColumnPerShank() / 2;
+
+        var arr = new int[ns * nr * nc];
+        for (var e : chmap) {
+            if (e != null) {
+                var s = e.shank;
+                var ci = e.column / 2;
+                var cj = e.column % 2;
+                var ri = e.row / 2;
+                var rj = e.row % 2;
+                var i = indexOf(ns, nr, nc, s, ri, ci);
+                arr[i] = arr[i] | (cj == 0 ? 1 : 4) * (rj == 0 ? 1 : 2);
+            }
+        }
+
+        var ret = new ArrayList<String>(nr);
+        var tmp = new char[ns * (nc + 2)];
+
+        for (int r = 0; r < nr; r++) {
+            int k = 0;
+
+            for (int s = 0; s < ns; s++) {
+                tmp[k++] = PRINT_PROBE_UNICODE_SHAPE[0];
+                for (int c = 0; c < nc; c++) {
+                    tmp[k++] = PRINT_PROBE_UNICODE_SYMBOL[arr[indexOf(ns, nr, nc, s, r, c)]];
+                }
+                tmp[k++] = PRINT_PROBE_UNICODE_SHAPE[1];
+            }
+            ret.add(new String(tmp));
+        }
+
+        return ret;
+    }
+
+    private static String getProbeTip(NpxProbeType type) {
+        var ns = type.nShank();
+        var nc = type.nColumnPerShank() / 2;
+
+        var tmp = new char[ns * (nc + 2)];
+
+        // tip
+        if (nc == 1) {
+            int k = 0;
+            for (int s = 0; s < ns; s++) {
+                tmp[k++] = ' ';
+                tmp[k++] = '╹';
+                tmp[k++] = ' ';
+            }
+        } else if (nc == 2) {
+            int k = 0;
+            for (int s = 0; s < ns; s++) {
+                tmp[k++] = ' ';
+                tmp[k++] = '◥';
+                tmp[k++] = '◤';
+                tmp[k++] = ' ';
+            }
+        } else {
+            int k = 0;
+            for (int s = 0; s < ns; s++) {
+                tmp[k++] = ' ';
+                for (int i = 0; i < nc; i++) {
+                    tmp[k++] = ' ';
+                }
+                tmp[k++] = ' ';
+            }
+        }
+        return new String(tmp);
+    }
+
+    private static boolean isRowEmpty(String row) {
+        for (int i = 1, len = row.length(); i < len; i++) {
+            var c = row.charAt(i);
+            if (!(c == PRINT_PROBE_UNICODE_SHAPE[0] || c == PRINT_PROBE_UNICODE_SHAPE[1] || c == PRINT_PROBE_UNICODE_SYMBOL[0])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static int indexOf(int ns, int nr, int nc, int s, int r, int c) {
+        // (R, S, C)
+        return r * ns * nc + s * nc + c;
     }
 }
