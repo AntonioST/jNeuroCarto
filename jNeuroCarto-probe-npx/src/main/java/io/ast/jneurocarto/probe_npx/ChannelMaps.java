@@ -279,6 +279,21 @@ public final class ChannelMaps {
         }
     }
 
+    public static double[][] electrodeDensity(ChannelMaps chmap) {
+        //XXX Unsupported Operation ChannelMaps.electrodeDensity
+        throw new UnsupportedOperationException();
+    }
+
+    public static double requestElectrode(ChannelMaps chmap) {
+        //XXX Unsupported Operation ChannelMaps.requestElectrode
+        throw new UnsupportedOperationException();
+    }
+
+    public static double channelEfficiency(ChannelMaps chmap) {
+        //XXX Unsupported Operation ChannelMaps.channelEfficiency
+        throw new UnsupportedOperationException();
+    }
+
     public static String printProbe(ChannelMap chmap) {
         return printProbe(chmap, false, false);
     }
