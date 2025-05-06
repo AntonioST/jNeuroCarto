@@ -72,18 +72,28 @@ public class Select implements Callable<Integer> {
 
     public void printSelectors() {
         var desp = new NpxProbeDescription();
+        System.out.println("Selector:");
         desp.getElectrodeSelectors().forEach(name -> {
-            System.out.printf("%-8s - %s\n", name, desp.newElectrodeSelector(name).getClass().getName());
+            System.out.printf("+ %-8s - %s\n", name, desp.newElectrodeSelector(name).getClass().getName());
         });
+        System.out.println("use -s=VALUE to choose selector.");
     }
 
     public void printOptions(String selectorName) {
         var desp = new NpxProbeDescription();
+
         var selector = desp.newElectrodeSelector(selectorName);
-        System.out.println(selectorName.getClass().getName());
-        selector.getOptions().forEach((name, value) -> {
-            System.out.printf("%-8s - %s\n", name, options.getOrDefault(name, value));
-        });
+        System.out.println(selector.getClass().getName());
+
+        var options = selector.getOptions();
+        if (options.isEmpty()) {
+            System.out.println("(no options)");
+        } else {
+            options.forEach((name, value) -> {
+                System.out.printf("+ %-8s - %s\n", name, this.options.getOrDefault(name, value));
+            });
+            System.out.println("use -ONAME=VALUE to set options.");
+        }
     }
 
     public int select() throws IOException {
