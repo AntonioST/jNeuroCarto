@@ -445,22 +445,22 @@ public final class ChannelMapUtil {
         return ret;
     }
 
-    public static ChannelMap npx24HalfQuarter(double row) {
+    public static ChannelMap npx24QuarterDensity(double row) {
         var type = NpxProbeType.NP24;
-        return npx24HalfQuarter((int) (row / type.spacePerRow()));
+        return npx24QuarterDensity((int) (row / type.spacePerRow()));
     }
 
-    public static ChannelMap npx24HalfQuarter(int shank, double row) {
+    public static ChannelMap npx24QuarterDensity(int shank, double row) {
         var type = NpxProbeType.NP24;
-        return npx24HalfQuarter(shank, (int) (row / type.spacePerRow()));
+        return npx24QuarterDensity(shank, (int) (row / type.spacePerRow()));
     }
 
-    public static ChannelMap npx24HalfQuarter(int s1, int s2, double row) {
+    public static ChannelMap npx24QuarterDensity(int s1, int s2, double row) {
         var type = NpxProbeType.NP24;
-        return npx24HalfQuarter(s1, s2, (int) (row / type.spacePerRow()));
+        return npx24QuarterDensity(s1, s2, (int) (row / type.spacePerRow()));
     }
 
-    public static ChannelMap npx24HalfQuarter(int row) {
+    public static ChannelMap npx24QuarterDensity(int row) {
         var type = NpxProbeType.NP24;
         var nc = type.nColumnPerShank();
         var ret = new ChannelMap(type);
@@ -475,11 +475,10 @@ public final class ChannelMapUtil {
             addElectrode(ret, 3, 0, r + row + 3);
         }
 
-
         return ret;
     }
 
-    public static ChannelMap npx24HalfQuarter(int shank, int row) {
+    public static ChannelMap npx24QuarterDensity(int shank, int row) {
         var type = NpxProbeType.NP24;
         if (!(0 <= shank && shank < type.nShank())) {
             throw new IllegalArgumentException("shank over range : " + shank);
@@ -507,7 +506,7 @@ public final class ChannelMapUtil {
         return ret;
     }
 
-    public static ChannelMap npx24HalfQuarter(int s1, int s2, int row) {
+    public static ChannelMap npx24QuarterDensity(int s1, int s2, int row) {
         var type = NpxProbeType.NP24;
         var ns = type.nShank();
         if (!(0 <= s1 && s1 < ns)) {
@@ -534,7 +533,6 @@ public final class ChannelMapUtil {
 
         return ret;
     }
-
 
     public static ChannelMap npx24OneEightDensity(double row) {
         var type = NpxProbeType.NP24;

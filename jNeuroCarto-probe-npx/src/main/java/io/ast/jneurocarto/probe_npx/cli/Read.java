@@ -17,7 +17,7 @@ import picocli.CommandLine;
   name = "read",
   description = "read file"
 )
-public class Read implements Runnable {
+public final class Read implements Runnable {
 
     @CommandLine.Parameters(index = "0", paramLabel = "FILE", description = "file path")
     Path file;

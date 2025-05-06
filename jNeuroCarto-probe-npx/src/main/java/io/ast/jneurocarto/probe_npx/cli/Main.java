@@ -12,10 +12,11 @@ import picocli.CommandLine;
   subcommands = {
     Info.class,
     Read.class,
+    Create.class,
     Select.class,
   }
 )
-public class Main implements Runnable {
+public final class Main implements Runnable {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;

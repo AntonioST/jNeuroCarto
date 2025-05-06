@@ -12,7 +12,7 @@ import picocli.CommandLine;
   name = "info",
   description = "information"
 )
-public class Info implements Runnable {
+public final class Info implements Runnable {
 
     @CommandLine.Parameters(index = "0", paramLabel = "NAME", arity = "0..1", description = "information.")
     String target;

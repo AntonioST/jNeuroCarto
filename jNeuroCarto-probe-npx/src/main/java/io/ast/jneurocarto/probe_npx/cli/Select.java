@@ -21,7 +21,7 @@ import picocli.CommandLine;
     "1:fail electrode selection."
   }
 )
-public class Select implements Callable<Integer> {
+public final class Select implements Callable<Integer> {
 
     @CommandLine.Parameters(index = "0", paramLabel = "CHMAP",
       description = "channelmap file.")
