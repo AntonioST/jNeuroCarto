@@ -10,7 +10,7 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
+import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
@@ -156,7 +156,7 @@ public final class Select implements Callable<Integer> {
         }
 
         if (printResult) {
-            ChannelMapUtil.printProbe(System.out, List.of(chmap, newChmap), true);
+            ChannelMaps.printProbe(System.out, List.of(chmap, newChmap), true);
         }
 
         if (outputFile == null) {

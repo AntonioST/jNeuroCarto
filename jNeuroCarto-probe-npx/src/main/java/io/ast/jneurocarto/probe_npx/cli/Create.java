@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.probe_npx.ChannelMap;
-import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
+import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
@@ -64,15 +64,15 @@ public final class Create implements Runnable {
         case "single":
             switch (args.length) {
             case 1:
-                return ChannelMapUtil.npx24SingleShank(Integer.parseInt(args[0]), 0);
+                return ChannelMaps.npx24SingleShank(Integer.parseInt(args[0]), 0);
             case 2: {
                 var s = Integer.parseInt(args[0]);
 
                 try {
-                    return ChannelMapUtil.npx24SingleShank(s, Integer.parseInt(args[1]));
+                    return ChannelMaps.npx24SingleShank(s, Integer.parseInt(args[1]));
                 } catch (NumberFormatException e) {
                 }
-                return ChannelMapUtil.npx24SingleShank(s, Double.parseDouble(args[1]));
+                return ChannelMaps.npx24SingleShank(s, Double.parseDouble(args[1]));
             }
             }
             break;
@@ -80,15 +80,15 @@ public final class Create implements Runnable {
         case "stripe":
             switch (args.length) {
             case 1:
-                return ChannelMapUtil.npx24Stripe(Integer.parseInt(args[0]), 0);
+                return ChannelMaps.npx24Stripe(Integer.parseInt(args[0]), 0);
             case 2: {
                 var s = Integer.parseInt(args[0]);
 
                 try {
-                    return ChannelMapUtil.npx24Stripe(s, Integer.parseInt(args[1]));
+                    return ChannelMaps.npx24Stripe(s, Integer.parseInt(args[1]));
                 } catch (NumberFormatException e) {
                 }
-                return ChannelMapUtil.npx24Stripe(s, Double.parseDouble(args[1]));
+                return ChannelMaps.npx24Stripe(s, Double.parseDouble(args[1]));
             }
             }
             break;
@@ -101,9 +101,9 @@ public final class Create implements Runnable {
                     var i = args[0].indexOf(',');
                     var s1 = Integer.parseInt(args[0].substring(0, i));
                     var s2 = Integer.parseInt(args[0].substring(i + 1));
-                    return ChannelMapUtil.npx24HalfDensity(s1, s2, 0);
+                    return ChannelMaps.npx24HalfDensity(s1, s2, 0);
                 } else {
-                    return ChannelMapUtil.npx24HalfDensity(Integer.parseInt(args[0]), 0);
+                    return ChannelMaps.npx24HalfDensity(Integer.parseInt(args[0]), 0);
                 }
 
             case 2: {
@@ -112,18 +112,18 @@ public final class Create implements Runnable {
                     var s1 = Integer.parseInt(args[0].substring(0, i));
                     var s2 = Integer.parseInt(args[0].substring(i + 1));
                     try {
-                        return ChannelMapUtil.npx24HalfDensity(s1, s2, Integer.parseInt(args[1]));
+                        return ChannelMaps.npx24HalfDensity(s1, s2, Integer.parseInt(args[1]));
                     } catch (NumberFormatException e) {
                     }
-                    return ChannelMapUtil.npx24HalfDensity(s1, s2, Double.parseDouble(args[1]));
+                    return ChannelMaps.npx24HalfDensity(s1, s2, Double.parseDouble(args[1]));
 
                 } else {
                     var s = Integer.parseInt(args[0]);
                     try {
-                        return ChannelMapUtil.npx24HalfDensity(s, Integer.parseInt(args[1]));
+                        return ChannelMaps.npx24HalfDensity(s, Integer.parseInt(args[1]));
                     } catch (NumberFormatException e) {
                     }
-                    return ChannelMapUtil.npx24HalfDensity(s, Double.parseDouble(args[1]));
+                    return ChannelMaps.npx24HalfDensity(s, Double.parseDouble(args[1]));
                 }
             }
             }
@@ -133,14 +133,14 @@ public final class Create implements Runnable {
         case "1/4":
             switch (args.length) {
             case 0:
-                return ChannelMapUtil.npx24QuarterDensity(0);
+                return ChannelMaps.npx24QuarterDensity(0);
 
             case 1:
                 try {
-                    return ChannelMapUtil.npx24QuarterDensity(Integer.parseInt(args[0]));
+                    return ChannelMaps.npx24QuarterDensity(Integer.parseInt(args[0]));
                 } catch (NumberFormatException e) {
                 }
-                return ChannelMapUtil.npx24QuarterDensity(Double.parseDouble(args[0]));
+                return ChannelMaps.npx24QuarterDensity(Double.parseDouble(args[0]));
 
             case 2: {
                 if (args[0].contains(",")) {
@@ -148,18 +148,18 @@ public final class Create implements Runnable {
                     var s1 = Integer.parseInt(args[0].substring(0, i));
                     var s2 = Integer.parseInt(args[0].substring(i + 1));
                     try {
-                        return ChannelMapUtil.npx24QuarterDensity(s1, s2, Integer.parseInt(args[1]));
+                        return ChannelMaps.npx24QuarterDensity(s1, s2, Integer.parseInt(args[1]));
                     } catch (NumberFormatException e) {
                     }
-                    return ChannelMapUtil.npx24QuarterDensity(s1, s2, Double.parseDouble(args[1]));
+                    return ChannelMaps.npx24QuarterDensity(s1, s2, Double.parseDouble(args[1]));
 
                 } else {
                     var s = Integer.parseInt(args[0]);
                     try {
-                        return ChannelMapUtil.npx24QuarterDensity(s, Integer.parseInt(args[1]));
+                        return ChannelMaps.npx24QuarterDensity(s, Integer.parseInt(args[1]));
                     } catch (NumberFormatException e) {
                     }
-                    return ChannelMapUtil.npx24QuarterDensity(s, Double.parseDouble(args[1]));
+                    return ChannelMaps.npx24QuarterDensity(s, Double.parseDouble(args[1]));
                 }
             }
             }
@@ -169,13 +169,13 @@ public final class Create implements Runnable {
         case "1/8":
             switch (args.length) {
             case 0:
-                return ChannelMapUtil.npx24OneEightDensity(0);
+                return ChannelMaps.npx24OneEightDensity(0);
             case 1: {
                 try {
-                    return ChannelMapUtil.npx24OneEightDensity(Integer.parseInt(args[0]));
+                    return ChannelMaps.npx24OneEightDensity(Integer.parseInt(args[0]));
                 } catch (NumberFormatException e) {
                 }
-                return ChannelMapUtil.npx24OneEightDensity(Double.parseDouble(args[0]));
+                return ChannelMaps.npx24OneEightDensity(Double.parseDouble(args[0]));
             }
             }
             break;
