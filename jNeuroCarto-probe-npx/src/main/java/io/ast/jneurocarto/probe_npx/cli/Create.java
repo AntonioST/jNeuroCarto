@@ -52,7 +52,7 @@ public final class Create implements Runnable {
         System.out.println("""
           Method:
             single S [R]                - npx24SingleShank
-            stripe S [R]                - npx24SingleShank
+            stripe [R]                  - npx24SingleShank
             half (1/2) S[,S] [R]        - npx24HalfDensity
             quarter (1/4) [S[,S]] [R]   - npx24QuarterDensity
             one-eight (1/8) R           - npx24OneEightDensity
@@ -62,7 +62,9 @@ public final class Create implements Runnable {
     public ChannelMap create(String method) {
         switch (method) {
         case "single":
-            switch (args.length) {
+            switch (args == null ? 0 : args.length) {
+            case 0:
+                return ChannelMaps.npx24SingleShank(0, 0);
             case 1:
                 return ChannelMaps.npx24SingleShank(Integer.parseInt(args[0]), 0);
             case 2: {
@@ -78,24 +80,23 @@ public final class Create implements Runnable {
             break;
 
         case "stripe":
-            switch (args.length) {
+            switch (args == null ? 0 : args.length) {
+            case 0:
+                return ChannelMaps.npx24Stripe(0);
             case 1:
-                return ChannelMaps.npx24Stripe(Integer.parseInt(args[0]), 0);
-            case 2: {
-                var s = Integer.parseInt(args[0]);
-
                 try {
-                    return ChannelMaps.npx24Stripe(s, Integer.parseInt(args[1]));
+                    return ChannelMaps.npx24Stripe(Integer.parseInt(args[0]));
                 } catch (NumberFormatException e) {
                 }
-                return ChannelMaps.npx24Stripe(s, Double.parseDouble(args[1]));
-            }
+                return ChannelMaps.npx24Stripe(Double.parseDouble(args[0]));
             }
             break;
 
         case "half":
         case "1/2":
-            switch (args.length) {
+            switch (args == null ? 0 : args.length) {
+            case 0:
+                return ChannelMaps.npx24HalfDensity(0, 0);
             case 1:
                 if (args[0].contains(",")) {
                     var i = args[0].indexOf(',');
@@ -131,7 +132,7 @@ public final class Create implements Runnable {
 
         case "quarter":
         case "1/4":
-            switch (args.length) {
+            switch (args == null ? 0 : args.length) {
             case 0:
                 return ChannelMaps.npx24QuarterDensity(0);
 
@@ -167,7 +168,7 @@ public final class Create implements Runnable {
 
         case "one-eight":
         case "1/8":
-            switch (args.length) {
+            switch (args == null ? 0 : args.length) {
             case 0:
                 return ChannelMaps.npx24OneEightDensity(0);
             case 1: {

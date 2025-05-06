@@ -11,7 +11,9 @@ EOF
 
 archlinux-java-run --min 24 -- \
     --enable-preview \
-    -Dorg.slf4j.simpleLogger.defaultLogLevel=warn\
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
+    -Dio.ast.jneurocarto.probe_npx.use_vector="" \
+    -Dio.ast.jneurocarto.probe_npx.print_probe_symbol=42 \
     -p $(echo $CP | tr ' ' ':') \
     -m io.ast.jneurocarto.probe_npx/io.ast.jneurocarto.probe_npx.cli.Main \
     "$@"

@@ -107,7 +107,7 @@ public final class Imro {
             throw new RuntimeException("incomplete chmap.");
         }
 
-        try (var os = Files.newOutputStream(file, CREATE_NEW, TRUNCATE_EXISTING, WRITE);
+        try (var os = Files.newOutputStream(file, CREATE, TRUNCATE_EXISTING, WRITE);
              var out = new PrintStream(new BufferedOutputStream(os))) {
             write(out, chmap);
         }

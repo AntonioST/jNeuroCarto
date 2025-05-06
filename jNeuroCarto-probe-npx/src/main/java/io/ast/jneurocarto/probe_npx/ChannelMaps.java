@@ -53,10 +53,10 @@ public final class ChannelMaps {
         return ret;
     }
 
-    public static ChannelMap npx24Stripe(int shank, double row) {
+    public static ChannelMap npx24Stripe(double row) {
         var type = NpxProbeType.NP24;
         try {
-            return npx24Stripe(shank, (int) (row / type.spacePerRow()));
+            return npx24Stripe((int) (row / type.spacePerRow()));
         } catch (IllegalArgumentException e) {
             if (e.getMessage().startsWith("row over range : ")) {
                 throw new IllegalArgumentException("row over range : " + row + " um", e);
@@ -66,13 +66,9 @@ public final class ChannelMaps {
         }
     }
 
-    public static ChannelMap npx24Stripe(int shank, int row) {
+    public static ChannelMap npx24Stripe(int row) {
         var type = NpxProbeType.NP24;
         var ns = type.nShank();
-        if (!(0 <= shank && shank < ns)) {
-            throw new IllegalArgumentException("shank over range : " + shank);
-        }
-
         var nc = type.nColumnPerShank();
         var nr = type.nChannel() / (nc * ns);
         if (!(0 <= row && row + nr < type.nRowPerShank())) {
@@ -110,7 +106,6 @@ public final class ChannelMaps {
             throw new IllegalArgumentException("shank over range : " + shank);
         }
 
-        var nc = type.nColumnPerShank();
         var ret = new ChannelMap(type);
         for (int r = 0; r < 192; r += 2) {
             addElectrode(ret, shank, 0, r + row);
@@ -335,24 +330,26 @@ public final class ChannelMaps {
     }
 
     public static void printProbe(Appendable out, ChannelMap chmap, boolean truncate, boolean um) throws IOException {
+        var pus = PrintProbeUnicodeSymbols.getInstance();
         var type = chmap.type();
-        var nr = type.nRowPerShank() / 2;
+        var ur = pus.nr;
+        var nr = type.nRowPerShank() / ur;
 
         var sr = um ? type.spacePerRow() : 1;
         String[] lines = new String[nr]; // line number
         for (int i = 0; i < nr; i++) {
-            lines[i] = Integer.toString(2 * i * sr);
+            lines[i] = Integer.toString(ur * i * sr);
         }
         int maxNrLength = Arrays.stream(lines).mapToInt(String::length).max().orElse(0);
 
-        var body = printProbeRaw(chmap);
+        var body = printProbeRaw(chmap, pus);
 
         // body
         boolean checkTruncate = truncate;
         for (int r = nr - 1; r >= 0; r--) {
             var row = body.get(r);
             //noinspection AssignmentUsedAsCondition
-            if (checkTruncate && (checkTruncate = isRowEmpty(row))) continue;
+            if (checkTruncate && (checkTruncate = pus.isBlank(row))) continue;
 
             for (int i = 0; i < maxNrLength - lines[r].length(); i++) out.append(' ');
             out.append(lines[r]);
@@ -362,7 +359,9 @@ public final class ChannelMaps {
 
         // tip
         for (int i = 0; i < maxNrLength; i++) out.append(' ');
-        out.append(getProbeTip(type));
+        for (int i = 0; i < type.nShank(); i++) {
+            out.append(pus.tip);
+        }
         out.append('\n');
     }
 
@@ -396,14 +395,16 @@ public final class ChannelMaps {
     }
 
     public static void printProbe(Appendable out, List<ChannelMap> chmap, boolean truncate) throws IOException {
-        var nr = chmap.stream().mapToInt(it -> it.nRowPerShank() / 2).max().orElse(0);
+        var pus = PrintProbeUnicodeSymbols.getInstance();
+        var ur = pus.nr;
+        var nr = chmap.stream().mapToInt(it -> it.nRowPerShank() / ur).max().orElse(0);
         String[] rows = new String[nr];
         for (int i = 0; i < nr; i++) {
-            rows[i] = Integer.toString(2 * i);
+            rows[i] = Integer.toString(ur * i);
         }
         int maxNrLength = Arrays.stream(rows).mapToInt(String::length).max().orElse(0);
 
-        var bodies = chmap.stream().map(ChannelMaps::printProbeRaw).toList();
+        var bodies = chmap.stream().map(it -> printProbeRaw(it, pus)).toList();
 
         // body
         boolean checkTruncate = truncate;
@@ -412,7 +413,7 @@ public final class ChannelMaps {
             if (checkTruncate) {
                 checkTruncate = bodies.stream()
                   .map(it -> getRemappedRowContent(it, rr))
-                  .allMatch(ChannelMaps::isRowEmpty);
+                  .allMatch(pus::isBlank);
                 if (checkTruncate) continue;
             }
 
@@ -429,8 +430,10 @@ public final class ChannelMaps {
         // tip
         for (int i = 0; i < maxNrLength; i++) out.append(' ');
         for (var m : chmap) {
-            out.append(getProbeTip(m.type()));
-            out.append("  ");
+            for (int i = 0; i < m.nShank(); i++) {
+                out.append(pus.tip);
+                out.append(' ');
+            }
         }
         out.append('\n');
     }
@@ -443,98 +446,136 @@ public final class ChannelMaps {
         }
     }
 
-    private static final char[] PRINT_PROBE_UNICODE_SYMBOL = new char[]{
-      ' ', '▖', '▘', '▌', '▗', '▄', '▚', '▙', '▝', '▞', '▀', '▛', '▐', '▟', '▜', '█',
-    };
-    private static final char[] PRINT_PROBE_UNICODE_SHAPE = new char[]{
-      '▕', '▏',
-    };
+    enum PrintProbeUnicodeSymbols {
+        S22(2, 2, '▕', '▏', " ╹ ", new char[]{
+          // 0x02 0x08
+          // 0x01 0x04
+          ' ', '▖', '▘', '▌',
+          '▗', '▄', '▚', '▙',
+          '▝', '▞', '▀', '▛',
+          '▐', '▟', '▜', '█',
+        }),
+        S42(4, 2, ' ', ' ', " ╷ ", new char[]{
+          // 0x08 0x80
+          // 0x04 0x40
+          // 0x02 0x20
+          // 0x01 0x10
+          ' ', '⡀', '⠄', '⡄', '⠂', '⡂', '⠆', '⡆', '⠁', '⡁', '⠅', '⡅', '⠃', '⡃', '⠇', '⡇',
+          '⢀', '⣀', '⢄', '⣄', '⢂', '⣂', '⢆', '⣆', '⢁', '⣁', '⢅', '⣅', '⢃', '⣃', '⢇', '⣇',
+          '⠠', '⡠', '⠤', '⡤', '⠢', '⡢', '⠦', '⡦', '⠡', '⡡', '⠥', '⡥', '⠣', '⡣', '⠧', '⡧',
+          '⢠', '⣠', '⢤', '⣤', '⢢', '⣢', '⢦', '⣦', '⢡', '⣡', '⢥', '⣥', '⢣', '⣣', '⢧', '⣧',
+          '⠐', '⡐', '⠔', '⡔', '⠒', '⡒', '⠖', '⡖', '⠑', '⡑', '⠕', '⡕', '⠓', '⡓', '⠗', '⡗',
+          '⢐', '⣐', '⢔', '⣔', '⢒', '⣒', '⢖', '⣖', '⢑', '⣑', '⢕', '⣕', '⢓', '⣓', '⢗', '⣗',
+          '⠰', '⡰', '⠴', '⡴', '⠲', '⡲', '⠶', '⡶', '⠱', '⡱', '⠵', '⡵', '⠳', '⡳', '⠷', '⡷',
+          '⢰', '⣰', '⢴', '⣴', '⢲', '⣲', '⢶', '⣶', '⢱', '⣱', '⢵', '⣵', '⢳', '⣳', '⢷', '⣷',
+          '⠈', '⡈', '⠌', '⡌', '⠊', '⡊', '⠎', '⡎', '⠉', '⡉', '⠍', '⡍', '⠋', '⡋', '⠏', '⡏',
+          '⢈', '⣈', '⢌', '⣌', '⢊', '⣊', '⢎', '⣎', '⢉', '⣉', '⢍', '⣍', '⢋', '⣋', '⢏', '⣏',
+          '⠨', '⡨', '⠬', '⡬', '⠪', '⡪', '⠮', '⡮', '⠩', '⡩', '⠭', '⡭', '⠫', '⡫', '⠯', '⡯',
+          '⢨', '⣨', '⢬', '⣬', '⢪', '⣪', '⢮', '⣮', '⢩', '⣩', '⢭', '⣭', '⢫', '⣫', '⢯', '⣯',
+          '⠘', '⡘', '⠜', '⡜', '⠚', '⡚', '⠞', '⡞', '⠙', '⡙', '⠝', '⡝', '⠛', '⡛', '⠟', '⡟',
+          '⢘', '⣘', '⢜', '⣜', '⢚', '⣚', '⢞', '⣞', '⢙', '⣙', '⢝', '⣝', '⢛', '⣛', '⢟', '⣟',
+          '⠸', '⡸', '⠼', '⡼', '⠺', '⡺', '⠾', '⡾', '⠹', '⡹', '⠽', '⡽', '⠻', '⡻', '⠿', '⡿',
+          '⢸', '⣸', '⢼', '⣼', '⢺', '⣺', '⢾', '⣾', '⢹', '⣹', '⢽', '⣽', '⢻', '⣻', '⢿', '⣿'
+        });
 
-    private static List<String> printProbeRaw(ChannelMap chmap) {
-        var type = chmap.type();
-        var ns = type.nShank();
-        var nr = type.nRowPerShank() / 2;
-        var nc = type.nColumnPerShank() / 2;
+        private final int nr;
+        private final int nc;
+        private final char left;
+        private final char right;
+        private final String tip;
+        private final char[] symbols;
 
-        var arr = new int[ns * nr * nc];
+        PrintProbeUnicodeSymbols(int nr, int nc, char left, char right, String tip, char[] symbols) {
+            this.nr = nr;
+            this.nc = nc;
+            this.left = left;
+            this.right = right;
+            this.tip = tip;
+            this.symbols = symbols;
+        }
+
+        public static PrintProbeUnicodeSymbols getInstance() {
+            var prop = System.getProperty("io.ast.jneurocarto.probe_npx.print_probe_symbol", "22");
+            return switch (prop) {
+                case "42" -> S42;
+                default -> S22;
+            };
+        }
+
+        public boolean isBlank(char c) {
+            return c == symbols[0] || c == left || c == right;
+        }
+
+        public boolean isBlank(String row) {
+            for (int i = 1, len = row.length(); i < len; i++) {
+                var c = row.charAt(i);
+                if (!isBlank(c)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    private static class PrintProbeHelper {
+        int ns;
+        int nr;
+        int nc;
+        PrintProbeUnicodeSymbols pus;
+
+        PrintProbeHelper(NpxProbeType type, PrintProbeUnicodeSymbols pus) {
+            this.pus = pus;
+            ns = type.nShank();
+            nr = type.nRowPerShank() / pus.nr;
+            nc = type.nColumnPerShank() / pus.nc;
+        }
+
+        int[] newArray() {
+            return new int[ns * nr * nc];
+        }
+
+        void setCodeAt(int[] arr, Electrode e) {
+            var s = e.shank;
+            var ci = e.column / pus.nc;
+            var cj = e.column % pus.nc;
+            var ri = e.row / pus.nr;
+            var rj = e.row % pus.nr;
+            var i = indexOf(s, ri, ci);
+            arr[i] = arr[i] | (1 << (pus.nr * cj)) * (1 << rj);
+        }
+
+        int indexOf(int s, int r, int c) {
+            // (R, S, C)
+            return r * ns * nc + s * nc + c;
+        }
+    }
+
+    private static List<String> printProbeRaw(ChannelMap chmap, PrintProbeUnicodeSymbols pus) {
+        var helper = new PrintProbeHelper(chmap.type(), pus);
+
+        var arr = helper.newArray();
         for (var e : chmap) {
             if (e != null) {
-                var s = e.shank;
-                var ci = e.column / 2;
-                var cj = e.column % 2;
-                var ri = e.row / 2;
-                var rj = e.row % 2;
-                var i = indexOf(ns, nr, nc, s, ri, ci);
-                arr[i] = arr[i] | (cj == 0 ? 1 : 4) * (rj == 0 ? 1 : 2);
+                helper.setCodeAt(arr, e);
             }
         }
 
-        var ret = new ArrayList<String>(nr);
-        var tmp = new char[ns * (nc + 2)];
+        var ret = new ArrayList<String>(helper.nr);
+        var tmp = new char[helper.ns * (helper.nc + 2)];
 
-        for (int r = 0; r < nr; r++) {
+        for (int r = 0; r < helper.nr; r++) {
             int k = 0;
 
-            for (int s = 0; s < ns; s++) {
-                tmp[k++] = PRINT_PROBE_UNICODE_SHAPE[0];
-                for (int c = 0; c < nc; c++) {
-                    tmp[k++] = PRINT_PROBE_UNICODE_SYMBOL[arr[indexOf(ns, nr, nc, s, r, c)]];
+            for (int s = 0; s < helper.ns; s++) {
+                tmp[k++] = pus.left;
+                for (int c = 0; c < helper.nc; c++) {
+                    tmp[k++] = pus.symbols[arr[helper.indexOf(s, r, c)]];
                 }
-                tmp[k++] = PRINT_PROBE_UNICODE_SHAPE[1];
+                tmp[k++] = pus.right;
             }
             ret.add(new String(tmp));
         }
 
         return ret;
-    }
-
-    private static String getProbeTip(NpxProbeType type) {
-        var ns = type.nShank();
-        var nc = type.nColumnPerShank() / 2;
-
-        var tmp = new char[ns * (nc + 2)];
-
-        // tip
-        if (nc == 1) {
-            int k = 0;
-            for (int s = 0; s < ns; s++) {
-                tmp[k++] = ' ';
-                tmp[k++] = '╹';
-                tmp[k++] = ' ';
-            }
-        } else if (nc == 2) {
-            int k = 0;
-            for (int s = 0; s < ns; s++) {
-                tmp[k++] = ' ';
-                tmp[k++] = '◥';
-                tmp[k++] = '◤';
-                tmp[k++] = ' ';
-            }
-        } else {
-            int k = 0;
-            for (int s = 0; s < ns; s++) {
-                tmp[k++] = ' ';
-                for (int i = 0; i < nc; i++) {
-                    tmp[k++] = ' ';
-                }
-                tmp[k++] = ' ';
-            }
-        }
-        return new String(tmp);
-    }
-
-    private static boolean isRowEmpty(String row) {
-        for (int i = 1, len = row.length(); i < len; i++) {
-            var c = row.charAt(i);
-            if (!(c == PRINT_PROBE_UNICODE_SHAPE[0] || c == PRINT_PROBE_UNICODE_SHAPE[1] || c == PRINT_PROBE_UNICODE_SYMBOL[0])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static int indexOf(int ns, int nr, int nc, int s, int r, int c) {
-        // (R, S, C)
-        return r * ns * nc + s * nc + c;
     }
 }

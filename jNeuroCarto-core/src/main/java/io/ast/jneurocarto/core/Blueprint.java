@@ -26,9 +26,9 @@ public class Blueprint<T> {
      */
     private boolean modified = false;
 
-    private int[] @Nullable shank;
-    private int[] @Nullable posx;
-    private int[] @Nullable posy;
+    private @Nullable int[] shank;
+    private @Nullable int[] posx;
+    private @Nullable int[] posy;
     private int dx;
     private int dy;
 
