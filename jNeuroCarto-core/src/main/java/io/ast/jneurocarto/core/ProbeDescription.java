@@ -158,7 +158,7 @@ public interface ProbeDescription<T> {
         return ret;
     }
 
-    default <D extends ProbeDescription<?>> ElectrodeSelector<D, ?> newElectrodeSelector(String name) {
+    default ElectrodeSelector newElectrodeSelector(String name) {
         for (var provider : ServiceLoader.load(ElectrodeSelectorProvider.class)) {
             if (provider.name(this).contains(name)) {
                 return provider.newSelector(name);

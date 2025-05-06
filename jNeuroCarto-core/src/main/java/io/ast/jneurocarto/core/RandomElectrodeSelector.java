@@ -8,7 +8,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implements ElectrodeSelector<D, T> {
+public class RandomElectrodeSelector implements ElectrodeSelector {
 
     private boolean ignorePreSelected = false;
     private boolean ignoreExclude = false;
@@ -34,7 +34,7 @@ public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implement
     }
 
     @Override
-    public T select(D desp, T chmap, List<ElectrodeDescription> blueprint) {
+    public <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint) {
         var ret = desp.newChannelmap(chmap);
         var cand = desp.allElectrodes(chmap).stream().collect(Collectors.toMap(
           e -> e,
@@ -66,7 +66,7 @@ public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implement
         return selectLoop(desp, ret, cand);
     }
 
-    private T selectLoop(D desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand) {
+    private <T> T selectLoop(ProbeDescription<T> desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand) {
         while (!cand.isEmpty()) {
             var e = pickElectrode(cand);
             if (e != null && !(e.category() == ProbeDescription.CATE_EXCLUDED && ignoreExclude)) {
@@ -82,7 +82,7 @@ public class RandomElectrodeSelector<D extends ProbeDescription<T>, T> implement
         return cand.keySet().stream().skip(pick).findFirst().orElse(null);
     }
 
-    private void add(D desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand, ElectrodeDescription electrode) {
+    private <T> void add(ProbeDescription<T> desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand, ElectrodeDescription electrode) {
         var added = desp.addElectrode(chmap, electrode);
         if (added != null) {
             desp.getInvalidElectrodes(chmap, added, cand.keySet()).forEach(cand::remove);

@@ -222,8 +222,7 @@ public final class ChannelMapUtil {
     }
 
     public static int e2c(NpxProbeType type, int electrode) {
-        var cb = e2cb(type, electrode);
-        return cb.channel;
+        return e2cb(type, electrode).channel;
     }
 
     public static int e2c(NpxProbeType type, int shank, int electrode) {
@@ -240,9 +239,7 @@ public final class ChannelMapUtil {
     }
 
     public static int e2c(NpxProbeType type, Electrode electrode) {
-        var cb = e2cb(type, electrode);
-        var n = type.nChannel();
-        return cb.channel + cb.bank * n;
+        return e2cb(type, electrode).channel;
     }
 
     public static CB e2cb(NpxProbeType type, int electrode) {

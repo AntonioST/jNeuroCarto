@@ -13,8 +13,7 @@ import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 
-import static java.nio.file.StandardOpenOption.CREATE_NEW;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.*;
 
 public final class Imro {
     private Imro() {
@@ -105,11 +104,12 @@ public final class Imro {
 
     public static void write(Path file, ChannelMap chmap) throws IOException {
         if (chmap.size() != chmap.nChannel()) {
-            throw new RuntimeException("incomplete chmap");
+            throw new RuntimeException("incomplete chmap.");
         }
 
-        try (var out = Files.newOutputStream(file, CREATE_NEW, TRUNCATE_EXISTING)) {
-            write(new PrintStream(new BufferedOutputStream(out)), chmap);
+        try (var os = Files.newOutputStream(file, CREATE_NEW, TRUNCATE_EXISTING, WRITE);
+             var out = new PrintStream(new BufferedOutputStream(os))) {
+            write(out, chmap);
         }
     }
 

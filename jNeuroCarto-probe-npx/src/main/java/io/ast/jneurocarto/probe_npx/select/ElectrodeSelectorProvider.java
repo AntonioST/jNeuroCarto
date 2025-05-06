@@ -19,8 +19,8 @@ public class ElectrodeSelectorProvider implements io.ast.jneurocarto.core.Electr
     }
 
     @Override
-    public <D extends ProbeDescription<?>> ElectrodeSelector<D, ?> newSelector(String name) {
-        return (ElectrodeSelector<D, ?>) switch (name) {
+    public ElectrodeSelector newSelector(String name) {
+        return switch (name) {
             case "default" -> new DefaultElectrodeSelector();
             case "weaker" -> new WeakerElectrodeSelector();
             default -> throw new IllegalArgumentException("illegal selector : " + name);

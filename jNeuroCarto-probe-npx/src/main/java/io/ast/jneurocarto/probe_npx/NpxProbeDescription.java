@@ -197,7 +197,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public boolean isElectrodeCompatible(ChannelMap chmap, ElectrodeDescription e1, ElectrodeDescription e2) {
-        return (int) e1.channel() != (int) e2.channel();
+        return ((int) e1.channel()) != ((int) e2.channel());
     }
 
     @Override

@@ -63,7 +63,7 @@ public final class ElectrodeDescription {
 
     @Override
     public String toString() {
-        return "Electrode[" + electrode + "]";
+        return "Electrode[" + electrode + ", channel=" + channel + "]";
     }
 
     public int s() {

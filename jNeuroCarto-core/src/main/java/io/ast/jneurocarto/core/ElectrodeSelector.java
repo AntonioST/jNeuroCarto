@@ -6,7 +6,7 @@ import java.util.Map;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
-public interface ElectrodeSelector<D extends ProbeDescription<T>, T> {
+public interface ElectrodeSelector {
 
     /**
      * {@return get option map}.
@@ -33,5 +33,5 @@ public interface ElectrodeSelector<D extends ProbeDescription<T>, T> {
     default void setOption(String name, String value) {
     }
 
-    T select(D desp, T chmap, List<ElectrodeDescription> blueprint);
+    <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint);
 }

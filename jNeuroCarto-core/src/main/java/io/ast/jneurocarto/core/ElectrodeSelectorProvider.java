@@ -6,6 +6,5 @@ public interface ElectrodeSelectorProvider {
 
     List<String> name(ProbeDescription<?> desp);
 
-    <D extends ProbeDescription<?>>
-    ElectrodeSelector<D, ?> newSelector(String name);
+    ElectrodeSelector newSelector(String name);
 }

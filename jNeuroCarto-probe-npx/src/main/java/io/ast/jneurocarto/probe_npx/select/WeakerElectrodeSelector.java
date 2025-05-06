@@ -11,13 +11,14 @@ import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
+import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.probe_npx.ChannelHasBeenUsedException;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 
 @NullMarked
-public class WeakerElectrodeSelector implements ElectrodeSelector<NpxProbeDescription, ChannelMap> {
+public class WeakerElectrodeSelector implements ElectrodeSelector {
 
     static final class Probability {
         ElectrodeDescription electrode;
@@ -42,6 +43,13 @@ public class WeakerElectrodeSelector implements ElectrodeSelector<NpxProbeDescri
     }
 
     @Override
+    public <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint) {
+        if (desp instanceof NpxProbeDescription d && chmap instanceof ChannelMap c) {
+            return (T) select(d, c, blueprint);
+        }
+        throw new RuntimeException("unsupported ProbeDescription : " + desp.getClass().getName());
+    }
+
     public ChannelMap select(NpxProbeDescription desp, ChannelMap chmap, List<ElectrodeDescription> blueprint) {
         var cand = desp.allElectrodes(chmap).stream().collect(Collectors.toMap(
           Function.identity(),

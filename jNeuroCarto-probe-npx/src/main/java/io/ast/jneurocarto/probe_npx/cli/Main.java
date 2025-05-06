@@ -11,7 +11,8 @@ import picocli.CommandLine;
   description = "",
   subcommands = {
     Info.class,
-    Read.class
+    Read.class,
+    Select.class,
   }
 )
 public class Main implements Runnable {

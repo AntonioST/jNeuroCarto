@@ -9,10 +9,10 @@ public class RandomElectrodeSelectorProvider implements ElectrodeSelectorProvide
     }
 
     @Override
-    public <D extends ProbeDescription<?>> ElectrodeSelector<D, ?> newSelector(String name) {
+    public ElectrodeSelector newSelector(String name) {
         if (!name.equals("random")) {
             throw new IllegalArgumentException();
         }
-        return (ElectrodeSelector<D, ?>) new RandomElectrodeSelector();
+        return new RandomElectrodeSelector();
     }
 }
