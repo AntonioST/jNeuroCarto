@@ -13,6 +13,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
   name = "create",
+  usageHelpAutoWidth = true,
   description = "create typical channelmap."
 )
 public final class Create implements Runnable {

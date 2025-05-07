@@ -4,7 +4,6 @@ import io.ast.jneurocarto.core.RandomElectrodeSelectorProvider;
 
 module io.ast.jneurocarto.core {
     requires static org.jspecify;
-    requires org.slf4j;
 
     exports io.ast.jneurocarto.core;
 

@@ -50,12 +50,6 @@
             <version>0.0</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli</artifactId>
-        </dependency>
-
-
     </dependencies>
     <build>
         <plugins>

@@ -10,6 +10,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
   name = "info",
+  usageHelpAutoWidth = true,
   description = "information"
 )
 public final class Info implements Runnable {

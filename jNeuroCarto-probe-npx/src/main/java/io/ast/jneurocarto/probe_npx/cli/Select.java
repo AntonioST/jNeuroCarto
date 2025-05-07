@@ -20,6 +20,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
   name = "select",
+  usageHelpAutoWidth = true,
   description = "Select electrodes",
   exitCodeListHeading = "Exit Codes:%n",
   exitCodeList = {

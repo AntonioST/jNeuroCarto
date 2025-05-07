@@ -4,9 +4,9 @@ import io.ast.jneurocarto.probe_npx.NpxProbeProvider;
 
 module io.ast.jneurocarto.probe_npx {
     requires static org.jspecify;
-    requires org.slf4j;
     requires jdk.incubator.vector;
 
+    requires org.slf4j;
     requires info.picocli;
 
     requires io.ast.jneurocarto.core;
