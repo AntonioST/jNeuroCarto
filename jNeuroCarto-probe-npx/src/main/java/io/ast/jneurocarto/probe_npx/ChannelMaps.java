@@ -5,8 +5,18 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.core.Blueprint;
+import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.ElectrodeSelector;
 
 @NullMarked
 public final class ChannelMaps {
@@ -274,20 +284,209 @@ public final class ChannelMaps {
         }
     }
 
-    public static double[][] electrodeDensity(ChannelMaps chmap) {
+    public static double[][] electrodeDensity(ChannelMap chmap) {
         //XXX Unsupported Operation ChannelMaps.electrodeDensity
         throw new UnsupportedOperationException();
     }
 
-    public static double requestElectrode(ChannelMaps chmap) {
-        //XXX Unsupported Operation ChannelMaps.requestElectrode
-        throw new UnsupportedOperationException();
+    public static double requestElectrode(List<ElectrodeDescription> blueprint) {
+        var s1 = Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_SET);
+        s1 += Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_FULL);
+        var s2 = Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_HALF);
+        var s4 = Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_QUARTER);
+        return (double) s1 + (double) (s2) / 2 + (double) (s4) / 4;
     }
 
-    public static double channelEfficiency(ChannelMaps chmap) {
-        //XXX Unsupported Operation ChannelMaps.channelEfficiency
-        throw new UnsupportedOperationException();
+    public static double requestElectrode(Blueprint<?> blueprint) {
+        var s1 = blueprint.countCategory(NpxProbeDescription.CATE_SET);
+        s1 += blueprint.countCategory(NpxProbeDescription.CATE_FULL);
+        var s2 = blueprint.countCategory(NpxProbeDescription.CATE_HALF);
+        var s4 = blueprint.countCategory(NpxProbeDescription.CATE_QUARTER);
+        return (double) s1 + (double) (s2) / 2 + (double) (s4) / 4;
     }
+
+    /**
+     * @param area            area efficiency
+     * @param channelComplete completed channel efficiency
+     * @param used            used channel number
+     * @param total           total channel number
+     */
+    public record Efficiency(double area, double channelComplete, int used, int total) {
+        public double complete() {
+            return (double) used / total;
+        }
+
+        public double incomplete() {
+            return (double) (total - used) / total;
+        }
+
+        /**
+         * {@return channel efficiency}
+         */
+        public double channel() {
+            return channelComplete * incomplete();
+        }
+    }
+
+    public static Efficiency channelEfficiency(ChannelMap chmap, List<ElectrodeDescription> blueprint) {
+        var request = requestElectrode(blueprint);
+        var total = chmap.nChannel();
+        var unused = total - chmap.size();
+        var channel = 0;
+        var excluded = 0;
+
+        var selected = new NpxProbeDescription().allChannels(chmap, blueprint);
+        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_SET);
+        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_FULL);
+        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_HALF);
+        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_QUARTER);
+        excluded += Blueprint.countCategory(selected, NpxProbeDescription.CATE_EXCLUDED);
+
+        var effA = request == 0 ? 0 : Math.max((double) channel / request, 0);
+        var effC = effA == 0 ? 0 : Math.min(effA, 1 / effA);
+        return new Efficiency(effA, effC, excluded + unused, total);
+    }
+
+    public static Efficiency channelEfficiency(Blueprint<ChannelMap> blueprint) {
+        var chmap = Objects.requireNonNull(blueprint.channelmap(), "missing channelmap");
+        var request = requestElectrode(blueprint);
+        var total = chmap.nChannel();
+        var unused = total - chmap.size();
+        var channel = 0;
+        var excluded = 0;
+
+        var selected = blueprint.indexBlueprint(chmap);
+        channel += blueprint.countCategory(NpxProbeDescription.CATE_SET, selected);
+        channel += blueprint.countCategory(NpxProbeDescription.CATE_FULL, selected);
+        channel += blueprint.countCategory(NpxProbeDescription.CATE_HALF, selected);
+        channel += blueprint.countCategory(NpxProbeDescription.CATE_QUARTER, selected);
+        excluded += blueprint.countCategory(NpxProbeDescription.CATE_EXCLUDED, selected);
+
+        var effA = request == 0 ? 0 : Math.max((double) channel / request, 0);
+        var effC = effA == 0 ? 0 : Math.min(effA, 1 / effA);
+        return new Efficiency(effA, effC, excluded + unused, total);
+    }
+
+    public record ProbabilityResult(
+      int sampleTimes,
+      int[] summation,
+      int complete,
+      double[] efficiency
+    ) {
+
+        public double[] probability() {
+            var ret = new double[summation.length];
+            for (int i = 0, length = ret.length; i < length; i++) {
+                ret[i] = (double) summation[i] / sampleTimes;
+            }
+            return ret;
+        }
+
+        public double completeRate() {
+            return (double) complete / sampleTimes;
+        }
+
+        public double maxEfficiency() {
+            return Arrays.stream(efficiency).max().orElse(0);
+        }
+
+        public double meanEfficiency() {
+            return Arrays.stream(efficiency).sum() / sampleTimes;
+        }
+
+        public double varEfficiency() {
+            var mean = meanEfficiency();
+            return Arrays.stream(efficiency).map(it -> Math.pow(it - mean, 2)).sum() / sampleTimes;
+        }
+    }
+
+    public static @Nullable ProbabilityResult electrodeProbability(ChannelMap chmap,
+                                                                   List<ElectrodeDescription> blueprint,
+                                                                   String selector,
+                                                                   int sampleTimes,
+                                                                   boolean parallel) {
+        var s = new NpxProbeDescription().newElectrodeSelector(selector);
+        return electrodeProbability(chmap, blueprint, s, sampleTimes, parallel);
+    }
+
+    public static @Nullable ProbabilityResult electrodeProbability(ChannelMap chmap,
+                                                                   List<ElectrodeDescription> blueprint,
+                                                                   ElectrodeSelector selector,
+                                                                   int sampleTimes,
+                                                                   boolean parallel) {
+        ExecutorService executor;
+        if (parallel) {
+            executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        } else {
+            executor = Executors.newSingleThreadExecutor();
+        }
+
+        try (executor) {
+            return electrodeProbability(chmap, blueprint, selector, sampleTimes, executor);
+        }
+    }
+
+    /**
+     * @param chmap       initial channelmap. Do not count in the result.
+     * @param blueprint   blueprint
+     * @param selector    electrode selector
+     * @param sampleTimes sample times of electrode selection
+     * @param executor    job schedular
+     * @return result. {@code null} if the thread is interrupt.
+     * @throws RuntimeException if any {@link ExecutionException} is thrown.
+     */
+    public static @Nullable ProbabilityResult electrodeProbability(ChannelMap chmap,
+                                                                   List<ElectrodeDescription> blueprint,
+                                                                   ElectrodeSelector selector,
+                                                                   int sampleTimes,
+                                                                   ExecutorService executor) {
+        var desp = new NpxProbeDescription();
+        var bp = new Blueprint<>(desp, chmap);
+        var summation = new int[bp.size()];
+        var complete = new int[1];
+        var tasks = new ArrayList<Future<Double>>();
+
+        for (int i = 0; i < sampleTimes; i++) {
+            var task = executor.submit(() -> {
+                var newMap = selector.select(desp, chmap, blueprint);
+                var index = bp.indexBlueprint(newMap);
+                synchronized (summation) {
+                    for (var e : index) {
+                        summation[e]++;
+                    }
+                }
+                if (desp.validateChannelmap(newMap)) {
+                    synchronized (complete) {
+                        complete[0]++;
+                    }
+                }
+                return channelEfficiency(newMap, blueprint).channel();
+            });
+            tasks.add(task);
+        }
+
+        executor.shutdown();
+
+        var efficiency = new double[sampleTimes];
+        try {
+            for (int i = 0; i < sampleTimes; i++) {
+                var task = tasks.get(i);
+                efficiency[i] = task.get();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (ExecutionException e) {
+            executor.shutdownNow();
+            throw new RuntimeException(e);
+        } finally {
+            executor.close();
+        }
+
+        return new ProbabilityResult(sampleTimes, summation, complete[0], efficiency);
+    }
+
 
     public static String printProbe(ChannelMap chmap) {
         return printProbe(chmap, false, false);

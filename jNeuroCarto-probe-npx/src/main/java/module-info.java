@@ -7,9 +7,9 @@ module io.ast.jneurocarto.probe_npx {
     requires org.slf4j;
     requires jdk.incubator.vector;
 
-    requires io.ast.jneurocarto.core;
     requires info.picocli;
-    requires java.sql;
+
+    requires io.ast.jneurocarto.core;
 
     exports io.ast.jneurocarto.probe_npx;
     exports io.ast.jneurocarto.probe_npx.select;

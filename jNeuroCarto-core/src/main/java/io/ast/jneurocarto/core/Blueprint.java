@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.function.Predicate;
 import java.util.stream.Gatherer;
@@ -31,7 +32,6 @@ public class Blueprint<T> {
     private @Nullable int[] posy;
     private int dx;
     private int dy;
-
 
     public Blueprint(ProbeDescription<T> probe) {
         this.probe = probe;
@@ -91,11 +91,21 @@ public class Blueprint<T> {
           .orElse(0);
     }
 
+    /**
+     * {@return total electrode numbers}
+     */
     public int size() {
         return blueprint.length;
     }
 
-    public List<ElectrodeDescription> electeodes() {
+    /**
+     * {@return carried channelmap}.
+     */
+    public @Nullable T channelmap() {
+        return chmap;
+    }
+
+    public List<ElectrodeDescription> electrodes() {
         if (modified) applyBlueprint();
         return probe.copyElectrodes(electrodes);
     }
@@ -120,6 +130,34 @@ public class Blueprint<T> {
         return OptionalInt.empty();
     }
 
+    /**
+     * Get electrode index from selected electrodes in {@link #channelmap()}.
+     *
+     * @return electrode index array
+     */
+    public int[] indexBlueprint() {
+        return indexBlueprint(Objects.requireNonNull(chmap, "missing probe"));
+    }
+
+    /**
+     * Get electrode index from selected electrodes in {@code chmap}.
+     *
+     * @param chmap a channelmap
+     * @return electrode index array
+     */
+    public int[] indexBlueprint(T chmap) {
+        var electrodes = probe.allChannels(chmap);
+        var ret = new int[electrodes.size()];
+        for (int i = 0, length = ret.length; i < length; i++) {
+            ret[i] = indexElectrode(electrodes.get(i)).orElse(-1);
+        }
+        return ret;
+    }
+
+    /**
+     * @param e
+     * @return electrode index array
+     */
     public int[] indexBlueprint(List<ElectrodeDescription> e) {
         var ret = new int[e.size()];
         for (int i = 0, length = ret.length; i < length; i++) {
@@ -128,6 +166,10 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param picker
+     * @return electrode index array
+     */
     public int[] indexBlueprint(Predicate<ElectrodeDescription> picker) {
         var ret = new int[blueprint.length];
         int size = 0;
@@ -156,6 +198,12 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * set all electrodes to {@code category}.
+     *
+     * @param category electrode category
+     * @return this
+     */
     public Blueprint<T> setBlueprint(int category) {
         Arrays.fill(blueprint, category);
         modified = true;
@@ -200,9 +248,14 @@ public class Blueprint<T> {
     public void save(Path file) throws IOException {
         if (chmap == null) throw new RuntimeException("missing channelmap");
 
-        probe.saveBlueprint(file, electeodes());
+        probe.saveBlueprint(file, electrodes());
     }
 
+    /**
+     * @param category   electrode category
+     * @param electrodes
+     * @return
+     */
     public Blueprint<T> set(int category, List<ElectrodeDescription> electrodes) {
         for (var electrode : electrodes) {
             indexElectrode(electrode).ifPresent(i -> blueprint[i] = category);
@@ -212,6 +265,11 @@ public class Blueprint<T> {
         return this;
     }
 
+    /**
+     * @param category       electrode category
+     * @param electrodeIndex electrode index array
+     * @return
+     */
     public Blueprint<T> set(int category, int[] electrodeIndex) {
         for (int index : electrodeIndex) {
             blueprint[index] = category;
@@ -221,6 +279,11 @@ public class Blueprint<T> {
         return this;
     }
 
+    /**
+     * @param category      electrode category
+     * @param electrodeMask
+     * @return
+     */
     public Blueprint<T> set(int category, boolean[] electrodeMask) {
         if (blueprint.length != electrodeMask.length) throw new RuntimeException();
 
@@ -232,6 +295,11 @@ public class Blueprint<T> {
         return this;
     }
 
+    /**
+     * @param category electrode category
+     * @param pick
+     * @return
+     */
     public Blueprint<T> set(int category, Predicate<ElectrodeDescription> pick) {
         for (int i = 0, length = blueprint.length; i < length; i++) {
             if (pick.test(electrodes.get(i))) blueprint[i] = category;
@@ -245,6 +313,10 @@ public class Blueprint<T> {
         return set(ProbeDescription.CATE_UNSET, electrodes);
     }
 
+    /**
+     * @param electrodeIndex electrode index array
+     * @return
+     */
     public Blueprint<T> unset(int[] electrodeIndex) {
         return set(ProbeDescription.CATE_UNSET, electrodeIndex);
     }
@@ -282,6 +354,10 @@ public class Blueprint<T> {
         return this;
     }
 
+    /**
+     * @param category electrode category
+     * @return
+     */
     public int countCategory(int category) {
         var ret = 0;
         for (int c : blueprint) {
@@ -290,6 +366,11 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category   electrode category
+     * @param electrodes
+     * @return
+     */
     public int countCategory(int category, List<ElectrodeDescription> electrodes) {
         return (int) electrodes.stream()
           .flatMapToInt(e -> indexElectrode(e).stream())
@@ -297,6 +378,11 @@ public class Blueprint<T> {
           .count();
     }
 
+    /**
+     * @param category
+     * @param electrodeIndex electrode index array
+     * @return
+     */
     public int countCategory(int category, int[] electrodeIndex) {
         var ret = 0;
         for (int index : electrodeIndex) {
@@ -305,6 +391,11 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category      electrode category
+     * @param electrodeMask
+     * @return
+     */
     public int countCategory(int category, boolean[] electrodeMask) {
         int length = blueprint.length;
         if (length != electrodeMask.length) throw new RuntimeException();
@@ -316,6 +407,11 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category electrode category
+     * @param pick
+     * @return
+     */
     public int countCategory(int category, Predicate<ElectrodeDescription> pick) {
         var ret = 0;
         for (int i = 0, length = blueprint.length; i < length; i++) {
@@ -324,6 +420,23 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param electrodes
+     * @param category   electrode category
+     * @return
+     */
+    public static int countCategory(List<ElectrodeDescription> electrodes, int category) {
+        var ret = 0;
+        for (var e : electrodes) {
+            if (e.category() == category) ret++;
+        }
+        return ret;
+    }
+
+    /**
+     * @param category electrode category
+     * @return
+     */
     public boolean[] maskCategory(int category) {
         var ret = new boolean[blueprint.length];
         for (int i = 0, length = ret.length; i < length; i++) {
@@ -332,6 +445,11 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category   electrode category
+     * @param electrodes
+     * @return
+     */
     public boolean[] maskCategory(int category, List<ElectrodeDescription> electrodes) {
         var ret = new boolean[blueprint.length];
         for (var electrode : electrodes) {
@@ -342,6 +460,11 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category       electrode category
+     * @param electrodeIndex electrode index array
+     * @return
+     */
     public boolean[] maskCategory(int category, int[] electrodeIndex) {
         var ret = new boolean[blueprint.length];
         for (int i : electrodeIndex) {
@@ -350,6 +473,11 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category      electrode category
+     * @param electrodeMask
+     * @return
+     */
     public boolean[] maskCategory(int category, boolean[] electrodeMask) {
         int length = blueprint.length;
         if (length != electrodeMask.length) throw new RuntimeException();
@@ -361,11 +489,33 @@ public class Blueprint<T> {
         return ret;
     }
 
+    /**
+     * @param category electrode category
+     * @param pick
+     * @return
+     */
     public boolean[] maskCategory(int category, Predicate<ElectrodeDescription> pick) {
         var ret = new boolean[blueprint.length];
         for (int i = 0, length = ret.length; i < length; i++) {
             ret[i] = pick.test(electrodes.get(i)) && blueprint[i] == category;
         }
         return ret;
+    }
+
+    /**
+     * @param electrodes
+     * @param category   electrode category
+     * @return
+     */
+    public static List<ElectrodeDescription> filterByCategory(List<ElectrodeDescription> electrodes, int category) {
+        return electrodes.stream().filter(filterByCategory(category)).toList();
+    }
+
+    /**
+     * @param category electrode category
+     * @return
+     */
+    public static Predicate<ElectrodeDescription> filterByCategory(int category) {
+        return e -> e.category() == category;
     }
 }
