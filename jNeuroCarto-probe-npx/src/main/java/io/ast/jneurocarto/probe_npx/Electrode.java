@@ -50,11 +50,11 @@ public final class Electrode implements Comparable<Electrode> {
     @Override
     public int compareTo(Electrode o) {
         if (shank != o.shank) {
-            return shank < o.shank ? -1 : 1;
+            return Integer.compare(shank, o.shank);
         } else if (row != o.row) {
-            return row < o.row ? -1 : 1;
+            return Integer.compare(row, o.row);
         } else if (column != o.column) {
-            return column < o.column ? -1 : 1;
+            return Integer.compare(column, o.column);
         }
         return 0;
     }

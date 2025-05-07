@@ -367,6 +367,96 @@ public final class ChannelMaps {
         return new Efficiency(effA, effC, excluded + unused, total);
     }
 
+    public static @Nullable ChannelMap selectBestEfficiencyResult(ChannelMap chmap,
+                                                                  List<ElectrodeDescription> blueprint,
+                                                                  String selector,
+                                                                  int sampleTimes,
+                                                                  int parallel) {
+        var s = new NpxProbeDescription().newElectrodeSelector(selector);
+        return selectBestEfficiencyResult(chmap, blueprint, s, sampleTimes, parallel);
+    }
+
+    public static @Nullable ChannelMap selectBestEfficiencyResult(ChannelMap chmap,
+                                                                  List<ElectrodeDescription> blueprint,
+                                                                  ElectrodeSelector selector,
+                                                                  int sampleTimes,
+                                                                  int parallel) {
+        ExecutorService executor;
+        if (parallel < 0) {
+            executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        } else if (parallel == 0) {
+            executor = Executors.newSingleThreadExecutor();
+        } else {
+            executor = Executors.newFixedThreadPool(parallel);
+        }
+
+        try (executor) {
+            return selectBestEfficiencyResult(chmap, blueprint, selector, sampleTimes, executor);
+        }
+    }
+
+    /**
+     * @param chmap       initial channelmap.
+     * @param blueprint   blueprint
+     * @param selector    electrode selector
+     * @param sampleTimes sample times of electrode selection
+     * @param executor    job schedular
+     * @return a channelmap result with the highest channel efficiency. {@code null} if the thread is interrupt.
+     * @throws RuntimeException if any {@link ExecutionException} is thrown.
+     */
+    public static @Nullable ChannelMap selectBestEfficiencyResult(ChannelMap chmap,
+                                                                  List<ElectrodeDescription> blueprint,
+                                                                  ElectrodeSelector selector,
+                                                                  int sampleTimes,
+                                                                  ExecutorService executor) {
+        var desp = new NpxProbeDescription();
+
+        record Result(@Nullable ChannelMap result, double efficiency) implements Comparable<Result> {
+            @Override
+            public int compareTo(Result o) {
+                return Double.compare(efficiency, o.efficiency);
+            }
+        }
+
+        var init = new Result(chmap, channelEfficiency(chmap, blueprint).channel());
+
+        var tasks = new ArrayList<Future<Result>>();
+
+        for (int i = 0; i < sampleTimes; i++) {
+            var task = executor.submit(() -> {
+                var newMap = selector.select(desp, chmap, blueprint);
+                if (desp.validateChannelmap(newMap)) {
+                    var efficiency = channelEfficiency(newMap, blueprint).channel();
+                    return new Result(newMap, efficiency);
+                } else {
+                    return new Result(null, 0);
+                }
+            });
+            tasks.add(task);
+        }
+
+        executor.shutdown();
+
+        try {
+            var ret = init;
+            for (int i = 0; i < sampleTimes; i++) {
+                var task = tasks.get(i);
+                var result = task.get();
+                ret = ret.compareTo(result) > 0 ? ret : result;
+            }
+            return ret.result;
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (ExecutionException e) {
+            executor.shutdownNow();
+            throw new RuntimeException(e);
+        } finally {
+            executor.close();
+        }
+    }
+
     public record ProbabilityResult(
       int sampleTimes,
       int[] summation,
@@ -404,7 +494,7 @@ public final class ChannelMaps {
                                                                    List<ElectrodeDescription> blueprint,
                                                                    String selector,
                                                                    int sampleTimes,
-                                                                   boolean parallel) {
+                                                                   int parallel) {
         var s = new NpxProbeDescription().newElectrodeSelector(selector);
         return electrodeProbability(chmap, blueprint, s, sampleTimes, parallel);
     }
@@ -413,12 +503,14 @@ public final class ChannelMaps {
                                                                    List<ElectrodeDescription> blueprint,
                                                                    ElectrodeSelector selector,
                                                                    int sampleTimes,
-                                                                   boolean parallel) {
+                                                                   int parallel) {
         ExecutorService executor;
-        if (parallel) {
+        if (parallel < 0) {
             executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        } else {
+        } else if (parallel == 0) {
             executor = Executors.newSingleThreadExecutor();
+        } else {
+            executor = Executors.newFixedThreadPool(parallel);
         }
 
         try (executor) {

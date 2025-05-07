@@ -7,9 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.ElectrodeSelector;
+import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
@@ -41,12 +45,24 @@ public final class Select implements Callable<Integer> {
       description = "use selector")
     String selector;
 
+    @CommandLine.Option(names = {"-S", "--sample"}, paramLabel = "TIMES", defaultValue = "0",
+      description = "choose best result, which has the highest channel efficiency, from samples.")
+    int sampleTimes;
+
+    @CommandLine.Option(names = {"-P", "--parallel"}, paramLabel = "NUM", arity = "0..1",
+      defaultValue = "0", fallbackValue = "-1",
+      description = "run select samples in parallel.")
+    int parallelCore;
+
     @CommandLine.Option(names = "-O", paramLabel = "NAME=VALUE")
     Map<String, String> options = Map.of();
 
     @CommandLine.Option(names = {"-p", "--print"},
       description = "print channelmap result.")
     boolean printResult;
+    @CommandLine.Option(names = {"--print-info"},
+      description = "print channelmap information.")
+    boolean printResultInfo;
 
     @CommandLine.Option(names = "--list-options", help = true)
     boolean listOptions;
@@ -114,13 +130,23 @@ public final class Select implements Callable<Integer> {
             useOutputFile = outputFile;
         }
 
+        var ret = select(chmapFile, blueprintFile, useOutputFile);
+
+        if (outputFile == null) {
+            System.err.println("Output file : " + useOutputFile);
+        }
+
+        return ret;
+    }
+
+    public int select(Path chmapFile, Path blueprintFile, @Nullable Path outputFile) throws IOException {
         log.debug("chmapFile={}", chmapFile);
         log.debug("blueprintFile={}", blueprintFile);
-        log.debug("outputFile={}", useOutputFile);
+        log.debug("outputFile={}", outputFile);
 
         if (!Files.exists(chmapFile)) throw new RuntimeException("channelmap file not existed : " + chmapFile);
         if (!Files.exists(blueprintFile)) throw new RuntimeException("blueprint file not existed : " + blueprintFile);
-        if (useOutputFile == null || Files.exists(useOutputFile)) System.err.println("output file will be overwritten");
+        if (outputFile == null || Files.exists(outputFile)) System.err.println("output file will be overwritten");
 
         var desp = new NpxProbeDescription();
 
@@ -139,7 +165,11 @@ public final class Select implements Callable<Integer> {
         var electrodes = desp.loadBlueprint(blueprintFile, chmap);
 
         log.debug("select()");
-        var newChmap = selector.select(desp, chmap, electrodes);
+        var newChmap = select(desp, chmap, electrodes, selector);
+        if (newChmap == null) {
+            System.err.println("selection fail.");
+            return 1;
+        }
         log.debug("select {}/{}", newChmap.size(), newChmap.nChannel());
 
         if (!desp.validateChannelmap(newChmap)) {
@@ -147,22 +177,37 @@ public final class Select implements Callable<Integer> {
             return 1;
         }
 
-        if (useOutputFile == null) {
+        if (outputFile == null) {
             log.debug("save(stdout)");
             System.out.println(newChmap.toImro());
         } else {
             log.debug("save(outputFile)");
-            desp.save(useOutputFile, newChmap);
+            desp.save(outputFile, newChmap);
         }
 
         if (printResult) {
             ChannelMaps.printProbe(System.out, List.of(chmap, newChmap), true);
         }
-
-        if (outputFile == null) {
-            System.err.println("Output file : " + useOutputFile);
+        if (printResultInfo) {
+            var info = ChannelMaps.channelEfficiency(newChmap, electrodes);
+            System.out.println("Efficiency:");
+            System.out.printf("+ %-8s - %s\n", "area", info.area());
+            System.out.printf("+ %-8s - %s\n", "channel", info.channel());
         }
+
         return 0;
+    }
+
+    public @Nullable ChannelMap select(NpxProbeDescription desp,
+                                       ChannelMap chmap,
+                                       List<ElectrodeDescription> blueprint,
+                                       ElectrodeSelector selector) {
+        if (sampleTimes == 0) {
+            return selector.select(desp, chmap, blueprint);
+        } else {
+            log.debug("selectBestEfficiencyResult(sampleTimes={}, parallel={})", sampleTimes, parallelCore);
+            return ChannelMaps.selectBestEfficiencyResult(chmap, blueprint, selector, sampleTimes, parallelCore);
+        }
     }
 
     public Path newOutputChannelmapFile(Path file) {
