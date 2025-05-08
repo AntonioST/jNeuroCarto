@@ -2,8 +2,6 @@ package io.ast.jneurocarto.probe_npx.cli;
 
 import java.util.Arrays;
 
-import org.slf4j.LoggerFactory;
-
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 import picocli.CommandLine;
@@ -15,48 +13,18 @@ import picocli.CommandLine;
 )
 public final class Info implements Runnable {
 
-    @CommandLine.Parameters(index = "0", paramLabel = "NAME", arity = "0..1", description = "information.")
-    String target;
+    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
+    public boolean help;
 
-    @CommandLine.Parameters(index = "1..", arity = "0..", description = "arguments")
-    String[] args;
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
 
     @Override
     public void run() {
-        var log = LoggerFactory.getLogger(getClass());
-        log.debug("run(target={})", target);
-
-        if (target == null) {
-            listTarget();
-        } else {
-            switch (target) {
-            case "probes" -> listProbes();
-            case "probe" -> {
-                if (args == null || args.length == 0) {
-                    System.out.println("require probe code");
-                    listProbes();
-                } else {
-                    printProbe(args[0]);
-                }
-            }
-            case "selectors" -> listSelectors();
-            default -> unknownTarget(target);
-            }
-        }
+        spec.commandLine().usage(System.out);
     }
 
-    public void listTarget() {
-        System.out.println("""
-          target:
-            probes
-            selectors
-          """);
-    }
-
-    public void unknownTarget(String target) {
-        System.out.println("unknown target : " + target);
-    }
-
+    @CommandLine.Command(name = "probes", description = "list found probes types.")
     public void listProbes() {
         var desp = new NpxProbeDescription();
 
@@ -65,25 +33,34 @@ public final class Info implements Runnable {
         });
     }
 
-    public void printProbe(String code) {
-        var type = NpxProbeType.of(code);
-        System.out.printf("%-16s %s\n", "code", code);
-        System.out.printf("%-16s %d\n", "nShank", type.nShank());
-        System.out.printf("%-16s %d\n", "nColumn/Shank", type.nColumnPerShank());
-        System.out.printf("%-16s %d\n", "nRow/Shank", type.nRowPerShank());
-        System.out.printf("%-16s %d\n", "nChannel", type.nChannel());
-        System.out.printf("%-16s %d\n", "nBank", type.nBank());
-        System.out.printf("%-16s %d\n", "nBlock", type.nBlock());
-        System.out.printf("%-16s %d\n", "nBlock/Bank", type.nBlockPerBank());
-        System.out.printf("%-16s %d\n", "nElectrode/Block", type.nElectrodePerBlock());
-        System.out.printf("%-16s %d\n", "nElectrode/Shank", type.nElectrodePerShank());
-        System.out.printf("%-16s %d\n", "nElectrode", type.nElectrode());
-        System.out.printf("%-16s %d\n", "um/Column", type.spacePerColumn());
-        System.out.printf("%-16s %d\n", "um/Row", type.spacePerRow());
-        System.out.printf("%-16s %d\n", "um/Shank", type.spacePerShank());
-        System.out.printf("%-16s %s\n", "reference", Arrays.toString(type.reference()));
+    @CommandLine.Command(name = "probe", description = "print probe information.")
+    public void printProbe(
+      @CommandLine.Parameters(index = "0", arity = "0..1", paramLabel = "CODE", description = "probe code") String code
+    ) {
+        if (code == null) {
+            System.out.println("require probe code");
+            listProbes();
+        } else {
+            var type = NpxProbeType.of(code);
+            System.out.printf("%-16s %s\n", "code", code);
+            System.out.printf("%-16s %d\n", "nShank", type.nShank());
+            System.out.printf("%-16s %d\n", "nColumn/Shank", type.nColumnPerShank());
+            System.out.printf("%-16s %d\n", "nRow/Shank", type.nRowPerShank());
+            System.out.printf("%-16s %d\n", "nChannel", type.nChannel());
+            System.out.printf("%-16s %d\n", "nBank", type.nBank());
+            System.out.printf("%-16s %d\n", "nBlock", type.nBlock());
+            System.out.printf("%-16s %d\n", "nBlock/Bank", type.nBlockPerBank());
+            System.out.printf("%-16s %d\n", "nElectrode/Block", type.nElectrodePerBlock());
+            System.out.printf("%-16s %d\n", "nElectrode/Shank", type.nElectrodePerShank());
+            System.out.printf("%-16s %d\n", "nElectrode", type.nElectrode());
+            System.out.printf("%-16s %d\n", "um/Column", type.spacePerColumn());
+            System.out.printf("%-16s %d\n", "um/Row", type.spacePerRow());
+            System.out.printf("%-16s %d\n", "um/Shank", type.spacePerShank());
+            System.out.printf("%-16s %s\n", "reference", Arrays.toString(type.reference()));
+        }
     }
 
+    @CommandLine.Command(name = "selectors", description = "list found electrode selectors.")
     public void listSelectors() {
         var desp = new NpxProbeDescription();
         desp.getElectrodeSelectors().forEach(name -> {
