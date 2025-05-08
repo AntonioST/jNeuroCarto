@@ -96,6 +96,13 @@
 
             <!-- Additional Spring Dependencies -->
 
+            <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-json -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-json</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
             <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-actuator -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>

@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -68,15 +67,15 @@ public final class CartoConfig implements Runnable {
       description = "do not open browser when server starts")
     public boolean noOpenBrowser = true;
 
-    @CommandLine.Option(names = "--debug")
-    public void debug(boolean value) {
-        if (value) {
-            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
-        }
-    }
+    @Option(names = "--debug",
+      description = "enable debug logging.")
+    public boolean debug;
 
     @Override
     public void run() {
+        if (debug) {
+            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
+        }
     }
 
     @Override
@@ -93,7 +92,7 @@ public final class CartoConfig implements Runnable {
                ", serverAddress='" + serverAddress + '\'' +
                ", serverPort=" + serverPort +
                ", noOpenBrowser=" + noOpenBrowser +
-               ", help=" + help +
+               ", debug=" + debug +
                '}';
     }
 }

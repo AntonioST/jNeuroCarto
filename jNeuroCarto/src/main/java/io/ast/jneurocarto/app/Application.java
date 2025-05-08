@@ -4,13 +4,15 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.theme.Theme;
 
 import io.ast.jneurocarto.app.cli.CartoConfig;
 import picocli.CommandLine;
 
 @SpringBootApplication
-//@Theme("default")
-public class Application implements CommandLineRunner, ExitCodeGenerator {
+@Theme("default")
+public class Application implements CommandLineRunner, ExitCodeGenerator, AppShellConfigurator {
 
     private CommandLine.IFactory factory;
     private final CartoConfig config;
@@ -34,4 +36,5 @@ public class Application implements CommandLineRunner, ExitCodeGenerator {
     public static void main(String[] args) {
         System.exit(SpringApplication.exit(SpringApplication.run(Application.class, args)));
     }
+
 }

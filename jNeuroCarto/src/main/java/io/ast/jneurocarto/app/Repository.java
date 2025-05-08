@@ -1,0 +1,375 @@
+package io.ast.jneurocarto.app;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.jspecify.annotations.NullMarked;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import io.ast.jneurocarto.app.cli.CartoConfig;
+import io.ast.jneurocarto.app.util.JsonConfig;
+import io.ast.jneurocarto.core.ProbeDescription;
+
+@Component
+@NullMarked
+public class Repository {
+
+    private final Logger log = LoggerFactory.getLogger(Repository.class);
+
+    private final JsonConfig userConfig = new JsonConfig();
+    private final JsonConfig viewConfig = new JsonConfig();
+    private final CartoConfig config;
+
+    public Repository(CartoConfig config) {
+        this.config = config;
+    }
+
+    @Bean
+    public ProbeDescription<?> getProbeDescription() {
+        log.debug("getProbeDescription({})", config.probeFamily);
+        return ProbeDescription.getProbeDescription(config.probeFamily);
+    }
+
+    public String getTitle() {
+        var f = config.probeFamily.toUpperCase();
+        return f + " - jNeuroCarto";
+    }
+
+    public Path userConfigDir() {
+        if (config.debug) {
+            return Path.of(".");
+        }
+
+        String d;
+        if ((d = System.getenv("XDG_CONFIG_HOME")) != null) return Path.of(d).resolve("neurocarto");
+        if ((d = System.getenv("APPDATA")) != null) return Path.of(d).resolve("neurocarto");
+
+        d = System.getProperty("user.home");
+        return switch (System.getProperty("os.name")) {
+            case "Linux" -> Path.of(d).resolve(".config/neurocarto");
+            default -> Path.of(d).resolve(".neurocarto");
+        };
+    }
+
+    public Path userCacheDir() {
+        if (config.debug) {
+            return Path.of(".");
+        }
+
+        String d;
+        if ((d = System.getenv("XDG_CACHE_HOME")) != null) return Path.of(d).resolve("neurocarto");
+
+        d = System.getProperty("user.home");
+        return switch (System.getProperty("os.name")) {
+            case "Linux" -> Path.of(d).resolve(".cache/neurocarto");
+            default -> Path.of(d).resolve(".neurocarto/cache");
+        };
+    }
+
+    public Path userCacheFile(String filename) {
+        if (config.debug) {
+            return Path.of(".neurocarto." + filename);
+        }
+
+        return userCacheDir().resolve(filename);
+    }
+
+    public Path userDataDir() {
+        if (config.debug) {
+            return Path.of(".");
+        }
+
+        String d;
+        if ((d = System.getenv("XDG_DATA_HOME")) != null) return Path.of(d).resolve("neurocarto");
+
+        d = System.getProperty("user.home");
+        return switch (System.getProperty("os.name")) {
+            case "Linux" -> Path.of(d).resolve(".local/share/neurocarto");
+            default -> Path.of(d).resolve(".neurocarto/share");
+        };
+    }
+
+    public static final String USER_CONFIG_FILENAME = "neurocarto.config.json";
+
+    public Path userConfigFile() {
+        var p = config.configFile;
+        if (p != null) {
+            var f = Path.of(p);
+            if (Files.isDirectory(f)) {
+                return f.resolve(USER_CONFIG_FILENAME);
+            }
+            return f;
+        }
+
+        if (config.debug) {
+            return Path.of("." + USER_CONFIG_FILENAME);
+        }
+
+        return userConfigDir().resolve(USER_CONFIG_FILENAME);
+    }
+
+    public JsonConfig loadUserConfigs() {
+        return loadUserConfigs(false);
+    }
+
+    public JsonConfig loadUserConfigs(boolean reset) {
+        var f = userConfigFile();
+        JsonConfig c;
+        try {
+            c = JsonConfig.load(f);
+            log.debug("load user config : {}", f);
+        } catch (FileNotFoundException e) {
+            log.debug("user config not found : {}", f);
+            return userConfig;
+        } catch (JsonProcessingException e) {
+            log.debug("bad user config not found : {}", f);
+            var n = f.getFileName().toString();
+            var i = n.lastIndexOf('.');
+            var t = f.getParent().resolve(n.substring(i) + "_backup" + n.substring(i));
+            try {
+                Files.move(f, t);
+                log.debug("rename to {}", t);
+            } catch (IOException ex) {
+                log.debug("fail to rename to {}. skipped", t);
+            }
+            return userConfig;
+        } catch (IOException e) {
+            log.debug("loadUserConfig", e);
+            return userConfig;
+        }
+
+        if (reset) {
+            userConfig.clear();
+        }
+
+        userConfig.update(c);
+
+        return userConfig;
+    }
+
+
+    public void saveUserConfigs(boolean direct) throws IOException {
+        if (!direct) {
+            // TODO GlobalStateView
+        }
+
+        var f = userConfigFile();
+        log.debug("save user config : {}", f);
+        userConfig.save(f);
+    }
+
+    @Bean
+    public CartoUserConfig getUserConfig() {
+        CartoUserConfig config;
+        try {
+            config = userConfig.get(CartoUserConfig.class);
+            if (config != null) return config;
+        } catch (JsonProcessingException e) {
+            log.debug("bad {} in user config, use a default one.", JsonConfig.getName(CartoUserConfig.class));
+            config = new CartoUserConfig();
+        }
+
+        if (config == null) {
+            log.debug("no {} in user config, add a default one.", JsonConfig.getName(CartoUserConfig.class));
+            config = new CartoUserConfig();
+        }
+
+        userConfig.put(config);
+        return config;
+    }
+
+    public Path currentResourceRoot() {
+        var ret = config.chmapRoot;
+        if (ret == null) {
+            ret = Path.of(".");
+        }
+        return ret;
+    }
+
+    public void changeResourceRoot(Path root) throws IOException {
+        var path = root.toAbsolutePath().normalize();
+        if (!Files.isDirectory(path)) {
+            throw new NotDirectoryException(root.toString());
+        }
+
+        config.chmapRoot = path;
+        log.info("change root to {}", path);
+    }
+
+    public List<Path> listChannelmapFiles(ProbeDescription<?> probe, boolean recursive) throws IOException {
+        var root = currentResourceRoot();
+
+        var suffix = probe.channelMapFileSuffix();
+
+        String pattern;
+        if (suffix.isEmpty()) {
+            return List.of();
+        } else if (suffix.size() == 1) {
+            pattern = "glob:*" + suffix.get(0);
+        } else {
+            pattern = suffix.stream()
+              .map(it -> it.substring(1))
+              .collect(Collectors.joining(",", "glob:*.{", "}"));
+        }
+
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher(pattern);
+
+        try (var stream = Files.walk(root, recursive ? Integer.MAX_VALUE : 1)) {
+            return stream.filter(Files::isRegularFile)
+              .filter(matcher::matches)
+              .sorted(Comparator.comparing(it -> it.getFileName().toString()))
+              .toList();
+        }
+    }
+
+    public Path getChannelmapFile(ProbeDescription<?> probe, String name) {
+        var root = currentResourceRoot();
+        var suffix = probe.channelMapFileSuffix();
+        if (suffix.isEmpty()) {
+            return root.resolve(name);
+        }
+        if (!name.equals(suffix.get(0))) {
+            name += suffix.get(0);
+        }
+
+        return root.resolve(name);
+    }
+
+    public <T> T loadChannelmapFile(ProbeDescription<T> probe, String name) throws IOException {
+        return loadChannelmapFile(probe, getChannelmapFile(probe, name));
+    }
+
+    public <T> T loadChannelmapFile(ProbeDescription<T> probe, Path channelmapFile) throws IOException {
+        var ret = probe.load(channelmapFile);
+        log.info("load channelmap : {}", channelmapFile);
+        return ret;
+    }
+
+    public <T> Path saveChannelmapFile(ProbeDescription<T> probe, T chmap, String name) throws IOException {
+        var ret = getChannelmapFile(probe, name);
+        saveChannelmapFile(probe, chmap, ret);
+        return ret;
+    }
+
+    public <T> void saveChannelmapFile(ProbeDescription<T> probe, T chmap, Path channelmapFile) throws IOException {
+        Files.createDirectories(channelmapFile.getParent());
+        probe.save(channelmapFile, chmap);
+        log.info("save channelmap : {}", channelmapFile);
+    }
+
+    public Path getBlueprintFile(ProbeDescription<?> probe, String name) {
+        return getBlueprintFile(probe, getChannelmapFile(probe, name));
+    }
+
+    public Path getBlueprintFile(ProbeDescription<?> probe, Path channelmapFile) {
+        var d = channelmapFile.getParent();
+        var n = channelmapFile.getFileName().toString();
+
+        var suffix = probe.channelMapFileSuffix();
+        if (suffix.isEmpty()) {
+            return d.resolve(n + ".blueprint.npy");
+        }
+
+        assert n.equals(suffix.get(0));
+        var len = suffix.get(0).length();
+        return d.resolve(n.substring(0, n.length() - len) + ".blueprint.npy");
+    }
+
+    public Object loadBlueprintFile(ProbeDescription<?> probe, String name) throws IOException {
+        return loadBlueprintFile(probe, getBlueprintFile(probe, name));
+    }
+
+    public Object loadBlueprintFile(ProbeDescription<?> probe, Path blueprintFile) throws IOException {
+        if (!blueprintFile.getFileName().toString().endsWith(".blueprint.npy")) {
+            blueprintFile = getBlueprintFile(probe, blueprintFile);
+        }
+
+        //XXX Unsupported Operation Repository.loadBlueprint
+        throw new UnsupportedOperationException();
+    }
+
+    public Path saveBlueprintFile(ProbeDescription<?> probe, Object blueprint, String name) throws IOException {
+        var ret = getBlueprintFile(probe, name);
+        saveBlueprintFile(probe, blueprint, ret);
+        return ret;
+    }
+
+    public void saveBlueprintFile(ProbeDescription<?> probe, Object blueprint, Path blueprintFile) throws IOException {
+        if (!blueprintFile.getFileName().toString().endsWith(".blueprint.npy")) {
+            blueprintFile = getBlueprintFile(probe, blueprintFile);
+        }
+
+        //XXX Unsupported Operation Repository.saveBlueprintFile
+        throw new UnsupportedOperationException();
+    }
+
+    public Path getViewConfigFile(ProbeDescription<?> probe, String name) {
+        return getViewConfigFile(probe, getChannelmapFile(probe, name));
+    }
+
+    public Path getViewConfigFile(ProbeDescription<?> probe, Path channelmapFile) {
+        var d = channelmapFile.getParent();
+        var n = channelmapFile.getFileName().toString();
+
+        var suffix = probe.channelMapFileSuffix();
+        if (suffix.isEmpty()) {
+            return d.resolve(n + ".config.json");
+        }
+
+        assert n.equals(suffix.get(0));
+        var len = suffix.get(0).length();
+        return d.resolve(n.substring(0, n.length() - len) + ".config.json");
+    }
+
+    public JsonConfig loadViewConfigFile(ProbeDescription<?> probe, String name, boolean reset) throws IOException {
+        return loadViewConfigFile(probe, getViewConfigFile(probe, name), reset);
+    }
+
+    public JsonConfig loadViewConfigFile(ProbeDescription<?> probe, Path viewConfigFile, boolean reset) throws IOException {
+        if (!viewConfigFile.getFileName().toString().endsWith(".config.json")) {
+            viewConfigFile = getBlueprintFile(probe, viewConfigFile);
+        }
+
+        JsonConfig c;
+        try {
+            c = JsonConfig.load(viewConfigFile);
+        } catch (JsonProcessingException e) {
+            log.warn("bad view config file : {}", viewConfigFile);
+            return viewConfig;
+        }
+
+        if (reset) {
+            viewConfig.clear();
+        }
+
+        viewConfig.update(c);
+
+        return viewConfig;
+
+    }
+
+    public void saveViewConfigFile(ProbeDescription<?> probe, JsonConfig config, String name, boolean direct) throws IOException {
+        saveViewConfigFile(probe, config, getViewConfigFile(probe, name), direct);
+    }
+
+    public void saveViewConfigFile(ProbeDescription<?> probe, JsonConfig config, Path viewConfigFile, boolean direct) throws IOException {
+        if (!viewConfigFile.getFileName().toString().endsWith(".config.json")) {
+            viewConfigFile = getBlueprintFile(probe, viewConfigFile);
+        }
+
+        if (!direct) {
+            // TODO
+        }
+
+        log.debug("save view config : {}", viewConfigFile);
+        viewConfig.save(viewConfigFile);
+    }
+}
