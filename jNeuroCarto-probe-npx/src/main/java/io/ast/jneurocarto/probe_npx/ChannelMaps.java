@@ -2,14 +2,8 @@ package io.ast.jneurocarto.probe_npx;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.*;
+import java.util.concurrent.*;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -376,31 +370,12 @@ public final class ChannelMaps {
         return selectBestEfficiencyResult(chmap, blueprint, s, sampleTimes, parallel);
     }
 
-    public static @Nullable ChannelMap selectBestEfficiencyResult(ChannelMap chmap,
-                                                                  List<ElectrodeDescription> blueprint,
-                                                                  ElectrodeSelector selector,
-                                                                  int sampleTimes,
-                                                                  int parallel) {
-        ExecutorService executor;
-        if (parallel < 0) {
-            executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        } else if (parallel == 0) {
-            executor = Executors.newSingleThreadExecutor();
-        } else {
-            executor = Executors.newFixedThreadPool(parallel);
-        }
-
-        try (executor) {
-            return selectBestEfficiencyResult(chmap, blueprint, selector, sampleTimes, executor);
-        }
-    }
-
     /**
      * @param chmap       initial channelmap.
      * @param blueprint   blueprint
      * @param selector    electrode selector
      * @param sampleTimes sample times of electrode selection
-     * @param executor    job schedular
+     * @param parallel
      * @return a channelmap result with the highest channel efficiency. {@code null} if the thread is interrupt.
      * @throws RuntimeException if any {@link ExecutionException} is thrown.
      */
@@ -408,54 +383,96 @@ public final class ChannelMaps {
                                                                   List<ElectrodeDescription> blueprint,
                                                                   ElectrodeSelector selector,
                                                                   int sampleTimes,
-                                                                  ExecutorService executor) {
-        var desp = new NpxProbeDescription();
-
+                                                                  int parallel) {
         record Result(@Nullable ChannelMap result, double efficiency) implements Comparable<Result> {
             @Override
             public int compareTo(Result o) {
                 return Double.compare(efficiency, o.efficiency);
             }
-        }
 
-        var init = new Result(chmap, channelEfficiency(chmap, blueprint).channel());
-
-        var tasks = new ArrayList<Future<Result>>();
-
-        for (int i = 0; i < sampleTimes; i++) {
-            var task = executor.submit(() -> {
-                var newMap = selector.select(desp, chmap, blueprint);
-                if (desp.validateChannelmap(newMap)) {
-                    var efficiency = channelEfficiency(newMap, blueprint).channel();
-                    return new Result(newMap, efficiency);
-                } else {
-                    return new Result(null, 0);
-                }
-            });
-            tasks.add(task);
-        }
-
-        executor.shutdown();
-
-        try {
-            var ret = init;
-            for (int i = 0; i < sampleTimes; i++) {
-                var task = tasks.get(i);
-                var result = task.get();
-                ret = ret.compareTo(result) > 0 ? ret : result;
+            static Result max(Result a, Result b) {
+                return a.compareTo(b) >= 0 ? a : b;
             }
-            return ret.result;
+        }
+
+        try (var scope = new AwaitAll<Result>(parallel)) {
+            var desp = new NpxProbeDescription();
+
+            for (int i = 0; i < sampleTimes; i++) {
+                scope.fork(() -> {
+                    var newMap = selector.select(desp, chmap, blueprint);
+                    if (desp.validateChannelmap(newMap)) {
+                        var efficiency = channelEfficiency(newMap, blueprint).channel();
+                        return new Result(newMap, efficiency);
+                    } else {
+                        return new Result(null, 0);
+                    }
+                });
+            }
+
+            var ret = new Result(chmap, channelEfficiency(chmap, blueprint).channel());
+            return scope.join().result().stream()
+              .reduce(ret, Result::max)
+              .result;
+
         } catch (InterruptedException e) {
-            executor.shutdownNow();
             Thread.currentThread().interrupt();
             return null;
-        } catch (ExecutionException e) {
-            executor.shutdownNow();
-            throw new RuntimeException(e);
-        } finally {
-            executor.close();
         }
     }
+
+    /**
+     * @param <T> task return type.
+     * @deprecated it is preview feature that it will be deprecated at java 25.
+     */
+    @SuppressWarnings("preview")
+    @Deprecated
+    private static class AwaitAll<T> extends StructuredTaskScope<T> {
+        private final Semaphore semaphore;
+        private final Queue<T> result = new LinkedTransferQueue<>();
+
+        AwaitAll(int parallel) {
+            int maxThreadCount;
+            if (parallel < 0) {
+                maxThreadCount = Runtime.getRuntime().availableProcessors();
+            } else if (parallel == 0) {
+                maxThreadCount = 1;
+            } else {
+                maxThreadCount = parallel;
+            }
+            semaphore = new Semaphore(maxThreadCount);
+        }
+
+        @Override
+        public <U extends T> Subtask<U> fork(Callable<? extends U> task) {
+            return super.fork(() -> {
+                semaphore.acquireUninterruptibly();
+                try {
+                    return task.call();
+                } finally {
+                    semaphore.release();
+                }
+            });
+        }
+
+        @Override
+        protected void handleComplete(Subtask<? extends T> subtask) {
+            if (subtask.state() == Subtask.State.SUCCESS) {
+                result.add(subtask.get());
+            }
+        }
+
+        @Override
+        public AwaitAll<T> join() throws InterruptedException {
+            super.join();
+            return this;
+        }
+
+        public List<T> result() {
+            return new ArrayList<>(result);
+        }
+    }
+
 
     public record ProbabilityResult(
       int sampleTimes,
@@ -499,31 +516,12 @@ public final class ChannelMaps {
         return electrodeProbability(chmap, blueprint, s, sampleTimes, parallel);
     }
 
-    public static @Nullable ProbabilityResult electrodeProbability(ChannelMap chmap,
-                                                                   List<ElectrodeDescription> blueprint,
-                                                                   ElectrodeSelector selector,
-                                                                   int sampleTimes,
-                                                                   int parallel) {
-        ExecutorService executor;
-        if (parallel < 0) {
-            executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        } else if (parallel == 0) {
-            executor = Executors.newSingleThreadExecutor();
-        } else {
-            executor = Executors.newFixedThreadPool(parallel);
-        }
-
-        try (executor) {
-            return electrodeProbability(chmap, blueprint, selector, sampleTimes, executor);
-        }
-    }
-
     /**
      * @param chmap       initial channelmap. Do not count in the result.
      * @param blueprint   blueprint
      * @param selector    electrode selector
      * @param sampleTimes sample times of electrode selection
-     * @param executor    job schedular
+     * @param parallel
      * @return result. {@code null} if the thread is interrupt.
      * @throws RuntimeException if any {@link ExecutionException} is thrown.
      */
@@ -531,54 +529,40 @@ public final class ChannelMaps {
                                                                    List<ElectrodeDescription> blueprint,
                                                                    ElectrodeSelector selector,
                                                                    int sampleTimes,
-                                                                   ExecutorService executor) {
-        var desp = new NpxProbeDescription();
-        var bp = new Blueprint<>(desp, chmap);
-        var summation = new int[bp.size()];
-        var complete = new int[1];
-        var tasks = new ArrayList<Future<Double>>();
+                                                                   int parallel) {
+        record Result(int[] index, boolean complete, double efficiency) {
+            public void sum(int[] summation) {
+                for (var e : index) {
+                    summation[e]++;
+                }
+            }
+        }
 
-        for (int i = 0; i < sampleTimes; i++) {
-            var task = executor.submit(() -> {
+        try (var scope = new AwaitAll<Result>(parallel)) {
+            var desp = new NpxProbeDescription();
+            var bp = new Blueprint<>(desp, chmap);
+
+            scope.fork(() -> {
                 var newMap = selector.select(desp, chmap, blueprint);
                 var index = bp.indexBlueprint(newMap);
-                synchronized (summation) {
-                    for (var e : index) {
-                        summation[e]++;
-                    }
-                }
-                if (desp.validateChannelmap(newMap)) {
-                    synchronized (complete) {
-                        complete[0]++;
-                    }
-                }
-                return channelEfficiency(newMap, blueprint).channel();
+                var complete = desp.validateChannelmap(newMap);
+                var efficiency = channelEfficiency(newMap, blueprint).channel();
+                return new Result(index, complete, efficiency);
             });
-            tasks.add(task);
-        }
 
-        executor.shutdown();
-
-        var efficiency = new double[sampleTimes];
-        try {
-            for (int i = 0; i < sampleTimes; i++) {
-                var task = tasks.get(i);
-                efficiency[i] = task.get();
+            var results = scope.join().result();
+            var summation = new int[bp.size()];
+            for (var result : results) {
+                result.sum(summation);
             }
+            var complete = (int) results.stream().filter(Result::complete).count();
+            var efficiency = results.stream().mapToDouble(Result::efficiency).toArray();
+            return new ProbabilityResult(sampleTimes, summation, complete, efficiency);
         } catch (InterruptedException e) {
-            executor.shutdownNow();
             Thread.currentThread().interrupt();
             return null;
-        } catch (ExecutionException e) {
-            executor.shutdownNow();
-            throw new RuntimeException(e);
-        } finally {
-            executor.close();
         }
-
-        return new ProbabilityResult(sampleTimes, summation, complete[0], efficiency);
     }
-
 
     public static String printProbe(ChannelMap chmap) {
         return printProbe(chmap, false, false);
