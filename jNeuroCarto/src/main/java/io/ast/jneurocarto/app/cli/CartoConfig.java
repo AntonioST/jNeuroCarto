@@ -54,28 +54,10 @@ public final class CartoConfig implements Runnable {
       description = "install extra views in right panel")
     public List<String> extraViewList = List.of();
 
-    @Option(names = "--server-address", paramLabel = "URL",
-      description = "address")
-    public String serverAddress;
-
-    @Option(names = "--server-port", paramLabel = "PORT",
-      description = "port")
-    public int serverPort = -1;
-
-    @Option(names = "--open-browser",
-      negatable = true,
-      description = "do not open browser when server starts")
-    public boolean noOpenBrowser = true;
-
-    @Option(names = "--debug",
-      description = "enable debug logging.")
-    public boolean debug;
+    public boolean debug = !System.getProperty("io.ast.jneurocarto.app.debug", "").isEmpty();
 
     @Override
     public void run() {
-        if (debug) {
-            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
-        }
     }
 
     @Override
@@ -89,9 +71,6 @@ public final class CartoConfig implements Runnable {
                ", atlasRoot=" + atlasRoot +
                ", configFile='" + configFile + '\'' +
                ", extraViewList=" + extraViewList +
-               ", serverAddress='" + serverAddress + '\'' +
-               ", serverPort=" + serverPort +
-               ", noOpenBrowser=" + noOpenBrowser +
                ", debug=" + debug +
                '}';
     }

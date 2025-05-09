@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.ast.jneurocarto.app.cli.CartoConfig;
 import io.ast.jneurocarto.app.util.JsonConfig;
+import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
 @Component
@@ -32,10 +34,13 @@ public class Repository {
         this.config = config;
     }
 
-    @Bean
-    public ProbeDescription<?> getProbeDescription() {
-        log.debug("getProbeDescription({})", config.probeFamily);
-        return ProbeDescription.getProbeDescription(config.probeFamily);
+    public @Nullable ProbeDescription<?> getProbeDescription() {
+        return getProbeDescription(config.probeFamily);
+    }
+
+    public @Nullable ProbeDescription<?> getProbeDescription(String family) {
+        log.debug("getProbeDescription({})", family);
+        return ProbeDescription.getProbeDescription(family);
     }
 
     public String getTitle() {
@@ -122,10 +127,11 @@ public class Repository {
 
     public JsonConfig loadUserConfigs(boolean reset) {
         var f = userConfigFile();
+
+        log.debug("load user config : {}", f);
         JsonConfig c;
         try {
             c = JsonConfig.load(f);
-            log.debug("load user config : {}", f);
         } catch (FileNotFoundException e) {
             log.debug("user config not found : {}", f);
             return userConfig;
@@ -200,8 +206,8 @@ public class Repository {
             throw new NotDirectoryException(root.toString());
         }
 
-        config.chmapRoot = path;
         log.info("change root to {}", path);
+        config.chmapRoot = path;
     }
 
     public List<Path> listChannelmapFiles(ProbeDescription<?> probe, boolean recursive) throws IOException {
@@ -248,9 +254,8 @@ public class Repository {
     }
 
     public <T> T loadChannelmapFile(ProbeDescription<T> probe, Path channelmapFile) throws IOException {
-        var ret = probe.load(channelmapFile);
         log.info("load channelmap : {}", channelmapFile);
-        return ret;
+        return probe.load(channelmapFile);
     }
 
     public <T> Path saveChannelmapFile(ProbeDescription<T> probe, T chmap, String name) throws IOException {
@@ -261,8 +266,8 @@ public class Repository {
 
     public <T> void saveChannelmapFile(ProbeDescription<T> probe, T chmap, Path channelmapFile) throws IOException {
         Files.createDirectories(channelmapFile.getParent());
-        probe.save(channelmapFile, chmap);
         log.info("save channelmap : {}", channelmapFile);
+        probe.save(channelmapFile, chmap);
     }
 
     public Path getBlueprintFile(ProbeDescription<?> probe, String name) {
@@ -283,32 +288,33 @@ public class Repository {
         return d.resolve(n.substring(0, n.length() - len) + ".blueprint.npy");
     }
 
-    public Object loadBlueprintFile(ProbeDescription<?> probe, String name) throws IOException {
+    public List<ElectrodeDescription> loadBlueprintFile(ProbeDescription<?> probe, String name) throws IOException {
         return loadBlueprintFile(probe, getBlueprintFile(probe, name));
     }
 
-    public Object loadBlueprintFile(ProbeDescription<?> probe, Path blueprintFile) throws IOException {
+    public List<ElectrodeDescription> loadBlueprintFile(ProbeDescription<?> probe, Path blueprintFile) throws IOException {
         if (!blueprintFile.getFileName().toString().endsWith(".blueprint.npy")) {
             blueprintFile = getBlueprintFile(probe, blueprintFile);
         }
 
-        //XXX Unsupported Operation Repository.loadBlueprint
-        throw new UnsupportedOperationException();
+        log.debug("load blueprint : {}", blueprintFile);
+        return probe.loadBlueprint(blueprintFile);
     }
 
-    public Path saveBlueprintFile(ProbeDescription<?> probe, Object blueprint, String name) throws IOException {
+    public Path saveBlueprintFile(ProbeDescription<?> probe, List<ElectrodeDescription> blueprint, String name) throws IOException {
         var ret = getBlueprintFile(probe, name);
         saveBlueprintFile(probe, blueprint, ret);
         return ret;
     }
 
-    public void saveBlueprintFile(ProbeDescription<?> probe, Object blueprint, Path blueprintFile) throws IOException {
+    public void saveBlueprintFile(ProbeDescription<?> probe, List<ElectrodeDescription> blueprint, Path blueprintFile) throws IOException {
         if (!blueprintFile.getFileName().toString().endsWith(".blueprint.npy")) {
             blueprintFile = getBlueprintFile(probe, blueprintFile);
         }
 
-        //XXX Unsupported Operation Repository.saveBlueprintFile
-        throw new UnsupportedOperationException();
+        Files.createDirectories(blueprintFile.getParent());
+        log.debug("save blueprint : {}", blueprintFile);
+        probe.saveBlueprint(blueprintFile, blueprint);
     }
 
     public Path getViewConfigFile(ProbeDescription<?> probe, String name) {
@@ -338,6 +344,7 @@ public class Repository {
             viewConfigFile = getBlueprintFile(probe, viewConfigFile);
         }
 
+        log.debug("load view config : {}", viewConfigFile);
         JsonConfig c;
         try {
             c = JsonConfig.load(viewConfigFile);

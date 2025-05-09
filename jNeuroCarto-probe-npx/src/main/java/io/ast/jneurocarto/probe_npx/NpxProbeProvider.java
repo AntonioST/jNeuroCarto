@@ -5,7 +5,7 @@ import io.ast.jneurocarto.core.ProbeProvider;
 @SuppressWarnings("unused")
 public class NpxProbeProvider implements ProbeProvider {
     @Override
-    public String provideProbeFamily() {
+    public String name() {
         return "npx";
     }
 

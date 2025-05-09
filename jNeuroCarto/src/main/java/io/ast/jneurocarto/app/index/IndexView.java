@@ -2,30 +2,35 @@ package io.ast.jneurocarto.app.index;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.vaadin.flow.component.html.Main;
-import com.vaadin.flow.router.HasDynamicTitle;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
+import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-import io.ast.jneurocarto.app.CartoUserConfig;
-import io.ast.jneurocarto.app.Repository;
+import io.ast.jneurocarto.app.cli.CartoConfig;
 
 @Route("")
-public final class IndexView extends Main implements HasDynamicTitle {
+@PageTitle("jNeuroCarto")
+public final class IndexView extends Div implements BeforeEnterObserver {
 
-    private final Repository repository;
-    private final CartoUserConfig config;
-
+    private final CartoConfig config;
     private final Logger log = LoggerFactory.getLogger(IndexView.class);
 
-    public IndexView(Repository repository) {
-        this.repository = repository;
 
+    public IndexView(CartoConfig config) {
+        this.config = config;
         log.debug("index");
-        this.config = repository.getUserConfig();
     }
 
     @Override
-    public String getPageTitle() {
-        return repository.getTitle();
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (config.probeFamily == null) {
+            log.debug("forward to ProbeSelectView");
+            event.rerouteTo(ProbeSelectView.class);
+        } else {
+            log.debug("forward to ProbeView");
+            event.rerouteTo(ProbeView.class, ProbeView.route(config.probeFamily));
+        }
     }
 }
