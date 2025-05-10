@@ -47,11 +47,11 @@ public final class Read implements Runnable {
             var filename = file.getFileName().toString();
             var last = filename.lastIndexOf('.');
             var suffix = filename.substring(last);
-            switch (suffix) {
-            case ".npy" -> filetype = FileType.blueprint;
-            case ".imro", ".meta" -> filetype = FileType.channelmap;
-            default -> throw new RuntimeException("unknown file suffix : " + suffix);
-            }
+            filetype = switch (suffix) {
+                case ".npy" -> FileType.blueprint;
+                case ".imro", ".meta" -> FileType.channelmap;
+                default -> throw new RuntimeException("unknown file suffix : " + suffix);
+            };
 
             log.debug("use(filetype={})", filetype.name());
         }

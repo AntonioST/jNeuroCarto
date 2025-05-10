@@ -10,7 +10,7 @@
         <version>0.0</version>
     </parent>
 
-    <artifactId>jNeuroCarto-probe-npx</artifactId>
+    <artifactId>jNeuroCarto-atlas</artifactId>
     <version>0.0</version>
     <packaging>jar</packaging>
 
@@ -28,6 +28,10 @@
             <artifactId>jspecify</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>info.picocli</groupId>
             <artifactId>picocli</artifactId>
         </dependency>
@@ -37,18 +41,11 @@
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
         </dependency>
-
         <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-core</artifactId>
-            <version>0.0</version>
-            <scope>compile</scope>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 
@@ -69,7 +66,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.3.0</version>
                 <configuration>
-                    <mainClass>io.ast.jneurocarto.probe_npx.cli.Main</mainClass>
+                    <mainClass>io.ast.jneurocarto.atlas.cli.Main</mainClass>
                     <arguments>
                         <argument>--enable-preview</argument>
                     </arguments>
@@ -77,5 +74,6 @@
             </plugin>
         </plugins>
     </build>
+
 
 </project>

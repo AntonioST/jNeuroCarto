@@ -1,19 +1,16 @@
-package io.ast.jneurocarto.probe_npx.cli;
+package io.ast.jneurocarto.atlas.cli;
 
 import org.slf4j.LoggerFactory;
 
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "jneurocarto-npx",
+  name = "jneurocarto-atlas",
   usageHelpWidth = 120,
   usageHelpAutoWidth = true,
   description = "",
   subcommands = {
-    Info.class,
     Read.class,
-    Create.class,
-    Select.class,
   }
 )
 public final class Main implements Runnable {
@@ -24,7 +21,7 @@ public final class Main implements Runnable {
     @CommandLine.Option(names = "--debug")
     public void debug(boolean value) {
         if (value) {
-            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.probe_npx", "debug");
+            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.atlas", "debug");
         }
     }
 

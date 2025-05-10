@@ -1,0 +1,19 @@
+#! /bin/bash
+
+M=$HOME/.m2/repository
+read -d '' -r CP << EOF
+$M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
+$M/com/fasterxml/jackson/core/jackson-databind/2.18.3/jackson-databind-2.18.3.jar
+$M/com/fasterxml/jackson/core/jackson-core/2.18.3/jackson-core-2.18.3.jar
+$M/com/fasterxml/jackson/core/jackson-annotations/2.18.3/jackson-annotations-2.18.3.jar
+$M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
+target/classes
+$M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
+EOF
+
+archlinux-java-run --min 24 -- \
+    --enable-preview \
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
+    -p $(echo $CP | tr ' ' ':') \
+    -m io.ast.jneurocarto.atlas/io.ast.jneurocarto.atlas.cli.Main \
+    "$@"
