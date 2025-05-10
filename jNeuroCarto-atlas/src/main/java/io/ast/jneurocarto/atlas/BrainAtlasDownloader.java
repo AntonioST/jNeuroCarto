@@ -1,18 +1,31 @@
 package io.ast.jneurocarto.atlas;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.Properties;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @NullMarked
 public class BrainAtlasDownloader {
 
+    private static final String REMOTE_URL = "https://gin.g-node.org/brainglobe/atlases/raw/master/";
+
     private String atlasName;
     private @Nullable Path downloadDir;
     private boolean checkLatest = true;
+    private Logger log = LoggerFactory.getLogger(BrainAtlasDownloader.class);
 
     private BrainAtlasDownloader(String atlasName) {
         this.atlasName = atlasName;
@@ -30,11 +43,11 @@ public class BrainAtlasDownloader {
      * getter and setter *
      *===================*/
 
-    public @Nullable String getAtlasName() {
+    public String getAtlasName() {
         return atlasName;
     }
 
-    public @Nullable Path getDownloadDir() {
+    public Path getDownloadDir() {
         if (downloadDir == null) {
             downloadDir = getDefaultDownloadDir();
         }
@@ -70,15 +83,51 @@ public class BrainAtlasDownloader {
      * information *
      *=============*/
 
-    public String localFullName() {
-        //XXX Unsupported Operation BrainAtlasDownloader.localFullName
-        throw new UnsupportedOperationException();
-
+    public Optional<String> localFullName() {
+        var pattern = FileSystems.getDefault().getPathMatcher("glob:" + atlasName + "_v*");
+        try (var dirs = Files.list(getDownloadDir())) {
+            return dirs.filter(pattern::matches)
+              .findFirst()
+              .map(it -> it.getFileName().toString());
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     public Optional<String> localVersion() {
-        //XXX Unsupported Operation BrainAtlasDownloader.localVersion
-        throw new UnsupportedOperationException();
+        return localFullName().map(it -> it.replaceFirst(".*_v", ""));
+    }
+
+    public Optional<String> remoteVersion() {
+        var remote = REMOTE_URL + "last_versions.conf";
+
+        Properties property;
+        try {
+            log.debug("curl:{}", remote);
+            var content = curl(remote);
+
+            property = new Properties();
+            property.load(new StringReader(content));
+        } catch (Exception e) {
+            log.warn("curl", e);
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(property.getProperty(atlasName));
+    }
+
+    private static String curl(String url) throws IOException, InterruptedException {
+        var client = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+          .uri(URI.create(url))
+          .build();
+
+        var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return response.body();
+    }
+
+    public Optional<String> remoteUrl() {
+        return remoteVersion().map(it -> String.format("%s/%s_v%s.tar.gz", REMOTE_URL, atlasName, it));
     }
 
     /*==========
