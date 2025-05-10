@@ -15,15 +15,14 @@ public class BrainAtlas {
     public static final String HEMISPHERES_FILENAME = "hemispheres.tiff";
     public static final String MESHES_DIRNAME = "meshes";
 
+    private final Path root;
     private final BrainAtlasMeta meta;
+    private final Structures structures;
 
-    public BrainAtlas(BrainAtlasMeta meta) {
-        this.meta = meta;
-    }
-
-    public static BrainAtlas load(Path dir) throws IOException {
-        var meta = BrainAtlasMeta.load(dir.resolve(METADATA_FILENAME));
-        return new BrainAtlas(meta);
+    public BrainAtlas(Path root) throws IOException {
+        this.root = root;
+        meta = BrainAtlasMeta.load(root.resolve(METADATA_FILENAME));
+        structures = Structures.load(root.resolve(STRUCTURES_FILENAME));
     }
 
     public static BrainAtlas load(String name) throws IOException {
@@ -37,5 +36,33 @@ public class BrainAtlas {
           .download()
           .get();
     }
+
+    /*==================
+     * meta information *
+     *==================*/
+
+    public double[] resolution() {
+        return meta.resolution;
+    }
+
+    public String orientation() {
+        return meta.orientation;
+    }
+
+    public int[] shape() {
+        return meta.shape;
+    }
+
+    public double[] shapeUm() {
+        double[] ret = new double[3];
+        for (int i = 0; i < 3; i++) {
+            ret[i] = meta.shape[i] * meta.resolution[i];
+        }
+        return ret;
+    }
+
+    /*============
+     * image data *
+     *============*/
 
 }

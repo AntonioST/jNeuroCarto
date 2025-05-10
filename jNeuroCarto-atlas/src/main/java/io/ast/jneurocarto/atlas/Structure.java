@@ -12,6 +12,24 @@ public record Structure(
   @JsonAlias("rgb_triplet") int[] rgbTriplet
 ) {
 
+    public boolean isRoot() {
+        return structurePath.length == 1;
+    }
+
+    public int parent() {
+        if (structurePath.length == 1) {
+            return structurePath[0];
+        }
+        return structurePath[structurePath.length - 2];
+    }
+
+    public boolean hasParent(int id) {
+        for (int i = 0, length = structurePath.length; i < length; i++) {
+            if (structurePath[i] == id) return true;
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
         return "Structure{" +
