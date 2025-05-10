@@ -4,6 +4,7 @@ module io.ast.jneurocarto.atlas {
     requires org.slf4j;
     requires info.picocli;
     requires com.fasterxml.jackson.databind;
+    requires java.desktop;
 
     exports io.ast.jneurocarto.atlas;
     opens io.ast.jneurocarto.atlas.cli to info.picocli;

@@ -83,6 +83,15 @@
                 <version>${picocli.version}</version>
             </dependency>
 
+            <!-- Image -->
+
+            <!-- https://mvnrepository.com/artifact/com.twelvemonkeys.imageio/imageio-tiff -->
+            <dependency>
+                <groupId>com.twelvemonkeys.imageio</groupId>
+                <artifactId>imageio-tiff</artifactId>
+                <version>3.12.0</version>
+            </dependency>
+
             <!-- Vaadin -->
             <dependency>
                 <groupId>com.vaadin</groupId>

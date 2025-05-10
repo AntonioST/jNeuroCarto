@@ -3,6 +3,10 @@ package io.ast.jneurocarto.atlas;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+@NullMarked
 public class AnatomicalSpace {
 
     public enum Axes {
@@ -58,19 +62,20 @@ public class AnatomicalSpace {
     private final int[] shape;
     private final double[] resolution;
     private final int[] offset;
+    private static final int[] ZERO_OFFSET = new int[]{0, 0, 0};
 
-    public AnatomicalSpace(String origin, int[] shape, double[] resolution, int[] offset) {
+    public AnatomicalSpace(String origin, int[] shape, double[] resolution, int @Nullable [] offset) {
         this.axes = getAxesDesp(origin);
         this.shape = shape;
         this.resolution = resolution;
-        this.offset = offset;
+        this.offset = offset == null ? ZERO_OFFSET : offset;
     }
 
-    public AnatomicalSpace(String[] origin, int[] shape, double[] resolution, int[] offset) {
+    public AnatomicalSpace(String[] origin, int[] shape, double[] resolution, int @Nullable [] offset) {
         this.axes = getAxesDesp(origin);
         this.shape = shape;
         this.resolution = resolution;
-        this.offset = offset;
+        this.offset = offset == null ? ZERO_OFFSET : offset;
     }
 
     private static int[] getAxesDesp(String origin) {

@@ -18,11 +18,13 @@ public class BrainAtlas {
     private final Path root;
     private final BrainAtlasMeta meta;
     private final Structures structures;
+    private final AnatomicalSpace space;
 
     public BrainAtlas(Path root) throws IOException {
         this.root = root;
         meta = BrainAtlasMeta.load(root.resolve(METADATA_FILENAME));
         structures = Structures.load(root.resolve(STRUCTURES_FILENAME));
+        space = new AnatomicalSpace(meta.orientation, meta.shape, meta.resolution, null);
     }
 
     public static BrainAtlas load(String name) throws IOException {
@@ -64,5 +66,13 @@ public class BrainAtlas {
     /*============
      * image data *
      *============*/
+
+    public ImageVolume reference() throws IOException {
+        return ImageVolume.readTiff(root.resolve(REFERENCE_FILENAME));
+    }
+
+    public ImageVolume annotation() throws IOException {
+        return ImageVolume.readTiff(root.resolve(ANNOTATION_FILENAME));
+    }
 
 }
