@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @NullMarked
 public class Structures implements Iterable<Structure> {
 
-    private Structure[] structures;
+    private final Structure[] structures;
 
     public Structures(Structure[] structures) {
         this.structures = structures;
