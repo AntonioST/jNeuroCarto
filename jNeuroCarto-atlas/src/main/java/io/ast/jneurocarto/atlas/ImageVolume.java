@@ -70,8 +70,16 @@ public class ImageVolume {
         return data[index(page, height, width)];
     }
 
+    public int get(BrainAtlas.CoordinateIndex coor) {
+        return data[index(coor.ap(), coor.dv(), coor.ml())];
+    }
+
     public void set(int page, int height, int width, int value) {
         data[index(page, height, width)] = value;
+    }
+
+    public void set(BrainAtlas.CoordinateIndex coor, int value) {
+        data[index(coor.ap(), coor.dv(), coor.ml())] = value;
     }
 
     public BufferedImage image(int page) {

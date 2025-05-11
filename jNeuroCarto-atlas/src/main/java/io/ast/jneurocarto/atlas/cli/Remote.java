@@ -1,7 +1,7 @@
 package io.ast.jneurocarto.atlas.cli;
 
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 
 import io.ast.jneurocarto.atlas.BrainGlobeDownloader;
 import picocli.CommandLine;
@@ -55,24 +55,21 @@ public class Remote implements Runnable {
             } else {
                 if (matchNameList.isEmpty()) {
                     prop.keySet().stream()
-                      .map(it -> (String) it)
                       .sorted()
                       .forEach(atlas -> printAtlasNameAndVersion(prop, atlas));
                 } else {
                     for (var name : matchNameList) {
                         prop.keySet().stream()
-                          .map(it -> (String) it)
                           .filter(it -> it.contains(name))
                           .sorted()
                           .forEach(atlas -> printAtlasNameAndVersion(prop, atlas));
-
                     }
                 }
             }
         }
 
-        private static void printAtlasNameAndVersion(Properties prop, String atlas) {
-            System.out.printf("%-16s = %s\n", atlas, prop.getProperty(atlas));
+        private static void printAtlasNameAndVersion(Map<String, String> prop, String atlas) {
+            System.out.printf("%-16s = %s\n", atlas, prop.get(atlas));
         }
     }
 }

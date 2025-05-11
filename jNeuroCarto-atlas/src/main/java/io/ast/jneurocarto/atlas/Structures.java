@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @NullMarked
@@ -23,6 +25,21 @@ public class Structures implements Iterable<Structure> {
         if (!Files.exists(file)) throw new FileNotFoundException(file.toString());
         var data = new ObjectMapper().readValue(file.toFile(), Structure[].class);
         return new Structures(data);
+    }
+
+    private @Nullable Structure root;
+
+    public Structure root() {
+        if (root == null) {
+            for (var structure : structures) {
+                if (structure.isRoot()) {
+                    root = structure;
+                    break;
+                }
+            }
+            if (root == null) throw new RuntimeException("structure tree does not have root.");
+        }
+        return root;
     }
 
     public Optional<Structure> get(int id) {
@@ -49,6 +66,10 @@ public class Structures implements Iterable<Structure> {
 
     public Structure parent(Structure s) {
         return get(s.parent()).get();
+    }
+
+    public Optional<Structure> asParent(Structure child, Structure parent) {
+        return child.hasParent(parent.id()) ? Optional.of(parent) : Optional.empty();
     }
 
     public Optional<List<Structure>> parents(int id) {
@@ -104,5 +125,9 @@ public class Structures implements Iterable<Structure> {
     @Override
     public Iterator<Structure> iterator() {
         return Arrays.asList(structures).iterator();
+    }
+
+    public Stream<Structure> stream() {
+        return Arrays.stream(structures);
     }
 }
