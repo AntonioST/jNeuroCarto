@@ -52,6 +52,18 @@ public class BrainAtlas {
      * meta information *
      *==================*/
 
+    public Path root() {
+        return root;
+    }
+
+    public String version() {
+        return meta.version;
+    }
+
+    public BrainAtlasMeta meta() {
+        return meta;
+    }
+
     public double[] resolution() {
         return meta.resolution;
     }
@@ -206,7 +218,6 @@ public class BrainAtlas {
     /*=========*
      * slicing *
      *=========*/
-
 
 
 }

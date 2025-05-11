@@ -1,6 +1,9 @@
 package io.ast.jneurocarto.atlas;
 
+import java.util.Objects;
+
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public final class ImageSlices {
@@ -28,7 +31,7 @@ public final class ImageSlices {
         }
 
         int get(BrainAtlas.CoordinateIndex coor, int i) {
-            return switch (get(i)) {
+            return switch (i) {
                 case 0 -> coor.ap();
                 case 1 -> coor.dv();
                 case 2 -> coor.ml();
@@ -37,7 +40,7 @@ public final class ImageSlices {
         }
 
         double get(BrainAtlas.Coordinate coor, int i) {
-            return switch (get(i)) {
+            return switch (i) {
                 case 0 -> coor.ap();
                 case 1 -> coor.dv();
                 case 2 -> coor.ml();
@@ -46,22 +49,54 @@ public final class ImageSlices {
         }
     }
 
-    private final BrainAtlas brain;
-    private final ImageVolume volume;
+    private final double[] brainResolution;
+    private final int[] volumeShape;
+    private final @Nullable ImageVolume volume;
     private final View project;
     private final double[] resolution; // {p, x, y}
 
     public ImageSlices(BrainAtlas brain, ImageVolume volume, View project) {
-        this.brain = brain;
+        brainResolution = brain.resolution();
         this.volume = volume;
+        volumeShape = volume.shape();
         this.project = project;
 
-        var resolution = brain.resolution();
         this.resolution = new double[3];
 
-        this.resolution[0] = resolution[project.p];
-        this.resolution[1] = resolution[project.x];
-        this.resolution[2] = resolution[project.y];
+        this.resolution[0] = brainResolution[project.p];
+        this.resolution[1] = brainResolution[project.x];
+        this.resolution[2] = brainResolution[project.y];
+    }
+
+    /**
+     * Test-purpose constructor.
+     *
+     * @param brainResolution
+     * @param volumeShape
+     * @param project
+     */
+    ImageSlices(double brainResolution, int[] volumeShape, View project) {
+        this(new double[]{brainResolution, brainResolution, brainResolution}, volumeShape, project);
+    }
+
+    /**
+     * Test-purpose constructor.
+     *
+     * @param brainResolution
+     * @param volumeShape
+     * @param project
+     */
+    ImageSlices(double[] brainResolution, int[] volumeShape, View project) {
+        this.brainResolution = brainResolution;
+        this.volumeShape = volumeShape;
+        this.project = project;
+        volume = null;
+
+        this.resolution = new double[3];
+
+        this.resolution[0] = brainResolution[project.p];
+        this.resolution[1] = brainResolution[project.x];
+        this.resolution[2] = brainResolution[project.y];
     }
 
     public View view() {
@@ -69,7 +104,7 @@ public final class ImageSlices {
     }
 
     public ImageVolume getVolume() {
-        return volume;
+        return Objects.requireNonNull(volume);
     }
 
     public int plane() {
@@ -108,13 +143,7 @@ public final class ImageSlices {
      * @return
      */
     public int dimensionOnAxes(int axis) {
-        if (axis < 0 || axis >= 3) throw new IllegalArgumentException();
-        return switch (project.get(axis)) {
-            case 0 -> volume.page;
-            case 1 -> volume.height;
-            case 2 -> volume.width;
-            default -> throw new IllegalArgumentException();
-        };
+        return volumeShape[project.get(axis)];
     }
 
     /**
@@ -122,13 +151,8 @@ public final class ImageSlices {
      * @return um
      */
     public double lengthOnAxes(int axis) {
-        if (axis < 0 || axis >= 3) throw new IllegalArgumentException();
-        return switch (project.get(axis)) {
-            case 0 -> volume.page * brain.resolution()[0];
-            case 1 -> volume.height * brain.resolution()[1];
-            case 2 -> volume.width * brain.resolution()[2];
-            default -> throw new IllegalArgumentException();
-        };
+        var i = project.get(axis);
+        return volumeShape[i] * brainResolution[i];
     }
 
     /**
@@ -176,7 +200,7 @@ public final class ImageSlices {
     }
 
     public Coordinate project(BrainAtlas.Coordinate coor) {
-        return project(coor.toCoorIndex(brain.resolution())).toCoor(resolution);
+        return project(coor.toCoorIndex(brainResolution)).toCoor(resolution);
     }
 
     /**
@@ -194,7 +218,7 @@ public final class ImageSlices {
     }
 
     public BrainAtlas.Coordinate pullBack(Coordinate coor) {
-        return pullBack(coor.toCoorIndex(resolution)).toCoor(brain.resolution());
+        return pullBack(coor.toCoorIndex(resolution)).toCoor(brainResolution);
     }
 
     /**
@@ -299,7 +323,7 @@ public final class ImageSlices {
     }
 
     public ImageSlice sliceAtPlace(double plane) {
-        var resolution = brain.resolution()[project.p];
+        var resolution = brainResolution[project.p];
         return sliceAtPlace((int) (plane / resolution));
     }
 
@@ -316,6 +340,6 @@ public final class ImageSlices {
     }
 
     public ImageSlice sliceAtPlace(BrainAtlas.Coordinate coor) {
-        return sliceAtPlace(project(coor.toCoorIndex(brain.resolution())));
+        return sliceAtPlace(project(coor.toCoorIndex(brainResolution)));
     }
 }

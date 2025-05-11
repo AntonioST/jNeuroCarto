@@ -51,7 +51,7 @@ public class Structures implements Iterable<Structure> {
 
     public Optional<Structure> get(String acronym) {
         for (var structure : structures) {
-            if (structure.acronym().equals(acronym)) return Optional.of(structure);
+            if (structure.acronym().equalsIgnoreCase(acronym)) return Optional.of(structure);
         }
         return Optional.empty();
     }

@@ -284,7 +284,7 @@ public class BrainGlobeDownloader {
         local.ifPresent(it -> log.debug("local version {}={}", atlas, it));
 
         if (!force && local.isPresent() && remote.equals(local.get())) {
-            return new DownloadResult(atlas, downloadDir.resolve(local.get()));
+            return new DownloadResult(atlas, downloadDir.resolve(atlas + "_v" + local.get()));
         }
 
         if (!force) log.info("{} local version is out-of-date", atlas);
