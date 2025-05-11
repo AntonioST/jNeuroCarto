@@ -10,7 +10,10 @@ import picocli.CommandLine;
 @CommandLine.Command(
   name = "use",
   usageHelpAutoWidth = true,
-  description = "use atlas brain"
+  description = "use atlas brain",
+  subcommands = {
+    Slice.class
+  }
 )
 public class Use implements Runnable {
 
