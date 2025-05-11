@@ -7,10 +7,15 @@ $M/com/fasterxml/jackson/core/jackson-databind/2.18.3/jackson-databind-2.18.3.ja
 $M/com/fasterxml/jackson/core/jackson-core/2.18.3/jackson-core-2.18.3.jar
 $M/com/fasterxml/jackson/core/jackson-annotations/2.18.3/jackson-annotations-2.18.3.jar
 $M/org/apache/commons/commons-lang3/3.16.0/commons-lang3-3.16.0.jar
-$M/com/twelvemonkeys/common/common-io/3.12.0/common-io-3.12.0.jar
 $M/org/apache/commons/commons-compress/1.27.1/commons-compress-1.27.1.jar
 $M/commons-io/commons-io/2.16.1/commons-io-2.16.1.jar
 $M/commons-codec/commons-codec/1.17.1/commons-codec-1.17.1.jar
+$M/com/twelvemonkeys/common/common-io/3.12.0/common-io-3.12.0.jar
+$M/com/twelvemonkeys/common/common-lang/3.12.0/common-lang-3.12.0.jar
+$M/com/twelvemonkeys/common/common-image/3.12.0/common-image-3.12.0.jar
+$M/com/twelvemonkeys/imageio/imageio-core/3.12.0/imageio-core-3.12.0.jar
+$M/com/twelvemonkeys/imageio/imageio-metadata/3.12.0/imageio-metadata-3.12.0.jar
+$M/com/twelvemonkeys/imageio/imageio-tiff/3.12.0/imageio-tiff-3.12.0.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
 target/classes
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
