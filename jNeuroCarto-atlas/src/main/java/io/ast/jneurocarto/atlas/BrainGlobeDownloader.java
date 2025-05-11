@@ -10,9 +10,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -107,7 +105,7 @@ public class BrainGlobeDownloader {
         return this;
     }
 
-    /*=============
+    /*=============*
      * information *
      *=============*/
 
@@ -154,12 +152,12 @@ public class BrainGlobeDownloader {
         var atlas = Objects.requireNonNull(atlasName, "miss getAtlasName()");
         var prop = getLastVersions(force);
         if (prop == null) return Optional.empty();
-        return Optional.ofNullable(prop.getProperty(atlas));
+        return Optional.ofNullable(prop.get(atlas));
     }
 
-    private @Nullable Properties lastVersionCache;
+    private @Nullable Map<String, String> lastVersionCache;
 
-    public @Nullable Properties getLastVersions() {
+    public @Nullable Map<String, String> getLastVersions() {
         return getLastVersions(false);
     }
 
@@ -167,7 +165,7 @@ public class BrainGlobeDownloader {
      * @param force force download.
      * @return
      */
-    public @Nullable Properties getLastVersions(boolean force) {
+    public @Nullable Map<String, String> getLastVersions(boolean force) {
         if (lastVersionCache != null && !force) {
             return lastVersionCache;
         }
@@ -187,8 +185,9 @@ public class BrainGlobeDownloader {
             var property = new Properties();
             property.load(new StringReader(content));
             property.remove("[atlases]");
-            lastVersionCache = property;
-            return property;
+            lastVersionCache = new HashMap<>();
+            property.forEach((k, v) -> lastVersionCache.put((String) k, (String) v));
+            return lastVersionCache;
         } catch (IOException e) {
             log.warn("getLastVersion", e);
             return null;
@@ -239,13 +238,13 @@ public class BrainGlobeDownloader {
         var prop = getLastVersions();
         if (prop == null) return false;
 
-        var version = prop.getProperty(atlas);
+        var version = prop.get(atlas);
         if (version == null) return false;
 
         return localVersion(atlas).map(version::equals).orElse(false);
     }
 
-    /*==========
+    /*==========*
      * download *
      *==========*/
 
@@ -276,7 +275,7 @@ public class BrainGlobeDownloader {
         if (!versions.containsKey(atlas)) {
             throw new IllegalArgumentException(atlas + " is not a valid atlas name!");
         }
-        var remote = versions.getProperty(atlas);
+        var remote = versions.get(atlas);
         assert remote != null;
         log.debug("remote version {}={}", atlas, remote);
 
@@ -292,7 +291,7 @@ public class BrainGlobeDownloader {
 
         if (dryrun) throw new RuntimeException("dry run mode");
 
-        var remoteVersion = versions.getProperty(atlas);
+        var remoteVersion = versions.get(atlas);
         assert remoteVersion != null;
 
         var remoteUrl = remoteUrl(atlas, remoteVersion);
@@ -352,23 +351,27 @@ public class BrainGlobeDownloader {
     }
 
     public record DownloadResult(String atlas, Path path) {
+
+        public String version() {
+            return path.getFileName().toString().replaceFirst(".*_v", "");
+        }
+
         public BrainAtlas get() throws IOException {
             return new BrainAtlas(path);
         }
     }
 
-    /*======
+    /*======*
      * http *
      *======*/
 
     private static Optional<String> curlText(String url) throws IOException {
-        var client = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
           .uri(URI.create(url))
           .build();
 
         HttpResponse<String> response;
-        try {
+        try (var client = HttpClient.newHttpClient()) {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -383,13 +386,13 @@ public class BrainGlobeDownloader {
     }
 
     private static boolean curlBinary(String url, Path file) throws IOException {
-        var client = HttpClient.newHttpClient();
+
         var request = HttpRequest.newBuilder()
           .uri(URI.create(url))
           .build();
 
         HttpResponse<Path> response;
-        try {
+        try (var client = HttpClient.newHttpClient()) {
             response = client.send(request, HttpResponse.BodyHandlers.ofFile(file));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

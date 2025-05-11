@@ -2,6 +2,8 @@ package io.ast.jneurocarto.atlas;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jspecify.annotations.NullMarked;
 
@@ -38,6 +40,10 @@ public class BrainAtlas {
           .setCheckLatest(checkLatest)
           .download()
           .get();
+    }
+
+    public static Map<String, String> listAtlasNames() {
+        return new HashMap<>(BrainGlobeDownloader.builder().getLastVersions());
     }
 
     /*==================
