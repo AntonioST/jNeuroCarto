@@ -28,11 +28,12 @@ public class BrainAtlas {
     }
 
     public static BrainAtlas load(String name) throws IOException {
-        return BrainAtlasDownloader.downloader(name).download().get();
+        return BrainGlobeDownloader.builder().atlasName(name).download().get();
     }
 
     public static BrainAtlas load(String name, Path downloadDir, boolean checkLatest) throws IOException {
-        return BrainAtlasDownloader.downloader(name)
+        return BrainGlobeDownloader.builder()
+          .atlasName(name)
           .setDownloadDir(downloadDir)
           .setCheckLatest(checkLatest)
           .download()
