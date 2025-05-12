@@ -1,6 +1,11 @@
 package io.ast.jneurocarto.atlas.cli;
 
+import java.io.IOException;
+
+import io.ast.jneurocarto.atlas.BrainAtlas;
 import io.ast.jneurocarto.atlas.ImageSlices;
+import io.ast.jneurocarto.atlas.gui.AtlasBrainSliceApplication;
+import javafx.application.Platform;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -19,16 +24,24 @@ public class Slice implements Runnable {
     @CommandLine.Option(names = "--view", defaultValue = "coronal")
     public ImageSlices.View view;
 
-    public enum Volume {
-        reference, annotations
-    }
-
     @CommandLine.Option(names = "--volume", defaultValue = "reference")
-    public Volume volume;
+    public AtlasBrainSliceApplication.UseImage volume;
 
     @Override
     public void run() {
-        //XXX Unsupported Operation Slice.run
-        throw new UnsupportedOperationException();
+        BrainAtlas brain;
+        try {
+            brain = use.getAtlas();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        var app = new AtlasBrainSliceApplication(brain);
+        app.launch();
+        Platform.runLater(() -> {
+            app.setUseVolumeImage(volume);
+            app.setProjection(view);
+        });
+
     }
 }

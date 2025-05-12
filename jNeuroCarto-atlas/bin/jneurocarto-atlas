@@ -16,6 +16,12 @@ $M/com/twelvemonkeys/common/common-image/3.12.0/common-image-3.12.0.jar
 $M/com/twelvemonkeys/imageio/imageio-core/3.12.0/imageio-core-3.12.0.jar
 $M/com/twelvemonkeys/imageio/imageio-metadata/3.12.0/imageio-metadata-3.12.0.jar
 $M/com/twelvemonkeys/imageio/imageio-tiff/3.12.0/imageio-tiff-3.12.0.jar
+$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1.jar
+$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1-linux.jar
+$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1.jar
+$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1-linux.jar
+$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1.jar
+$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1-linux.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
 target/classes
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar

@@ -34,7 +34,7 @@ public class Use implements Runnable {
         spec.commandLine().usage(System.out);
     }
 
-    private BrainAtlas getAtlas() throws IOException {
+    BrainAtlas getAtlas() throws IOException {
         var downloader = useAtlas.newDownloader(config);
         return useAtlas.download(downloader);
     }

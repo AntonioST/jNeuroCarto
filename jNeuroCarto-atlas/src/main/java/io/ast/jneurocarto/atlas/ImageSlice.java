@@ -4,6 +4,9 @@ import java.awt.image.BufferedImage;
 
 import org.jspecify.annotations.NullMarked;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
+
 /**
  * @param plane
  * @param ax    anchor x position
@@ -139,6 +142,12 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         return new ImageSlice(plane, ax, ay, dw, dh, slice);
     }
 
+    public ImageSlice withOffset(double dw, double dh) {
+        var iw = (int) (dw / slice.resolution()[1]);
+        var ih = (int) (dh / slice.resolution()[2]);
+        return new ImageSlice(plane, ax, ay, iw, ih, slice);
+    }
+
     public ImageSlice withRotate(int rx, int ry) {
         var dw = -width() * Math.tan(ry) / 2;
         var dh = height() * Math.tan(rx) / 2;
@@ -183,6 +192,49 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
                 q[project.x] = w;
                 q[project.y] = h;
                 image.setRGB(w, h, volume.get(q[0], q[1], q[2]));
+            }
+        }
+        return image;
+    }
+
+    public Image imageFx() {
+        var resolution = resolution();
+        var rp = resolution[0];
+        var rx = resolution[1];
+        var ry = resolution[2];
+
+        var width = slice.width();
+        var height = slice.height();
+
+        var cx = width * rx / 2;
+        var cy = height * ry / 2;
+
+        var volume = slice.getVolume();
+        var image = new WritableImage(width, height);
+        var writer = image.getPixelWriter();
+
+        var dw = new int[width];
+        var dh = new int[height];
+
+        var fw = this.dw * rx / cx;
+        var fh = this.dh * ry / cy;
+        for (int w = 0; w < width; w++) {
+            dw[w] = (int) (fw / (w * rx - cx) / rp);
+        }
+        for (int h = 0; h < height; h++) {
+            dh[h] = (int) (fh / (h * ry - cy) / rp);
+        }
+
+        var px = slice.plane();
+
+        var project = view();
+        var q = new int[3];
+        for (int h = 0; h < height; h++) {
+            for (int w = 0; w < width; w++) {
+                q[project.p] = Math.clamp(plane + dw[w] + dh[h], 0, px);
+                q[project.x] = w;
+                q[project.y] = h;
+                writer.setArgb(w, h, volume.get(q[0], q[1], q[2]));
             }
         }
         return image;
