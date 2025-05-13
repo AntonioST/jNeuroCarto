@@ -20,6 +20,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
@@ -30,6 +31,8 @@ public class AtlasBrainSliceApplication {
 
     public final SimpleIntegerProperty maxOffsetProperty = new SimpleIntegerProperty(1000);
 
+    private Stage stage;
+    private Label labelInformation;
     private ToggleGroup groupProjection;
     private RadioButton btnCoronal;
     private RadioButton btnSagittal;
@@ -39,6 +42,9 @@ public class AtlasBrainSliceApplication {
     private Slider sliderPlane;
     private Slider sliderOffsetWidth;
     private Slider sliderOffsetHeight;
+    private Label labelPlane;
+    private Label labelOffsetWidth;
+    private Label labelOffsetHeight;
     private AtlasBrainSliceView imageView;
 
     private ImageSlices.View currentProjection;
@@ -81,14 +87,16 @@ public class AtlasBrainSliceApplication {
     }
 
     public void start(Stage stage) {
+        this.stage = stage;
         log.debug("start");
         stage.setTitle("AtlasBrainSlice");
         stage.setScene(scene());
+        stage.sizeToScene();
         stage.show();
     }
 
     private Scene scene() {
-        var scene = new Scene(root(), 600, 600);
+        var scene = new Scene(root());
         return scene;
     }
 
@@ -98,16 +106,19 @@ public class AtlasBrainSliceApplication {
         var slice = sliceView();
         VBox.setVgrow(slice, Priority.ALWAYS);
 
+        labelInformation = new Label("");
+
         var control = controlView();
         VBox.setMargin(control, new Insets(5, 5, 15, 5));
 
-        root.getChildren().addAll(slice, control);
+        root.getChildren().addAll(slice, labelInformation, control);
 
         return root;
     }
 
     private Node sliceView() {
         imageView = new AtlasBrainSliceView(600, 500);
+        imageView.setOnMouseMoved(this::onMouseMovingInSlice);
         return imageView;
     }
 
@@ -123,13 +134,9 @@ public class AtlasBrainSliceApplication {
         layout.add(new Label("d(Height) (um)"), 0, 3);
 
         layout.add(projectView(), 1, 0, 2, 1);
-        layout.add(sliderPlane = newSlider(), 1, 1);
-        layout.add(sliderOffsetWidth = newSlider(), 1, 2);
-        layout.add(sliderOffsetHeight = newSlider(), 1, 3);
-        sliderOffsetWidth.maxProperty().bind(maxOffsetProperty);
-        sliderOffsetWidth.minProperty().bind(maxOffsetProperty.negate());
-        sliderOffsetHeight.maxProperty().bind(maxOffsetProperty);
-        sliderOffsetHeight.minProperty().bind(maxOffsetProperty.negate());
+        layout.add(bindSliderAndLabel(sliderPlane = newSlider(), labelPlane = new Label()), 1, 1);
+        layout.add(bindSliderAndLabel(sliderOffsetWidth = newSlider(), labelOffsetWidth = new Label()), 1, 2);
+        layout.add(bindSliderAndLabel(sliderOffsetHeight = newSlider(), labelOffsetHeight = new Label()), 1, 3);
 
         layout.add(btnResetOffsetWidth = newSliderResetButton(), 2, 2);
         layout.add(btnResetOffsetHeight = newSliderResetButton(), 2, 3);
@@ -172,6 +179,33 @@ public class AtlasBrainSliceApplication {
         slider.setShowTickLabels(true);
         slider.valueProperty().addListener((_, _, value) -> onSliderMoved(slider, value.doubleValue()));
         return slider;
+    }
+
+    private Node bindSliderAndLabel(Slider slider, Label label) {
+        if (slider == sliderOffsetHeight || slider == sliderOffsetWidth) {
+            slider.maxProperty().bind(maxOffsetProperty);
+            slider.minProperty().bind(maxOffsetProperty.negate());
+            slider.majorTickUnitProperty().bind(maxOffsetProperty.divide(10));
+        }
+
+        slider.valueProperty().addListener((_, _, value) -> {
+            String text;
+            if (slider == sliderPlane) {
+                text = String.format("%.2f mm", value.doubleValue());
+            } else {
+                text = String.format("%d um", value.intValue());
+            }
+
+            label.setText(text);
+        });
+
+        slider.setValue(1);
+        slider.setValue(0);
+        label.setMinWidth(50);
+
+        var layout = new HBox(slider, label);
+        HBox.setHgrow(slider, Priority.ALWAYS);
+        return layout;
     }
 
     private Button newSliderResetButton() {
@@ -233,6 +267,8 @@ public class AtlasBrainSliceApplication {
         sliderPlane.setMax(maxPlaneLength);
         if (projection == ImageSlices.View.sagittal) {
             sliderPlane.setValue(maxPlaneLength / 2);
+        } else {
+            sliderPlane.setValue(0);
         }
         sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
         sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
@@ -249,5 +285,22 @@ public class AtlasBrainSliceApplication {
         image = images.sliceAtPlace(plane).withOffset(dw, dh);
 
         imageView.draw(this.image);
+        stage.sizeToScene();
+    }
+
+    private void onMouseMovingInSlice(MouseEvent e) {
+        var image = this.image;
+        if (image == null) {
+            labelInformation.setText("");
+            return;
+        }
+
+        var mx = e.getX();
+        var my = e.getY();
+        var x = image.width() * mx / imageView.getWidth();
+        var y = image.height() * my / imageView.getHeight();
+        var coor = image.pullBack(image.planeAt(new ImageSlices.Coordinate(0, x, y)));
+        var text = String.format("AP=%.0f um, DV=%.0f um, ML=%.0f um", coor.ap(), coor.dv(), coor.ml());
+        labelInformation.setText(text);
     }
 }
