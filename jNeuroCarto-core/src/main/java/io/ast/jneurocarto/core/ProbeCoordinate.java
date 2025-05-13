@@ -19,4 +19,12 @@ public record ProbeCoordinate(
     public ProbeCoordinate(int s, double x, double y) {
         this(s, x, y, 0);
     }
+
+    public ProbeCoordinate offset(double x, double y, double z) {
+        return new ProbeCoordinate(s, this.x + x, this.y + y, this.z + z);
+    }
+
+    public ProbeCoordinate offset(ProbeCoordinate offset) {
+        return new ProbeCoordinate(s, offset.x + x, offset.y + y, offset.z + z);
+    }
 }

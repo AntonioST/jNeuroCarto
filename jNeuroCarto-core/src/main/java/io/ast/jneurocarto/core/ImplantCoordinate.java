@@ -99,6 +99,10 @@ public record ImplantCoordinate(
         );
     }
 
+    public ImplantCoordinate offset(Coordinate offset) {
+        return offset(offset.ap(), offset.dv(), offset.ml());
+    }
+
     /**
      * @return rotation. Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */

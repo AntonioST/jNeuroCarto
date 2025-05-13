@@ -20,4 +20,12 @@ public record Coordinate(double ap, double dv, double ml) {
         if (resolution.length != 3) throw new IllegalArgumentException();
         return new CoordinateIndex((int) (ap / resolution[0]), (int) (dv / resolution[1]), (int) (ml / resolution[2]));
     }
+
+    public Coordinate offset(double ap, double dv, double ml) {
+        return new Coordinate(this.ap + ap, this.dv + dv, this.ml + ml);
+    }
+
+    public Coordinate offset(Coordinate offset) {
+        return new Coordinate(offset.ap + ap, offset.dv + dv, offset.ml + ml);
+    }
 }
