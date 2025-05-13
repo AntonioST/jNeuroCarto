@@ -24,9 +24,6 @@ public class Slice implements Runnable {
     @CommandLine.Option(names = "--view", defaultValue = "coronal")
     public ImageSlices.View view;
 
-    @CommandLine.Option(names = "--volume", defaultValue = "reference")
-    public AtlasBrainSliceApplication.UseImage volume;
-
     @Override
     public void run() {
         BrainAtlas brain;
@@ -38,10 +35,7 @@ public class Slice implements Runnable {
 
         var app = new AtlasBrainSliceApplication(brain);
         app.launch();
-        Platform.runLater(() -> {
-            app.setUseVolumeImage(volume);
-            app.setProjection(view);
-        });
+        Platform.runLater(() -> app.setProjection(view));
 
     }
 }

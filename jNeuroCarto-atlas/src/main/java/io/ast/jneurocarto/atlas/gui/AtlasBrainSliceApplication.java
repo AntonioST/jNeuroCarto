@@ -12,6 +12,7 @@ import io.ast.jneurocarto.atlas.ImageSlices;
 import io.ast.jneurocarto.atlas.ImageVolume;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -24,30 +25,23 @@ import javafx.stage.Stage;
 
 public class AtlasBrainSliceApplication {
 
-    public enum UseImage {
-        reference, annotation
-    }
-
     private final BrainAtlas brain;
+    private final ImageVolume volume;
 
+    public final SimpleIntegerProperty maxOffsetProperty = new SimpleIntegerProperty(1000);
+
+    private ToggleGroup groupProjection;
     private RadioButton btnCoronal;
     private RadioButton btnSagittal;
     private RadioButton btnTransverse;
-    private Button btnResetPlane;
     private Button btnResetOffsetWidth;
     private Button btnResetOffsetHeight;
-    private RadioButton btnImageRef;
-    private RadioButton btnImageAnn;
     private Slider sliderPlane;
     private Slider sliderOffsetWidth;
     private Slider sliderOffsetHeight;
-    private Label sliderPlaneLabel;
-    private Label sliderOffsetWidthLabel;
-    private Label sliderOffsetHeightLabel;
     private AtlasBrainSliceView imageView;
 
     private ImageSlices.View currentProjection;
-    private UseImage currentUseVolumeImage;
     private ImageSlices images;
     private ImageSlice image;
 
@@ -57,6 +51,16 @@ public class AtlasBrainSliceApplication {
         super();
 
         this.brain = brain;
+
+        ImageVolume volume;
+        try {
+            volume = brain.reference();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        this.volume = new ImageVolume(volume);
+        this.volume.normalizeGrayLevel();
+
         log = LoggerFactory.getLogger(AtlasBrainSliceApplication.class);
     }
 
@@ -75,7 +79,6 @@ public class AtlasBrainSliceApplication {
             APPLICATION.start(primaryStage);
         }
     }
-
 
     public void start(Stage stage) {
         log.debug("start");
@@ -96,7 +99,7 @@ public class AtlasBrainSliceApplication {
         VBox.setVgrow(slice, Priority.ALWAYS);
 
         var control = controlView();
-        VBox.setMargin(control, new Insets(5, 5, 5, 5));
+        VBox.setMargin(control, new Insets(5, 5, 15, 5));
 
         root.getChildren().addAll(slice, control);
 
@@ -104,7 +107,7 @@ public class AtlasBrainSliceApplication {
     }
 
     private Node sliceView() {
-        imageView = new AtlasBrainSliceView();
+        imageView = new AtlasBrainSliceView(600, 500);
         return imageView;
     }
 
@@ -114,17 +117,22 @@ public class AtlasBrainSliceApplication {
         layout.setHgap(5);
         layout.setVgap(5);
 
-        layout.add(new Label("Project"), 0, 0);
-        layout.add(new Label("Plane"), 0, 1);
-        layout.add(new Label("d(Width)"), 0, 2);
-        layout.add(new Label("d(Height)"), 0, 3);
-        layout.add(new Label("image"), 0, 4);
+        layout.add(new Label("Projection"), 0, 0);
+        layout.add(new Label("Plane (mm)"), 0, 1);
+        layout.add(new Label("d(Width) (um)"), 0, 2);
+        layout.add(new Label("d(Height) (um)"), 0, 3);
 
-        layout.add(projectView(), 1, 0);
-        layout.add(planeSliceView(), 1, 1);
-        layout.add(widthOffsetSliceView(), 1, 2);
-        layout.add(heightOffsetSliceView(), 1, 3);
-        layout.add(imageSelectView(), 1, 4);
+        layout.add(projectView(), 1, 0, 2, 1);
+        layout.add(sliderPlane = newSlider(), 1, 1);
+        layout.add(sliderOffsetWidth = newSlider(), 1, 2);
+        layout.add(sliderOffsetHeight = newSlider(), 1, 3);
+        sliderOffsetWidth.maxProperty().bind(maxOffsetProperty);
+        sliderOffsetWidth.minProperty().bind(maxOffsetProperty.negate());
+        sliderOffsetHeight.maxProperty().bind(maxOffsetProperty);
+        sliderOffsetHeight.minProperty().bind(maxOffsetProperty.negate());
+
+        layout.add(btnResetOffsetWidth = newSliderResetButton(), 2, 2);
+        layout.add(btnResetOffsetHeight = newSliderResetButton(), 2, 3);
 
         var c1 = new ColumnConstraints(100, 100, 200);
         c1.setHalignment(HPos.RIGHT);
@@ -141,17 +149,17 @@ public class AtlasBrainSliceApplication {
     private Node projectView() {
         var layout = new HBox();
 
-        var group = new ToggleGroup();
+        groupProjection = new ToggleGroup();
         btnCoronal = new RadioButton("Coronal");
-        btnCoronal.setToggleGroup(group);
+        btnCoronal.setToggleGroup(groupProjection);
         btnCoronal.setOnAction(this::onProjectButtonPressed);
 
         btnSagittal = new RadioButton("Sagittal");
-        btnSagittal.setToggleGroup(group);
+        btnSagittal.setToggleGroup(groupProjection);
         btnSagittal.setOnAction(this::onProjectButtonPressed);
 
         btnTransverse = new RadioButton("Transverse");
-        btnTransverse.setToggleGroup(group);
+        btnTransverse.setToggleGroup(groupProjection);
         btnTransverse.setOnAction(this::onProjectButtonPressed);
 
         layout.getChildren().addAll(btnCoronal, btnSagittal, btnTransverse);
@@ -159,81 +167,17 @@ public class AtlasBrainSliceApplication {
         return layout;
     }
 
-    private Node planeSliceView() {
-        var layout = new HBox();
-
-        btnResetPlane = new Button("Reset");
-        btnResetPlane.setOnAction(this::onResetButtonPressed);
-
-        sliderPlane = new Slider();
-        sliderPlane.setMin(0);
-        sliderPlane.setMax(100);
-        sliderPlane.valueProperty().addListener((_, _, value) -> onSliderMoved(sliderPlane, value.doubleValue()));
-
-        sliderPlaneLabel = new Label("0 um");
-
-        HBox.setHgrow(sliderPlane, Priority.ALWAYS);
-
-        layout.getChildren().addAll(sliderPlaneLabel, sliderPlane, btnResetPlane);
-
-        return layout;
+    private Slider newSlider() {
+        var slider = new Slider();
+        slider.setShowTickLabels(true);
+        slider.valueProperty().addListener((_, _, value) -> onSliderMoved(slider, value.doubleValue()));
+        return slider;
     }
 
-    private Node widthOffsetSliceView() {
-        var layout = new HBox();
-
-        btnResetOffsetWidth = new Button("Reset");
-        btnResetOffsetWidth.setOnAction(this::onResetButtonPressed);
-
-        sliderOffsetWidth = new Slider();
-        sliderOffsetWidth.setMin(-100);
-        sliderOffsetWidth.setMax(100);
-        sliderOffsetWidth.setValue(0);
-        sliderOffsetWidth.valueProperty().addListener((_, _, value) -> onSliderMoved(sliderOffsetWidth, value.doubleValue()));
-        HBox.setHgrow(sliderOffsetWidth, Priority.ALWAYS);
-
-        sliderOffsetWidthLabel = new Label("0 um");
-
-        layout.getChildren().addAll(sliderOffsetWidthLabel, sliderOffsetWidth, btnResetOffsetWidth);
-
-        return layout;
-    }
-
-    private Node heightOffsetSliceView() {
-        var layout = new HBox();
-
-        btnResetOffsetHeight = new Button("Reset");
-        btnResetOffsetHeight.setOnAction(this::onResetButtonPressed);
-
-        sliderOffsetHeight = new Slider();
-        sliderOffsetHeight.setMin(-100);
-        sliderOffsetHeight.setMax(100);
-        sliderOffsetHeight.setValue(0);
-        sliderOffsetHeight.valueProperty().addListener((_, _, value) -> onSliderMoved(sliderOffsetHeight, value.doubleValue()));
-        HBox.setHgrow(sliderOffsetHeight, Priority.ALWAYS);
-
-        sliderOffsetHeightLabel = new Label("0 um");
-
-        layout.getChildren().addAll(sliderOffsetHeightLabel, sliderOffsetHeight, btnResetOffsetHeight);
-
-        return layout;
-    }
-
-    private Node imageSelectView() {
-        var layout = new HBox();
-
-        var group = new ToggleGroup();
-        btnImageRef = new RadioButton("Reference");
-        btnImageRef.setToggleGroup(group);
-        btnImageRef.setOnAction(this::onImageButtonPressed);
-
-        btnImageAnn = new RadioButton("Annotation");
-        btnImageAnn.setToggleGroup(group);
-        btnImageAnn.setOnAction(this::onImageButtonPressed);
-
-        layout.getChildren().addAll(btnImageRef, btnImageAnn);
-
-        return layout;
+    private Button newSliderResetButton() {
+        var button = new Button("Reset");
+        button.setOnAction(this::onResetButtonPressed);
+        return button;
     }
 
     private void onProjectButtonPressed(ActionEvent e) {
@@ -249,50 +193,17 @@ public class AtlasBrainSliceApplication {
 
     private void onResetButtonPressed(ActionEvent e) {
         var source = e.getSource();
-        if (source == btnResetPlane) {
-
-        } else if (source == btnResetOffsetWidth) {
-
+        if (source == btnResetOffsetWidth) {
+            sliderOffsetWidth.setValue(0);
         } else if (source == btnResetOffsetHeight) {
-        }
-    }
-
-
-    private void onImageButtonPressed(ActionEvent e) {
-        var source = e.getSource();
-        if (source == btnImageRef) {
-            changeVolumeImage(UseImage.reference);
-        } else if (source == btnImageAnn) {
-            changeVolumeImage(UseImage.annotation);
+            sliderOffsetHeight.setValue(0);
         }
     }
 
     private void onSliderMoved(Slider source, double value) {
-        if (source == sliderPlane) {
-            sliderPlaneLabel.setText(String.format("%.0f um", value));
-        } else if (source == sliderOffsetWidth) {
-            sliderOffsetWidthLabel.setText(String.format("%.2f um", value));
-        } else if (source == sliderOffsetHeight) {
-            sliderOffsetHeightLabel.setText(String.format("%.2f um", value));
+        if (images != null) {
+            updateSliceImage();
         }
-    }
-
-    public UseImage getUseVolumeImage() {
-        return currentUseVolumeImage;
-    }
-
-    public void setUseVolumeImage(UseImage use) {
-        Platform.runLater(() -> changeVolumeImage(use));
-    }
-
-    private void changeVolumeImage(UseImage use) {
-        if (currentUseVolumeImage == use && images != null) return;
-        log.debug("changeVolumeImage({})", use);
-
-        currentUseVolumeImage = use;
-        var projection = currentProjection;
-        projection = projection == null ? ImageSlices.View.coronal : projection;
-        changeProjection(projection);
     }
 
     public ImageSlices.View getProjection() {
@@ -300,7 +211,14 @@ public class AtlasBrainSliceApplication {
     }
 
     public void setProjection(ImageSlices.View projection) {
-        Platform.runLater(() -> changeProjection(projection));
+        Platform.runLater(() -> {
+            switch (projection) {
+            case coronal -> groupProjection.selectToggle(btnCoronal);
+            case sagittal -> groupProjection.selectToggle(btnSagittal);
+            case transverse -> groupProjection.selectToggle(btnTransverse);
+            }
+            log.debug("setProjection({})", projection);
+        });
     }
 
     private void changeProjection(ImageSlices.View projection) {
@@ -309,35 +227,24 @@ public class AtlasBrainSliceApplication {
 
         currentProjection = projection;
 
-        ImageVolume image;
-        try {
-            image = switch (currentUseVolumeImage) {
-                case null -> {
-                    currentUseVolumeImage = UseImage.reference;
-                    yield brain.reference();
-                }
-                case reference -> brain.reference();
-                case annotation -> brain.annotation();
-            };
-        } catch (IOException e) {
-            log.warn("changeProjection", e);
-            return;
-        }
+        images = new ImageSlices(brain, volume, projection);
 
-        images = new ImageSlices(brain, image, projection);
-        sliderPlane.setMax(images.planeUm());
-        sliderPlane.setMajorTickUnit(images.resolution()[0]);
-        sliderOffsetWidth.setMajorTickUnit(images.resolution()[1]);
-        sliderOffsetHeight.setMajorTickUnit(images.resolution()[2]);
+        var maxPlaneLength = images.planeUm() / 1000;
+        sliderPlane.setMax(maxPlaneLength);
+        if (projection == ImageSlices.View.sagittal) {
+            sliderPlane.setValue(maxPlaneLength / 2);
+        }
+        sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
+        sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
 
         updateSliceImage();
     }
 
     private void updateSliceImage() {
-        var plane = sliderPlane.getValue();
+        var plane = sliderPlane.getValue() * 1000;
         var dw = sliderOffsetWidth.getValue();
         var dh = sliderOffsetHeight.getValue();
-        log.debug("updateSliceImage({}, {}, {})", plane, dw, dh);
+        log.trace("updateSliceImage({}, {}, {})", (int) plane, dw, dh);
 
         image = images.sliceAtPlace(plane).withOffset(dw, dh);
 

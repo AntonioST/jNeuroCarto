@@ -168,7 +168,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var cy = height * ry / 2;
 
         var volume = slice.getVolume();
-        var image = new BufferedImage(width, height, volume.type);
+        var image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR);
 
         var dw = new int[width];
         var dh = new int[height];
@@ -176,10 +176,10 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var fw = this.dw * rx / cx;
         var fh = this.dh * ry / cy;
         for (int w = 0; w < width; w++) {
-            dw[w] = (int) (fw / (w * rx - cx) / rp);
+            dw[w] = (int) (fw * (w * rx - cx) / rp);
         }
         for (int h = 0; h < height; h++) {
-            dh[h] = (int) (fh / (h * ry - cy) / rp);
+            dh[h] = (int) (fh * (h * ry - cy) / rp);
         }
 
         var px = slice.plane();
@@ -219,13 +219,13 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var fw = this.dw * rx / cx;
         var fh = this.dh * ry / cy;
         for (int w = 0; w < width; w++) {
-            dw[w] = (int) (fw / (w * rx - cx) / rp);
+            dw[w] = (int) (fw * (w * rx - cx) / rp);
         }
         for (int h = 0; h < height; h++) {
-            dh[h] = (int) (fh / (h * ry - cy) / rp);
+            dh[h] = (int) (fh * (h * ry - cy) / rp);
         }
 
-        var px = slice.plane();
+        var px = slice.plane() - 1;
 
         var project = view();
         var q = new int[3];
