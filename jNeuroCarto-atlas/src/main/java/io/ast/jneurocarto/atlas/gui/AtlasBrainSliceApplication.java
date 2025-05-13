@@ -186,7 +186,7 @@ public class AtlasBrainSliceApplication {
     private Slider newSlider() {
         var slider = new Slider();
         slider.setShowTickLabels(true);
-        slider.valueProperty().addListener((_, _, value) -> onSliderMoved(slider, value.doubleValue()));
+        slider.valueProperty().addListener((_, _, _) -> onSliderMoved());
         return slider;
     }
 
@@ -243,7 +243,7 @@ public class AtlasBrainSliceApplication {
         }
     }
 
-    private void onSliderMoved(Slider source, double value) {
+    private void onSliderMoved() {
         if (images != null) {
             updateSliceImage();
             updateAnchorInformation();

@@ -5,7 +5,6 @@ import java.io.IOException;
 import io.ast.jneurocarto.atlas.BrainAtlas;
 import io.ast.jneurocarto.atlas.ImageSlices;
 import io.ast.jneurocarto.atlas.gui.AtlasBrainSliceApplication;
-import javafx.application.Platform;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -35,7 +34,5 @@ public class Slice implements Runnable {
 
         var app = new AtlasBrainSliceApplication(brain);
         app.launch();
-        Platform.runLater(() -> app.setProjection(view));
-
     }
 }
