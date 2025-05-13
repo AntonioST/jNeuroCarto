@@ -71,16 +71,25 @@ public class AtlasBrainSliceApplication {
 
         log = LoggerFactory.getLogger(AtlasBrainSliceApplication.class);
 
+        measureLoading("annotations", brain::annotation);
+        measureLoading("hemispheres", brain::hemispheres);
+    }
+
+    interface IOAction {
+        void doit() throws IOException;
+    }
+
+    private void measureLoading(String message, IOAction action) {
         Thread.ofVirtual().start(() -> {
             var start = System.currentTimeMillis();
-            log.debug("pre loading annotations");
+            log.debug("pre loading {}", message);
             try {
-                brain.annotation(); // pre load
+                action.doit();
             } catch (IOException e) {
                 log.warn("pre load fail", e);
             }
             var pass = System.currentTimeMillis() - start;
-            log.debug("pre loaded annotations. use {} sec", String.format("%.4f", (double) pass / 1000));
+            log.debug("pre loaded {}. use {} sec", message, String.format("%.4f", (double) pass / 1000));
         });
     }
 
@@ -325,6 +334,7 @@ public class AtlasBrainSliceApplication {
         }
         image = regImage.withOffset(dw, dh);
 
+        // TODO image is left-right flipped
         imageView.draw(this.image);
         stage.sizeToScene();
     }
@@ -390,12 +400,8 @@ public class AtlasBrainSliceApplication {
         labelAnchorInformation.setText(text);
     }
 
-    private volatile Thread updateStructureInformationTask;
-
     private void updateStructureInformation(Coordinate coor) {
-        if (updateStructureInformationTask != null) return;
-
-        updateStructureInformationTask = Thread.ofVirtual().start(() -> {
+        Thread.ofVirtual().start(() -> {
             Structure structure = null;
             try {
                 structure = brain.structureFromCoords(coor);
@@ -410,11 +416,15 @@ public class AtlasBrainSliceApplication {
                 text = brain.structures().parents(structure).reversed().stream()
                   .map(Structure::acronym)
                   .collect(Collectors.joining(" / "));
+
+                var hem = brain.hemisphereFromCoords(coor);
+                if (hem != null) {
+                    text += " [" + hem.name() + "]";
+                }
             }
 
-            Platform.runLater(() -> labelStructure.setText(text));
-
-            updateStructureInformationTask = null;
+            var finalText = text;
+            Platform.runLater(() -> labelStructure.setText(finalText));
         });
     }
 }

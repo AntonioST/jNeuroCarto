@@ -111,6 +111,10 @@ public class AnatomicalSpace {
         return ret;
     }
 
+    public int[] axes() {
+        return axes;
+    }
+
     public Axes[] axesOrder() {
         var order = new Axes[axes.length];
         for (int i = 0, length = order.length; i < length; i++) {
@@ -128,11 +132,15 @@ public class AnatomicalSpace {
     }
 
     public int getAxisIndexOf(String axes) {
-        return Axes.valueOf(axes).ordinal();
+        return getAxisIndexOf(Axes.valueOf(axes));
     }
 
     public int getAxisIndexOf(Axes axes) {
-        return axes.ordinal();
+        var a = axes.ordinal() + 1;
+        for (int i = 0; i < 3; i++) {
+            if (Math.abs(this.axes[i]) == a) return i;
+        }
+        throw new RuntimeException();
     }
 
     public Labels[][] axisLabels() {
@@ -149,5 +157,15 @@ public class AnatomicalSpace {
         };
     }
 
+    public int[] shape() {
+        return shape;
+    }
 
+    public double[] resolution() {
+        return resolution;
+    }
+
+    public int[] offset() {
+        return offset;
+    }
 }

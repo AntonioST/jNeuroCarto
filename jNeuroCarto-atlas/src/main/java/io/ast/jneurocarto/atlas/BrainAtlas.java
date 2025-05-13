@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.atlas;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -110,44 +111,51 @@ public class BrainAtlas {
      * image data *
      *============*/
 
-    private volatile @Nullable ImageVolume reference;
-    private volatile @Nullable ImageVolume annotation;
-    private volatile @Nullable ImageVolume hemispheres;
+    private final ImageVolume empty = new ImageVolume(0, 0, 0, false);
+    private volatile ImageVolume reference = empty;
+    private volatile ImageVolume annotation = empty;
 
-    public synchronized ImageVolume reference() throws IOException {
-        if (reference == null) {
+    public ImageVolume reference() throws IOException {
+        if (reference == empty) {
             var file = root.resolve(REFERENCE_FILENAME);
-            log.debug("load reference {}", file);
-            reference = ImageVolume.readTiff(file);
-            log.debug("loaded reference");
+            synchronized (empty) {
+                if (reference == empty) {
+                    log.debug("load reference {}", file);
+                    reference = ImageVolume.readTiff(file);
+                    log.debug("loaded reference");
+                }
+            }
         }
         return Objects.requireNonNull(reference);
     }
 
-    public synchronized ImageVolume annotation() throws IOException {
-        if (annotation == null) {
+    public ImageVolume annotation() throws IOException {
+        if (annotation == empty) {
             var file = root.resolve(ANNOTATION_FILENAME);
-            log.debug("load annotation {}", file);
-            annotation = ImageVolume.readTiff(file);
-            log.debug("loaded annotation");
+            synchronized (empty) {
+                if (annotation == empty) {
+                    log.debug("load annotation {}", file);
+                    annotation = ImageVolume.readTiff(file);
+                    log.debug("loaded annotation");
+                }
+            }
         }
         return Objects.requireNonNull(annotation);
     }
 
-    public synchronized ImageVolume hemispheres() throws IOException {
-        if (hemispheres == null) {
-            // If reference is symmetric generate hemispheres block
-            var file = root.resolve(HEMISPHERES_FILENAME);
-            log.debug("load hemispheres {}", file);
-            if (meta.symmetric) {
-                // TODO Are they different really?
-                hemispheres = ImageVolume.readTiff(file);
-            } else {
-                hemispheres = ImageVolume.readTiff(file);
-            }
-            log.debug("loaded hemispheres");
-        }
-        return Objects.requireNonNull(hemispheres);
+    /*=============*
+     * hemispheres *
+     *=============*/
+
+    private sealed interface Hemispheres permits HemispheresFromTiff, SymetrocHemispheres, AlwaysNullHemispheres {
+        AnatomicalSpace.@Nullable Labels hemisphereFromCoords(CoordinateIndex coor);
+    }
+
+    public @Nullable ImageVolume hemispheres() throws IOException {
+        return switch (initHemisphere()) {
+            case HemispheresFromTiff hem -> hem.hemispheres;
+            default -> null;
+        };
     }
 
     /*============*
@@ -166,32 +174,6 @@ public class BrainAtlas {
         }
     }
 
-    /**
-     * @return {@link AnatomicalSpace.Labels#left} or {@link AnatomicalSpace.Labels#right}
-     */
-    public AnatomicalSpace.Labels hemisphereFromCoords(Coordinate coor) {
-        return hemisphereFromCoords(coor.toCoorIndex(resolution()));
-    }
-
-    /**
-     * @return {@link AnatomicalSpace.Labels#left} or {@link AnatomicalSpace.Labels#right}
-     */
-    public AnatomicalSpace.Labels hemisphereFromCoords(CoordinateIndex coor) {
-        ImageVolume volume;
-        try {
-            volume = hemispheres();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        var hem = volume.get(coor);
-        return switch (hem) {
-            case 1 -> AnatomicalSpace.Labels.left;
-            case 2 -> AnatomicalSpace.Labels.right;
-            default -> throw new RuntimeException();
-        };
-    }
-
     public @Nullable Structure structureFromCoords(Coordinate coor) {
         return structureFromCoords(coor.toCoorIndex(resolution()));
     }
@@ -206,6 +188,95 @@ public class BrainAtlas {
 
         var rid = volume.get(coor);
         return structures.get(rid).orElse(null);
+    }
+
+    private static final class HemispheresFromTiff implements Hemispheres {
+
+        private ImageVolume hemispheres;
+
+        HemispheresFromTiff(ImageVolume hemispheres) {
+            this.hemispheres = hemispheres;
+        }
+
+        @Override
+        public AnatomicalSpace.@Nullable Labels hemisphereFromCoords(CoordinateIndex coor) {
+            return switch (hemispheres.get(coor)) {
+                case 1 -> AnatomicalSpace.Labels.left;
+                case 2 -> AnatomicalSpace.Labels.right;
+                default -> null;
+            };
+        }
+    }
+
+    private static final class SymetrocHemispheres implements Hemispheres {
+        private final int size;
+        private final boolean reversed;
+
+        public SymetrocHemispheres(AnatomicalSpace space) {
+            var frontal = space.getAxisIndexOf(AnatomicalSpace.Axes.frontal);
+            size = space.shape()[frontal];
+            reversed = space.axes()[frontal] < 0;
+        }
+
+        @Override
+        public AnatomicalSpace.Labels hemisphereFromCoords(CoordinateIndex coor) {
+            var ml = coor.ml();
+
+            boolean isLeft = ml < size / 2 + 1;
+            /*      !reversed  reversed
+            isLeft  left       right
+            !isLeft right      left
+             */
+            return isLeft == reversed ? AnatomicalSpace.Labels.right : AnatomicalSpace.Labels.left;
+        }
+    }
+
+    private static final class AlwaysNullHemispheres implements Hemispheres {
+
+        @Override
+        public AnatomicalSpace.@Nullable Labels hemisphereFromCoords(CoordinateIndex coor) {
+            return null;
+        }
+    }
+
+    /**
+     * @return {@link AnatomicalSpace.Labels#left} or {@link AnatomicalSpace.Labels#right}
+     */
+    public AnatomicalSpace.@Nullable Labels hemisphereFromCoords(Coordinate coor) {
+        return hemisphereFromCoords(coor.toCoorIndex(resolution()));
+    }
+
+    private volatile @Nullable Hemispheres hemispheres;
+
+    /**
+     * @return {@link AnatomicalSpace.Labels#left} or {@link AnatomicalSpace.Labels#right}
+     */
+    public AnatomicalSpace.@Nullable Labels hemisphereFromCoords(CoordinateIndex coor) {
+        Hemispheres hem;
+        try {
+            hem = initHemisphere();
+        } catch (IOException e) {
+            log.warn("hemispheres", e);
+            hemispheres = hem = new AlwaysNullHemispheres();
+        }
+        return hem.hemisphereFromCoords(coor);
+    }
+
+    private Hemispheres initHemisphere() throws IOException {
+        if (hemispheres == null) {
+            var file = root.resolve(HEMISPHERES_FILENAME);
+            if (meta.symmetric || !Files.exists(file)) {
+                hemispheres = new SymetrocHemispheres(space);
+            } else {
+                synchronized (empty) {
+                    if (hemispheres == null) {
+                        hemispheres = new HemispheresFromTiff(ImageVolume.readTiff(file));
+                    }
+                }
+            }
+        }
+
+        return Objects.requireNonNull(hemispheres);
     }
 
     /*=========*
