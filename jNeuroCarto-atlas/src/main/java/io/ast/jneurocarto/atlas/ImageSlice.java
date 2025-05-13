@@ -206,7 +206,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
                 q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
                 q[project.x] = w;
                 q[project.y] = h;
-                image.setRGB(w, h, volume.get(q[0], q[1], q[2]));
+                image.setRGB(w, h, volume.get(q[0], q[2], q[1]));
             }
         }
         return image;
@@ -251,7 +251,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
                 q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
                 q[project.x] = w;
                 q[project.y] = h;
-                writer.setArgb(w, h, volume.get(q[0], q[1], q[2]));
+                writer.setArgb(w, h, volume.get(q[0], q[2], q[1]));
             }
         }
         return image;
