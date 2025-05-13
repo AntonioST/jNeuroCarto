@@ -20,6 +20,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -32,7 +33,8 @@ public class AtlasBrainSliceApplication {
     public final SimpleIntegerProperty maxOffsetProperty = new SimpleIntegerProperty(1000);
 
     private Stage stage;
-    private Label labelInformation;
+    private Label labelMouseInformation;
+    private Label labelAnchorInformation;
     private ToggleGroup groupProjection;
     private RadioButton btnCoronal;
     private RadioButton btnSagittal;
@@ -106,19 +108,26 @@ public class AtlasBrainSliceApplication {
         var slice = sliceView();
         VBox.setVgrow(slice, Priority.ALWAYS);
 
-        labelInformation = new Label("");
+        var coorInformation = new Label("(AP, DV, ML) um");
+        labelMouseInformation = new Label("");
+        labelAnchorInformation = new Label("");
+        var information = new HBox(coorInformation, labelMouseInformation, labelAnchorInformation);
+        information.setSpacing(20);
 
         var control = controlView();
         VBox.setMargin(control, new Insets(5, 5, 15, 5));
 
-        root.getChildren().addAll(slice, labelInformation, control);
+        root.getChildren().addAll(slice, information, control);
 
         return root;
     }
 
     private Node sliceView() {
         imageView = new AtlasBrainSliceView(600, 500);
+        imageView.setOnMouseClicked(this::onMouseClickedInSlice);
         imageView.setOnMouseMoved(this::onMouseMovingInSlice);
+        imageView.setOnMouseExited(this::onMouseExitedInSlice);
+        imageView.anchor.addListener((_, _, _) -> updateAnchorInformation());
         return imageView;
     }
 
@@ -237,6 +246,7 @@ public class AtlasBrainSliceApplication {
     private void onSliderMoved(Slider source, double value) {
         if (images != null) {
             updateSliceImage();
+            updateAnchorInformation();
         }
     }
 
@@ -261,15 +271,27 @@ public class AtlasBrainSliceApplication {
 
         currentProjection = projection;
 
+        var image = this.image;
         images = new ImageSlices(brain, volume, projection);
 
         var maxPlaneLength = images.planeUm() / 1000;
         sliderPlane.setMax(maxPlaneLength);
-        if (projection == ImageSlices.View.sagittal) {
-            sliderPlane.setValue(maxPlaneLength / 2);
+
+        var anchor = imageView.anchor.get();
+        if (anchor == null || image == null) {
+            if (projection == ImageSlices.View.sagittal) {
+                sliderPlane.setValue(maxPlaneLength / 2);
+            } else {
+                sliderPlane.setValue(0);
+            }
         } else {
-            sliderPlane.setValue(0);
+            var coor = image.pullBack(image.planeAt(anchor));
+            sliderPlane.setValue(projection.get(coor, projection.p) / 1000);
+            imageView.anchor.setValue(this.image.project(coor));
         }
+
+        sliderOffsetWidth.setValue(0);
+        sliderOffsetHeight.setValue(0);
         sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
         sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
 
@@ -282,25 +304,72 @@ public class AtlasBrainSliceApplication {
         var dh = sliderOffsetHeight.getValue();
         log.trace("updateSliceImage({}, {}, {})", (int) plane, dw, dh);
 
-        image = images.sliceAtPlace(plane).withOffset(dw, dh);
+        var regImage = images.sliceAtPlace(plane);
+        var anchor = imageView.anchor.get();
+        if (anchor != null) {
+            regImage = regImage.withAnchor(anchor);
+        }
+        image = regImage.withOffset(dw, dh);
 
         imageView.draw(this.image);
         stage.sizeToScene();
     }
 
+    private void onMouseExitedInSlice(MouseEvent e) {
+        labelMouseInformation.setText("");
+    }
+
     private void onMouseMovingInSlice(MouseEvent e) {
         var image = this.image;
         if (image == null) {
-            labelInformation.setText("");
+            labelMouseInformation.setText("");
             return;
         }
 
+        var coor = image.pullBack(image.planeAt(getCoordinate(e)));
+        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+
+        labelMouseInformation.setText(text);
+    }
+
+    private ImageSlices.Coordinate getCoordinate(MouseEvent e) {
         var mx = e.getX();
         var my = e.getY();
         var x = image.width() * mx / imageView.getWidth();
         var y = image.height() * my / imageView.getHeight();
-        var coor = image.pullBack(image.planeAt(new ImageSlices.Coordinate(0, x, y)));
-        var text = String.format("AP=%.0f um, DV=%.0f um, ML=%.0f um", coor.ap(), coor.dv(), coor.ml());
-        labelInformation.setText(text);
+        return new ImageSlices.Coordinate(0, x, y);
+    }
+
+    private void onMouseClickedInSlice(MouseEvent e) {
+        var image = this.image;
+        if (image == null) return;
+
+        if (e.getButton() == MouseButton.PRIMARY) {
+            imageView.anchor.setValue(getCoordinate(e));
+            updateSliceImage();
+        } else if (e.getButton() == MouseButton.SECONDARY) {
+            imageView.anchor.setValue(null);
+            updateSliceImage();
+        }
+    }
+
+
+    private void updateAnchorInformation() {
+        var image = this.image;
+        if (image == null) {
+            labelMouseInformation.setText("");
+            return;
+        }
+
+        var anchor = imageView.anchor.get();
+        if (anchor == null) {
+            labelAnchorInformation.setText("");
+            return;
+        }
+
+        var coor = image.pullBack(image.planeAt(anchor));
+        var text = String.format("[anchor] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+
+        labelAnchorInformation.setText(text);
     }
 }

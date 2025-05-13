@@ -30,7 +30,7 @@ public final class ImageSlices {
             };
         }
 
-        int get(BrainAtlas.CoordinateIndex coor, int i) {
+        public int get(BrainAtlas.CoordinateIndex coor, int i) {
             return switch (i) {
                 case 0 -> coor.ap();
                 case 1 -> coor.dv();
@@ -39,7 +39,7 @@ public final class ImageSlices {
             };
         }
 
-        double get(BrainAtlas.Coordinate coor, int i) {
+        public double get(BrainAtlas.Coordinate coor, int i) {
             return switch (i) {
                 case 0 -> coor.ap();
                 case 1 -> coor.dv();

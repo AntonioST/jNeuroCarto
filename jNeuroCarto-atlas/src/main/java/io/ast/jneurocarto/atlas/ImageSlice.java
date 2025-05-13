@@ -138,6 +138,19 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         return new ImageSlice(plane, ax, ay, dw, dh, slice);
     }
 
+    public ImageSlice withAnchor(double ax, double ay) {
+        var resolution = resolution();
+        return withAnchor((int) (ax / resolution[1]), (int) (ay / resolution[2]));
+    }
+
+    public ImageSlice withAnchor(ImageSlices.CoordinateIndex coor) {
+        return withAnchor(coor.x(), coor.y());
+    }
+
+    public ImageSlice withAnchor(ImageSlices.Coordinate coor) {
+        return withAnchor(coor.x(), coor.y());
+    }
+
     public ImageSlice withOffset(int dw, int dh) {
         return new ImageSlice(plane, ax, ay, dw, dh, slice);
     }
@@ -161,6 +174,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var rx = resolution[1];
         var ry = resolution[2];
 
+        var plane = this.plane;
         var width = slice.width();
         var height = slice.height();
 
@@ -181,6 +195,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         for (int h = 0; h < height; h++) {
             dh[h] = (int) (fh * (h * ry - cy) / rp);
         }
+        var dp = dw[ax] + dh[ay];
 
         var px = slice.plane();
 
@@ -188,7 +203,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var q = new int[3];
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                q[project.p] = Math.clamp(plane + dw[w] + dh[h], 0, px);
+                q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
                 q[project.x] = w;
                 q[project.y] = h;
                 image.setRGB(w, h, volume.get(q[0], q[1], q[2]));
@@ -203,6 +218,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var rx = resolution[1];
         var ry = resolution[2];
 
+        var plane = this.plane;
         var width = slice.width();
         var height = slice.height();
 
@@ -224,6 +240,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         for (int h = 0; h < height; h++) {
             dh[h] = (int) (fh * (h * ry - cy) / rp);
         }
+        var dp = dw[ax] + dh[ay];
 
         var px = slice.plane() - 1;
 
@@ -231,7 +248,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var q = new int[3];
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                q[project.p] = Math.clamp(plane + dw[w] + dh[h], 0, px);
+                q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
                 q[project.x] = w;
                 q[project.y] = h;
                 writer.setArgb(w, h, volume.get(q[0], q[1], q[2]));
