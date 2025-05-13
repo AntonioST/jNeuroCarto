@@ -11,6 +11,9 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.CoordinateIndex;
+
 @NullMarked
 public class BrainAtlas {
 
@@ -153,47 +156,13 @@ public class BrainAtlas {
 
     // TODO how to cooperate with AnatomicalSpace?
 
-    /**
-     * coordinate system in anatomical space.
-     *
-     * @param ap um
-     * @param dv um
-     * @param ml um
-     */
-    public record Coordinate(double ap, double dv, double ml) {
-        public CoordinateIndex toCoorIndex(double resolution) {
-            return new CoordinateIndex((int) (ap / resolution), (int) (dv / resolution), (int) (ml / resolution));
-        }
-
-        /**
-         * @param resolution int array of {ap, dv, ml}
-         * @return
-         */
-        public CoordinateIndex toCoorIndex(double[] resolution) {
-            if (resolution.length != 3) throw new IllegalArgumentException();
-            return new CoordinateIndex((int) (ap / resolution[0]), (int) (dv / resolution[1]), (int) (ml / resolution[2]));
-        }
-    }
-
-    /**
-     * coordinate system in anatomical space.
-     *
-     * @param ap
-     * @param dv
-     * @param ml
-     */
-    public record CoordinateIndex(int ap, int dv, int ml) {
-        public Coordinate toCoor(double resolution) {
-            return new Coordinate(ap * resolution, dv * resolution, ml * resolution);
-        }
-
-        /**
-         * @param resolution int array of {ap, dv, ml}
-         * @return
-         */
-        public Coordinate toCoor(double[] resolution) {
-            if (resolution.length != 3) throw new IllegalArgumentException();
-            return new Coordinate(ap * resolution[0], dv * resolution[1], ml * resolution[2]);
+    public @Nullable Coordinate getCoordinate(String reference) {
+        switch (reference) {
+        case "bregma":
+            // TODO How do I get bregma coordinate in a system way?
+            return new Coordinate(5400, 0, 5700);
+        default:
+            return null;
         }
     }
 
@@ -243,19 +212,19 @@ public class BrainAtlas {
      * slicing *
      *=========*/
 
-    public ImageSlices reference(ImageSlices.Projection projection) throws IOException {
-        return new ImageSlices(this, reference(), projection);
+    public ImageSliceStack reference(ImageSliceStack.Projection projection) throws IOException {
+        return new ImageSliceStack(this, reference(), projection);
     }
 
     public ImageSlice reference(ImageSlice slice) throws IOException {
-        return new ImageSlices(this, reference(), slice.projection()).sliceAtPlane(slice);
+        return new ImageSliceStack(this, reference(), slice.projection()).sliceAtPlane(slice);
     }
 
-    public ImageSlices annotation(ImageSlices.Projection projection) throws IOException {
-        return new ImageSlices(this, annotation(), projection);
+    public ImageSliceStack annotation(ImageSliceStack.Projection projection) throws IOException {
+        return new ImageSliceStack(this, annotation(), projection);
     }
 
     public ImageSlice annotation(ImageSlice slice) throws IOException {
-        return new ImageSlices(this, annotation(), slice.projection()).sliceAtPlane(slice);
+        return new ImageSliceStack(this, annotation(), slice.projection()).sliceAtPlane(slice);
     }
 }

@@ -5,8 +5,12 @@ import java.util.Objects;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.CoordinateIndex;
+import io.ast.jneurocarto.core.ProbeCoordinate;
+
 @NullMarked
-public final class ImageSlices {
+public final class ImageSliceStack {
 
     public enum Projection {
         coronal(/*AP*/0, /*ML*/2, /*DV*/1), sagittal(/*ML*/2, /*AP*/0, /*DV*/1), transverse(/*DV*/1, /*ML*/2, /*AP*/0);
@@ -30,7 +34,7 @@ public final class ImageSlices {
             };
         }
 
-        public int get(BrainAtlas.CoordinateIndex coor, int i) {
+        public int get(CoordinateIndex coor, int i) {
             return switch (i) {
                 case 0 -> coor.ap();
                 case 1 -> coor.dv();
@@ -39,7 +43,7 @@ public final class ImageSlices {
             };
         }
 
-        public double get(BrainAtlas.Coordinate coor, int i) {
+        public double get(Coordinate coor, int i) {
             return switch (i) {
                 case 0 -> coor.ap();
                 case 1 -> coor.dv();
@@ -55,7 +59,7 @@ public final class ImageSlices {
     private final Projection project;
     private final double[] resolution; // {p, x, y}
 
-    public ImageSlices(BrainAtlas brain, ImageVolume volume, Projection project) {
+    public ImageSliceStack(BrainAtlas brain, ImageVolume volume, Projection project) {
         brainResolution = brain.resolution();
         this.volume = volume;
         volumeShape = volume.shape();
@@ -75,7 +79,7 @@ public final class ImageSlices {
      * @param volumeShape
      * @param project
      */
-    ImageSlices(double brainResolution, int[] volumeShape, Projection project) {
+    ImageSliceStack(double brainResolution, int[] volumeShape, Projection project) {
         this(new double[]{brainResolution, brainResolution, brainResolution}, volumeShape, project);
     }
 
@@ -86,7 +90,7 @@ public final class ImageSlices {
      * @param volumeShape
      * @param project
      */
-    ImageSlices(double[] brainResolution, int[] volumeShape, Projection project) {
+    ImageSliceStack(double[] brainResolution, int[] volumeShape, Projection project) {
         this.brainResolution = brainResolution;
         this.volumeShape = volumeShape;
         this.project = project;
@@ -155,51 +159,7 @@ public final class ImageSlices {
         return volumeShape[i] * brainResolution[i];
     }
 
-    /**
-     * coordinate system in image volume space.
-     *
-     * @param p um
-     * @param x um
-     * @param y um
-     */
-    public record Coordinate(double p, double x, double y) {
-        public CoordinateIndex toCoorIndex(double resolution) {
-            return new CoordinateIndex((int) (p / resolution), (int) (x / resolution), (int) (y / resolution));
-        }
-
-        /**
-         * @param resolution int array of {p, x, y}
-         * @return
-         */
-        public CoordinateIndex toCoorIndex(double[] resolution) {
-            if (resolution.length != 3) throw new IllegalArgumentException();
-            return new CoordinateIndex((int) (p / resolution[0]), (int) (x / resolution[1]), (int) (y / resolution[2]));
-        }
-    }
-
-    /**
-     * coordinate system in image volume space.
-     *
-     * @param p
-     * @param x
-     * @param y
-     */
-    public record CoordinateIndex(int p, int x, int y) {
-        public Coordinate toCoor(double resolution) {
-            return new Coordinate(p * resolution, x * resolution, y * resolution);
-        }
-
-        /**
-         * @param resolution int array of {p, x, y}
-         * @return
-         */
-        public Coordinate toCoor(double[] resolution) {
-            if (resolution.length != 3) throw new IllegalArgumentException();
-            return new Coordinate(p * resolution[0], x * resolution[1], y * resolution[2]);
-        }
-    }
-
-    public Coordinate project(BrainAtlas.Coordinate coor) {
+    public SliceCoordinate project(Coordinate coor) {
         return project(coor.toCoorIndex(brainResolution)).toCoor(resolution);
     }
 
@@ -209,15 +169,15 @@ public final class ImageSlices {
      * @param coor coordinate (AP, DV, ML)
      * @return coordinate (p, x, y)
      */
-    public CoordinateIndex project(BrainAtlas.CoordinateIndex coor) {
-        return new CoordinateIndex(
+    public SliceCoordinateIndex project(CoordinateIndex coor) {
+        return new SliceCoordinateIndex(
           project.get(coor, project.p),
           project.get(coor, project.x),
           project.get(coor, project.y)
         );
     }
 
-    public BrainAtlas.Coordinate pullBack(Coordinate coor) {
+    public Coordinate pullBack(SliceCoordinate coor) {
         return pullBack(coor.toCoorIndex(resolution)).toCoor(brainResolution);
     }
 
@@ -227,35 +187,35 @@ public final class ImageSlices {
      * @param coor coordinate (p, x, y)
      * @return coordinate (AP, DV, ML)
      */
-    public BrainAtlas.CoordinateIndex pullBack(CoordinateIndex coor) {
+    public CoordinateIndex pullBack(SliceCoordinateIndex coor) {
         var t = new int[3];
 
         t[project.p] = coor.p();
         t[project.x] = coor.x();
         t[project.y] = coor.y();
 
-        return new BrainAtlas.CoordinateIndex(t[0], t[1], t[2]);
+        return new CoordinateIndex(t[0], t[1], t[2]);
     }
 
     /**
-     * @param rotate rotation on (ap, dv, ml). Reuse {@link BrainAtlas.Coordinate} but changing fields' meaning to roration radians.
-     * @return offset on (x, y). Reuse {@link Coordinate} but changing fields' meaning to offset. {@link Coordinate#p} is not used.
+     * @param rotate rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
+     * @return offset on (x, y). Reuse {@link SliceCoordinate} but changing fields' meaning to offset. {@link SliceCoordinate#p()} is not used.
      */
-    public Coordinate angle2Offset(BrainAtlas.Coordinate rotate) {
+    public SliceCoordinate angle2Offset(Coordinate rotate) {
         var rx = project.get(rotate, project.x);
         var ry = project.get(rotate, project.y);
 
         var dw = -lengthOnAxes(project.x) * Math.tan(ry) / 2;
         var dh = lengthOnAxes(project.y) * Math.tan(rx) / 2;
-        return new Coordinate(0, dw, dh);
+        return new SliceCoordinate(0, dw, dh);
     }
 
     /**
      * @param dw offset on width-side edge
      * @param dh offset on height-side edge
-     * @return rotation on (ap, dv, ml). Reuse {@link BrainAtlas.Coordinate} but changing fields' meaning to roration radians.
+     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
-    public BrainAtlas.Coordinate offset2Angle(int dw, int dh) {
+    public Coordinate offset2Angle(int dw, int dh) {
         var ry = Math.atan(-(double) dw * 2 / dimensionOnAxes(project.x));
         var rx = Math.atan((double) dh * 2 / dimensionOnAxes(project.y));
 
@@ -264,15 +224,15 @@ public final class ImageSlices {
         t[project.x] = rx;
         t[project.y] = ry;
 
-        return new BrainAtlas.Coordinate(t[0], t[1], t[2]);
+        return new Coordinate(t[0], t[1], t[2]);
     }
 
     /**
      * @param dw offset (um) on width-side edge
      * @param dh offset (um) on height-side edge
-     * @return rotation on (ap, dv, ml). Reuse {@link BrainAtlas.Coordinate} but changing fields' meaning to roration radians.
+     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
-    public BrainAtlas.Coordinate offset2Angle(double dw, double dh) {
+    public Coordinate offset2Angle(double dw, double dh) {
         var ry = Math.atan(-dw * 2 / lengthOnAxes(project.x));
         var rx = Math.atan(dh * 2 / lengthOnAxes(project.y));
 
@@ -281,14 +241,14 @@ public final class ImageSlices {
         t[project.x] = rx;
         t[project.y] = ry;
 
-        return new BrainAtlas.Coordinate(t[0], t[1], t[2]);
+        return new Coordinate(t[0], t[1], t[2]);
     }
 
     /**
-     * @param offset offset. Reuse {@link CoordinateIndex} but changing fields' meaning to offset. {@link CoordinateIndex#p} is not used.
-     * @return rotation on (ap, dv, ml). Reuse {@link BrainAtlas.Coordinate} but changing fields' meaning to roration radians.
+     * @param offset offset. Reuse {@link SliceCoordinateIndex} but changing fields' meaning to offset. {@link SliceCoordinateIndex#p()} is not used.
+     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
-    public BrainAtlas.Coordinate offset2Angle(CoordinateIndex offset) {
+    public Coordinate offset2Angle(SliceCoordinateIndex offset) {
         var ry = Math.atan(-(double) offset.x() * 2 / dimensionOnAxes(project.x));
         var rx = Math.atan((double) offset.y() * 2 / dimensionOnAxes(project.y));
 
@@ -297,14 +257,14 @@ public final class ImageSlices {
         t[project.x] = rx;
         t[project.y] = ry;
 
-        return new BrainAtlas.Coordinate(t[0], t[1], t[2]);
+        return new Coordinate(t[0], t[1], t[2]);
     }
 
     /**
-     * @param offset offset (um). Reuse {@link Coordinate} but changing fields' meaning to offset. {@link Coordinate#p} is not used.
-     * @return rotation on (ap, dv, ml). Reuse {@link BrainAtlas.Coordinate} but changing fields' meaning to roration radians.
+     * @param offset offset (um). Reuse {@link SliceCoordinate} but changing fields' meaning to offset. {@link SliceCoordinate#p()} is not used.
+     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
-    public BrainAtlas.Coordinate offset2Angle(Coordinate offset) {
+    public Coordinate offset2Angle(SliceCoordinate offset) {
         var ry = Math.atan(-offset.x() * 2 / lengthOnAxes(project.x));
         var rx = Math.atan(offset.y() * 2 / lengthOnAxes(project.y));
 
@@ -313,7 +273,7 @@ public final class ImageSlices {
         t[project.x] = rx;
         t[project.y] = ry;
 
-        return new BrainAtlas.Coordinate(t[0], t[1], t[2]);
+        return new Coordinate(t[0], t[1], t[2]);
     }
 
     public ImageSlice sliceAtPlane(int plane) {
@@ -327,20 +287,27 @@ public final class ImageSlices {
         return sliceAtPlane((int) (plane / resolution));
     }
 
-    public ImageSlice sliceAtPlane(CoordinateIndex coor) {
-        return new ImageSlice(coor.p, coor.x, coor.y, 0, 0, this);
+    public ImageSlice sliceAtPlane(SliceCoordinateIndex coor) {
+        return new ImageSlice(coor.p(), coor.x(), coor.y(), 0, 0, this);
     }
 
-    public ImageSlice sliceAtPlane(Coordinate coor) {
+    public ImageSlice sliceAtPlane(SliceCoordinate coor) {
         return sliceAtPlane(coor.toCoorIndex(resolution));
     }
 
-    public ImageSlice sliceAtPlane(BrainAtlas.CoordinateIndex coor) {
+    public ImageSlice sliceAtPlane(CoordinateIndex coor) {
         return sliceAtPlane(project(coor));
     }
 
-    public ImageSlice sliceAtPlane(BrainAtlas.Coordinate coor) {
+    public ImageSlice sliceAtPlane(Coordinate coor) {
         return sliceAtPlane(project(coor.toCoorIndex(brainResolution)));
+    }
+
+    public ImageSlice sliceAtPlane(ProbeCoordinate coor) {
+        coor = coor.toOrigin();
+        var rot = coor.rotation();
+        var offset = angle2Offset(rot);
+        return sliceAtPlane(coor).withOffset(offset);
     }
 
     public ImageSlice sliceAtPlane(ImageSlice slice) {

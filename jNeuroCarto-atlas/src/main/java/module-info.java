@@ -11,6 +11,8 @@ module io.ast.jneurocarto.atlas {
     requires com.fasterxml.jackson.databind;
     requires org.apache.commons.compress;
 
+    requires io.ast.jneurocarto.core;
+
     exports io.ast.jneurocarto.atlas;
     opens io.ast.jneurocarto.atlas.cli to info.picocli;
     exports io.ast.jneurocarto.atlas.gui to javafx.graphics;

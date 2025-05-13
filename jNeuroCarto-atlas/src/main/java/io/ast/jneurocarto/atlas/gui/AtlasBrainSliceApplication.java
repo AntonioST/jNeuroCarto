@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.atlas.*;
+import io.ast.jneurocarto.core.Coordinate;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -48,8 +49,8 @@ public class AtlasBrainSliceApplication {
     private Label labelOffsetHeight;
     private AtlasBrainSliceView imageView;
 
-    private ImageSlices.Projection currentProjection;
-    private ImageSlices images;
+    private ImageSliceStack.Projection currentProjection;
+    private ImageSliceStack images;
     private ImageSlice image;
 
     private Logger log;
@@ -239,11 +240,11 @@ public class AtlasBrainSliceApplication {
     private void onProjectButtonPressed(ActionEvent e) {
         var source = e.getSource();
         if (source == btnCoronal) {
-            changeProjection(ImageSlices.Projection.coronal);
+            changeProjection(ImageSliceStack.Projection.coronal);
         } else if (source == btnSagittal) {
-            changeProjection(ImageSlices.Projection.sagittal);
+            changeProjection(ImageSliceStack.Projection.sagittal);
         } else if (source == btnTransverse) {
-            changeProjection(ImageSlices.Projection.transverse);
+            changeProjection(ImageSliceStack.Projection.transverse);
         }
     }
 
@@ -263,11 +264,11 @@ public class AtlasBrainSliceApplication {
         }
     }
 
-    public ImageSlices.Projection getProjection() {
+    public ImageSliceStack.Projection getProjection() {
         return currentProjection;
     }
 
-    public void setProjection(ImageSlices.Projection projection) {
+    public void setProjection(ImageSliceStack.Projection projection) {
         Platform.runLater(() -> {
             switch (projection) {
             case coronal -> groupProjection.selectToggle(btnCoronal);
@@ -278,21 +279,21 @@ public class AtlasBrainSliceApplication {
         });
     }
 
-    private void changeProjection(ImageSlices.Projection projection) {
+    private void changeProjection(ImageSliceStack.Projection projection) {
         if (currentProjection == projection && images != null) return;
         log.debug("changeProjection({})", projection);
 
         currentProjection = projection;
 
         var image = this.image;
-        images = new ImageSlices(brain, volume, projection);
+        images = new ImageSliceStack(brain, volume, projection);
 
         var maxPlaneLength = images.planeUm() / 1000;
         sliderPlane.setMax(maxPlaneLength);
 
         var anchor = imageView.anchor.get();
         if (anchor == null || image == null) {
-            if (projection == ImageSlices.Projection.sagittal) {
+            if (projection == ImageSliceStack.Projection.sagittal) {
                 sliderPlane.setValue(maxPlaneLength / 2);
             } else {
                 sliderPlane.setValue(0);
@@ -348,12 +349,12 @@ public class AtlasBrainSliceApplication {
         updateStructureInformation(coor);
     }
 
-    private ImageSlices.Coordinate getCoordinate(MouseEvent e) {
+    private SliceCoordinate getCoordinate(MouseEvent e) {
         var mx = e.getX();
         var my = e.getY();
         var x = image.width() * mx / imageView.getWidth();
         var y = image.height() * my / imageView.getHeight();
-        return new ImageSlices.Coordinate(0, x, y);
+        return new SliceCoordinate(0, x, y);
     }
 
     private void onMouseClickedInSlice(MouseEvent e) {
@@ -391,7 +392,7 @@ public class AtlasBrainSliceApplication {
 
     private volatile Thread updateStructureInformationTask;
 
-    private void updateStructureInformation(BrainAtlas.Coordinate coor) {
+    private void updateStructureInformation(Coordinate coor) {
         if (updateStructureInformationTask != null) return;
 
         updateStructureInformationTask = Thread.ofVirtual().start(() -> {

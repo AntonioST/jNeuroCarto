@@ -4,6 +4,8 @@ import java.awt.image.BufferedImage;
 
 import org.jspecify.annotations.NullMarked;
 
+import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.CoordinateIndex;
 import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
 
@@ -13,28 +15,28 @@ import javafx.scene.image.WritableImage;
  * @param ay    anchor y position
  * @param dw    offset at width-edge
  * @param dh    offset at width-edge
- * @param slice
+ * @param stack
  */
 @NullMarked
-public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices slice) {
+public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceStack stack) {
 
-    public ImageSlices.Projection projection() {
-        return slice.projection();
+    public ImageSliceStack.Projection projection() {
+        return stack.projection();
     }
 
     /**
      * {@return resolution double array on (p, x, y) axis}
      */
     public double[] resolution() {
-        return slice.resolution();
+        return stack.resolution();
     }
 
     public double width() {
-        return slice.widthUm();
+        return stack.widthUm();
     }
 
     public double height() {
-        return slice.heightUm();
+        return stack.heightUm();
     }
 
     public int planeAt(int x, int y) {
@@ -60,20 +62,20 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
 
     /**
      * @param coor
-     * @return return {@code coor} but updating {@link ImageSlices.CoordinateIndex#p()} as result.
+     * @return return {@code coor} but updating {@link SliceCoordinateIndex#p()} as result.
      */
-    public ImageSlices.CoordinateIndex planeAt(ImageSlices.CoordinateIndex coor) {
+    public SliceCoordinateIndex planeAt(SliceCoordinateIndex coor) {
         var p = planeAt(coor.x(), coor.y());
-        return new ImageSlices.CoordinateIndex(p, coor.x(), coor.y());
+        return new SliceCoordinateIndex(p, coor.x(), coor.y());
     }
 
     /**
      * @param coor
-     * @return return {@code coor} but updating {@link ImageSlices.Coordinate#p()} as result.
+     * @return return {@code coor} but updating {@link SliceCoordinate#p()} as result.
      */
-    public ImageSlices.Coordinate planeAt(ImageSlices.Coordinate coor) {
+    public SliceCoordinate planeAt(SliceCoordinate coor) {
         var p = planeAt(coor.x(), coor.y());
-        return new ImageSlices.Coordinate(p, coor.x(), coor.y());
+        return new SliceCoordinate(p, coor.x(), coor.y());
     }
 
     /**
@@ -81,10 +83,10 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
      *
      * @param coor coordinate (AP, DV, ML)
      * @return coordinate (p, x, y),
-     * where {@link ImageSlices.CoordinateIndex#p()} will be replaced by {@link #planeAt(ImageSlices.CoordinateIndex)}.
+     * where {@link SliceCoordinateIndex#p()} will be replaced by {@link #planeAt(SliceCoordinateIndex)}.
      */
-    public ImageSlices.Coordinate project(BrainAtlas.Coordinate coor) {
-        return planeAt(slice.project(coor));
+    public SliceCoordinate project(Coordinate coor) {
+        return planeAt(stack.project(coor));
     }
 
     /**
@@ -92,50 +94,50 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
      *
      * @param coor coordinate (AP, DV, ML)
      * @return coordinate (p, x, y),
-     * where {@link ImageSlices.CoordinateIndex#p()} will be replaced by {@link #planeAt(ImageSlices.CoordinateIndex)}.
+     * where {@link SliceCoordinateIndex#p()} will be replaced by {@link #planeAt(SliceCoordinateIndex)}.
      */
-    public ImageSlices.CoordinateIndex project(BrainAtlas.CoordinateIndex coor) {
-        return planeAt(slice.project(coor));
+    public SliceCoordinateIndex project(CoordinateIndex coor) {
+        return planeAt(stack.project(coor));
     }
 
     /**
      * project coordinate (x, y) into (AP, DV, ML)
      *
      * @param coor coordinate (p, x, y),
-     *             where {@link ImageSlices.Coordinate#p()} will be replaced by {@link #planeAt(ImageSlices.Coordinate)}.
+     *             where {@link SliceCoordinate#p()} will be replaced by {@link #planeAt(SliceCoordinate)}.
      * @return coordinate (AP, DV, ML)
      */
-    public BrainAtlas.Coordinate pullBack(ImageSlices.Coordinate coor) {
-        return slice.pullBack(planeAt(coor));
+    public Coordinate pullBack(SliceCoordinate coor) {
+        return stack.pullBack(planeAt(coor));
     }
 
     /**
      * project coordinate (x, y) into (AP, DV, ML)
      *
      * @param coor coordinate (p, x, y),
-     *             where {@link ImageSlices.CoordinateIndex#p()} will be replaced by {@link #planeAt(ImageSlices.CoordinateIndex)}.
+     *             where {@link SliceCoordinateIndex#p()} will be replaced by {@link #planeAt(SliceCoordinateIndex)}.
      * @return coordinate (AP, DV, ML)
      */
-    public BrainAtlas.CoordinateIndex pullBack(ImageSlices.CoordinateIndex coor) {
-        return slice.pullBack(planeAt(coor));
+    public CoordinateIndex pullBack(SliceCoordinateIndex coor) {
+        return stack.pullBack(planeAt(coor));
     }
 
     /**
      * get rotation on (ap, dv, ml).
      *
-     * @return rotation on (ap, dv, ml). Reuse {@link BrainAtlas.Coordinate} but changing fields' meaning to roration radians.
+     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
-    public BrainAtlas.Coordinate offset2Angle() {
-        return slice.offset2Angle(dw, dh);
+    public Coordinate offset2Angle() {
+        return stack.offset2Angle(dw, dh);
     }
 
     public ImageSlice withPlane(int plane) {
-        return new ImageSlice(plane, ax, ay, dw, dh, slice);
+        return new ImageSlice(plane, ax, ay, dw, dh, stack);
     }
 
     public ImageSlice withAnchor(int ax, int ay) {
         var plane = planeAt(ax, ay);
-        return new ImageSlice(plane, ax, ay, dw, dh, slice);
+        return new ImageSlice(plane, ax, ay, dw, dh, stack);
     }
 
     public ImageSlice withAnchor(double ax, double ay) {
@@ -143,29 +145,45 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         return withAnchor((int) (ax / resolution[1]), (int) (ay / resolution[2]));
     }
 
-    public ImageSlice withAnchor(ImageSlices.CoordinateIndex coor) {
+    public ImageSlice withAnchor(SliceCoordinateIndex coor) {
         return withAnchor(coor.x(), coor.y());
     }
 
-    public ImageSlice withAnchor(ImageSlices.Coordinate coor) {
+    public ImageSlice withAnchor(SliceCoordinate coor) {
         return withAnchor(coor.x(), coor.y());
     }
 
     public ImageSlice withOffset(int dw, int dh) {
-        return new ImageSlice(plane, ax, ay, dw, dh, slice);
+        return new ImageSlice(plane, ax, ay, dw, dh, stack);
     }
 
     public ImageSlice withOffset(double dw, double dh) {
-        var iw = (int) (dw / slice.resolution()[1]);
-        var ih = (int) (dh / slice.resolution()[2]);
-        return new ImageSlice(plane, ax, ay, iw, ih, slice);
+        var iw = (int) (dw / stack.resolution()[1]);
+        var ih = (int) (dh / stack.resolution()[2]);
+        return new ImageSlice(plane, ax, ay, iw, ih, stack);
+    }
+
+    /**
+     * @param offset offset on (x, y). Reuse {@link SliceCoordinate} but changing fields' meaning to offset. {@link SliceCoordinate#p()} is not used.
+     * @return
+     */
+    public ImageSlice withOffset(SliceCoordinate offset) {
+        return withOffset(offset.x(), offset.y());
+    }
+
+    /**
+     * @param offset offset on (x, y). Reuse {@link SliceCoordinateIndex} but changing fields' meaning to offset. {@link SliceCoordinateIndex#p()} is not used.
+     * @return
+     */
+    public ImageSlice withOffset(SliceCoordinateIndex offset) {
+        return withOffset(offset.x(), offset.y());
     }
 
     public ImageSlice withRotate(int rx, int ry) {
         var dw = -width() * Math.tan(ry) / 2;
         var dh = height() * Math.tan(rx) / 2;
         var r = resolution();
-        return new ImageSlice(plane, ax, ay, (int) (dw / r[1]), (int) (dh / r[2]), slice);
+        return new ImageSlice(plane, ax, ay, (int) (dw / r[1]), (int) (dh / r[2]), stack);
     }
 
     public BufferedImage image() {
@@ -175,13 +193,13 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var ry = resolution[2];
 
         var plane = this.plane;
-        var width = slice.width();
-        var height = slice.height();
+        var width = stack.width();
+        var height = stack.height();
 
         var cx = width * rx / 2;
         var cy = height * ry / 2;
 
-        var volume = slice.getVolume();
+        var volume = stack.getVolume();
         var image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR);
 
         var dw = new int[width];
@@ -197,7 +215,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         }
         var dp = dw[ax] + dh[ay];
 
-        var px = slice.plane();
+        var px = stack.plane();
 
         var project = projection();
         var q = new int[3];
@@ -219,13 +237,13 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         var ry = resolution[2];
 
         var plane = this.plane;
-        var width = slice.width();
-        var height = slice.height();
+        var width = stack.width();
+        var height = stack.height();
 
         var cx = width * rx / 2;
         var cy = height * ry / 2;
 
-        var volume = slice.getVolume();
+        var volume = stack.getVolume();
         var image = new WritableImage(width, height);
         var writer = image.getPixelWriter();
 
@@ -242,7 +260,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
         }
         var dp = dw[ax] + dh[ay];
 
-        var px = slice.plane() - 1;
+        var px = stack.plane() - 1;
 
         var project = projection();
         var q = new int[3];

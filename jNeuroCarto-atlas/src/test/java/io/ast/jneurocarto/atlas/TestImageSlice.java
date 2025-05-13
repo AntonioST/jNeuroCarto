@@ -11,22 +11,22 @@ public class TestImageSlice {
 
     @Test
     public void projectOnCoronal() {
-        var slices = new ImageSlices(25, VOLUME, ImageSlices.Projection.coronal);
+        var slices = new ImageSliceStack(25, VOLUME, ImageSliceStack.Projection.coronal);
         var actual = slices.project(new BrainAtlas.CoordinateIndex(10, 20, 30));
-        assertEquals(new ImageSlices.CoordinateIndex(10, 30, 20), actual);
+        assertEquals(new SliceCoordinateIndex(10, 30, 20), actual);
     }
 
     @Test
     public void projectOnSagittal() {
-        var slices = new ImageSlices(25, VOLUME, ImageSlices.Projection.sagittal);
+        var slices = new ImageSliceStack(25, VOLUME, ImageSliceStack.Projection.sagittal);
         var actual = slices.project(new BrainAtlas.CoordinateIndex(10, 20, 30));
-        assertEquals(new ImageSlices.CoordinateIndex(30, 10, 20), actual);
+        assertEquals(new SliceCoordinateIndex(30, 10, 20), actual);
     }
 
     @Test
     public void projectOnTransverse() {
-        var slices = new ImageSlices(25, VOLUME, ImageSlices.Projection.transverse);
+        var slices = new ImageSliceStack(25, VOLUME, ImageSliceStack.Projection.transverse);
         var actual = slices.project(new BrainAtlas.CoordinateIndex(10, 20, 30));
-        assertEquals(new ImageSlices.CoordinateIndex(20, 30, 10), actual);
+        assertEquals(new SliceCoordinateIndex(20, 30, 10), actual);
     }
 }

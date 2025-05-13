@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
 
+import io.ast.jneurocarto.core.CoordinateIndex;
+
 public class ImageVolume {
     public final int page;
     public final int height;
@@ -122,7 +124,7 @@ public class ImageVolume {
         return buffer;
     }
 
-    public int get(BrainAtlas.CoordinateIndex coor) {
+    public int get(CoordinateIndex coor) {
         return data[index(coor.ap(), coor.dv(), coor.ml())];
     }
 
@@ -149,7 +151,7 @@ public class ImageVolume {
         }
     }
 
-    public void set(BrainAtlas.CoordinateIndex coor, int value) {
+    public void set(CoordinateIndex coor, int value) {
         data[index(coor.ap(), coor.dv(), coor.ml())] = value;
     }
 

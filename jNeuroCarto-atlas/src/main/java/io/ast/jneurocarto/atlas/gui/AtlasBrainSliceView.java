@@ -3,7 +3,7 @@ package io.ast.jneurocarto.atlas.gui;
 import java.util.Objects;
 
 import io.ast.jneurocarto.atlas.ImageSlice;
-import io.ast.jneurocarto.atlas.ImageSlices;
+import io.ast.jneurocarto.atlas.SliceCoordinate;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.canvas.Canvas;
@@ -14,7 +14,7 @@ public class AtlasBrainSliceView extends Canvas {
 
     private boolean scale = true;
 
-    public final ObjectProperty<ImageSlices.Coordinate> anchor = new SimpleObjectProperty<>(null);
+    public final ObjectProperty<SliceCoordinate> anchor = new SimpleObjectProperty<>(null);
 
     private ImageSlice sliceCache;
     private Image imageCache;
