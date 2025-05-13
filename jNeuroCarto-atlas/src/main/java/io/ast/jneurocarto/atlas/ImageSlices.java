@@ -8,14 +8,14 @@ import org.jspecify.annotations.Nullable;
 @NullMarked
 public final class ImageSlices {
 
-    public enum View {
+    public enum Projection {
         coronal(/*AP*/0, /*ML*/2, /*DV*/1), sagittal(/*ML*/2, /*AP*/0, /*DV*/1), transverse(/*DV*/1, /*ML*/2, /*AP*/0);
 
         public final int p;
         public final int x;
         public final int y;
 
-        View(int p, int x, int y) {
+        Projection(int p, int x, int y) {
             this.p = p;
             this.x = x;
             this.y = y;
@@ -52,10 +52,10 @@ public final class ImageSlices {
     private final double[] brainResolution;
     private final int[] volumeShape;
     private final @Nullable ImageVolume volume;
-    private final View project;
+    private final Projection project;
     private final double[] resolution; // {p, x, y}
 
-    public ImageSlices(BrainAtlas brain, ImageVolume volume, View project) {
+    public ImageSlices(BrainAtlas brain, ImageVolume volume, Projection project) {
         brainResolution = brain.resolution();
         this.volume = volume;
         volumeShape = volume.shape();
@@ -75,7 +75,7 @@ public final class ImageSlices {
      * @param volumeShape
      * @param project
      */
-    ImageSlices(double brainResolution, int[] volumeShape, View project) {
+    ImageSlices(double brainResolution, int[] volumeShape, Projection project) {
         this(new double[]{brainResolution, brainResolution, brainResolution}, volumeShape, project);
     }
 
@@ -86,7 +86,7 @@ public final class ImageSlices {
      * @param volumeShape
      * @param project
      */
-    ImageSlices(double[] brainResolution, int[] volumeShape, View project) {
+    ImageSlices(double[] brainResolution, int[] volumeShape, Projection project) {
         this.brainResolution = brainResolution;
         this.volumeShape = volumeShape;
         this.project = project;
@@ -99,7 +99,7 @@ public final class ImageSlices {
         this.resolution[2] = brainResolution[project.y];
     }
 
-    public View view() {
+    public Projection projection() {
         return project;
     }
 
@@ -316,30 +316,35 @@ public final class ImageSlices {
         return new BrainAtlas.Coordinate(t[0], t[1], t[2]);
     }
 
-    public ImageSlice sliceAtPlace(int plane) {
+    public ImageSlice sliceAtPlane(int plane) {
         int ax = width() / 2;
         int ay = height() / 2;
         return new ImageSlice(plane, ax, ay, 0, 0, this);
     }
 
-    public ImageSlice sliceAtPlace(double plane) {
+    public ImageSlice sliceAtPlane(double plane) {
         var resolution = brainResolution[project.p];
-        return sliceAtPlace((int) (plane / resolution));
+        return sliceAtPlane((int) (plane / resolution));
     }
 
-    public ImageSlice sliceAtPlace(CoordinateIndex coor) {
+    public ImageSlice sliceAtPlane(CoordinateIndex coor) {
         return new ImageSlice(coor.p, coor.x, coor.y, 0, 0, this);
     }
 
-    public ImageSlice sliceAtPlace(Coordinate coor) {
-        return sliceAtPlace(coor.toCoorIndex(resolution));
+    public ImageSlice sliceAtPlane(Coordinate coor) {
+        return sliceAtPlane(coor.toCoorIndex(resolution));
     }
 
-    public ImageSlice sliceAtPlace(BrainAtlas.CoordinateIndex coor) {
-        return sliceAtPlace(project(coor));
+    public ImageSlice sliceAtPlane(BrainAtlas.CoordinateIndex coor) {
+        return sliceAtPlane(project(coor));
     }
 
-    public ImageSlice sliceAtPlace(BrainAtlas.Coordinate coor) {
-        return sliceAtPlace(project(coor.toCoorIndex(brainResolution)));
+    public ImageSlice sliceAtPlane(BrainAtlas.Coordinate coor) {
+        return sliceAtPlane(project(coor.toCoorIndex(brainResolution)));
+    }
+
+    public ImageSlice sliceAtPlane(ImageSlice slice) {
+        if (slice.projection() != project) throw new IllegalArgumentException("different projection");
+        return new ImageSlice(slice.plane(), slice.ax(), slice.ay(), slice.dw(), slice.dh(), this);
     }
 }

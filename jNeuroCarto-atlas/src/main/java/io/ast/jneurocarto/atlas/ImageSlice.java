@@ -18,8 +18,8 @@ import javafx.scene.image.WritableImage;
 @NullMarked
 public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices slice) {
 
-    public ImageSlices.View view() {
-        return slice.view();
+    public ImageSlices.Projection projection() {
+        return slice.projection();
     }
 
     /**
@@ -199,7 +199,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
 
         var px = slice.plane();
 
-        var project = view();
+        var project = projection();
         var q = new int[3];
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
@@ -244,7 +244,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSlices 
 
         var px = slice.plane() - 1;
 
-        var project = view();
+        var project = projection();
         var q = new int[3];
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {

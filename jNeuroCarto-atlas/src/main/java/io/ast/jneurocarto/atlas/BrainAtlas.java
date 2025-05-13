@@ -219,5 +219,19 @@ public class BrainAtlas {
      * slicing *
      *=========*/
 
+    public ImageSlices reference(ImageSlices.Projection projection) throws IOException {
+        return new ImageSlices(this, reference(), projection);
+    }
 
+    public ImageSlice reference(ImageSlice slice) throws IOException {
+        return new ImageSlices(this, reference(), slice.projection()).sliceAtPlane(slice);
+    }
+
+    public ImageSlices annotation(ImageSlices.Projection projection) throws IOException {
+        return new ImageSlices(this, annotation(), projection);
+    }
+
+    public ImageSlice annotation(ImageSlice slice) throws IOException {
+        return new ImageSlices(this, annotation(), slice.projection()).sliceAtPlane(slice);
+    }
 }

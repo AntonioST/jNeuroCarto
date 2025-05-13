@@ -3,7 +3,6 @@ package io.ast.jneurocarto.atlas.cli;
 import java.io.IOException;
 
 import io.ast.jneurocarto.atlas.BrainAtlas;
-import io.ast.jneurocarto.atlas.ImageSlices;
 import io.ast.jneurocarto.atlas.gui.AtlasBrainSliceApplication;
 import picocli.CommandLine;
 
@@ -19,9 +18,6 @@ public class Slice implements Runnable {
 
     @CommandLine.ParentCommand
     public Use use;
-
-    @CommandLine.Option(names = "--view", defaultValue = "coronal")
-    public ImageSlices.View view;
 
     @Override
     public void run() {

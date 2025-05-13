@@ -49,7 +49,7 @@ public class AtlasBrainSliceApplication {
     private Label labelOffsetHeight;
     private AtlasBrainSliceView imageView;
 
-    private ImageSlices.View currentProjection;
+    private ImageSlices.Projection currentProjection;
     private ImageSlices images;
     private ImageSlice image;
 
@@ -226,11 +226,11 @@ public class AtlasBrainSliceApplication {
     private void onProjectButtonPressed(ActionEvent e) {
         var source = e.getSource();
         if (source == btnCoronal) {
-            changeProjection(ImageSlices.View.coronal);
+            changeProjection(ImageSlices.Projection.coronal);
         } else if (source == btnSagittal) {
-            changeProjection(ImageSlices.View.sagittal);
+            changeProjection(ImageSlices.Projection.sagittal);
         } else if (source == btnTransverse) {
-            changeProjection(ImageSlices.View.transverse);
+            changeProjection(ImageSlices.Projection.transverse);
         }
     }
 
@@ -250,11 +250,11 @@ public class AtlasBrainSliceApplication {
         }
     }
 
-    public ImageSlices.View getProjection() {
+    public ImageSlices.Projection getProjection() {
         return currentProjection;
     }
 
-    public void setProjection(ImageSlices.View projection) {
+    public void setProjection(ImageSlices.Projection projection) {
         Platform.runLater(() -> {
             switch (projection) {
             case coronal -> groupProjection.selectToggle(btnCoronal);
@@ -265,7 +265,7 @@ public class AtlasBrainSliceApplication {
         });
     }
 
-    private void changeProjection(ImageSlices.View projection) {
+    private void changeProjection(ImageSlices.Projection projection) {
         if (currentProjection == projection && images != null) return;
         log.debug("changeProjection({})", projection);
 
@@ -279,7 +279,7 @@ public class AtlasBrainSliceApplication {
 
         var anchor = imageView.anchor.get();
         if (anchor == null || image == null) {
-            if (projection == ImageSlices.View.sagittal) {
+            if (projection == ImageSlices.Projection.sagittal) {
                 sliderPlane.setValue(maxPlaneLength / 2);
             } else {
                 sliderPlane.setValue(0);
@@ -304,7 +304,7 @@ public class AtlasBrainSliceApplication {
         var dh = sliderOffsetHeight.getValue();
         log.trace("updateSliceImage({}, {}, {})", (int) plane, dw, dh);
 
-        var regImage = images.sliceAtPlace(plane);
+        var regImage = images.sliceAtPlane(plane);
         var anchor = imageView.anchor.get();
         if (anchor != null) {
             regImage = regImage.withAnchor(anchor);
