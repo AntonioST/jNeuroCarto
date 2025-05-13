@@ -2,14 +2,12 @@ package io.ast.jneurocarto.atlas.gui;
 
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.atlas.BrainAtlas;
-import io.ast.jneurocarto.atlas.ImageSlice;
-import io.ast.jneurocarto.atlas.ImageSlices;
-import io.ast.jneurocarto.atlas.ImageVolume;
+import io.ast.jneurocarto.atlas.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -35,6 +33,7 @@ public class AtlasBrainSliceApplication {
     private Stage stage;
     private Label labelMouseInformation;
     private Label labelAnchorInformation;
+    private Label labelStructure;
     private ToggleGroup groupProjection;
     private RadioButton btnCoronal;
     private RadioButton btnSagittal;
@@ -70,6 +69,18 @@ public class AtlasBrainSliceApplication {
         this.volume.normalizeGrayLevel();
 
         log = LoggerFactory.getLogger(AtlasBrainSliceApplication.class);
+
+        Thread.ofVirtual().start(() -> {
+            var start = System.currentTimeMillis();
+            log.debug("pre loading annotations");
+            try {
+                brain.annotation(); // pre load
+            } catch (IOException e) {
+                log.warn("pre load fail", e);
+            }
+            var pass = System.currentTimeMillis() - start;
+            log.debug("pre loaded annotations. use {} sec", String.format("%.4f", (double) pass / 1000));
+        });
     }
 
     public void launch() {
@@ -114,10 +125,12 @@ public class AtlasBrainSliceApplication {
         var information = new HBox(coorInformation, labelMouseInformation, labelAnchorInformation);
         information.setSpacing(20);
 
+        labelStructure = new Label("");
+
         var control = controlView();
         VBox.setMargin(control, new Insets(5, 5, 15, 5));
 
-        root.getChildren().addAll(slice, information, control);
+        root.getChildren().addAll(slice, information, labelStructure, control);
 
         return root;
     }
@@ -317,12 +330,14 @@ public class AtlasBrainSliceApplication {
 
     private void onMouseExitedInSlice(MouseEvent e) {
         labelMouseInformation.setText("");
+        labelStructure.setText("");
     }
 
     private void onMouseMovingInSlice(MouseEvent e) {
         var image = this.image;
         if (image == null) {
             labelMouseInformation.setText("");
+            labelStructure.setText("");
             return;
         }
 
@@ -330,6 +345,7 @@ public class AtlasBrainSliceApplication {
         var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
 
         labelMouseInformation.setText(text);
+        updateStructureInformation(coor);
     }
 
     private ImageSlices.Coordinate getCoordinate(MouseEvent e) {
@@ -357,7 +373,7 @@ public class AtlasBrainSliceApplication {
     private void updateAnchorInformation() {
         var image = this.image;
         if (image == null) {
-            labelMouseInformation.setText("");
+            labelAnchorInformation.setText("");
             return;
         }
 
@@ -371,5 +387,33 @@ public class AtlasBrainSliceApplication {
         var text = String.format("[anchor] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
 
         labelAnchorInformation.setText(text);
+    }
+
+    private volatile Thread updateStructureInformationTask;
+
+    private void updateStructureInformation(BrainAtlas.Coordinate coor) {
+        if (updateStructureInformationTask != null) return;
+
+        updateStructureInformationTask = Thread.ofVirtual().start(() -> {
+            Structure structure = null;
+            try {
+                structure = brain.structureFromCoords(coor);
+            } catch (Exception e) {
+                log.warn("updateStructureInformation fail", e);
+            }
+
+            String text;
+            if (structure == null) {
+                text = "";
+            } else {
+                text = brain.structures().parents(structure).reversed().stream()
+                  .map(Structure::acronym)
+                  .collect(Collectors.joining(" / "));
+            }
+
+            Platform.runLater(() -> labelStructure.setText(text));
+
+            updateStructureInformationTask = null;
+        });
     }
 }

@@ -48,11 +48,23 @@ public class ImageVolume {
                 var data = new int[page * height * width];
                 var ret = new ImageVolume(page, height, width, type, data);
 
-                for (int p = 0; p < page; p++) {
-                    var image = reader.read(p);
-                    for (int y = 0; y < height; y++) {
-                        for (int x = 0; x < width; x++) {
-                            ret.set(p, y, x, image.getRGB(x, y));
+                if (type == BufferedImage.TYPE_CUSTOM) {
+                    var cache = new int[1];
+                    for (int p = 0; p < page; p++) {
+                        var raster = reader.read(p).getRaster();
+                        for (int y = 0; y < height; y++) {
+                            for (int x = 0; x < width; x++) {
+                                ret.set(p, y, x, raster.getPixel(x, y, cache)[0]);
+                            }
+                        }
+                    }
+                } else {
+                    for (int p = 0; p < page; p++) {
+                        var image = reader.read(p);
+                        for (int y = 0; y < height; y++) {
+                            for (int x = 0; x < width; x++) {
+                                ret.set(p, y, x, image.getRGB(x, y));
+                            }
                         }
                     }
                 }

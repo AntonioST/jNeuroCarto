@@ -4,9 +4,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @NullMarked
 public class BrainAtlas {
@@ -22,11 +25,19 @@ public class BrainAtlas {
     private final BrainAtlasMeta meta;
     private final Structures structures;
     private final AnatomicalSpace space;
+    private final Logger log;
 
     public BrainAtlas(Path root) throws IOException {
         this.root = root;
-        meta = BrainAtlasMeta.load(root.resolve(METADATA_FILENAME));
-        structures = Structures.load(root.resolve(STRUCTURES_FILENAME));
+        log = LoggerFactory.getLogger(BrainAtlas.class);
+
+        Path p;
+        meta = BrainAtlasMeta.load(p = root.resolve(METADATA_FILENAME));
+        log.debug("loaded {}", p);
+
+        structures = Structures.load(p = root.resolve(STRUCTURES_FILENAME));
+        log.debug("loaded {}", p);
+
         space = new AnatomicalSpace(meta.orientation, meta.shape, meta.resolution, null);
     }
 
@@ -84,6 +95,10 @@ public class BrainAtlas {
         return ret;
     }
 
+    public Structures structures() {
+        return structures;
+    }
+
     public Structures hierarchy() {
         return structures;
     }
@@ -92,35 +107,44 @@ public class BrainAtlas {
      * image data *
      *============*/
 
-    private @Nullable ImageVolume reference;
-    private @Nullable ImageVolume annotation;
-    private @Nullable ImageVolume hemispheres;
+    private volatile @Nullable ImageVolume reference;
+    private volatile @Nullable ImageVolume annotation;
+    private volatile @Nullable ImageVolume hemispheres;
 
-    public ImageVolume reference() throws IOException {
+    public synchronized ImageVolume reference() throws IOException {
         if (reference == null) {
-            reference = ImageVolume.readTiff(root.resolve(REFERENCE_FILENAME));
+            var file = root.resolve(REFERENCE_FILENAME);
+            log.debug("load reference {}", file);
+            reference = ImageVolume.readTiff(file);
+            log.debug("loaded reference");
         }
-        return reference;
+        return Objects.requireNonNull(reference);
     }
 
-    public ImageVolume annotation() throws IOException {
+    public synchronized ImageVolume annotation() throws IOException {
         if (annotation == null) {
-            annotation = ImageVolume.readTiff(root.resolve(ANNOTATION_FILENAME));
+            var file = root.resolve(ANNOTATION_FILENAME);
+            log.debug("load annotation {}", file);
+            annotation = ImageVolume.readTiff(file);
+            log.debug("loaded annotation");
         }
-        return annotation;
+        return Objects.requireNonNull(annotation);
     }
 
-    public ImageVolume hemispheres() throws IOException {
+    public synchronized ImageVolume hemispheres() throws IOException {
         if (hemispheres == null) {
             // If reference is symmetric generate hemispheres block
+            var file = root.resolve(HEMISPHERES_FILENAME);
+            log.debug("load hemispheres {}", file);
             if (meta.symmetric) {
                 // TODO Are they different really?
-                hemispheres = ImageVolume.readTiff(root.resolve(HEMISPHERES_FILENAME));
+                hemispheres = ImageVolume.readTiff(file);
             } else {
-                hemispheres = ImageVolume.readTiff(root.resolve(HEMISPHERES_FILENAME));
+                hemispheres = ImageVolume.readTiff(file);
             }
+            log.debug("loaded hemispheres");
         }
-        return hemispheres;
+        return Objects.requireNonNull(hemispheres);
     }
 
     /*============*
