@@ -258,6 +258,24 @@ public class Repository {
         return probe.load(channelmapFile);
     }
 
+    public Path saveChannelmapFilename(ProbeDescription<?> probe, Path channelmapFile) {
+        var filename = channelmapFile.getFileName().toString();
+        var i = filename.lastIndexOf('.');
+        filename = filename.substring(0, i);
+
+        var suffix = probe.channelMapFileSuffix().get(0);
+
+        var dir = channelmapFile.getParent();
+        Path ret;
+
+        i = 0;
+        while (Files.exists(ret = dir.resolve(filename + "_" + i + suffix))) {
+            i++;
+        }
+
+        return ret;
+    }
+
     public <T> Path saveChannelmapFile(ProbeDescription<T> probe, T chmap, String name) throws IOException {
         var ret = getChannelmapFile(probe, name);
         saveChannelmapFile(probe, chmap, ret);
