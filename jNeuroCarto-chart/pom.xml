@@ -10,29 +10,10 @@
         <version>0.0</version>
     </parent>
 
-    <artifactId>jneurocarto</artifactId>
+    <artifactId>jNeuroCarto-chart</artifactId>
     <version>0.0</version>
-    <packaging>jar</packaging>
 
     <dependencies>
-
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-core</artifactId>
-            <version>0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-probe-npx</artifactId>
-            <version>0.0</version>
-        </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>io.ast.jneurocarto</groupId>-->
-        <!--            <artifactId>jNeuroCarto-chart</artifactId>-->
-        <!--            <version>0.0</version>-->
-        <!--        </dependency>-->
-
         <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
@@ -42,12 +23,8 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli-spring-boot-starter</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
@@ -58,20 +35,8 @@
             <artifactId>vaadin-spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.annotation</groupId>
-            <artifactId>jakarta.annotation-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-json</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+            <groupId>com.vaadin</groupId>
+            <artifactId>hilla-endpoint</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -87,17 +52,16 @@
         <defaultGoal>spring-boot:run</defaultGoal>
 
         <plugins>
+            <!-- https://vaadin.com/docs/latest/hilla/reference/configuration#java-compiler-options -->
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot.version}</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
                 <configuration>
-                    <systemPropertyVariables>
-                        <slf4j.provider>ch.qos.logback.classic.spi.LogbackServiceProvider</slf4j.provider>
-                    </systemPropertyVariables>
+                    <encoding>UTF-8</encoding>
+                    <parameters>true</parameters>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>com.vaadin</groupId>
                 <artifactId>vaadin-maven-plugin</artifactId>
@@ -114,6 +78,16 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-wrapper-plugin</artifactId>
                 <version>3.3.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <slf4j.provider>ch.qos.logback.classic.spi.LogbackServiceProvider</slf4j.provider>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -152,29 +126,6 @@
                 </plugins>
             </build>
         </profile>
-        <!--        <profile>-->
-        <!--            <id>integration-test</id>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                        <artifactId>maven-failsafe-plugin</artifactId>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>integration-test</goal>-->
-        <!--                                    <goal>verify</goal>-->
-        <!--                                </goals>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                        <configuration>-->
-        <!--                            <trimStackTrace>false</trimStackTrace>-->
-        <!--                            <enableAssertions>true</enableAssertions>-->
-        <!--                        </configuration>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
     </profiles>
 
 </project>

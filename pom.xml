@@ -14,6 +14,7 @@
         <module>jNeuroCarto-probe-npx</module>
         <module>jNeuroCarto-probe-npx-jmh</module>
         <module>jNeuroCarto-atlas</module>
+        <module>jNeuroCarto-chart</module>
         <module>jNeuroCarto</module>
     </modules>
 
@@ -96,6 +97,11 @@
             <dependency>
                 <groupId>com.vaadin</groupId>
                 <artifactId>vaadin-core</artifactId>
+                <version>${vaadin.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>hilla-endpoint</artifactId>
                 <version>${vaadin.version}</version>
             </dependency>
 
