@@ -53,14 +53,14 @@ public class ProbeView<T> extends Div
 
     @Override
     public @NonNull String getPageTitle() {
-        return repository.getTitle();
+        return "jNeuroCarto";
     }
 
     @Override
     public void beforeEnter(@NonNull BeforeEnterEvent event) {
         var family = event.getRouteParameters().get("probe").get();
         log.debug("rotate from : {}", family);
-        probe = (ProbeDescription<T>) repository.getProbeDescription(family);
+        probe = (ProbeDescription<T>) ProbeDescription.getProbeDescription(family);
         if (probe == null) {
             log.warn("no probe {}", family);
             ProbeSelectView.navigate();

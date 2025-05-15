@@ -16,16 +16,14 @@ public class Main {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
         }
 
-        App.application = new Application(config);
+        new Application(config);
         javafx.application.Application.launch(App.class);
     }
 
     public static class App extends javafx.application.Application {
-        static Application application;
-
         @Override
         public void start(Stage primaryStage) throws Exception {
-            application.start(primaryStage);
+            Application.getInstance().start(primaryStage);
         }
     }
 }

@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,20 +27,6 @@ public class Repository {
 
     public Repository(CartoConfig config) {
         this.config = config;
-    }
-
-    public @Nullable ProbeDescription<?> getProbeDescription() {
-        return getProbeDescription(config.probeFamily);
-    }
-
-    public @Nullable ProbeDescription<?> getProbeDescription(String family) {
-        log.debug("getProbeDescription({})", family);
-        return ProbeDescription.getProbeDescription(family);
-    }
-
-    public String getTitle() {
-        var f = config.probeFamily.toUpperCase();
-        return f + " - jNeuroCarto";
     }
 
     public Path userConfigDir() {

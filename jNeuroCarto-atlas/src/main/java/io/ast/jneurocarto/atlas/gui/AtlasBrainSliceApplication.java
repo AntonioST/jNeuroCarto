@@ -31,29 +31,11 @@ public class AtlasBrainSliceApplication {
 
     public final SimpleIntegerProperty maxOffsetProperty = new SimpleIntegerProperty(1000);
 
-    private Stage stage;
-    private Label labelMouseInformation;
-    private Label labelAnchorInformation;
-    private Label labelStructure;
-    private ToggleGroup groupProjection;
-    private RadioButton btnCoronal;
-    private RadioButton btnSagittal;
-    private RadioButton btnTransverse;
-    private Button btnResetOffsetWidth;
-    private Button btnResetOffsetHeight;
-    private Slider sliderPlane;
-    private Slider sliderOffsetWidth;
-    private Slider sliderOffsetHeight;
-    private Label labelPlane;
-    private Label labelOffsetWidth;
-    private Label labelOffsetHeight;
-    private AtlasBrainSliceView imageView;
-
     private ImageSliceStack.Projection currentProjection;
     private ImageSliceStack images;
     private ImageSlice image;
 
-    private Logger log;
+    private final Logger log;
 
     public AtlasBrainSliceApplication(BrainAtlas brain) {
         super();
@@ -108,6 +90,24 @@ public class AtlasBrainSliceApplication {
             APPLICATION.start(primaryStage);
         }
     }
+
+    private Stage stage;
+    private Label labelMouseInformation;
+    private Label labelAnchorInformation;
+    private Label labelStructure;
+    private ToggleGroup groupProjection;
+    private RadioButton btnCoronal;
+    private RadioButton btnSagittal;
+    private RadioButton btnTransverse;
+    private Button btnResetOffsetWidth;
+    private Button btnResetOffsetHeight;
+    private Slider sliderPlane;
+    private Slider sliderOffsetWidth;
+    private Slider sliderOffsetHeight;
+    private Label labelPlane;
+    private Label labelOffsetWidth;
+    private Label labelOffsetHeight;
+    private AtlasBrainSliceView imageView;
 
     public void start(Stage stage) {
         this.stage = stage;
