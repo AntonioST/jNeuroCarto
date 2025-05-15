@@ -15,7 +15,7 @@
         <module>jNeuroCarto-probe-npx-jmh</module>
         <module>jNeuroCarto-atlas</module>
         <module>jNeuroCarto-chart</module>
-        <module>jNeuroCarto</module>
+        <module>jNeuroCarto-web</module>
     </modules>
 
     <properties>

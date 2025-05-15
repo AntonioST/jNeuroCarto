@@ -10,7 +10,7 @@
         <version>0.0</version>
     </parent>
 
-    <artifactId>jneurocarto</artifactId>
+    <artifactId>jneurocarto-web</artifactId>
     <version>0.0</version>
     <packaging>jar</packaging>
 
