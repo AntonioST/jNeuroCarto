@@ -14,10 +14,6 @@
     <version>0.0</version>
     <packaging>jar</packaging>
 
-    <properties>
-        <javafx.version>24.0.1</javafx.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
@@ -67,26 +63,17 @@
             <artifactId>commons-compress</artifactId>
             <version>1.27.1</version>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-base</artifactId>
-            <version>${javafx.version}</version>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-graphics -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-graphics</artifactId>
-            <version>${javafx.version}</version>
         </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-controls -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>${javafx.version}</version>
         </dependency>
     </dependencies>
 

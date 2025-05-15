@@ -21,9 +21,9 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.*;
 
-import io.ast.jneurocarto.app.CartoUserConfig;
-import io.ast.jneurocarto.app.Repository;
 import io.ast.jneurocarto.app.base.TwoColumnVerticalLayout;
+import io.ast.jneurocarto.config.CartoUserConfig;
+import io.ast.jneurocarto.config.Repository;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 

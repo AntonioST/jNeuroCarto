@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.app;
+package io.ast.jneurocarto.config;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,16 +11,12 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.ast.jneurocarto.app.cli.CartoConfig;
-import io.ast.jneurocarto.app.util.JsonConfig;
+import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
-@Component
 @NullMarked
 public class Repository {
 
@@ -172,7 +168,6 @@ public class Repository {
         userConfig.save(f);
     }
 
-    @Bean
     public CartoUserConfig getUserConfig() {
         CartoUserConfig config;
         try {

@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.app.util;
+package io.ast.jneurocarto.config;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

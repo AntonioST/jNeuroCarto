@@ -1,15 +1,12 @@
-package io.ast.jneurocarto.app.cli;
+package io.ast.jneurocarto.config.cli;
 
 import java.nio.file.Path;
 import java.util.List;
-
-import org.springframework.stereotype.Component;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Component
 @Command(name = "jneurocarto",
   usageHelpWidth = 120,
   usageHelpAutoWidth = true,
@@ -54,6 +51,7 @@ public final class CartoConfig implements Runnable {
       description = "install extra views in right panel")
     public List<String> extraViewList = List.of();
 
+    @Option(names = "--debug")
     public boolean debug = !System.getProperty("io.ast.jneurocarto.app.debug", "").isEmpty();
 
     @Override

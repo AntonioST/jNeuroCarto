@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.app.cli;
+package io.ast.jneurocarto.config.cli;
 
 import picocli.CommandLine;
 

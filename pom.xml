@@ -13,7 +13,11 @@
         <module>jNeuroCarto-core</module>
         <module>jNeuroCarto-probe-npx</module>
         <module>jNeuroCarto-probe-npx-jmh</module>
+        <module>jNeuroCarto-probe-npx-javafx</module>
         <module>jNeuroCarto-atlas</module>
+        <module>jNeuroCarto-javafx-base</module>
+        <module>jNeuroCarto-config</module>
+        <module>jNeuroCarto-javafx</module>
         <module>jNeuroCarto-chart</module>
         <module>jNeuroCarto-web</module>
     </modules>
@@ -24,6 +28,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.14</slf4j.version>
         <logback.version>1.5.18</logback.version>
+        <javafx.version>24.0.1</javafx.version>
         <picocli.version>4.7.7</picocli.version>
         <vaadin.version>24.7.3</vaadin.version>
         <jackson.version>2.18.3</jackson.version>
@@ -67,6 +72,29 @@
                 <artifactId>jspecify</artifactId>
                 <version>1.0.0</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <!-- JavaFX -->
+
+            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-base</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-graphics -->
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-graphics</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-controls -->
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-controls</artifactId>
+                <version>${javafx.version}</version>
             </dependency>
 
             <!--CLI-->
