@@ -368,6 +368,10 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
 
     @Override
     public String toString() {
-        return "ChannelMap[";
+        return "ChannelMap[" + nShank() + ","
+               + nColumnPerShank() + ","
+               + nRowPerShank() + ","
+               + nChannel() + ","
+               + size() + "]";
     }
 }

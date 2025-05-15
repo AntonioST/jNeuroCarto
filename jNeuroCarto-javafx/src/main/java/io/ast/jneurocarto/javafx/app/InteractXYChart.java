@@ -117,7 +117,7 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         var delta = e.getDeltaY();
         if (Math.abs(delta) < 1) return;
 
-        var scale = Math.signum(delta) * 0.02;
+        var scale = -Math.signum(delta) * 0.02;
         var px = e.getX();
         var py = e.getY();
         var p = new Point2D(px, py);
@@ -269,6 +269,22 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         setAxisBoundary(yAxis, y1, y2);
     }
 
+    public void setAxesEqualRatio() {
+        var area = getPlottingArea();
+        var w = area.getWidth();
+        var h = area.getHeight();
+        var x1 = xAxis.getLowerBound();
+        var x2 = xAxis.getUpperBound();
+        var xw = x2 - x1;
+        var y1 = yAxis.getLowerBound();
+        var y2 = yAxis.getUpperBound();
+        var cy = (y1 + y2) / 2;
+        var yh = h * xw / w;
+        y1 = cy - yh / 2;
+        y2 = cy + yh / 2;
+        setAxisBoundary(yAxis, y1, y2);
+    }
+
     public static void setAxisBoundary(NumberAxis axis, double x1, double x2) {
         axis.setLowerBound(x1);
         axis.setUpperBound(x2);
@@ -281,4 +297,6 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         if ((x2 - x1) / ux < 4) ux = Math.pow(10, (int) px - 1);
         axis.setTickUnit(ux);
     }
+
+
 }

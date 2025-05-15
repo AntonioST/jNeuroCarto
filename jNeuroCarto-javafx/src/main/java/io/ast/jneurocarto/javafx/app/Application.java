@@ -1,6 +1,8 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,7 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.config.Repository;
 import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.javafx.view.Plugin;
+import io.ast.jneurocarto.javafx.view.PluginProvider;
+import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -26,12 +33,12 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-public class Application {
+public class Application<T> {
 
-    private static Application INSTANCE = null;
+    private static Application<?> INSTANCE = null;
     private final CartoConfig config;
     private final Repository repository;
-    private final ProbeDescription<?> probe;
+    private final ProbeDescription<T> probe;
 
     private final Logger log;
 
@@ -39,16 +46,17 @@ public class Application {
         INSTANCE = this;
         this.config = config;
         repository = new Repository(config);
-        probe = ProbeDescription.getProbeDescription(config.probeFamily);
+        probe = (ProbeDescription<T>) ProbeDescription.getProbeDescription(config.probeFamily);
         if (probe == null) throw new RuntimeException("probe " + config.probeFamily + " not found.");
-
 
         log = LoggerFactory.getLogger(Application.class);
     }
 
-    public static Application getInstance() {
+    public static Application<?> getInstance() {
         return INSTANCE;
     }
+
+
 
     /*========*
      * layout *
@@ -65,6 +73,8 @@ public class Application {
         stage.sizeToScene();
         stage.setOnCloseRequest(this::checkBeforeClosing);
         stage.show();
+
+        setupPlugins();
     }
 
     private Scene scene() {
@@ -84,11 +94,11 @@ public class Application {
      * menu bar *
      *==========*/
 
-    private MenuBar menuBar;
-    private Menu menuFile;
-    private Menu menuEdit;
-    private Menu menuView;
-    private Menu menuHelp;
+    MenuBar menuBar;
+    Menu menuFile;
+    Menu menuEdit;
+    Menu menuView;
+    Menu menuHelp;
 
     public sealed interface PluginMenuItem permits PluginSeparatorMenuItem, ProbePluginSeparatorMenuItem {
     }
@@ -99,13 +109,12 @@ public class Application {
     public static final class ProbePluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
     }
 
-    private class NewProbeMenuItem extends MenuItem {
+    private static class NewProbeMenuItem extends MenuItem {
         final String code;
 
-        NewProbeMenuItem(String code) {
-            super(probe.probeTypeDescription(code));
+        NewProbeMenuItem(String code, String title) {
+            super(title);
             this.code = code;
-            setOnAction(Application.this::onNewProbe);
         }
     }
 
@@ -125,8 +134,11 @@ public class Application {
 
         var newMenu = new Menu("_New");
         var newProbeTypeItems = probe.supportedProbeType().stream()
-          .map(NewProbeMenuItem::new)
-          .toList();
+          .map(code -> {
+              var item = new NewProbeMenuItem(code, probe.probeTypeDescription(code));
+              item.setOnAction(Application.this::onNewProbe);
+              return item;
+          }).toList();
         newMenu.getItems().addAll(newProbeTypeItems);
 
         var open = new MenuItem("_Open");
@@ -196,8 +208,13 @@ public class Application {
     private Menu menuView() {
         menuView = new Menu("_View");
 
-        var resetProbeViewAxes = new MenuItem("Reset View");
-        resetProbeViewAxes.setOnAction(_ -> view.resetAxesBoundaries());
+        var resetProbeViewAxes = new MenuItem("_Reset View");
+        resetProbeViewAxes.setAccelerator(KeyCombination.keyCombination("Shortcut+R"));
+        resetProbeViewAxes.setOnAction(_ -> view.fitAxesBoundaries());
+
+        var resetProbeViewAxesRatio = new MenuItem("R_eset View Ratio");
+        resetProbeViewAxesRatio.setAccelerator(KeyCombination.keyCombination("Shortcut+E"));
+        resetProbeViewAxesRatio.setOnAction(_ -> view.setAxesEqualRatio());
 
         var clearLog = new MenuItem("Clear _log");
         clearLog.setAccelerator(KeyCombination.keyCombination("Shortcut+L"));
@@ -205,6 +222,7 @@ public class Application {
 
         menuView.getItems().addAll(
           resetProbeViewAxes,
+          resetProbeViewAxesRatio,
           new SeparatorMenuItem(),
           new PluginSeparatorMenuItem(),
           new ProbePluginSeparatorMenuItem(),
@@ -227,32 +245,7 @@ public class Application {
         return menuHelp;
     }
 
-    public void addMenuInBar(Menu menu) {
-        var items = menu.getItems();
-        items.add(items.size() - 2, menu);
-    }
-
-    public void addMenuInEdit(MenuItem item, boolean isProbePlugin) {
-        var index = findMenuItemIndex(menuEdit, isProbePlugin);
-        menuEdit.getItems().add(index - 1, item);
-    }
-
-    public void addMenuInEdit(List<MenuItem> items, boolean isProbePlugin) {
-        var index = findMenuItemIndex(menuEdit, isProbePlugin);
-        menuEdit.getItems().addAll(index - 1, items);
-    }
-
-    public void addMenuInView(MenuItem item, boolean isProbePlugin) {
-        var index = findMenuItemIndex(menuView, isProbePlugin);
-        menuView.getItems().add(index - 1, item);
-    }
-
-    public void addMenuInView(List<MenuItem> items, boolean isProbePlugin) {
-        var index = findMenuItemIndex(menuView, isProbePlugin);
-        menuView.getItems().addAll(index - 1, items);
-    }
-
-    private int findMenuItemIndex(Menu menu, boolean isProbePlugin) {
+    int findMenuItemIndex(Menu menu, boolean isProbePlugin) {
         Class<?> kind;
         if (isProbePlugin) {
             kind = ProbePluginSeparatorMenuItem.class;
@@ -274,8 +267,8 @@ public class Application {
      * content view *
      *==============*/
 
-    private ProbeView view;
-
+    ProbeView<T> view;
+    private VBox pluginLayout;
 
     private static class CodedButton extends Button {
         final String code;
@@ -328,7 +321,7 @@ public class Application {
 
         var toolbox = new HBox();
 
-        view = new ProbeView<>(config, probe);
+        view = new ProbeView<T>(config, probe);
         view.setMinWidth(600);
         view.setMinHeight(800);
 
@@ -341,8 +334,71 @@ public class Application {
 
     private Parent rootRight() {
         log.debug("init layout - right");
+
         var root = new VBox();
+        root.setMinWidth(400);
+        root.setSpacing(5);
+        root.setPadding(new Insets(5, 2, 5, 2));
+
+        pluginLayout = root;
         return root;
+    }
+
+    /*=========*
+     * plugins *
+     *=========*/
+
+    private final List<Plugin> plugins = new ArrayList<>();
+
+    private void setupPlugins() {
+        log.debug("setup plugins");
+
+        var service = new PluginSetupService(this);
+
+        for (var provider : ServiceLoader.load(ProbePluginProvider.class)) {
+            for (var plugin : provider.setup(config, probe)) {
+                plugins.add(plugin);
+                log.debug("add plugin : {}", plugin.getClass().getName());
+
+                var node = plugin.setup(service);
+                if (node != null) {
+                    pluginLayout.getChildren().add(node);
+                }
+
+            }
+        }
+
+        var extra = new ArrayList<String>();
+        var rc = repository.getUserConfig();
+        if (rc.views == null) {
+            extra.add("neurocarto.views.data_density:ElectrodeDensityDataView");
+            extra.add("neurocarto.views.view_efficient:ElectrodeEfficiencyData");
+            extra.add("blueprint");
+            extra.add("atlas");
+        } else {
+            extra.addAll(rc.views);
+        }
+        extra.addAll(config.extraViewList);
+
+        for (var provider : ServiceLoader.load(PluginProvider.class)) {
+            for (int i = 0; i < extra.size(); i++) {
+                var name = extra.get(i);
+                var pluginName = provider.find(name);
+                if (pluginName != null) {
+                    log.debug("find plugin : {}", pluginName);
+                    extra.remove(i--);
+
+                    var plugin = provider.setup(name, config, probe);
+                    plugins.add(plugin);
+                    log.debug("add plugin : {}", plugin.getClass().getName());
+
+                    var node = plugin.setup(service);
+                    if (node != null) {
+                        pluginLayout.getChildren().add(node);
+                    }
+                }
+            }
+        }
     }
 
     /*================*
@@ -419,10 +475,24 @@ public class Application {
     }
 
     public void clearProbe(String code) {
-        log.debug("clearProbe on probe : {}", code);
+        log.debug("clearProbe for : {}", code);
 
         var chmap = probe.newChannelmap(code);
         view.setChannelmap(chmap);
+        onProbeUpdate(chmap, view.getBlueprint());
+    }
+
+    public void onProbeUpdate(T chmap, List<ElectrodeDescription> blueprint) {
+        log.debug("onProbeUpdate");
+
+        view.updateElectrode();
+
+        for (var plugin : plugins) {
+            if (plugin instanceof ProbePlugin<?> p) {
+                log.debug("onProbeUpdate for {}", p.getClass().getSimpleName());
+                ((ProbePlugin<T>) p).onProbeUpdate(chmap, blueprint);
+            }
+        }
     }
 
     /*=================*
@@ -446,7 +516,7 @@ public class Application {
      * log message *
      *=============*/
 
-    public void printMessage(String message) {
+    void printMessage(String message) {
         log.info(message);
 
         var area = logMessageArea;
@@ -456,7 +526,7 @@ public class Application {
         }
     }
 
-    public void printMessage(@NonNull List<String> message) {
+    void printMessage(@NonNull List<String> message) {
         if (log.isInfoEnabled()) {
             message.forEach(log::info);
         }
@@ -470,7 +540,7 @@ public class Application {
         }
     }
 
-    public void clearMessages() {
+    void clearMessages() {
         var area = logMessageArea;
         if (area != null) {
             area.setText("");

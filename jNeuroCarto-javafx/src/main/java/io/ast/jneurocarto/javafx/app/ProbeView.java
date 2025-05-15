@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
@@ -24,14 +26,18 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
 
     private @Nullable T channelmap;
     private @Nullable List<ElectrodeDescription> blueprint;
+    private final Logger log = LoggerFactory.getLogger(ProbeView.class);
 
     public ProbeView(CartoConfig config, ProbeDescription<T> probe) {
         var x = new NumberAxis("(um)", 0, 1000, 100);
         var y = new NumberAxis("(um)", 0, 1000, 100);
         var scatter = new ScatterChart<>(x, y);
         scatter.setLegendVisible(false);
+        scatter.setVerticalZeroLineVisible(false);
+        scatter.setHorizontalZeroLineVisible(false);
 
         super(scatter);
+        log.debug("init");
 
         this.config = config;
         this.probe = probe;
@@ -41,9 +47,16 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
         var series = allStateMap.values().stream()
           .map(this::newElectrodeSeries)
           .toList();
+
         scatter.getData().addAll(series);
+        if (log.isDebugEnabled()) {
+            for (var s : series) {
+                log.debug("add series {}", s.getName());
+            }
+        }
 
         scatter.getData().add(newElectrodeSeries(STATE_HIGHLIGHTED));
+        log.debug("add series {}", STATE_HIGHLIGHTED);
     }
 
     public static ScatterChart.Data<Number, Number> asData(ElectrodeDescription e) {
@@ -113,7 +126,8 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
         if (STATE_HIGHLIGHTED.equals(state)) {
             return """
               -fx-background-color: rgba(255,255,0,0.5);
-              -fx-background-radius: 6px;
+              -fx-padding: 4px;
+              -fx-background-radius: 4px;
               """;
         }
 
@@ -121,11 +135,20 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
         if (code.isEmpty()) return null;
 
         return switch (code.getAsInt()) {
-            case ProbeDescription.STATE_UNUSED -> "-fx-background-color: black;";
-            case ProbeDescription.STATE_USED -> "-fx-background-color: green;";
+            case ProbeDescription.STATE_UNUSED -> """
+              -fx-background-color: black;
+              -fx-padding: 2px;
+              -fx-background-radius: 2px;
+              """;
+            case ProbeDescription.STATE_USED -> """
+              -fx-background-color: green;
+              -fx-padding: 2px;
+              -fx-background-radius: 2px;
+              """;
             case ProbeDescription.STATE_DISABLED -> """
               -fx-background-color: rgba(255,0,0,0.2);
-              -fx-background-radius: 2px;
+              -fx-padding: 1px;
+              -fx-background-radius: 1px;
               """;
             default -> null;
         };
@@ -156,12 +179,14 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
     }
 
     public T resetChannelmap(String code) {
+        log.debug("resetChannelmap(code={})", code);
         var channelmap = probe.newChannelmap(code);
         setChannelmap(channelmap);
         return channelmap;
     }
 
     public void setChannelmap(T channelmap) {
+        log.debug("resetChannelmap({})", channelmap);
         this.channelmap = channelmap;
         setBlueprint(probe.allElectrodes(channelmap));
     }
@@ -175,6 +200,7 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
     }
 
     public void setBlueprint(List<ElectrodeDescription> blueprint) {
+        log.debug("setBlueprint");
         this.blueprint = blueprint;
         resetElectrodeState();
     }
@@ -182,10 +208,11 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
     /**
      * reset blueprint, and updating {@link ElectrodeDescription#state()} by {@link #channelmap}'s channels.
      */
-    private void resetElectrodeState() {
+    public void resetElectrodeState() {
         var blueprint = this.blueprint;
         if (blueprint == null) return;
 
+        log.debug("resetElectrodeState");
         for (var e : blueprint) {
             e.state(ProbeDescription.STATE_UNUSED);
         }
@@ -200,17 +227,45 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
         for (var e : channels) {
             e.state(ProbeDescription.STATE_USED);
         }
+
+        fitAxesBoundaries();
     }
 
-    private void updateElectrode() {
+    public void updateElectrode() {
         var blueprint = this.blueprint;
         if (blueprint == null) return;
 
+        log.debug("updateElectrode");
         for (var state : allStateMap.keySet()) {
             setSeries(state, blueprint);
         }
 
         setSeries(STATE_HIGHLIGHTED, List.of());
+    }
+
+    public void fitAxesBoundaries() {
+        var blueprint = this.blueprint;
+        if (blueprint == null) {
+            resetAxesBoundaries();
+            return;
+        }
+
+        var x1 = 0.0;
+        var x2 = 0.0;
+        var y1 = 0.0;
+        var y2 = 0.0;
+        for (var e : blueprint) {
+            var x = e.x();
+            var y = e.y();
+            x1 = Math.min(x1, x);
+            x2 = Math.max(x2, x);
+            y1 = Math.min(y1, y);
+            y2 = Math.max(y2, y);
+        }
+        var dx = (x2 - x1) / 50;
+        var dy = (y2 - y1) / 100;
+
+        setAxesBoundaries(x1 - dx, x2 + dx, y1 - dy, y2 + dy);
     }
 
 }

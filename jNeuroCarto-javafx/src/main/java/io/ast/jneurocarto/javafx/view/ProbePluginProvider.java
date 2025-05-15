@@ -1,16 +1,14 @@
 package io.ast.jneurocarto.javafx.view;
 
+import java.util.List;
+
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ProbeDescription;
 
 @NullMarked
-public interface PluginProvider {
+public interface ProbePluginProvider {
 
-    @Nullable
-    String find(String name);
-
-    Plugin setup(String name, CartoConfig config, ProbeDescription<?> desp);
+    <T> List<ProbePlugin<T>> setup(CartoConfig config, ProbeDescription<T> desp);
 }
