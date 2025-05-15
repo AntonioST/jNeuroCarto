@@ -3,6 +3,7 @@ package io.ast.jneurocarto.javafx.app;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -261,11 +262,18 @@ public class ProbeView<T> extends StackPane {
      *=====================*/
 
     private @Nullable MouseEvent mousePress;
-    private @Nullable MouseEvent mouseMoved;
     private @Nullable MouseEvent mouseMoving;
+    private @Nullable NumberAxis previousXAxis;
+    private @Nullable NumberAxis previousYAxis;
+    private @Nullable Bounds previousArea;
 
     private void onMousePressed(MouseEvent e) {
         mousePress = e;
+        if (e.getButton() == MouseButton.SECONDARY) {
+            previousXAxis = new NumberAxis(xAxis.getLowerBound(), xAxis.getUpperBound(), 1);
+            previousYAxis = new NumberAxis(yAxis.getLowerBound(), yAxis.getUpperBound(), 1);
+            previousArea = getPlottingArea();
+        }
     }
 
     private void onMouseDragged(MouseEvent e) {
@@ -275,11 +283,7 @@ public class ProbeView<T> extends StackPane {
         if (start != null) {
             switch (start.getButton()) {
             case MouseButton.PRIMARY -> onMouseSelecting(start, e);
-            case MouseButton.SECONDARY -> {
-                var s = mouseMoved == null ? start : mouseMoved;
-                onMouseDragging(s, e);
-                mouseMoved = e;
-            }
+            case MouseButton.SECONDARY -> onMouseDragging(start, e);
             }
         }
     }
@@ -288,7 +292,9 @@ public class ProbeView<T> extends StackPane {
         var start = mousePress;
         mousePress = null;
         mouseMoving = null;
-        mouseMoved = null;
+        previousXAxis = null;
+        previousYAxis = null;
+        previousArea = null;
 
         if (start != null) {
             switch (start.getButton()) {
@@ -368,17 +374,20 @@ public class ProbeView<T> extends StackPane {
     }
 
     private void onMouseDragging(MouseEvent start, MouseEvent current) {
+        var area = Objects.requireNonNull(previousArea);
         var dx = current.getX() - start.getX();
         var dy = current.getY() - start.getY();
 
-        var x1 = xAxis.getLowerBound();
-        var x2 = xAxis.getUpperBound();
-        dx = dx * (x2 - x1) / foreground.getWidth();
+        var ax = Objects.requireNonNull(previousXAxis);
+        var x1 = ax.getLowerBound();
+        var x2 = ax.getUpperBound();
+        dx = dx * (x2 - x1) / area.getWidth();
         setAxisBoundary(xAxis, x1 - dx, x2 - dx);
 
-        x1 = yAxis.getLowerBound();
-        x2 = yAxis.getUpperBound();
-        dy = -dy * (x2 - x1) / foreground.getHeight();
+        ax = Objects.requireNonNull(previousYAxis);
+        x1 = ax.getLowerBound();
+        x2 = ax.getUpperBound();
+        dy = -dy * (x2 - x1) / area.getHeight();
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
     }
 
