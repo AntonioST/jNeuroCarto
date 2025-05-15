@@ -27,7 +27,7 @@
         </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-javafx-base</artifactId>
+            <artifactId>jNeuroCarto-javafx</artifactId>
             <version>0.0</version>
         </dependency>
         <dependency>

@@ -21,6 +21,9 @@ module io.ast.jneurocarto.javafx {
     exports io.ast.jneurocarto.javafx.app;
     opens io.ast.jneurocarto.javafx.app to io.ast.jneurocarto.javafx.base;
 
+    exports io.ast.jneurocarto.javafx.view;
+    uses io.ast.jneurocarto.javafx.view.PluginProvider;
+
     opens io.ast.jneurocarto.javafx.cli to info.picocli;
     exports io.ast.jneurocarto.javafx.cli to javafx.graphics;
 

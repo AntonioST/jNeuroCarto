@@ -34,6 +34,7 @@
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-probe-npx-javafx</artifactId>
             <version>0.0</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>

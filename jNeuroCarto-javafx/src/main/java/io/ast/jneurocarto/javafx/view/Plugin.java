@@ -1,6 +1,5 @@
-package io.ast.jneurocarto.javafx.base;
+package io.ast.jneurocarto.javafx.view;
 
-import io.ast.jneurocarto.config.cli.CartoConfig;
 import javafx.scene.Node;
 
 public interface Plugin {
@@ -11,5 +10,5 @@ public interface Plugin {
 
     String description();
 
-    Node setup(CartoConfig config);
+    Node setup();
 }

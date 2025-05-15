@@ -15,7 +15,6 @@
         <module>jNeuroCarto-probe-npx-jmh</module>
         <module>jNeuroCarto-probe-npx-javafx</module>
         <module>jNeuroCarto-atlas</module>
-        <module>jNeuroCarto-javafx-base</module>
         <module>jNeuroCarto-config</module>
         <module>jNeuroCarto-javafx</module>
         <module>jNeuroCarto-chart</module>
