@@ -1,7 +1,5 @@
 package io.ast.jneurocarto.javafx.app;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -15,16 +13,18 @@ import io.ast.jneurocarto.config.Repository;
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ProbeDescription;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.util.StringConverter;
 
 public class Application {
 
@@ -59,8 +59,6 @@ public class Application {
      *========*/
 
     private Stage stage;
-    private ChoiceBox<String> inputFilesSelect;
-    private TextField outputImroFile;
     private TextArea logMessageArea;
 
     public void start(Stage stage) {
@@ -69,6 +67,7 @@ public class Application {
         stage.setTitle("jNeuroCarto - " + config.probeFamily);
         stage.setScene(scene());
         stage.sizeToScene();
+        stage.setOnCloseRequest(this::checkBeforeClosing);
         stage.show();
     }
 
@@ -79,76 +78,223 @@ public class Application {
 
     private Parent root() {
         log.debug("init layout");
-        return new HBox(rootLeft(), rootCenter(), rootRight());
+        return new VBox(
+          rootMenu(),
+          new HBox(rootLeft(), rootCenter(), rootRight())
+        );
+    }
+
+    /*==========*
+     * menu bar *
+     *==========*/
+
+    private MenuBar menuBar;
+    private Menu menuFile;
+    private Menu menuEdit;
+    private Menu menuView;
+    private Menu menuHelp;
+
+    public sealed interface PluginMenuItem permits PluginSeparatorMenuItem, ProbePluginSeparatorMenuItem {
+    }
+
+    public static final class PluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
+    }
+
+    public static final class ProbePluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
+    }
+
+    private class NewProbeMenuItem extends MenuItem {
+        final String code;
+
+        NewProbeMenuItem(String code) {
+            super(probe.probeTypeDescription(code));
+            this.code = code;
+            setOnAction(Application.this::onNewProbe);
+        }
+    }
+
+    private MenuBar rootMenu() {
+        menuBar = new MenuBar(
+          menuFile(),
+          menuEdit(),
+          menuView(),
+          menuHelp()
+        );
+        return menuBar;
+    }
+
+
+    private Menu menuFile() {
+        menuFile = new Menu("_File");
+
+        var newMenu = new Menu("_New");
+        var newProbeTypeItems = probe.supportedProbeType().stream()
+          .map(NewProbeMenuItem::new)
+          .toList();
+        newMenu.getItems().addAll(newProbeTypeItems);
+
+        var open = new MenuItem("_Open");
+        open.setAccelerator(KeyCombination.keyCombination("Shortcut+O"));
+        open.setOnAction(this::onLoadProbe);
+
+        var save = new MenuItem("_Save");
+        save.setAccelerator(KeyCombination.keyCombination("Shortcut+S"));
+        save.setOnAction(this::onSaveProbe);
+
+        var saveAs = new MenuItem("Save _As");
+        saveAs.setAccelerator(KeyCombination.keyCombination("Shortcut+Shift+S"));
+        saveAs.setOnAction(this::onSaveAsProbe);
+
+        var loadBlueprint = new MenuItem("Open _Blueprint");
+        loadBlueprint.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+O"));
+        loadBlueprint.setOnAction(this::onOpenBlueprint);
+
+        var saveBlueprint = new MenuItem("Save _Blueprint");
+        saveBlueprint.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+S"));
+        saveBlueprint.setOnAction(this::onSaveBlueprint);
+
+        var exit = new MenuItem("_Exit");
+        exit.setAccelerator(KeyCombination.keyCombination("Shortcut+Q"));
+        exit.setOnAction(this::checkBeforeClosing);
+
+        menuFile.getItems().addAll(
+          newMenu,
+          open,
+          save,
+          saveAs,
+          new SeparatorMenuItem(),
+          loadBlueprint,
+          saveBlueprint,
+          new SeparatorMenuItem(),
+          exit
+        );
+
+        return menuFile;
+    }
+
+    private Menu menuEdit() {
+        menuEdit = new Menu("_Edit");
+
+        var clear = new MenuItem("Clear _channel map");
+        clear.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+C"));
+        clear.setOnAction(this::clearProbe);
+
+        var clearBlueprint = new MenuItem("Clear _blueprint");
+        clearBlueprint.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+B"));
+        clear.setOnAction(this::clearBlueprint);
+
+        var editUserConfig = new MenuItem("Edit user config");
+
+        menuEdit.getItems().addAll(
+          clear,
+          clearBlueprint,
+          new SeparatorMenuItem(),
+          new PluginSeparatorMenuItem(),
+          new ProbePluginSeparatorMenuItem(),
+          editUserConfig
+        );
+
+        return menuEdit;
+    }
+
+    private Menu menuView() {
+        menuView = new Menu("_View");
+
+        var clearLog = new MenuItem("Clear _log");
+        clearLog.setAccelerator(KeyCombination.keyCombination("Shortcut+L"));
+        clearLog.setOnAction(_ -> clearMessages());
+
+        menuView.getItems().addAll(
+          new SeparatorMenuItem(),
+          new PluginSeparatorMenuItem(),
+          new ProbePluginSeparatorMenuItem(),
+          clearLog
+        );
+
+        return menuView;
+    }
+
+    private Menu menuHelp() {
+        menuHelp = new Menu("_Help");
+
+        var about = new MenuItem("_About");
+        about.setOnAction(this::showAbout);
+
+        menuHelp.getItems().addAll(
+          about
+        );
+
+        return menuHelp;
+    }
+
+    public void addMenuInBar(Menu menu) {
+        var items = menu.getItems();
+        items.add(items.size() - 2, menu);
+    }
+
+    public <T extends PluginMenuItem> void addMenuInEdit(MenuItem item, Class<T> kind) {
+        var index = findMenuItemIndex(menuEdit, kind);
+        menuEdit.getItems().add(index - 1, item);
+    }
+
+    public <T extends PluginMenuItem> void addMenuInEdit(List<MenuItem> items, Class<T> kind) {
+        var index = findMenuItemIndex(menuEdit, kind);
+        menuEdit.getItems().addAll(index - 1, items);
+    }
+
+    public <T extends PluginMenuItem> void addMenuInView(MenuItem item, Class<T> kind) {
+        var index = findMenuItemIndex(menuView, kind);
+        menuView.getItems().add(index - 1, item);
+    }
+
+    public <T extends PluginMenuItem> void addMenuInView(List<MenuItem> items, Class<T> kind) {
+        var index = findMenuItemIndex(menuView, kind);
+        menuView.getItems().addAll(index - 1, items);
+    }
+
+    private <T extends PluginMenuItem> int findMenuItemIndex(Menu menu, Class<T> kind) {
+        if (kind == PluginMenuItem.class) {
+            kind = (Class<T>) ProbePluginSeparatorMenuItem.class;
+        }
+
+        var items = menu.getItems();
+        var size = items.size();
+        for (int i = 0; i < size; i++) {
+            if (items.get(i).getClass() == kind) {
+                return i;
+            }
+        }
+        return size;
+    }
+
+    /*==============*
+     * content view *
+     *==============*/
+
+    private static class CodedButton extends Button {
+        final String code;
+
+        CodedButton(String code, EventHandler<ActionEvent> callback) {
+            super(code);
+            this.code = code;
+            setOnAction(callback);
+        }
     }
 
     private Parent rootLeft() {
         log.debug("init layout - left");
 
-        inputFilesSelect = new ChoiceBox<>();
-        inputFilesSelect.setPrefWidth(290);
-
-        var newProbeSelect = new ChoiceBox<String>();
-        newProbeSelect.setPrefWidth(90);
-        newProbeSelect.getItems().addAll(probe.supportedProbeType());
-        newProbeSelect.setOnAction(this::onNewProbe);
-        newProbeSelect.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(String code) {
-                if (code == null) return "New";
-                try {
-                    return probe.probeTypeDescription(code);
-                } catch (IllegalArgumentException | NullPointerException e) {
-                    return "<unknown>";
-                }
-            }
-
-            @Override
-            public String fromString(String desp) {
-                if (desp != null) {
-                    for (var code : probe.supportedProbeType()) {
-                        if (probe.probeTypeDescription(code).equals(desp)) {
-                            return code;
-                        }
-                    }
-                }
-                return null;
-            }
-        });
-
-        var btnOpen = new Button("Open");
-        btnOpen.setOnAction(this::onLoadProbe);
-        btnOpen.setPrefWidth(90);
-
-        var btnSave = new Button("Save");
-        btnSave.setOnAction(this::onSaveProbe);
-        btnSave.setPrefWidth(90);
-
-        var btnGroup = new HBox(newProbeSelect, btnOpen, btnSave);
-        btnGroup.setSpacing(5);
-
-        outputImroFile = new TextField();
-        outputImroFile.setPrefWidth(290);
-
         var layoutState = new GridPane();
         layoutState.setHgap(5);
         layoutState.setVgap(5);
-        addAllIntoGridPane(layoutState, 2, probe.availableStates(), (state) -> {
-            var button = new Button(state);
-            button.setPrefWidth(140);
-            button.setOnAction(this::onStateChanged);
-            return button;
-        });
+        addAllIntoGridPane(layoutState, 2, probe.availableStates(),
+          (state) -> new CodedButton(state, this::onStateChanged));
 
         var layoutCate = new GridPane();
         layoutCate.setHgap(5);
         layoutCate.setVgap(5);
-        addAllIntoGridPane(layoutCate, 2, probe.availableCategories(), (state) -> {
-            var button = new Button(state);
-            button.setPrefWidth(140);
-            button.setOnAction(this::onCategoryChanged);
-            return button;
-        });
+        addAllIntoGridPane(layoutCate, 2, probe.availableCategories(),
+          (category) -> new CodedButton(category, this::onCategoryChanged));
 
         logMessageArea = new TextArea();
         logMessageArea.setEditable(false);
@@ -157,11 +303,6 @@ public class Application {
 
 
         var root = new VBox(
-          new Label("Input file"),
-          inputFilesSelect,
-          btnGroup,
-          new Label("Save filename"),
-          outputImroFile,
           new Label("State"),
           layoutState,
           new Label("Category"),
@@ -193,54 +334,74 @@ public class Application {
      *================*/
 
     private void onNewProbe(ActionEvent e) {
-
+        if (e.getSource() instanceof NewProbeMenuItem item) {
+            printMessage("new probe " + item.code);
+            log.debug("TODO onNewProbe");
+        }
     }
 
     private void onLoadProbe(ActionEvent e) {
-
+        log.debug("TODO onLoadProbe");
     }
 
     private void onSaveProbe(ActionEvent e) {
+        log.debug("TODO onSaveProbe");
+    }
 
+    private void onSaveAsProbe(ActionEvent e) {
+        log.debug("TODO onSaveAsProbe");
+    }
+
+    private void onOpenBlueprint(ActionEvent e) {
+        log.debug("TODO onOpenBlueprint");
+    }
+
+    private void onSaveBlueprint(ActionEvent e) {
+        log.debug("TODO onSaveBlueprint");
     }
 
     private void onStateChanged(ActionEvent e) {
-
+        if (e.getSource() instanceof CodedButton button) {
+            printMessage("set state " + button.code);
+            log.debug("TODO onStateChanged");
+        }
     }
 
     private void onCategoryChanged(ActionEvent e) {
+        if (e.getSource() instanceof CodedButton button) {
+            printMessage("set category " + button.code);
+            log.debug("TODO onCategoryChanged");
+        }
+    }
 
+    /*================*
+     * event on probe *
+     *================*/
+
+    private void clearProbe(ActionEvent e) {
+        log.debug("TODO clearProbe");
+    }
+
+    private void clearBlueprint(ActionEvent e) {
+        log.debug("TODO clearBlueprint");
     }
 
     /*=================*
      * event utilities *
      *=================*/
 
-    private void updateChannelmapFileList() {
-        updateChannelmapFileList(inputFilesSelect.getValue());
+    private void checkBeforeClosing(Event e) {
+        stage.close();
     }
 
-    private void updateChannelmapFileList(String preSelectFile) {
-        List<Path> files;
-        try {
-            files = repository.listChannelmapFiles(probe, false);
-        } catch (IOException e) {
-            printMessage0("fail to update.");
-            log.warn("updateChannelMapFileList", e);
-            return;
-        }
-
-        var items = files.stream()
-          .map(Path::getFileName)
-          .map(Path::toString)
-          .toList();
-
-        inputFilesSelect.getItems().clear();
-        inputFilesSelect.getItems().addAll(items);
-        if (preSelectFile != null && items.contains(preSelectFile)) {
-            inputFilesSelect.setValue(preSelectFile);
-        }
+    private void showAbout(ActionEvent e) {
+        printMessage0(List.of(
+          "jNeuroCarto - version 0.0.0",
+          "Author: XXX",
+          "Github: XXX"
+        ));
     }
+
 
     /*=============*
      * log message *
@@ -281,9 +442,16 @@ public class Application {
      * layout utilities *
      *==================*/
 
-    private <T> void addAllIntoGridPane(GridPane layout, int column, List<T> data, Function<T, Node> factory) {
+    private static final int[] GRIDDED_COMPONENT_WIDTH = {290, 140, 90, 30};
+
+    private <T> void addAllIntoGridPane(GridPane layout, int column, List<T> data, Function<T, Region> factory) {
+        if (column < 1) throw new IllegalArgumentException();
+
         for (int i = 0, size = data.size(); i < size; i++) {
             var node = factory.apply(data.get(i));
+            if (column <= 4) {
+                node.setPrefWidth(GRIDDED_COMPONENT_WIDTH[column - 1]);
+            }
             layout.add(node, i % column, i / column);
         }
     }
