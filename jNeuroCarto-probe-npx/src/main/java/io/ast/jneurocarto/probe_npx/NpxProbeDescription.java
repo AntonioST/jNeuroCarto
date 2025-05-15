@@ -3,7 +3,9 @@ package io.ast.jneurocarto.probe_npx;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -30,6 +32,25 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
      */
     public static final int CATE_QUARTER = 13;
 
+    private static final Map<Integer, String> ALL_STATES = Map.of(
+      STATE_UNUSED, "Unset",
+      STATE_USED, "Enable",
+      STATE_DISABLED, "Disable"
+    );
+
+    private static final Map<Integer, String> ALL_CATEGORIES = Map.of(
+      CATE_UNSET, "Unset",
+      CATE_SET, "Pre Selected",
+      CATE_FULL, "Full Density",
+      CATE_HALF, "Half Density",
+      CATE_QUARTER, "Quarter Density",
+      CATE_LOW, "Low priority",
+      CATE_EXCLUDED, "Excluded"
+    );
+
+    private static final List<String> STATES = List.of("Enable", "Disable");
+    private static final List<String> CATEGORIES = List.of("Unset", "Pre Selected", "Full Density", "Half Density", "Quarter Density", "Low priority", "Excluded");
+
     @Override
     public List<String> supportedProbeType() {
         return List.of("NP0", "NP21", "NP24");
@@ -47,12 +68,22 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public List<String> availableStates() {
-        return List.of("Enable", "Disable");
+        return STATES;
+    }
+
+    @Override
+    public Map<Integer, String> allStates() {
+        return ALL_STATES;
     }
 
     @Override
     public List<String> availableCategories() {
-        return List.of("Unset", "Pre Selected", "Full Density", "Half Density", "Quarter Density", "Low priority", "Excluded");
+        return CATEGORIES;
+    }
+
+    @Override
+    public Map<Integer, String> allCategories() {
+        return ALL_CATEGORIES;
     }
 
     @Override
@@ -139,11 +170,11 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     }
 
     @Override
-    public List<ElectrodeDescription> allChannels(ChannelMap chmap, List<ElectrodeDescription> subset) {
+    public List<ElectrodeDescription> allChannels(ChannelMap chmap, Collection<ElectrodeDescription> electrodes) {
         var ret = new ArrayList<ElectrodeDescription>(chmap.size());
         for (var electrode : chmap) {
             if (electrode != null) {
-                getElectrode(subset, electrode).ifPresent(ret::add);
+                getElectrode(electrodes, electrode).ifPresent(ret::add);
             }
         }
         return ret;

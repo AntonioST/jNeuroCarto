@@ -32,6 +32,7 @@ public class Application {
     private final CartoConfig config;
     private final Repository repository;
     private final ProbeDescription<?> probe;
+
     private final Logger log;
 
     public Application(CartoConfig config) {
@@ -39,6 +40,9 @@ public class Application {
         this.config = config;
         repository = new Repository(config);
         probe = ProbeDescription.getProbeDescription(config.probeFamily);
+        if (probe == null) throw new RuntimeException("probe " + config.probeFamily + " not found.");
+
+
         log = LoggerFactory.getLogger(Application.class);
     }
 
@@ -200,11 +204,15 @@ public class Application {
     private Menu menuView() {
         menuView = new Menu("_View");
 
+        var resetProbeViewAxes = new MenuItem("Reset View");
+        resetProbeViewAxes.setOnAction(_ -> view.resetAxesBoundaries());
+
         var clearLog = new MenuItem("Clear _log");
         clearLog.setAccelerator(KeyCombination.keyCombination("Shortcut+L"));
         clearLog.setOnAction(_ -> clearMessages());
 
         menuView.getItems().addAll(
+          resetProbeViewAxes,
           new SeparatorMenuItem(),
           new PluginSeparatorMenuItem(),
           new ProbePluginSeparatorMenuItem(),
@@ -271,6 +279,9 @@ public class Application {
      * content view *
      *==============*/
 
+    private ProbeView view;
+
+
     private static class CodedButton extends Button {
         final String code;
 
@@ -319,7 +330,17 @@ public class Application {
 
     private Parent rootCenter() {
         log.debug("init layout - center");
-        var root = new VBox();
+
+        var toolbox = new HBox();
+
+        view = new ProbeView<>(config, probe);
+        view.setMinWidth(600);
+        view.setMinHeight(800);
+
+        var root = new VBox(
+          toolbox,
+          view
+        );
         return root;
     }
 
