@@ -50,14 +50,6 @@ public class Application {
         return INSTANCE;
     }
 
-    public static void printMessage(String message) {
-        getInstance().printMessage0(message);
-    }
-
-    public static void printMessage(List<String> message) {
-        getInstance().printMessage0(message);
-    }
-
     /*========*
      * layout *
      *========*/
@@ -240,29 +232,32 @@ public class Application {
         items.add(items.size() - 2, menu);
     }
 
-    public <T extends PluginMenuItem> void addMenuInEdit(MenuItem item, Class<T> kind) {
-        var index = findMenuItemIndex(menuEdit, kind);
+    public void addMenuInEdit(MenuItem item, boolean isProbePlugin) {
+        var index = findMenuItemIndex(menuEdit, isProbePlugin);
         menuEdit.getItems().add(index - 1, item);
     }
 
-    public <T extends PluginMenuItem> void addMenuInEdit(List<MenuItem> items, Class<T> kind) {
-        var index = findMenuItemIndex(menuEdit, kind);
+    public void addMenuInEdit(List<MenuItem> items, boolean isProbePlugin) {
+        var index = findMenuItemIndex(menuEdit, isProbePlugin);
         menuEdit.getItems().addAll(index - 1, items);
     }
 
-    public <T extends PluginMenuItem> void addMenuInView(MenuItem item, Class<T> kind) {
-        var index = findMenuItemIndex(menuView, kind);
+    public void addMenuInView(MenuItem item, boolean isProbePlugin) {
+        var index = findMenuItemIndex(menuView, isProbePlugin);
         menuView.getItems().add(index - 1, item);
     }
 
-    public <T extends PluginMenuItem> void addMenuInView(List<MenuItem> items, Class<T> kind) {
-        var index = findMenuItemIndex(menuView, kind);
+    public void addMenuInView(List<MenuItem> items, boolean isProbePlugin) {
+        var index = findMenuItemIndex(menuView, isProbePlugin);
         menuView.getItems().addAll(index - 1, items);
     }
 
-    private <T extends PluginMenuItem> int findMenuItemIndex(Menu menu, Class<T> kind) {
-        if (kind == PluginMenuItem.class) {
-            kind = (Class<T>) ProbePluginSeparatorMenuItem.class;
+    private int findMenuItemIndex(Menu menu, boolean isProbePlugin) {
+        Class<?> kind;
+        if (isProbePlugin) {
+            kind = ProbePluginSeparatorMenuItem.class;
+        } else {
+            kind = PluginSeparatorMenuItem.class;
         }
 
         var items = menu.getItems();
@@ -357,7 +352,7 @@ public class Application {
     private void onNewProbe(ActionEvent e) {
         if (e.getSource() instanceof NewProbeMenuItem item) {
             printMessage("new probe " + item.code);
-            log.debug("TODO onNewProbe");
+            clearProbe(item.code);
         }
     }
 
@@ -395,16 +390,39 @@ public class Application {
         }
     }
 
-    /*================*
-     * event on probe *
-     *================*/
-
     private void clearProbe(ActionEvent e) {
-        log.debug("TODO clearProbe");
+        clearProbe();
     }
 
     private void clearBlueprint(ActionEvent e) {
         log.debug("TODO clearBlueprint");
+    }
+
+    /*================*
+     * event on probe *
+     *================*/
+
+    public void clearProbe() {
+        var chmap = view.getChannelmap();
+        if (chmap == null) {
+            log.debug("clearProbe on nothing");
+            return;
+        }
+
+        var code = probe.channelmapCode(chmap);
+        if (code == null) {
+            log.debug("clearProbe on unknown probe : {}", chmap.getClass().getSimpleName());
+            return;
+        }
+
+        clearProbe(code);
+    }
+
+    public void clearProbe(String code) {
+        log.debug("clearProbe on probe : {}", code);
+
+        var chmap = probe.newChannelmap(code);
+        view.setChannelmap(chmap);
     }
 
     /*=================*
@@ -416,7 +434,7 @@ public class Application {
     }
 
     private void showAbout(ActionEvent e) {
-        printMessage0(List.of(
+        printMessage(List.of(
           "jNeuroCarto - version 0.0.0",
           "Author: XXX",
           "Github: XXX"
@@ -428,7 +446,7 @@ public class Application {
      * log message *
      *=============*/
 
-    private void printMessage0(String message) {
+    public void printMessage(String message) {
         log.info(message);
 
         var area = logMessageArea;
@@ -438,7 +456,7 @@ public class Application {
         }
     }
 
-    private void printMessage0(@NonNull List<String> message) {
+    public void printMessage(@NonNull List<String> message) {
         if (log.isInfoEnabled()) {
             message.forEach(log::info);
         }

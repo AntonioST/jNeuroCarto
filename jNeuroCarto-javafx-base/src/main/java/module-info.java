@@ -8,6 +8,9 @@ module io.ast.jneurocarto.javafx.base {
 
     requires io.ast.jneurocarto.config;
     requires javafx.graphics;
+    requires io.ast.jneurocarto.core;
+    requires javafx.controls;
 
     exports io.ast.jneurocarto.javafx.base;
+    uses io.ast.jneurocarto.javafx.base.PluginProvider;
 }

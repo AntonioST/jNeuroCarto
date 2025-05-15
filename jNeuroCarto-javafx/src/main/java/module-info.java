@@ -19,6 +19,8 @@ module io.ast.jneurocarto.javafx {
     requires io.ast.jneurocarto.atlas;
 
     exports io.ast.jneurocarto.javafx.app;
+    opens io.ast.jneurocarto.javafx.app to io.ast.jneurocarto.javafx.base;
+
     opens io.ast.jneurocarto.javafx.cli to info.picocli;
     exports io.ast.jneurocarto.javafx.cli to javafx.graphics;
 
