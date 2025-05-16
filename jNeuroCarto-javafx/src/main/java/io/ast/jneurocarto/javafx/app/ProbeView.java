@@ -1,9 +1,6 @@
 package io.ast.jneurocarto.javafx.app;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import org.jspecify.annotations.NullMarked;
@@ -12,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.Blueprint;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
@@ -187,13 +185,24 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
      * blueprint *
      *===========*/
 
+    /**
+     * @return unmodifiable blueprint
+     */
     public @Nullable List<ElectrodeDescription> getBlueprint() {
-        return blueprint;
+        var blueprint = this.blueprint;
+        if (blueprint == null) return null;
+        return Collections.unmodifiableList(blueprint);
     }
 
     public void setBlueprint(List<ElectrodeDescription> blueprint) {
+        var channelmap = this.channelmap;
+        if (channelmap == null) return;
+
         log.debug("setBlueprint");
-        this.blueprint = blueprint;
+        this.blueprint = new Blueprint<>(probe, channelmap)
+          .setBlueprint(blueprint)
+          .applyBlueprint()
+          .electrodes();
         resetElectrodeState();
     }
 
@@ -266,6 +275,13 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         }
 
         resetElectrodeState();
+    }
+
+    public void setCategoryForCaptured(int category) {
+        var chmap = this.channelmap;
+        if (chmap == null) return;
+
+        log.debug("setCategoryForCaptured({})", probe.categoryOf(category));
     }
 
     /*============================*

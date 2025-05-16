@@ -10,6 +10,11 @@ public class NpxProbeProvider implements ProbeProvider {
     }
 
     @Override
+    public String description() {
+        return "Neuropixels probe family (npx)";
+    }
+
+    @Override
     public NpxProbeDescription getProbeDescription() {
         return new NpxProbeDescription();
     }

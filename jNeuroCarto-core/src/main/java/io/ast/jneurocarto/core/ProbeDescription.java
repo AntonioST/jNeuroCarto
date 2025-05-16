@@ -43,21 +43,12 @@ public interface ProbeDescription<T> {
      */
     int CATE_LOW = 3;
 
-    static List<String> listProbeDescription() {
-        var ret = new ArrayList<String>();
-        for (var provider : ServiceLoader.load(ProbeProvider.class)) {
-            ret.add(provider.name());
-        }
-        return ret;
+    static List<String> listProbeDescriptions() {
+        return ProbeProviders.listProbeDescriptions();
     }
 
     static @Nullable ProbeDescription<?> getProbeDescription(String family) {
-        for (var provider : ServiceLoader.load(ProbeProvider.class)) {
-            if (provider.name().equals(family)) {
-                return provider.getProbeDescription();
-            }
-        }
-        return null;
+        return ProbeProviders.getProbeDescription(family);
     }
 
     /**

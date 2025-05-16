@@ -32,7 +32,7 @@ public class ProbeSelectView extends Div implements BeforeEnterObserver, AfterNa
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        var families = ProbeDescription.listProbeDescription();
+        var families = ProbeDescription.listProbeDescriptions();
         if (families.isEmpty()) {
             noneProbeFound = true;
         } else if (families.size() == 1) {

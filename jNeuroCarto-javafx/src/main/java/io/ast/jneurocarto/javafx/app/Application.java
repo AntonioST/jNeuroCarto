@@ -1,11 +1,12 @@
 package io.ast.jneurocarto.javafx.app;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +14,15 @@ import io.ast.jneurocarto.config.Repository;
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -24,6 +30,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
@@ -39,7 +46,7 @@ public class Application<T> {
     private final Repository repository;
     private final ProbeDescription<T> probe;
 
-    private final Logger log;
+    private final Logger log = LoggerFactory.getLogger(Application.class);
 
     public Application(CartoConfig config) {
         INSTANCE = this;
@@ -48,14 +55,85 @@ public class Application<T> {
         probe = (ProbeDescription<T>) ProbeDescription.getProbeDescription(config.probeFamily);
         if (probe == null) throw new RuntimeException("probe " + config.probeFamily + " not found.");
 
-        log = LoggerFactory.getLogger(Application.class);
+        var method = config.probeSelector;
+        if (method != null) selectMethod.set(method);
+    }
+
+    Application(CartoConfig config, ProbeDescription<T> probe) {
+        INSTANCE = this;
+        this.probe = probe;
+        this.config = config;
+        repository = new Repository(config);
+
+        var method = config.probeSelector;
+        if (method != null) selectMethod.set(method);
     }
 
     public static Application<?> getInstance() {
         return INSTANCE;
     }
 
+    public @Nullable T getChannelmap() {
+        var view = this.view;
+        if (view == null) return null;
+        return view.getChannelmap();
+    }
 
+    public @Nullable List<ElectrodeDescription> getBlueprint() {
+        var view = this.view;
+        if (view == null) return null;
+        return view.getBlueprint();
+    }
+
+    /*==========*
+     * property *
+     *==========*/
+
+    private final BooleanProperty autoFresh = new SimpleBooleanProperty(true);
+
+    public final BooleanProperty autoFreshProperty() {
+        return autoFresh;
+    }
+
+    public final boolean isAutoFresh() {
+        return autoFresh.get();
+    }
+
+    public void setAutoFresh(boolean value) {
+        autoFresh.set(value);
+    }
+
+    private final StringProperty selectMethod = new SimpleStringProperty("default");
+
+    public final StringProperty selectMethodProperty() {
+        return selectMethod;
+    }
+
+    public final String getSelectMethod() {
+        return selectMethod.get();
+    }
+
+    public void setSelectMethod(String method) {
+        selectMethod.set(method);
+    }
+
+    private final BooleanProperty isControlDown = new SimpleBooleanProperty();
+
+    private void onControlDown(KeyEvent e) {
+        if (e.getCode() == KeyCode.CONTROL) {
+            isControlDown.set(e.getEventType() == KeyEvent.KEY_PRESSED);
+        }
+    }
+
+    private void registerOnListonControlDown(Labeled node, String title, @Nullable String append) {
+        isControlDown.addListener((_, _, down) -> {
+            if (down && append != null) {
+                node.setText(title + append);
+            } else {
+                node.setText(title);
+            }
+        });
+    }
 
     /*========*
      * layout *
@@ -78,7 +156,11 @@ public class Application<T> {
 
     private Scene scene() {
         var scene = new Scene(root());
+
         scene.setOnKeyPressed(this::onKeyPressed);
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, this::onControlDown);
+        scene.addEventFilter(KeyEvent.KEY_RELEASED, this::onControlDown);
+
         return scene;
     }
 
@@ -94,29 +176,44 @@ public class Application<T> {
      * menu bar *
      *==========*/
 
+    private static class CodedMenuItem extends MenuItem {
+        final String code;
+
+        CodedMenuItem(String code, String title, EventHandler<ActionEvent> callback) {
+            super(title);
+            this.code = code;
+            setOnAction(callback);
+        }
+    }
+
+    private static class CodedButton extends Button {
+        final String code;
+
+        CodedButton(String code, EventHandler<ActionEvent> callback) {
+            this(code, code, callback);
+        }
+
+        CodedButton(String code, String title, EventHandler<ActionEvent> callback) {
+            super(title);
+            this.code = code;
+            setOnAction(callback);
+        }
+    }
+
+    private sealed interface PluginMenuItem permits PluginSeparatorMenuItem, ProbePluginSeparatorMenuItem {
+    }
+
+    private static final class PluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
+    }
+
+    private static final class ProbePluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
+    }
+
     MenuBar menuBar;
     Menu menuFile;
     Menu menuEdit;
     Menu menuView;
     Menu menuHelp;
-
-    public sealed interface PluginMenuItem permits PluginSeparatorMenuItem, ProbePluginSeparatorMenuItem {
-    }
-
-    public static final class PluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
-    }
-
-    public static final class ProbePluginSeparatorMenuItem extends SeparatorMenuItem implements PluginMenuItem {
-    }
-
-    private static class NewProbeMenuItem extends MenuItem {
-        final String code;
-
-        NewProbeMenuItem(String code, String title) {
-            super(title);
-            this.code = code;
-        }
-    }
 
     private MenuBar rootMenu() {
         menuBar = new MenuBar(
@@ -128,18 +225,14 @@ public class Application<T> {
         return menuBar;
     }
 
-
     private Menu menuFile() {
         menuFile = new Menu("_File");
 
-        var newMenu = new Menu("_New");
-        var newProbeTypeItems = probe.supportedProbeType().stream()
-          .map(code -> {
-              var item = new NewProbeMenuItem(code, probe.probeTypeDescription(code));
-              item.setOnAction(Application.this::onNewProbe);
-              return item;
-          }).toList();
-        newMenu.getItems().addAll(newProbeTypeItems);
+        var newProbeMenu = new Menu("_New");
+        var newProbeMenuItems = probe.supportedProbeType().stream()
+          .map(code -> new CodedMenuItem(code, probe.probeTypeDescription(code), this::onNewProbe))
+          .toList();
+        newProbeMenu.getItems().addAll(newProbeMenuItems);
 
         var open = new MenuItem("_Open");
         open.setAccelerator(KeyCombination.keyCombination("Shortcut+O"));
@@ -161,18 +254,29 @@ public class Application<T> {
         saveBlueprint.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+S"));
         saveBlueprint.setOnAction(this::onSaveBlueprint);
 
+        var otherProbeMenu = new Menu("Open Other Probe _Family");
+        var otherProbeMenuItems = ProbeDescription.listProbeDescriptions().stream()
+          .map(family -> {
+              var title = ProbeProviders.getProbeDescriptionText(family);
+              return new CodedMenuItem(family, title, this::openOtherProbeFamily);
+          })
+          .toList();
+        otherProbeMenu.getItems().addAll(otherProbeMenuItems);
+
         var exit = new MenuItem("_Exit");
         exit.setAccelerator(KeyCombination.keyCombination("Shortcut+Q"));
         exit.setOnAction(this::checkBeforeClosing);
 
         menuFile.getItems().addAll(
-          newMenu,
+          newProbeMenu,
           open,
           save,
           saveAs,
           new SeparatorMenuItem(),
           loadBlueprint,
           saveBlueprint,
+          new SeparatorMenuItem(),
+          otherProbeMenu,
           new SeparatorMenuItem(),
           exit
         );
@@ -191,11 +295,32 @@ public class Application<T> {
         clearBlueprint.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+B"));
         clearBlueprint.setOnAction(this::clearBlueprint);
 
+        var refresh = new MenuItem("_Refresh selection");
+        refresh.setAccelerator(KeyCombination.keyCombination("Shortcut+R"));
+        refresh.setOnAction(this::refreshSelection);
+
+        var autoFresh = new CheckMenuItem("Auto fresh selection");
+        autoFresh.selectedProperty().bindBidirectional(this.autoFresh);
+
+        var selectMethodMenu = new Menu("Selection method");
+        var selectMethodMenuItems = probe.getElectrodeSelectors().stream()
+          .map(method -> {
+              var item = new CheckMenuItem(method);
+              item.selectedProperty().bind(selectMethod.isEqualTo(method));
+              item.setOnAction(e -> selectMethod.set(method));
+              return item;
+          }).toList();
+        selectMethodMenu.getItems().addAll(selectMethodMenuItems);
+
         var editUserConfig = new MenuItem("Edit user config");
 
         menuEdit.getItems().addAll(
           clear,
           clearBlueprint,
+          new SeparatorMenuItem(),
+          refresh,
+          selectMethodMenu,
+          autoFresh,
           new SeparatorMenuItem(),
           new PluginSeparatorMenuItem(),
           new ProbePluginSeparatorMenuItem(),
@@ -208,12 +333,12 @@ public class Application<T> {
     private Menu menuView() {
         menuView = new Menu("_View");
 
-        var resetProbeViewAxes = new MenuItem("_Reset View");
-        resetProbeViewAxes.setAccelerator(KeyCombination.keyCombination("Shortcut+R"));
+        var resetProbeViewAxes = new MenuItem("R_eset View");
+        resetProbeViewAxes.setAccelerator(KeyCombination.keyCombination("Shortcut+E"));
         resetProbeViewAxes.setOnAction(_ -> view.fitAxesBoundaries());
 
-        var resetProbeViewAxesRatio = new MenuItem("R_eset View Ratio");
-        resetProbeViewAxesRatio.setAccelerator(KeyCombination.keyCombination("Shortcut+E"));
+        var resetProbeViewAxesRatio = new MenuItem("Reset View Ratio");
+        resetProbeViewAxesRatio.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+E"));
         resetProbeViewAxesRatio.setOnAction(_ -> view.setAxesEqualRatio());
 
         var clearLog = new MenuItem("Clear _log");
@@ -267,54 +392,66 @@ public class Application<T> {
      * content view *
      *==============*/
 
+    private class ShortcutCodedButton extends CodedButton {
+
+        final String title;
+        final int shortcut;
+        final boolean withAlt;
+
+        ShortcutCodedButton(String code, String title, int shortcut, boolean withAlt, EventHandler<ActionEvent> callback) {
+            super(code, title, callback);
+            this.title = title;
+            this.shortcut = shortcut;
+            this.withAlt = withAlt;
+
+            if (shortcut <= 10) {
+                var combine = "Shortcut+" + (withAlt ? "Alt+" : "") + (shortcut % 10);
+                setOnKeyCombine(combine, _ -> fire());
+                registerOnListonControlDown(this, title, " (" + shortcut + ")");
+            }
+
+        }
+    }
+
+
     ProbeView<T> view;
     private VBox pluginLayout;
 
-    private static class CodedButton extends Button {
-        final String code;
-
-        CodedButton(String code, EventHandler<ActionEvent> callback) {
-            super(code);
-            this.code = code;
-            setOnAction(callback);
-        }
-    }
 
     private Parent rootLeft() {
         log.debug("init layout - left");
 
+        var stateLabel = new Label("State");
+        registerOnListonControlDown(stateLabel, "State", " (Ctrl+Alt+...)");
+
+        var categoryLabel = new Label("Category");
+        registerOnListonControlDown(categoryLabel, "Category", " (Ctrl+)");
+
         var layoutState = new GridPane();
         layoutState.setHgap(5);
         layoutState.setVgap(5);
-        var buttons = addAllIntoGridPane(layoutState, 2, probe.availableStates(),
-          state -> new CodedButton(state, this::onStateChanged));
-
-        for (int i = 0, size = buttons.size(); i < size; i++) {
-            var button = buttons.get(i);
-            setOnKeyCombine("Shortcut+Alt+" + (i + 1), e -> button.fire());
-        }
+        addAllIntoGridPane(layoutState, 2, probe.availableStates(), (i, state) -> {
+            var shortcut = i + 1;
+            return new ShortcutCodedButton(state, state, shortcut, true, this::onStateChanged);
+        });
 
         var layoutCate = new GridPane();
         layoutCate.setHgap(5);
         layoutCate.setVgap(5);
-        buttons = addAllIntoGridPane(layoutCate, 2, probe.availableCategories(),
-          category -> new CodedButton(category, this::onCategoryChanged));
-
-        for (int i = 0, size = Math.min(buttons.size(), 10); i < size; i++) {
-            var button = buttons.get(i);
-            setOnKeyCombine("Shortcut+" + (i + 1) % 10, e -> button.fire());
-        }
+        addAllIntoGridPane(layoutCate, 2, probe.availableCategories(), (i, category) -> {
+            var shortcut = i + 1;
+            return new ShortcutCodedButton(category, category, shortcut, false, this::onCategoryChanged);
+        });
 
         logMessageArea = new TextArea();
         logMessageArea.setEditable(false);
         logMessageArea.setPrefWidth(290);
         logMessageArea.setPrefColumnCount(100);
 
-
         var root = new VBox(
-          new Label("State"),
+          stateLabel,
           layoutState,
-          new Label("Category"),
+          categoryLabel,
           layoutCate,
           new Label("Log"),
           logMessageArea
@@ -416,7 +553,7 @@ public class Application<T> {
      *================*/
 
     private void onNewProbe(ActionEvent e) {
-        if (e.getSource() instanceof NewProbeMenuItem item) {
+        if (e.getSource() instanceof CodedMenuItem item) {
             printMessage("new probe " + item.code);
             clearProbe(item.code);
         }
@@ -453,9 +590,21 @@ public class Application<T> {
 
     private void onCategoryChanged(ActionEvent e) {
         if (e.getSource() instanceof CodedButton button) {
+            // TODO selectedAsPreSelected
             printMessage("set category " + button.code);
-            log.debug("TODO onCategoryChanged");
+            var cate = probe.categoryOf(button.code);
+            cate.ifPresent(view::setCategoryForCaptured);
+            if (cate.isPresent()) {
+                if (autoFresh.get()) {
+                    refreshSelection(e);
+                } else {
+                    fireProbeUpdate();
+                }
+            }
         }
+    }
+
+    private void refreshSelection(ActionEvent e) {
     }
 
     private void clearProbe(ActionEvent e) {
@@ -464,6 +613,23 @@ public class Application<T> {
 
     private void clearBlueprint(ActionEvent e) {
         log.debug("TODO clearBlueprint");
+    }
+
+    private void openOtherProbeFamily(ActionEvent e) {
+        if (e.getSource() instanceof CodedMenuItem item) {
+            log.info("open other probe family : {}", item.code);
+            var probe = ProbeDescription.getProbeDescription(item.code);
+            if (probe == null) {
+                printMessage("probe family " + item.code + " not found.");
+                return;
+            }
+
+            checkBeforeClosing(e);
+
+            var application = new Application<>(config, probe);
+            var stage = new Stage();
+            application.start(stage);
+        }
     }
 
     private final Map<KeyCombination, EventHandler<KeyEvent>> keyCombineHandlers = new HashMap<>();
@@ -488,6 +654,10 @@ public class Application<T> {
     /*================*
      * event on probe *
      *================*/
+
+    public void refreshSelection(String method) {
+
+    }
 
     public void clearProbe() {
         var chmap = view.getChannelmap();
@@ -589,12 +759,12 @@ public class Application<T> {
 
     private static final int[] GRIDDED_COMPONENT_WIDTH = {290, 140, 90, 30};
 
-    private <T, N extends Region> List<N> addAllIntoGridPane(GridPane layout, int column, List<T> data, Function<T, N> factory) {
+    private <T, N extends Region> List<N> addAllIntoGridPane(GridPane layout, int column, List<T> data, BiFunction<Integer, T, N> factory) {
         if (column < 1) throw new IllegalArgumentException();
 
         var ret = new ArrayList<N>();
         for (int i = 0, size = data.size(); i < size; i++) {
-            var node = factory.apply(data.get(i));
+            var node = factory.apply(i, data.get(i));
             if (column <= 4) {
                 node.setPrefWidth(GRIDDED_COMPONENT_WIDTH[column - 1]);
             }

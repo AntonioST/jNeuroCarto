@@ -80,7 +80,7 @@ public class Blueprint<T> {
           .sorted()
           .boxed()
           .gather(Gatherer.<Integer, int[], Integer>ofSequential(
-            () -> new int[0],
+            () -> new int[1],
             (state, element, downstream) -> {
                 var ret = element - state[0];
                 state[0] = element;
