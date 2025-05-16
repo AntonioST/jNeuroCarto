@@ -6,8 +6,9 @@
 
 }
 .chart-symbol.electrode-highlighted {
-    -fx-border-color: rgba(255,255,0,0.8);
-    -fx-border-width: 2px;
+    -fx-border-color: orange;
+    -fx-border-width: 4px;
+    -fx-padding: 6px;
     -fx-background-color: null;
 }
 .chart-symbol.captured {
