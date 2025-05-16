@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -94,11 +95,11 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
      * @param e
      * @return updated series.
      */
-    private ScatterChart.Series<Number, Number> setSeries(int code, List<ElectrodeDescription> e) {
+    private ScatterChart.Series<Number, Number> setSeries(int code, @Nullable Stream<ElectrodeDescription> e) {
         var series = electrodes.get(probe.stateOf(code));
         if (series == null) throw new IllegalArgumentException();
-        var c = e.stream().filter(it -> it.state() == code).toList();
-        return setSeries(series, c);
+        if (e != null) e = e.filter(it -> it.state() == code);
+        return setSeries(series, e);
     }
 
     /**
@@ -108,23 +109,25 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
      * @param e    electrodes.
      * @return updated series.
      */
-    private ScatterChart.Series<Number, Number> setSeries(String name, List<ElectrodeDescription> e) {
+    private ScatterChart.Series<Number, Number> setSeries(String name, @Nullable Stream<ElectrodeDescription> e) {
         var series = electrodes.get(name);
         if (series == null) throw new IllegalArgumentException();
         return setSeries(series, e);
     }
 
 
-    private ScatterChart.Series<Number, Number> setSeries(ScatterChart.Series<Number, Number> series, List<ElectrodeDescription> e) {
+    private ScatterChart.Series<Number, Number> setSeries(ScatterChart.Series<Number, Number> series, @Nullable Stream<ElectrodeDescription> e) {
         series.getData().clear();
-        if (!e.isEmpty()) {
-            addSeries(series, e);
-        }
+        if (e != null) addSeries(series, e);
         return series;
     }
 
-    private ScatterChart.Series<Number, Number> addSeries(ScatterChart.Series<Number, Number> series, List<ElectrodeDescription> e) {
-        series.getData().addAll(e.stream().map(ProbeView::asData).toList());
+    private ScatterChart.Series<Number, Number> addSeries(ScatterChart.Series<Number, Number> series, @Nullable Stream<ElectrodeDescription> e) {
+        if (e == null) return series;
+        var s = e.map(ProbeView::asData);
+
+        series.getData().addAll(s.toList());
+
         var style = getCssStyleClass(series.getName());
         if (style != null) {
             applyStyleClass(series, style);
@@ -202,34 +205,22 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         if (blueprint == null) return;
 
         log.debug("resetElectrodeState");
+
+        var channelmap = this.channelmap;
+        List<ElectrodeDescription> channels;
+        if (channelmap == null) {
+            channels = List.of();
+        } else {
+            channels = probe.allChannels(channelmap, blueprint);
+        }
+
         for (var e : blueprint) {
             e.state(ProbeDescription.STATE_UNUSED);
         }
-
-        var channelmap = this.channelmap;
-        if (channelmap == null) return;
-
-        var channels = probe.allChannels(channelmap, blueprint);
-        for (var e : probe.getInvalidElectrodes(channelmap, channels, blueprint)) {
-            e.state(ProbeDescription.STATE_DISABLED);
-        }
-        for (var e : channels) {
-            e.state(ProbeDescription.STATE_USED);
-        }
-    }
-
-    public void updateElectrodeState() {
-        var channelmap = this.channelmap;
-        if (channelmap == null) return;
-
-        var blueprint = this.blueprint;
-        if (blueprint == null) return;
-
-        log.debug("updateElectrodeState");
-
-        var channels = probe.allChannels(channelmap, blueprint);
-        for (var e : probe.getInvalidElectrodes(channelmap, channels, blueprint)) {
-            e.state(ProbeDescription.STATE_DISABLED);
+        if (channelmap != null) {
+            for (var e : probe.getInvalidElectrodes(channelmap, channels, blueprint)) {
+                e.state(ProbeDescription.STATE_DISABLED);
+            }
         }
         for (var e : channels) {
             e.state(ProbeDescription.STATE_USED);
@@ -242,10 +233,10 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
         log.debug("updateElectrode");
         for (var state : allStateMap.keySet()) {
-            setSeries(state, blueprint);
+            setSeries(state, blueprint.stream());
         }
 
-        setSeries(STATE_HIGHLIGHTED, List.of());
+        setSeries(STATE_HIGHLIGHTED, null);
     }
 
     public void setStateForCaptured(int state) {
@@ -274,7 +265,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
             }
         }
 
-        updateElectrodeState();
+        resetElectrodeState();
     }
 
     /*============================*
@@ -342,7 +333,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
             electrodes = probe.getInvalidElectrodes(chmap, electrodes, probe.allElectrodes(chmap));
         }
 
-        var s = setSeries(STATE_HIGHLIGHTED, electrodes);
+        var s = setSeries(STATE_HIGHLIGHTED, electrodes.stream());
         var style = getCssStyleClass(STATE_HIGHLIGHTED);
         if (style != null) {
             applyStyleClass(s, style);
@@ -350,7 +341,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     }
 
     public void clearHighlight() {
-        setSeries(STATE_HIGHLIGHTED, List.of());
+        setSeries(STATE_HIGHLIGHTED, null);
     }
 
     /*====*

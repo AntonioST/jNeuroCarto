@@ -1,8 +1,6 @@
 package io.ast.jneurocarto.javafx.app;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,6 +25,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -79,6 +78,7 @@ public class Application<T> {
 
     private Scene scene() {
         var scene = new Scene(root());
+        scene.setOnKeyPressed(this::onKeyPressed);
         return scene;
     }
 
@@ -286,14 +286,24 @@ public class Application<T> {
         var layoutState = new GridPane();
         layoutState.setHgap(5);
         layoutState.setVgap(5);
-        addAllIntoGridPane(layoutState, 2, probe.availableStates(),
+        var buttons = addAllIntoGridPane(layoutState, 2, probe.availableStates(),
           state -> new CodedButton(state, this::onStateChanged));
+
+        for (int i = 0, size = buttons.size(); i < size; i++) {
+            var button = buttons.get(i);
+            setOnKeyCombine("Shortcut+Alt+" + (i + 1), e -> button.fire());
+        }
 
         var layoutCate = new GridPane();
         layoutCate.setHgap(5);
         layoutCate.setVgap(5);
-        addAllIntoGridPane(layoutCate, 2, probe.availableCategories(),
+        buttons = addAllIntoGridPane(layoutCate, 2, probe.availableCategories(),
           category -> new CodedButton(category, this::onCategoryChanged));
+
+        for (int i = 0, size = Math.min(buttons.size(), 10); i < size; i++) {
+            var button = buttons.get(i);
+            setOnKeyCombine("Shortcut+" + (i + 1) % 10, e -> button.fire());
+        }
 
         logMessageArea = new TextArea();
         logMessageArea.setEditable(false);
@@ -456,6 +466,25 @@ public class Application<T> {
         log.debug("TODO clearBlueprint");
     }
 
+    private final Map<KeyCombination, EventHandler<KeyEvent>> keyCombineHandlers = new HashMap<>();
+
+    void setOnKeyCombine(String combine, EventHandler<KeyEvent> handler) {
+        setOnKeyCombine(KeyCombination.keyCombination(combine), handler);
+    }
+
+    void setOnKeyCombine(KeyCombination combine, EventHandler<KeyEvent> handler) {
+        keyCombineHandlers.put(combine, handler);
+    }
+
+    private void onKeyPressed(KeyEvent e) {
+        for (var entry : keyCombineHandlers.entrySet()) {
+            if (entry.getKey().match(e)) {
+                entry.getValue().handle(e);
+                if (e.isConsumed()) break;
+            }
+        }
+    }
+
     /*================*
      * event on probe *
      *================*/
@@ -560,15 +589,19 @@ public class Application<T> {
 
     private static final int[] GRIDDED_COMPONENT_WIDTH = {290, 140, 90, 30};
 
-    private <T> void addAllIntoGridPane(GridPane layout, int column, List<T> data, Function<T, Region> factory) {
+    private <T, N extends Region> List<N> addAllIntoGridPane(GridPane layout, int column, List<T> data, Function<T, N> factory) {
         if (column < 1) throw new IllegalArgumentException();
 
+        var ret = new ArrayList<N>();
         for (int i = 0, size = data.size(); i < size; i++) {
             var node = factory.apply(data.get(i));
             if (column <= 4) {
                 node.setPrefWidth(GRIDDED_COMPONENT_WIDTH[column - 1]);
             }
             layout.add(node, i % column, i / column);
+            ret.add(node);
         }
+
+        return ret;
     }
 }

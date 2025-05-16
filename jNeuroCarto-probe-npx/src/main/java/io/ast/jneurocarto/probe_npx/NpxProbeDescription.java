@@ -33,9 +33,9 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     public static final int CATE_QUARTER = 13;
 
     private static final Map<Integer, String> ALL_STATES = Map.of(
-      STATE_UNUSED, "Unset",
+      STATE_UNUSED, "Disable",
       STATE_USED, "Enable",
-      STATE_DISABLED, "Disable"
+      STATE_DISABLED, "Forbidden"
     );
 
     private static final Map<Integer, String> ALL_CATEGORIES = Map.of(
