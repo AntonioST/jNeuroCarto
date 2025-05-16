@@ -287,13 +287,13 @@ public class Application<T> {
         layoutState.setHgap(5);
         layoutState.setVgap(5);
         addAllIntoGridPane(layoutState, 2, probe.availableStates(),
-          (state) -> new CodedButton(state, this::onStateChanged));
+          state -> new CodedButton(state, this::onStateChanged));
 
         var layoutCate = new GridPane();
         layoutCate.setHgap(5);
         layoutCate.setVgap(5);
         addAllIntoGridPane(layoutCate, 2, probe.availableCategories(),
-          (category) -> new CodedButton(category, this::onCategoryChanged));
+          category -> new CodedButton(category, this::onCategoryChanged));
 
         logMessageArea = new TextArea();
         logMessageArea.setEditable(false);

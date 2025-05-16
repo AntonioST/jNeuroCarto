@@ -5,12 +5,19 @@ import java.util.Objects;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
+import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.input.InputEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -19,7 +26,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 
 @NullMarked
-public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPane {
+public class InteractionXYChart<C extends XYChart<Number, Number>> extends StackPane {
 
     private final C chart;
     private final NumberAxis xAxis;
@@ -27,7 +34,7 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
     private final Canvas background;
     private final Canvas foreground;
 
-    public InteractXYChart(C chart) {
+    public InteractionXYChart(C chart) {
         this.chart = chart;
 
         xAxis = (NumberAxis) chart.getXAxis();
@@ -49,6 +56,7 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         foreground.setOnMousePressed(this::onMousePressed);
         foreground.setOnMouseReleased(this::onMouseReleased);
         foreground.setOnMouseDragged(this::onMouseDragged);
+        foreground.setOnMouseClicked(this::onMouseClicked);
         foreground.setOnScroll(this::onMouseWheeled);
     }
 
@@ -66,7 +74,6 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
     }
 
     private @Nullable MouseEvent mousePress;
-    private @Nullable MouseEvent mouseMoving;
     private @Nullable NumberAxis previousXAxis;
     private @Nullable NumberAxis previousYAxis;
     private @Nullable Bounds previousArea;
@@ -81,8 +88,6 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
     }
 
     private void onMouseDragged(MouseEvent e) {
-        mouseMoving = e;
-
         var start = mousePress;
         if (start != null) {
             switch (start.getButton()) {
@@ -95,15 +100,13 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
     private void onMouseReleased(MouseEvent e) {
         var start = mousePress;
         mousePress = null;
-        mouseMoving = null;
         previousXAxis = null;
         previousYAxis = null;
         previousArea = null;
 
         if (start != null) {
-            switch (start.getButton()) {
-            case MouseButton.PRIMARY -> onMouseSelected(start, e);
-            case MouseButton.SECONDARY -> onMouseDragged(start, e);
+            if (start.getButton() == MouseButton.PRIMARY) {
+                onMouseSelected(start, e);
             }
         }
 
@@ -111,6 +114,10 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         var w = foreground.getWidth();
         var h = foreground.getHeight();
         gc.clearRect(0, 0, w, h);
+    }
+
+    private void onMouseClicked(MouseEvent e) {
+        fireDataTouchEvent(new Point2D(e.getX(), e.getY()), e.getButton());
     }
 
     private void onMouseWheeled(ScrollEvent e) {
@@ -150,31 +157,25 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
             var d2 = (x2 - x1) * scale * r1;
             setAxisBoundary(yAxis, x1 - d1, x2 + d2);
         }
-
     }
 
     private void onMouseSelecting(MouseEvent start, MouseEvent current) {
-        var area = getPlottingArea();
-        var x1 = Math.max(Math.min(start.getX(), current.getX()), area.getMinX());
-        var x2 = Math.min(Math.max(start.getX(), current.getX()), area.getMaxX());
-        var y1 = Math.max(Math.min(start.getY(), current.getY()), area.getMinY());
-        var y2 = Math.min(Math.max(start.getY(), current.getY()), area.getMaxY());
-        var w = x2 - x1;
-        var h = y2 - y1;
-
         var gc = foreground.getGraphicsContext2D();
+        var area = getPlottingArea();
         gc.clearRect(area.getMinX(), area.getMinY(), area.getWidth(), area.getHeight());
 
+        var rect = getMouseSelectBound(start, current);
         gc.setStroke(Color.BLUE);
         gc.setGlobalAlpha(0.3);
-        gc.fillRect(x1, y1, w, h);
+        gc.fillRect(rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
 
         gc.setFill(Color.CYAN);
         gc.setGlobalAlpha(0.1);
-        gc.strokeRect(x1, y1, w, h);
+        gc.strokeRect(rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
     }
 
     private void onMouseSelected(MouseEvent start, MouseEvent end) {
+        fireDataSelectEvent(getMouseSelectBound(start, end));
     }
 
     private void onMouseDragging(MouseEvent start, MouseEvent current) {
@@ -195,7 +196,95 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
     }
 
-    private void onMouseDragged(MouseEvent start, MouseEvent end) {
+    private Bounds getMouseSelectBound(MouseEvent start, MouseEvent current) {
+        var area = getPlottingArea();
+        var x1 = Math.max(Math.min(start.getX(), current.getX()), area.getMinX());
+        var x2 = Math.min(Math.max(start.getX(), current.getX()), area.getMaxX());
+        var y1 = Math.max(Math.min(start.getY(), current.getY()), area.getMinY());
+        var y2 = Math.min(Math.max(start.getY(), current.getY()), area.getMaxY());
+        return new BoundingBox(x1, y1, x2 - x1, y2 - y1);
+    }
+
+    /*=============*
+     * touch event *
+     *=============*/
+
+    public static class DataTouchEvent extends InputEvent {
+        public static final EventType<DataSelectEvent> DATA_TOUCH = new EventType<>(InputEvent.ANY, "DATA_TOUCH");
+
+        public final Point2D point;
+        public final MouseButton button;
+
+        public DataTouchEvent(Point2D point, MouseButton button) {
+            super(DATA_TOUCH);
+            this.point = point;
+            this.button = button;
+        }
+    }
+
+    private final ObjectProperty<@Nullable EventHandler<DataTouchEvent>> onDataTouchEvent = new SimpleObjectProperty<>(null);
+
+    public final ObjectProperty<@Nullable EventHandler<DataTouchEvent>> onDataTouchEventProperty() {
+        return onDataTouchEvent;
+    }
+
+    public final void setOnDataTouch(EventHandler<DataTouchEvent> handler) {
+        onDataTouchEvent.set(handler);
+    }
+
+    public final @Nullable EventHandler<DataTouchEvent> getOnDataTouch() {
+        return onDataTouchEvent.get();
+    }
+
+    private void fireDataTouchEvent(Point2D point, MouseButton button) {
+        if (!isDisabled()) {
+            var handler = getOnDataTouch();
+            if (handler != null) {
+                var transform = getChartTransform();
+                var event = new DataTouchEvent(transform.transform(point), button);
+                Platform.runLater(() -> handler.handle(event));
+            }
+        }
+    }
+
+    /*==============*
+     * select event *
+     *==============*/
+
+    public static class DataSelectEvent extends InputEvent {
+        public static final EventType<DataSelectEvent> DATA_SELECT = new EventType<>(InputEvent.ANY, "DATA_SELECT");
+
+        public final Bounds bounds;
+
+        public DataSelectEvent(Bounds bounds) {
+            super(DATA_SELECT);
+            this.bounds = bounds;
+        }
+    }
+
+    private final ObjectProperty<@Nullable EventHandler<DataSelectEvent>> onDataSelectEvent = new SimpleObjectProperty<>(null);
+
+    public final ObjectProperty<@Nullable EventHandler<DataSelectEvent>> onDataSelectEventProperty() {
+        return onDataSelectEvent;
+    }
+
+    public final void setOnDataSelect(EventHandler<DataSelectEvent> handler) {
+        onDataSelectEvent.set(handler);
+    }
+
+    public final @Nullable EventHandler<DataSelectEvent> getOnDataSelect() {
+        return onDataSelectEvent.get();
+    }
+
+    private void fireDataSelectEvent(Bounds bounds) {
+        if (!isDisabled()) {
+            var handler = getOnDataSelect();
+            if (handler != null) {
+                var transform = getChartTransform();
+                var event = new DataSelectEvent(transform.transform(bounds));
+                Platform.runLater(() -> handler.handle(event));
+            }
+        }
     }
 
     /*==============================*
@@ -216,14 +305,14 @@ public class InteractXYChart<C extends XYChart<Number, Number>> extends StackPan
         return foreground.sceneToLocal(plot.localToScene(plot.getBoundsInLocal()));
     }
 
-    public GraphicsContext getForebroundCanvasGraphicsContext() {
+    public GraphicsContext getForegroundCanvasGraphicsContext() {
         var gc = foreground.getGraphicsContext2D();
         gc.setTransform(getCanvasTransform());
         return gc;
     }
 
-    public GraphicsContext getBackbroundCanvasGraphicsContext() {
-        var gc = foreground.getGraphicsContext2D();
+    public GraphicsContext getBackgroundCanvasGraphicsContext() {
+        var gc = background.getGraphicsContext2D();
         gc.setTransform(getCanvasTransform());
         return gc;
     }

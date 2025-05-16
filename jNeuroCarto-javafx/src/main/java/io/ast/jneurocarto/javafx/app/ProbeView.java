@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,7 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.ScatterChart;
 
 @NullMarked
-public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> {
+public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
 
     private final CartoConfig config;
     private final ProbeDescription<T> probe;
@@ -41,6 +42,9 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
 
         this.config = config;
         this.probe = probe;
+
+        setOnDataTouch(this::onElectrodeTouch);
+        setOnDataSelect(this::onElectrodeSelect);
 
         allStateMap = probe.allStates();
 
@@ -243,6 +247,30 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
         setSeries(STATE_HIGHLIGHTED, List.of());
     }
 
+    /*==============*
+     * highlighting *
+     *==============*/
+
+    public List<ElectrodeDescription> getHighlighted() {
+        var ret = electrodes.get(STATE_HIGHLIGHTED).getData().stream()
+          .map(it -> (ElectrodeDescription) it.getExtraValue())
+          .toList();
+
+        return probe.copyElectrodes(ret);
+    }
+
+    public void setHighlight(List<ElectrodeDescription> electrodes) {
+        var s = setSeries(STATE_HIGHLIGHTED, electrodes);
+        var style = getCssStyleByState(STATE_HIGHLIGHTED);
+        if (style != null) {
+            applyStyle(s, style);
+        }
+    }
+
+    /*====*
+     * UI *
+     *====*/
+
     public void fitAxesBoundaries() {
         var blueprint = this.blueprint;
         if (blueprint == null) {
@@ -266,6 +294,26 @@ public class ProbeView<T> extends InteractXYChart<ScatterChart<Number, Number>> 
         var dy = (y2 - y1) / 100;
 
         setAxesBoundaries(x1 - dx, x2 + dx, y1 - dy, y2 + dy);
+    }
+
+    /*==============*
+     * event handle *
+     *==============*/
+
+    private void onElectrodeTouch(DataTouchEvent e) {
+    }
+
+    private void onElectrodeSelect(DataSelectEvent e) {
+        var captured = new ArrayList<ElectrodeDescription>();
+
+        for (var entry : electrodes.entrySet()) {
+            entry.getValue().getData().stream()
+              .filter(it -> e.bounds.contains(it.getXValue().doubleValue(), it.getYValue().doubleValue()))
+              .map(it -> (ElectrodeDescription) it.getExtraValue())
+              .forEach(captured::add);
+        }
+
+        setHighlight(captured);
     }
 
 }
