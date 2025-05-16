@@ -44,6 +44,12 @@
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-tiff</artifactId>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.27.1</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -82,21 +88,19 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>24</source>
-                    <target>24</target>
-                    <compilerArgs>--enable-preview</compilerArgs>
-                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.3.0</version>
                 <configuration>
-                    <mainClass>io.ast.jneurocarto.atlas.cli.Main</mainClass>
                     <arguments>
                         <argument>--enable-preview</argument>
+                        <argument>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</argument>
+                        <argument>-cp</argument>
+                        <classpath/>
+                        <argument>io.ast.jneurocarto.atlas.cli.Main</argument>
+                        <argument>-h</argument>
                     </arguments>
                 </configuration>
             </plugin>

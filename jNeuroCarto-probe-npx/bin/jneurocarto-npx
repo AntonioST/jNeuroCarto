@@ -4,9 +4,9 @@ M=$HOME/.m2/repository
 read -d '' -r CP << EOF
 $M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
-target/classes
-../jNeuroCarto-core/target/classes
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
+../jNeuroCarto-core/target/classes
+target/classes
 EOF
 
 archlinux-java-run --min 24 -- \

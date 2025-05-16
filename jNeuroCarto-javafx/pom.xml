@@ -32,12 +32,6 @@
         </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-probe-npx-javafx</artifactId>
-            <version>0.0</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-atlas</artifactId>
             <version>0.0</version>
         </dependency>
@@ -92,6 +86,22 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>--enable-preview</argument>
+                        <argument>--enable-native-access=javafx.graphics</argument>
+                        <argument>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</argument>
+                        <argument>-cp</argument>
+                        <classpath/>
+                        <argument>io.ast.jneurocarto.javafx.cli.Main</argument>
+                        <argument>--help</argument>
+                    </arguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>

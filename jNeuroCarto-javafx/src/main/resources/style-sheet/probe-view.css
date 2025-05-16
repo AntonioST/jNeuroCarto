@@ -3,7 +3,6 @@
     -fx-border-width: 0px;
     -fx-padding: 4px;
     -fx-shape: "M0,0 H10 V10 H0 Z";
-
 }
 .chart-symbol.electrode-highlighted {
     -fx-border-color: orange;
@@ -16,15 +15,15 @@
     -fx-scale-x: 1.2;
     -fx-scale-y: 1.2;
 }
-// unused
+/* unused */
 .chart-symbol.electrode-state-0 {
     -fx-background-color: black;
 }
-// used
+/* used */
 .chart-symbol.electrode-state-1 {
     -fx-background-color: green;
 }
-// disabled
+/* disabled */
 .chart-symbol.electrode-state-2 {
     -fx-background-color: rgba(255,0,0,0.2);
     -fx-scale-x: 0.8;
