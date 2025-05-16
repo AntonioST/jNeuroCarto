@@ -295,6 +295,12 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         if (chmap == null) return;
 
         log.debug("setCategoryForCaptured({})", probe.categoryOf(category));
+
+        for (var e : getCaptured(true)) {
+            e.category(category);
+        }
+
+        updateElectrode();
     }
 
     /*============================*

@@ -1,38 +1,35 @@
-.chart-symbol.electrode-highlighted {
-    -fx-background-color: rgba(255,255,0,0.3);
+.chart-symbol {
+    -fx-effect: null;
+    -fx-border-width: 0px;
     -fx-padding: 4px;
-    -fx-background-radius: 4px;
+    -fx-shape: "M0,0 H10 V10 H0 Z";
+
+}
+.chart-symbol.electrode-highlighted {
+    -fx-border-color: rgba(255,255,0,0.8);
+    -fx-border-width: 2px;
+    -fx-background-color: null;
+}
+.chart-symbol.captured {
+    -fx-background-color: black;
+    -fx-scale-x: 1.2;
+    -fx-scale-y: 1.2;
 }
 // unused
 .chart-symbol.electrode-state-0 {
     -fx-background-color: black;
-    -fx-padding: 2px;
-    -fx-background-radius: 2px;
-}
-.chart-symbol.electrode-state-0.captured {
-    -fx-background-color: black;
-    -fx-padding: 4px;
-    -fx-background-radius: 2px;
 }
 // used
 .chart-symbol.electrode-state-1 {
     -fx-background-color: green;
-    -fx-padding: 2px;
-    -fx-background-radius: 2px;
-}
-.chart-symbol.electrode-state-1.captured {
-    -fx-background-color: green;
-    -fx-padding: 4px;
-    -fx-background-radius: 2px;
 }
 // disabled
 .chart-symbol.electrode-state-2 {
     -fx-background-color: rgba(255,0,0,0.2);
-    -fx-padding: 1px;
-    -fx-background-radius: 1px;
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
 }
 .chart-symbol.electrode-state-2.captured {
-    -fx-background-color: rgba(255,0,0,0.2);
-    -fx-padding: 2px;
-    -fx-background-radius: 1px;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
 }
