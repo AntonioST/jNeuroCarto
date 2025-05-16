@@ -4,7 +4,10 @@ import java.util.Objects;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -33,6 +36,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private final NumberAxis yAxis;
     private final Canvas background;
     private final Canvas foreground;
+    private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
 
     public InteractionXYChart(C chart) {
         this.chart = chart;
@@ -64,16 +68,34 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return chart;
     }
 
-    public static void applyStyle(XYChart.Series<Number, Number> series, String css) {
+    public static void applyStyleClass(XYChart.Data<Number, Number> data, String css) {
+        var node = data.getNode();
+        if (node != null) {
+            StylesheetsUtils.addStyleClass(node, css);
+        }
+    }
+
+    public static void applyStyleClass(XYChart.Series<Number, Number> series, String css) {
         for (var data : series.getData()) {
-            var node = data.getNode();
-            if (node != null) {
-                node.setStyle(css);
-            }
+            applyStyleClass(data, css);
+        }
+    }
+
+    public static void removeStyleClass(XYChart.Data<Number, Number> data, String css) {
+        var node = data.getNode();
+        if (node != null) {
+            StylesheetsUtils.removeStyleClass(node, css);
+        }
+    }
+
+    public static void removeStyleClass(XYChart.Series<Number, Number> series, String css) {
+        for (var data : series.getData()) {
+            removeStyleClass(data, css);
         }
     }
 
     private @Nullable MouseEvent mousePress;
+    private @Nullable MouseEvent mouseMoving;
     private @Nullable NumberAxis previousXAxis;
     private @Nullable NumberAxis previousYAxis;
     private @Nullable Bounds previousArea;
@@ -88,25 +110,38 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     private void onMouseDragged(MouseEvent e) {
+        mouseMoving = e;
+
         var start = mousePress;
         if (start != null) {
             switch (start.getButton()) {
             case MouseButton.PRIMARY -> onMouseSelecting(start, e);
-            case MouseButton.SECONDARY -> onMouseDragging(start, e);
+            case MouseButton.SECONDARY -> {
+                if (start.isControlDown()) {
+                    onMouseSelecting(start, e);
+                } else {
+                    onMouseDragging(start, e);
+                }
+            }
             }
         }
     }
 
     private void onMouseReleased(MouseEvent e) {
         var start = mousePress;
+        var moving = mouseMoving;
+
         mousePress = null;
+        mouseMoving = null;
         previousXAxis = null;
         previousYAxis = null;
         previousArea = null;
 
         if (start != null) {
-            if (start.getButton() == MouseButton.PRIMARY) {
+            if (start.getButton() == MouseButton.PRIMARY && moving != null) {
                 onMouseSelected(start, e);
+            } else if (start.getButton() == MouseButton.SECONDARY && start.isControlDown()) {
+                onMouseSelectZooming(start, e);
             }
         }
 
@@ -165,6 +200,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         gc.clearRect(area.getMinX(), area.getMinY(), area.getWidth(), area.getHeight());
 
         var rect = getMouseSelectBound(start, current);
+
         gc.setStroke(Color.BLUE);
         gc.setGlobalAlpha(0.3);
         gc.fillRect(rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
@@ -175,7 +211,17 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     private void onMouseSelected(MouseEvent start, MouseEvent end) {
-        fireDataSelectEvent(getMouseSelectBound(start, end));
+        var bound = getMouseSelectBound(start, end);
+        log.debug("onMouseSelected {}", bound);
+        fireDataSelectEvent(bound);
+    }
+
+    private void onMouseSelectZooming(MouseEvent start, MouseEvent end) {
+        var transform = getChartTransform();
+        var bound = getMouseSelectBound(start, end);
+        bound = transform.transform(bound);
+        log.debug("onMouseSelectZooming {} (transformed)", bound);
+        setAxesBoundaries(bound.getMinX(), bound.getMaxX(), bound.getMinY(), bound.getMaxY());
     }
 
     private void onMouseDragging(MouseEvent start, MouseEvent current) {
@@ -196,6 +242,11 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
     }
 
+    /**
+     * @param start
+     * @param current
+     * @return a boundary in canvas coordinate system.
+     */
     private Bounds getMouseSelectBound(MouseEvent start, MouseEvent current) {
         var area = getPlottingArea();
         var x1 = Math.max(Math.min(start.getX(), current.getX()), area.getMinX());
@@ -236,6 +287,10 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return onDataTouchEvent.get();
     }
 
+    /**
+     * @param point  a touch point in canvas coordinate system.
+     * @param button
+     */
     private void fireDataTouchEvent(Point2D point, MouseButton button) {
         if (!isDisabled()) {
             var handler = getOnDataTouch();
@@ -276,6 +331,9 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return onDataSelectEvent.get();
     }
 
+    /**
+     * @param bounds a boundary in canvas coordinate system.
+     */
     private void fireDataSelectEvent(Bounds bounds) {
         if (!isDisabled()) {
             var handler = getOnDataSelect();

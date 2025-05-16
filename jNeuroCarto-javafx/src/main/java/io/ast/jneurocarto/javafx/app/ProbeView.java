@@ -13,8 +13,10 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.ScatterChart;
+import javafx.scene.chart.XYChart;
 
 @NullMarked
 public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
@@ -24,6 +26,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     private final Map<String, ScatterChart.Series<Number, Number>> electrodes = new HashMap<>();
     private final Map<Integer, String> allStateMap;
     private static final String STATE_HIGHLIGHTED = "_highlighted_";
+    private static final String CLASS_CAPTURED = "captured";
 
     private @Nullable T channelmap;
     private @Nullable List<ElectrodeDescription> blueprint;
@@ -33,6 +36,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         var x = new NumberAxis("(um)", 0, 1000, 100);
         var y = new NumberAxis("(um)", 0, 1000, 100);
         var scatter = new ScatterChart<>(x, y);
+        scatter.setAnimated(false);
         scatter.setLegendVisible(false);
         scatter.setVerticalZeroLineVisible(false);
         scatter.setHorizontalZeroLineVisible(false);
@@ -46,7 +50,12 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         setOnDataTouch(this::onElectrodeTouch);
         setOnDataSelect(this::onElectrodeSelect);
 
+        getStylesheets().add(getClass().getResource("/style-sheet/probe-view.css").toExternalForm());
+
         allStateMap = probe.allStates();
+
+        scatter.getData().add(newElectrodeSeries(STATE_HIGHLIGHTED));
+        log.debug("add series {}", STATE_HIGHLIGHTED);
 
         var series = allStateMap.values().stream()
           .map(this::newElectrodeSeries)
@@ -58,9 +67,6 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
                 log.debug("add series {}", s.getName());
             }
         }
-
-        scatter.getData().add(newElectrodeSeries(STATE_HIGHLIGHTED));
-        log.debug("add series {}", STATE_HIGHLIGHTED);
     }
 
     public static ScatterChart.Data<Number, Number> asData(ElectrodeDescription e) {
@@ -119,43 +125,22 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
     private ScatterChart.Series<Number, Number> addSeries(ScatterChart.Series<Number, Number> series, List<ElectrodeDescription> e) {
         series.getData().addAll(e.stream().map(ProbeView::asData).toList());
-        var style = getCssStyleByState(series.getName());
+        var style = getCssStyleClass(series.getName());
         if (style != null) {
-            applyStyle(series, style);
+            applyStyleClass(series, style);
         }
         return series;
     }
 
-    private @Nullable String getCssStyleByState(String state) {
+    private @Nullable String getCssStyleClass(String state) {
         if (STATE_HIGHLIGHTED.equals(state)) {
-            return """
-              -fx-background-color: rgba(255,255,0,0.5);
-              -fx-padding: 4px;
-              -fx-background-radius: 4px;
-              """;
+            return "electrode-highlighted";
         }
 
         var code = probe.stateOf(state);
         if (code.isEmpty()) return null;
 
-        return switch (code.getAsInt()) {
-            case ProbeDescription.STATE_UNUSED -> """
-              -fx-background-color: black;
-              -fx-padding: 2px;
-              -fx-background-radius: 2px;
-              """;
-            case ProbeDescription.STATE_USED -> """
-              -fx-background-color: green;
-              -fx-padding: 2px;
-              -fx-background-radius: 2px;
-              """;
-            case ProbeDescription.STATE_DISABLED -> """
-              -fx-background-color: rgba(255,0,0,0.2);
-              -fx-padding: 1px;
-              -fx-background-radius: 1px;
-              """;
-            default -> null;
-        };
+        return "electrode-state-%d".formatted(code.getAsInt());
     }
 
     /*============*
@@ -231,8 +216,24 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         for (var e : channels) {
             e.state(ProbeDescription.STATE_USED);
         }
+    }
 
-        fitAxesBoundaries();
+    public void updateElectrodeState() {
+        var channelmap = this.channelmap;
+        if (channelmap == null) return;
+
+        var blueprint = this.blueprint;
+        if (blueprint == null) return;
+
+        log.debug("updateElectrodeState");
+
+        var channels = probe.allChannels(channelmap, blueprint);
+        for (var e : probe.getInvalidElectrodes(channelmap, channels, blueprint)) {
+            e.state(ProbeDescription.STATE_DISABLED);
+        }
+        for (var e : channels) {
+            e.state(ProbeDescription.STATE_USED);
+        }
     }
 
     public void updateElectrode() {
@@ -247,9 +248,85 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         setSeries(STATE_HIGHLIGHTED, List.of());
     }
 
-    /*==============*
-     * highlighting *
-     *==============*/
+    public void setStateForCaptured(int state) {
+        var chmap = this.channelmap;
+        if (chmap == null) return;
+
+        log.debug("setStateForCaptured({})", probe.stateOf(state));
+        List<ElectrodeDescription> captured;
+        if (state == ProbeDescription.STATE_USED) {
+            captured = getCaptured(ProbeDescription.STATE_UNUSED, true);
+            log.debug("add {} electrodes", captured.size());
+            for (var e : captured) {
+                probe.addElectrode(chmap, e);
+            }
+
+            captured = getCaptured(ProbeDescription.STATE_DISABLED, true);
+            log.debug("add {} electrodes forced", captured.size());
+            for (var e : captured) {
+                probe.addElectrode(chmap, e, true);
+            }
+        } else if (state == ProbeDescription.STATE_UNUSED) {
+            captured = getCaptured(ProbeDescription.STATE_USED, true);
+            log.debug("remove {} electrodes", captured.size());
+            for (var e : captured) {
+                probe.removeElectrode(chmap, e);
+            }
+        }
+
+        updateElectrodeState();
+    }
+
+    /*============================*
+     * capturing and highlighting *
+     *============================*/
+
+    public List<ElectrodeDescription> getCaptured(boolean reset) {
+        var ret = new ArrayList<ElectrodeDescription>();
+        for (var series : this.electrodes.values()) {
+            ret.addAll(getCaptured(series, reset));
+        }
+        return ret;
+    }
+
+    public List<ElectrodeDescription> getCaptured(int state, boolean reset) {
+        return getCaptured(allStateMap.get(state), reset);
+    }
+
+    public List<ElectrodeDescription> getCaptured(String name, boolean reset) {
+        var series = electrodes.get(name);
+        if (series == null) throw new IllegalArgumentException();
+        return getCaptured(series, reset);
+    }
+
+    private List<ElectrodeDescription> getCaptured(XYChart.Series<Number, Number> series, boolean reset) {
+        return series.getData().stream()
+          .filter(it -> StylesheetsUtils.hasStyleClass(it.getNode(), CLASS_CAPTURED))
+          .peek(it -> {
+              if (reset) {
+                  StylesheetsUtils.removeStyleClass(it.getNode(), CLASS_CAPTURED);
+              }
+          }).map(it -> (ElectrodeDescription) it.getExtraValue())
+          .toList();
+    }
+
+    public void setCaptured(List<ElectrodeDescription> electrodes) {
+        for (var series : this.electrodes.values()) {
+            setCaptured(series, electrodes);
+        }
+    }
+
+    private void setCaptured(XYChart.Series<Number, Number> series, List<ElectrodeDescription> electrodes) {
+        series.getData().stream()
+          .filter(it -> electrodes.contains((ElectrodeDescription) it.getExtraValue()))
+          .forEach(it -> StylesheetsUtils.addStyleClass(it.getNode(), CLASS_CAPTURED));
+    }
+
+    public void clearCaptured() {
+        for (var series : electrodes.values()) {
+            getCaptured(series, true);
+        }
+    }
 
     public List<ElectrodeDescription> getHighlighted() {
         var ret = electrodes.get(STATE_HIGHLIGHTED).getData().stream()
@@ -259,12 +336,21 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         return probe.copyElectrodes(ret);
     }
 
-    public void setHighlight(List<ElectrodeDescription> electrodes) {
-        var s = setSeries(STATE_HIGHLIGHTED, electrodes);
-        var style = getCssStyleByState(STATE_HIGHLIGHTED);
-        if (style != null) {
-            applyStyle(s, style);
+    public void setHighlight(List<ElectrodeDescription> electrodes, boolean includeInvalid) {
+        var chmap = this.channelmap;
+        if (includeInvalid && chmap != null) {
+            electrodes = probe.getInvalidElectrodes(chmap, electrodes, probe.allElectrodes(chmap));
         }
+
+        var s = setSeries(STATE_HIGHLIGHTED, electrodes);
+        var style = getCssStyleClass(STATE_HIGHLIGHTED);
+        if (style != null) {
+            applyStyleClass(s, style);
+        }
+    }
+
+    public void clearHighlight() {
+        setSeries(STATE_HIGHLIGHTED, List.of());
     }
 
     /*====*
@@ -308,12 +394,22 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
         for (var entry : electrodes.entrySet()) {
             entry.getValue().getData().stream()
-              .filter(it -> e.bounds.contains(it.getXValue().doubleValue(), it.getYValue().doubleValue()))
+              .filter(it -> {
+                  var x = it.getXValue().doubleValue();
+                  var y = it.getYValue().doubleValue();
+                  var ret = e.bounds.contains(x, y);
+                  if (ret) {
+                      StylesheetsUtils.addStyleClass(it.getNode(), CLASS_CAPTURED);
+                  } else {
+                      StylesheetsUtils.removeStyleClass(it.getNode(), CLASS_CAPTURED);
+                  }
+                  return ret;
+              })
               .map(it -> (ElectrodeDescription) it.getExtraValue())
               .forEach(captured::add);
         }
 
-        setHighlight(captured);
+        setHighlight(captured, true);
     }
 
 }

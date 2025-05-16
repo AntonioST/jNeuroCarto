@@ -19,6 +19,8 @@ module io.ast.jneurocarto.javafx {
     exports io.ast.jneurocarto.javafx.app;
     opens io.ast.jneurocarto.javafx.app to io.ast.jneurocarto.javafx.base;
 
+    exports io.ast.jneurocarto.javafx.utils;
+
     exports io.ast.jneurocarto.javafx.view;
     uses io.ast.jneurocarto.javafx.view.PluginProvider;
     uses io.ast.jneurocarto.javafx.view.ProbePluginProvider;

@@ -1,0 +1,38 @@
+.chart-symbol.electrode-highlighted {
+    -fx-background-color: rgba(255,255,0,0.3);
+    -fx-padding: 4px;
+    -fx-background-radius: 4px;
+}
+// unused
+.chart-symbol.electrode-state-0 {
+    -fx-background-color: black;
+    -fx-padding: 2px;
+    -fx-background-radius: 2px;
+}
+.chart-symbol.electrode-state-0.captured {
+    -fx-background-color: black;
+    -fx-padding: 4px;
+    -fx-background-radius: 2px;
+}
+// used
+.chart-symbol.electrode-state-1 {
+    -fx-background-color: green;
+    -fx-padding: 2px;
+    -fx-background-radius: 2px;
+}
+.chart-symbol.electrode-state-1.captured {
+    -fx-background-color: green;
+    -fx-padding: 4px;
+    -fx-background-radius: 2px;
+}
+// disabled
+.chart-symbol.electrode-state-2 {
+    -fx-background-color: rgba(255,0,0,0.2);
+    -fx-padding: 1px;
+    -fx-background-radius: 1px;
+}
+.chart-symbol.electrode-state-2.captured {
+    -fx-background-color: rgba(255,0,0,0.2);
+    -fx-padding: 2px;
+    -fx-background-radius: 1px;
+}

@@ -189,7 +189,7 @@ public class Application<T> {
 
         var clearBlueprint = new MenuItem("Clear _blueprint");
         clearBlueprint.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+B"));
-        clear.setOnAction(this::clearBlueprint);
+        clearBlueprint.setOnAction(this::clearBlueprint);
 
         var editUserConfig = new MenuItem("Edit user config");
 
@@ -435,7 +435,9 @@ public class Application<T> {
     private void onStateChanged(ActionEvent e) {
         if (e.getSource() instanceof CodedButton button) {
             printMessage("set state " + button.code);
-            log.debug("TODO onStateChanged");
+            var state = probe.stateOf(button.code);
+            state.ifPresent(view::setStateForCaptured);
+            if (state.isPresent()) fireProbeUpdate();
         }
     }
 
@@ -479,10 +481,15 @@ public class Application<T> {
 
         var chmap = probe.newChannelmap(code);
         view.setChannelmap(chmap);
-        onProbeUpdate(chmap, view.getBlueprint());
+        view.fitAxesBoundaries();
+        fireProbeUpdate();
     }
 
-    public void onProbeUpdate(T chmap, List<ElectrodeDescription> blueprint) {
+    private void fireProbeUpdate() {
+        fireProbeUpdate(view.getChannelmap(), view.getBlueprint());
+    }
+
+    public void fireProbeUpdate(T chmap, List<ElectrodeDescription> blueprint) {
         log.debug("onProbeUpdate");
 
         view.updateElectrode();
