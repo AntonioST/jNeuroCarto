@@ -1,5 +1,10 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -13,12 +18,14 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.config.Repository;
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -37,6 +44,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 public class Application<T> {
@@ -70,7 +78,15 @@ public class Application<T> {
     }
 
     public static Application<?> getInstance() {
-        return INSTANCE;
+        return Objects.requireNonNull(INSTANCE, "Application is not initialized.");
+    }
+
+    public CartoConfig getConfig() {
+        return config;
+    }
+
+    public Repository getRepository() {
+        return repository;
     }
 
     public @Nullable T getChannelmap() {
@@ -104,6 +120,8 @@ public class Application<T> {
     }
 
     private final StringProperty selectMethod = new SimpleStringProperty("default");
+    private @Nullable String usedSelectMethod;
+    private @Nullable ElectrodeSelector selector;
 
     public final StringProperty selectMethodProperty() {
         return selectMethod;
@@ -117,6 +135,27 @@ public class Application<T> {
         selectMethod.set(method);
     }
 
+    @Nullable
+    ElectrodeSelector getSelector(String method) {
+        if (Objects.equals(usedSelectMethod, method)) {
+            return Objects.requireNonNull(selector);
+        } else {
+            ElectrodeSelector selector;
+            try {
+                selector = probe.newElectrodeSelector(method);
+            } catch (IllegalArgumentException e) {
+                usedSelectMethod = null;
+                this.selector = null;
+                return null;
+            }
+
+            // TODO load selector options from user config
+            this.selector = selector;
+            usedSelectMethod = method;
+            return selector;
+        }
+    }
+
     private final BooleanProperty isControlDown = new SimpleBooleanProperty();
 
     private void onControlDown(KeyEvent e) {
@@ -125,7 +164,8 @@ public class Application<T> {
         }
     }
 
-    private void registerOnListonControlDown(Labeled node, String title, @Nullable String append) {
+    private void registerOnListonControlDown(Labeled node, @Nullable String append) {
+        var title = node.getText();
         isControlDown.addListener((_, _, down) -> {
             if (down && append != null) {
                 node.setText(title + append);
@@ -407,7 +447,7 @@ public class Application<T> {
             if (shortcut <= 10) {
                 var combine = "Shortcut+" + (withAlt ? "Alt+" : "") + (shortcut % 10);
                 setOnKeyCombine(combine, _ -> fire());
-                registerOnListonControlDown(this, title, " (" + shortcut + ")");
+                registerOnListonControlDown(this, " (" + shortcut + ")");
             }
 
         }
@@ -422,10 +462,10 @@ public class Application<T> {
         log.debug("init layout - left");
 
         var stateLabel = new Label("State");
-        registerOnListonControlDown(stateLabel, "State", " (Ctrl+Alt+...)");
+        registerOnListonControlDown(stateLabel, " (Ctrl+Alt+...)");
 
         var categoryLabel = new Label("Category");
-        registerOnListonControlDown(categoryLabel, "Category", " (Ctrl+)");
+        registerOnListonControlDown(categoryLabel, " (Ctrl+)");
 
         var layoutState = new GridPane();
         layoutState.setHgap(5);
@@ -495,7 +535,7 @@ public class Application<T> {
      * plugins *
      *=========*/
 
-    private final List<Plugin> plugins = new ArrayList<>();
+    final List<Plugin> plugins = new ArrayList<>();
 
     private void setupPlugins() {
         log.debug("setup plugins");
@@ -552,6 +592,8 @@ public class Application<T> {
      * event handlers *
      *================*/
 
+    private @Nullable Path currentChannelmapFile;
+
     private void onNewProbe(ActionEvent e) {
         if (e.getSource() instanceof CodedMenuItem item) {
             printMessage("new probe " + item.code);
@@ -560,7 +602,43 @@ public class Application<T> {
     }
 
     private void onLoadProbe(ActionEvent e) {
-        log.debug("TODO onLoadProbe");
+        log.debug("onLoadProbe");
+
+        var channelmapFile = openChannelmapFileDialog(false);
+        if (channelmapFile != null) {
+            currentChannelmapFile = channelmapFile;
+            onLoadProbe(channelmapFile);
+        }
+    }
+
+    private void onLoadProbe(Path channelmapFile) {
+        T channelmap;
+        try {
+            channelmap = loadChannelmap(channelmapFile);
+        } catch (IOException ex) {
+            printMessage("fail to open channelmap file " + channelmapFile);
+            log.warn("loadProbe", ex);
+            return;
+        }
+
+        List<ElectrodeDescription> blueprint;
+        try {
+            blueprint = loadBlueprint(channelmapFile);
+        } catch (IOException ex) {
+            printMessage("fail to load blueprint file.");
+            log.warn("loadBlueprint", ex);
+            blueprint = Objects.requireNonNull(view.resetBlueprint());
+        }
+
+        try {
+            loadPluginViewConfig(channelmapFile);
+        } catch (IOException ex) {
+            printMessage("fail to load view config file.");
+            log.warn("loadPluginViewConfig", ex);
+        }
+
+        fireProbeUpdate(channelmap, blueprint);
+
     }
 
     private void onSaveProbe(ActionEvent e) {
@@ -577,6 +655,43 @@ public class Application<T> {
 
     private void onSaveBlueprint(ActionEvent e) {
         log.debug("TODO onSaveBlueprint");
+    }
+
+
+    private @Nullable Path openChannelmapFileDialog(boolean save) {
+        var chooser = new FileChooser();
+        chooser.setTitle("Open Channelmap file");
+        chooser.setInitialDirectory(repository.currentResourceRoot().toFile());
+
+        var suffixes = probe.channelMapFileSuffix();
+        var exts = suffixes.stream()
+          .map(it -> "*" + it)
+          .toList();
+        chooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("channelmap file", exts));
+
+        if (save) {
+            var channelmapFile = currentChannelmapFile;
+            if (channelmapFile == null) {
+                var suffix = suffixes.get(0);
+                chooser.setInitialFileName("New" + suffix);
+            } else {
+                var filename = repository.getChannelmapName(probe, channelmapFile.getFileName().toString());
+                chooser.setInitialFileName(filename);
+            }
+        }
+
+        File file;
+        if (save) {
+            file = chooser.showSaveDialog(stage);
+        } else {
+            file = chooser.showOpenDialog(stage);
+        }
+
+        if (file == null) {
+            log.debug("onLoadProbe (canceled)");
+            return null;
+        }
+        return file.toPath();
     }
 
     private void onStateChanged(ActionEvent e) {
@@ -605,6 +720,7 @@ public class Application<T> {
     }
 
     private void refreshSelection(ActionEvent e) {
+        refreshSelection(selectMethod.get());
     }
 
     private void clearProbe(ActionEvent e) {
@@ -655,8 +771,71 @@ public class Application<T> {
      * event on probe *
      *================*/
 
-    public void refreshSelection(String method) {
+    public T loadChannelmap(String name) throws IOException {
+        return loadChannelmap(repository.getChannelmapFile(probe, name));
+    }
 
+    public T loadChannelmap(Path channelmapFile) throws IOException {
+        if (!Files.exists(channelmapFile)) throw new FileNotFoundException(channelmapFile.toString());
+
+        log.debug("changeResourceRoot {}", channelmapFile.getParent());
+        repository.changeResourceRoot(channelmapFile.getParent());
+
+        log.debug("loadProbe {}", channelmapFile.getFileName());
+        var chmap = repository.loadChannelmapFile(probe, channelmapFile);
+        view.setChannelmap(chmap);
+        return chmap;
+    }
+
+    public List<ElectrodeDescription> loadBlueprint(Path channelmapFile) throws IOException {
+        var blueprintFile = repository.getBlueprintFile(probe, channelmapFile);
+        if (!Files.exists(blueprintFile)) throw new FileNotFoundException(blueprintFile.toString());
+
+        log.debug("loadBlueprint {}", blueprintFile.getFileName());
+        var blueprint = repository.loadBlueprintFile(probe, blueprintFile);
+        view.setBlueprint(blueprint);
+        return blueprint;
+    }
+
+    public void loadPluginViewConfig(Path channelmapFile) throws IOException {
+        var viewConfigFile = repository.getViewConfigFile(probe, channelmapFile);
+        if (!Files.exists(viewConfigFile)) throw new FileNotFoundException(viewConfigFile.toString());
+
+        log.debug("loadPluginViewConfig {}", viewConfigFile.getFileName());
+        repository.loadViewConfigFile(probe, viewConfigFile, true);
+
+        PluginStateService.retrieveAllStates();
+    }
+
+    public void refreshSelection() {
+        refreshSelection(selectMethod.get());
+    }
+
+    public void refreshSelection(String method) {
+        var chmap = getChannelmap();
+        if (chmap == null) return;
+
+        var blueprint = getBlueprint();
+        if (blueprint == null) return;
+
+        var selector = getSelector(method);
+        if (selector == null) {
+            printMessage("cannot found selector : " + method);
+            return;
+        }
+
+        T newMap;
+        try {
+            newMap = selector.select(probe, chmap, blueprint);
+        } catch (RuntimeException ex) {
+            printMessage("selection fail.");
+            log.warn("refreshSelection", ex);
+            return;
+        }
+
+        view.setChannelmap(newMap);
+        view.resetElectrodeState();
+        fireProbeUpdate(newMap, view.getBlueprint());
     }
 
     public void clearProbe() {
@@ -680,12 +859,19 @@ public class Application<T> {
 
         var chmap = probe.newChannelmap(code);
         view.setChannelmap(chmap);
+        view.resetBlueprint();
         view.fitAxesBoundaries();
         fireProbeUpdate();
     }
 
     private void fireProbeUpdate() {
-        fireProbeUpdate(view.getChannelmap(), view.getBlueprint());
+        var channelmap = view.getChannelmap();
+        if (channelmap == null) return;
+
+        var blueprint = view.getBlueprint();
+        if (blueprint == null) return;
+
+        fireProbeUpdate(channelmap, blueprint);
     }
 
     public void fireProbeUpdate(T chmap, List<ElectrodeDescription> blueprint) {
@@ -728,7 +914,12 @@ public class Application<T> {
         var area = logMessageArea;
         if (area != null) {
             var content = area.getText();
-            area.setText(message + "\n" + content);
+            var updated = message + "\n" + content;
+            if (Platform.isFxApplicationThread()) {
+                area.setText(updated);
+            } else {
+                Platform.runLater(() -> area.setText(updated));
+            }
         }
     }
 
@@ -742,14 +933,22 @@ public class Application<T> {
             var content = area.getText();
             var updated = Stream.concat(message.stream(), Stream.of(content))
               .collect(Collectors.joining("\n"));
-            area.setText(updated);
+            if (Platform.isFxApplicationThread()) {
+                area.setText(updated);
+            } else {
+                Platform.runLater(() -> area.setText(updated));
+            }
         }
     }
 
     void clearMessages() {
         var area = logMessageArea;
         if (area != null) {
-            area.setText("");
+            if (Platform.isFxApplicationThread()) {
+                area.setText("");
+            } else {
+                Platform.runLater(() -> area.setText(""));
+            }
         }
     }
 

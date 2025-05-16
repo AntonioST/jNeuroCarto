@@ -1,14 +1,30 @@
 package io.ast.jneurocarto.javafx.view;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.javafx.app.PluginStateService;
+
+@NullMarked
 public interface StateView<S> {
+    Class<S> getStateClass();
 
-    S saveState();
+    @Nullable
+    S getState();
 
-    void restoreState(S state);
+    void restoreState(@Nullable S state);
 
-    static void saveState(StateView<?> plugin) {
+    default void saveState() {
+        var state = getState();
+        if (state != null) saveState(state);
     }
 
-    static void restoreState(StateView<?> plugin) {
+    default void saveState(S state) {
+        PluginStateService.saveState(this, state);
     }
+
+    default void restoreState() {
+        restoreState(PluginStateService.loadState(this));
+    }
+
 }

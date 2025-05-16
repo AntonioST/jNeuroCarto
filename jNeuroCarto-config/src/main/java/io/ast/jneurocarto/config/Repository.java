@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -143,11 +144,7 @@ public class Repository {
     }
 
 
-    public void saveUserConfigs(boolean direct) throws IOException {
-        if (!direct) {
-            // TODO GlobalStateView
-        }
-
+    public void saveUserConfigs() throws IOException {
         var f = userConfigFile();
         log.debug("save user config : {}", f);
         userConfig.save(f);
@@ -159,7 +156,7 @@ public class Repository {
             config = userConfig.get(CartoUserConfig.class);
             if (config != null) return config;
         } catch (JsonProcessingException e) {
-            log.debug("bad {} in user config, use a default one.", JsonConfig.getName(CartoUserConfig.class));
+            log.warn("bad {} in user config, use a default one.", JsonConfig.getName(CartoUserConfig.class));
             config = new CartoUserConfig();
         }
 
@@ -216,17 +213,25 @@ public class Repository {
         }
     }
 
-    public Path getChannelmapFile(ProbeDescription<?> probe, String name) {
-        var root = currentResourceRoot();
+    public String getChannelmapName(ProbeDescription<?> probe, String name) {
         var suffix = probe.channelMapFileSuffix();
         if (suffix.isEmpty()) {
-            return root.resolve(name);
+            return name;
         }
         if (!name.equals(suffix.get(0))) {
             name += suffix.get(0);
         }
 
-        return root.resolve(name);
+        return name;
+    }
+
+    public Path getChannelmapFile(ProbeDescription<?> probe, String name) {
+        var root = currentResourceRoot();
+        return root.resolve(getChannelmapName(probe, name));
+    }
+
+    public Path getChannelmapFile(ProbeDescription<?> probe, Path channelmapFile) {
+        return channelmapFile.getParent().resolve(getChannelmapName(probe, channelmapFile.getFileName().toString()));
     }
 
     public <T> T loadChannelmapFile(ProbeDescription<T> probe, String name) throws IOException {
@@ -361,20 +366,42 @@ public class Repository {
 
     }
 
-    public void saveViewConfigFile(ProbeDescription<?> probe, JsonConfig config, String name, boolean direct) throws IOException {
-        saveViewConfigFile(probe, config, getViewConfigFile(probe, name), direct);
+    public void saveViewConfigFile(ProbeDescription<?> probe, String name) throws IOException {
+        saveViewConfigFile(probe, getViewConfigFile(probe, name));
     }
 
-    public void saveViewConfigFile(ProbeDescription<?> probe, JsonConfig config, Path viewConfigFile, boolean direct) throws IOException {
+    public void saveViewConfigFile(ProbeDescription<?> probe, Path viewConfigFile) throws IOException {
         if (!viewConfigFile.getFileName().toString().endsWith(".config.json")) {
             viewConfigFile = getBlueprintFile(probe, viewConfigFile);
         }
 
-        if (!direct) {
-            // TODO
-        }
-
         log.debug("save view config : {}", viewConfigFile);
         viewConfig.save(viewConfigFile);
+    }
+
+    public @Nullable <T> T getViewConfig(Class<T> configClass) {
+        try {
+            return viewConfig.get(configClass);
+        } catch (JsonProcessingException e) {
+            log.warn("bad {} in view config", JsonConfig.getName(configClass));
+            return null;
+        }
+    }
+
+    public <T> void setViewConfig(T config) {
+        viewConfig.put(config);
+    }
+
+    public @Nullable <T> T getGlobalConfig(Class<T> configClass) {
+        try {
+            return userConfig.get(configClass);
+        } catch (JsonProcessingException e) {
+            log.warn("bad {} in user config", JsonConfig.getName(configClass));
+            return null;
+        }
+    }
+
+    public <T> void setGlobalConfig(T config) {
+        userConfig.put(config);
     }
 }

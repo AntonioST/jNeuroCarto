@@ -5,6 +5,10 @@ import java.util.List;
 import org.jspecify.annotations.NonNull;
 
 public final class LogMessageService {
+    private LogMessageService() {
+        throw new RuntimeException();
+    }
+
     public static void printMessage(String message) {
         Application.getInstance().printMessage(message);
     }

@@ -178,7 +178,6 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     public void setChannelmap(T channelmap) {
         log.debug("resetChannelmap({})", channelmap);
         this.channelmap = channelmap;
-        setBlueprint(probe.allElectrodes(channelmap));
     }
 
     /*===========*
@@ -189,9 +188,14 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
      * @return unmodifiable blueprint
      */
     public @Nullable List<ElectrodeDescription> getBlueprint() {
-        var blueprint = this.blueprint;
-        if (blueprint == null) return null;
-        return Collections.unmodifiableList(blueprint);
+        var channelmap = this.channelmap;
+        if (channelmap == null) return null;
+
+        if (this.blueprint == null) {
+            resetBlueprint();
+        }
+
+        return Collections.unmodifiableList(Objects.requireNonNull(blueprint));
     }
 
     public void setBlueprint(List<ElectrodeDescription> blueprint) {
@@ -204,6 +208,15 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
           .applyBlueprint()
           .electrodes();
         resetElectrodeState();
+    }
+
+    public @Nullable List<ElectrodeDescription> resetBlueprint() {
+        var channelmap = this.channelmap;
+        if (channelmap == null) return null;
+
+        log.debug("resetBlueprint");
+        setBlueprint(probe.allElectrodes(channelmap));
+        return Objects.requireNonNull(blueprint);
     }
 
     /**

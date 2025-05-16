@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @NullMarked
 public class JsonConfig {
@@ -32,6 +33,10 @@ public class JsonConfig {
     public static JsonConfig load(Path file) throws IOException {
         if (!Files.exists(file)) throw new FileNotFoundException(file.toString());
         var node = mapper.readTree(file.toFile());
+        return asConfig((ObjectNode) node);
+    }
+
+    private static JsonConfig asConfig(ObjectNode node) {
         var ret = new HashMap<String, JsonNode>(node.size());
         for (var iter = node.fields(); iter.hasNext(); ) {
             var entry = iter.next();
@@ -72,11 +77,20 @@ public class JsonConfig {
         return mapper.treeToValue(value, clazz);
     }
 
-    public void put(Object value) {
-        put(value, getName(value.getClass()));
+    public @Nullable JsonConfig getAsConfig(String name) throws JsonProcessingException {
+        var value = maps.get(name);
+        if (value instanceof ObjectNode obj) {
+            return asConfig(obj);
+        } else {
+            return null;
+        }
     }
 
-    public void put(Object value, String name) {
+    public void put(Object value) {
+        put(getName(value.getClass()), value);
+    }
+
+    public void put(String name, Object value) {
         maps.put(name, mapper.valueToTree(value));
     }
 
