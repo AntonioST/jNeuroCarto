@@ -212,7 +212,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     private void onMouseSelected(MouseEvent start, MouseEvent end) {
         var bound = getMouseSelectBound(start, end);
-        log.debug("onMouseSelected {}", bound);
+        log.trace("onMouseSelected {}", bound);
         fireDataSelectEvent(bound);
     }
 
@@ -220,7 +220,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var transform = getChartTransform();
         var bound = getMouseSelectBound(start, end);
         bound = transform.transform(bound);
-        log.debug("onMouseSelectZooming {} (transformed)", bound);
+        log.trace("onMouseSelectZooming {} (transformed)", bound);
         setAxesBoundaries(bound.getMinX(), bound.getMaxX(), bound.getMinY(), bound.getMaxY());
     }
 
