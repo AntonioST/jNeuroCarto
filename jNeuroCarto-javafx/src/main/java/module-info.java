@@ -13,13 +13,13 @@ module io.ast.jneurocarto.javafx {
 
     requires io.ast.jneurocarto.core;
     requires io.ast.jneurocarto.config;
-    requires io.ast.jneurocarto.probe_npx;
     requires io.ast.jneurocarto.atlas;
 
     exports io.ast.jneurocarto.javafx.app;
     opens io.ast.jneurocarto.javafx.app to io.ast.jneurocarto.javafx.base;
 
     exports io.ast.jneurocarto.javafx.utils;
+    exports io.ast.jneurocarto.javafx.atlas;
 
     exports io.ast.jneurocarto.javafx.view;
     uses io.ast.jneurocarto.javafx.view.PluginProvider;

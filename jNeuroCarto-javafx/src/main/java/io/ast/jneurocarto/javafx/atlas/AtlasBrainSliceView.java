@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.atlas.gui;
+package io.ast.jneurocarto.javafx.atlas;
 
 import java.util.Objects;
 

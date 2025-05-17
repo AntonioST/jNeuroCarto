@@ -10,10 +10,7 @@ import picocli.CommandLine;
 @CommandLine.Command(
   name = "use",
   usageHelpAutoWidth = true,
-  description = "use atlas brain",
-  subcommands = {
-    Slice.class
-  }
+  description = "use atlas brain"
 )
 public class Use implements Runnable {
 
@@ -34,7 +31,7 @@ public class Use implements Runnable {
         spec.commandLine().usage(System.out);
     }
 
-    BrainAtlas getAtlas() throws IOException {
+    public BrainAtlas getAtlas() throws IOException {
         var downloader = useAtlas.newDownloader(config);
         return useAtlas.download(downloader);
     }

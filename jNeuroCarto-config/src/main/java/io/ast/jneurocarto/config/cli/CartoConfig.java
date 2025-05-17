@@ -3,6 +3,7 @@ package io.ast.jneurocarto.config.cli;
 import java.nio.file.Path;
 import java.util.List;
 
+import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -51,8 +52,14 @@ public final class CartoConfig implements Runnable {
       description = "install extra views in right panel")
     public List<String> extraViewList = List.of();
 
-    @Option(names = "--debug")
-    public boolean debug = !System.getProperty("io.ast.jneurocarto.app.debug", "").isEmpty();
+    @Option(names = "--debug",
+      description = "enable debug logging message. It reads system property \"io.ast.jneurocarto.debug\".")
+    public boolean debug = !System.getProperty("io.ast.jneurocarto.debug", "").isEmpty();
+
+    public static void main(String[] args) {
+        System.err.println("It is an test main.");
+        System.exit(new CommandLine(new CartoConfig()).execute(args));
+    }
 
     @Override
     public void run() {

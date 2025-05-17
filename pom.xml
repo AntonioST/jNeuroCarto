@@ -120,6 +120,13 @@
                 <version>3.12.0</version>
             </dependency>
 
+            <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.27.1</version>
+            </dependency>
+
             <!-- Vaadin -->
             <dependency>
                 <groupId>com.vaadin</groupId>

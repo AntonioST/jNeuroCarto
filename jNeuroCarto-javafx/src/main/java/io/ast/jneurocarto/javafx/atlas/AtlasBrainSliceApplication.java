@@ -1,7 +1,8 @@
-package io.ast.jneurocarto.atlas.gui;
+package io.ast.jneurocarto.javafx.atlas;
 
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -9,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.core.Coordinate;
-import javafx.application.Application;
+import io.ast.jneurocarto.javafx.utils.IOAction;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.event.ActionEvent;
@@ -26,6 +27,7 @@ import javafx.stage.Stage;
 
 public class AtlasBrainSliceApplication {
 
+    private static AtlasBrainSliceApplication INSTANCE = null;
     private final BrainAtlas brain;
     private final ImageVolume volume;
 
@@ -35,11 +37,10 @@ public class AtlasBrainSliceApplication {
     private ImageSliceStack images;
     private ImageSlice image;
 
-    private final Logger log;
+    private final Logger log = LoggerFactory.getLogger(AtlasBrainSliceApplication.class);
 
     public AtlasBrainSliceApplication(BrainAtlas brain) {
-        super();
-
+        INSTANCE = this;
         this.brain = brain;
 
         ImageVolume volume;
@@ -51,44 +52,12 @@ public class AtlasBrainSliceApplication {
         this.volume = new ImageVolume(volume);
         this.volume.normalizeGrayLevel();
 
-        log = LoggerFactory.getLogger(AtlasBrainSliceApplication.class);
-
-        measureLoading("annotations", brain::annotation);
-        measureLoading("hemispheres", brain::hemispheres);
+        IOAction.measure(log, "annotations", brain::annotation);
+        IOAction.measure(log, "hemispheres", brain::hemispheres);
     }
 
-    interface IOAction {
-        void doit() throws IOException;
-    }
-
-    private void measureLoading(String message, IOAction action) {
-        Thread.ofVirtual().start(() -> {
-            var start = System.currentTimeMillis();
-            log.debug("pre loading {}", message);
-            try {
-                action.doit();
-            } catch (IOException e) {
-                log.warn("pre load fail", e);
-            }
-            var pass = System.currentTimeMillis() - start;
-            log.debug("pre loaded {}. use {} sec", message, String.format("%.4f", (double) pass / 1000));
-        });
-    }
-
-    public void launch() {
-        if (App.APPLICATION != null) throw new RuntimeException();
-        App.APPLICATION = this;
-        log.debug("launch");
-        Application.launch(App.class);
-    }
-
-    public static class App extends Application {
-        static AtlasBrainSliceApplication APPLICATION;
-
-        @Override
-        public void start(Stage primaryStage) {
-            APPLICATION.start(primaryStage);
-        }
+    public static AtlasBrainSliceApplication getInstance() {
+        return Objects.requireNonNull(INSTANCE, "AtlasBrainSliceApplication is not initialized.");
     }
 
     private Stage stage;
