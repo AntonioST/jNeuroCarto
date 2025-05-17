@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -39,9 +40,18 @@ public final class CartoConfig implements Runnable {
       description = "atlas mouse brain name")
     public String atlasName;
 
-    @Option(names = "--atlas-root", paramLabel = "PATH",
-      description = "atlas mouse brain download path")
-    public Path atlasRoot;
+    @ArgGroup(/*exclusive = true, multiplicity = "0..1"*/)
+    public AtlasConfig atlasConfig;
+
+    public static class AtlasConfig {
+        @Option(names = "--atlas-root", paramLabel = "PATH",
+          description = "atlas mouse brain download path.")
+        public Path atlasRoot;
+
+        @Option(names = "--atlas-config", paramLabel = "PATH",
+          description = "atlas brain config path")
+        public Path atlasConfig;
+    }
 
     @Option(names = "--config-file", paramLabel = "FILE",
       description = "user config file.")
@@ -73,7 +83,8 @@ public final class CartoConfig implements Runnable {
                ", probeFamily='" + probeFamily + '\'' +
                ", probeSelector='" + probeSelector + '\'' +
                ", atlasName='" + atlasName + '\'' +
-               ", atlasRoot=" + atlasRoot +
+               ", atlasRoot=" + atlasConfig.atlasRoot +
+               ", atlasConfig=" + atlasConfig.atlasConfig +
                ", configFile='" + configFile + '\'' +
                ", extraViewList=" + extraViewList +
                ", debug=" + debug +

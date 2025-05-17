@@ -14,10 +14,14 @@ public class BrainGlobeConfig {
     public static final String CONFIG_FILENAME = "bg_config.conf";
 
     private final @Nullable Path file;
-    private final String brainGlobeDir;
-    private final String internDownloadDir;
+    private final Path brainGlobeDir;
+    private final Path internDownloadDir;
 
     public BrainGlobeConfig(@Nullable Path file, String brainglobeDir, String internDownloadDir) {
+        this(file, Path.of(brainglobeDir), Path.of(internDownloadDir));
+    }
+
+    public BrainGlobeConfig(@Nullable Path file, Path brainglobeDir, Path internDownloadDir) {
         this.file = file;
         this.brainGlobeDir = brainglobeDir;
         this.internDownloadDir = internDownloadDir;
@@ -65,11 +69,11 @@ public class BrainGlobeConfig {
         return file;
     }
 
-    public String getBrainGlobeDir() {
+    public Path getBrainGlobeDir() {
         return brainGlobeDir;
     }
 
-    public String getInternDownloadDir() {
+    public Path getInternDownloadDir() {
         return internDownloadDir;
     }
 }

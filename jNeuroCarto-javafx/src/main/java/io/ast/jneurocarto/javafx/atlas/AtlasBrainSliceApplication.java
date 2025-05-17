@@ -52,8 +52,8 @@ public class AtlasBrainSliceApplication {
         this.volume = new ImageVolume(volume);
         this.volume.normalizeGrayLevel();
 
-        IOAction.measure(log, "annotations", brain::annotation);
-        IOAction.measure(log, "hemispheres", brain::hemispheres);
+        IOAction.measure(log, "pre load annotations", brain::annotation);
+        IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
     }
 
     public static AtlasBrainSliceApplication getInstance() {

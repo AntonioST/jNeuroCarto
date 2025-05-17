@@ -10,14 +10,14 @@ public interface IOAction {
     static void measure(Logger log, String message, IOAction action) {
         Thread.ofVirtual().start(() -> {
             var start = System.currentTimeMillis();
-            log.debug("pre loading {}", message);
+            log.debug("start {}", message);
             try {
                 action.doit();
             } catch (IOException e) {
-                log.warn("pre load fail", e);
+                log.warn(message, e);
             }
             var pass = System.currentTimeMillis() - start;
-            log.debug("pre loaded {}. use {} sec", message, String.format("%.4f", (double) pass / 1000));
+            log.debug("stop {}. use {} sec", message, String.format("%.4f", (double) pass / 1000));
         });
     }
 }

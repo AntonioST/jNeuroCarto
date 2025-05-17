@@ -11,6 +11,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -71,7 +73,7 @@ public class BrainGlobeDownloader {
 
     public Path getDownloadDir() {
         if (downloadDir == null) {
-            downloadDir = Path.of(config.getBrainGlobeDir());
+            downloadDir = config.getBrainGlobeDir();
         }
         return downloadDir;
     }
@@ -101,7 +103,7 @@ public class BrainGlobeDownloader {
 
     public BrainGlobeDownloader setConfig(BrainGlobeConfig config) {
         this.config = config;
-        downloadDir = Path.of(config.getBrainGlobeDir());
+        downloadDir = config.getBrainGlobeDir();
         return this;
     }
 
@@ -162,6 +164,8 @@ public class BrainGlobeDownloader {
     }
 
     /**
+     * Get last version information from remote.
+     *
      * @param force force download.
      * @return
      */
@@ -229,12 +233,12 @@ public class BrainGlobeDownloader {
     }
 
 
-    public boolean checkLatestVersion() {
+    public boolean isLatestVersion() {
         var atlas = Objects.requireNonNull(atlasName, "miss getAtlasName()");
-        return checkLatestVersion(atlas);
+        return isLatestVersion(atlas);
     }
 
-    public boolean checkLatestVersion(String atlas) {
+    public boolean isLatestVersion(String atlas) {
         var prop = getLastVersions();
         if (prop == null) return false;
 
@@ -247,6 +251,8 @@ public class BrainGlobeDownloader {
     /*==========*
      * download *
      *==========*/
+
+    private static final LinkedBlockingDeque<String> DOWNLOAD_LOCK = new LinkedBlockingDeque<>();
 
     public Optional<String> remoteUrl() {
         var atlas = Objects.requireNonNull(atlasName, "miss getAtlasName()");
@@ -261,11 +267,24 @@ public class BrainGlobeDownloader {
         return String.format("%s%s_v%s.tar.gz", REMOTE_URL, atlas, version);
     }
 
-    public DownloadResult download() throws IOException {
+    public boolean isDownloading() {
+        var atlas = Objects.requireNonNull(atlasName, "miss getAtlasName()");
+        return isDownloading(atlas);
+    }
+
+    public boolean isDownloading(String name) {
+        return DOWNLOAD_LOCK.contains(name);
+    }
+
+    public boolean isDownloading(String name, String version) {
+        return DOWNLOAD_LOCK.contains(name + "_v" + version);
+    }
+
+    public DownloadResult download() {
         return download(false);
     }
 
-    public DownloadResult download(boolean force) throws IOException {
+    public DownloadResult download(boolean force) {
         var atlas = Objects.requireNonNull(atlasName, "miss getAtlasName()");
 
         var versions = getLastVersions();
@@ -280,11 +299,13 @@ public class BrainGlobeDownloader {
         log.debug("remote version {}={}", atlas, remote);
 
         var downloadDir = getDownloadDir();
-        var local = localVersion(atlas);
-        local.ifPresent(it -> log.debug("local version {}={}", atlas, it));
+        var version = localVersion(atlas).orElse(null);
+        if (version != null) {
+            log.debug("local version {}={}", atlas, version);
+        }
 
-        if (!force && local.isPresent() && remote.equals(local.get())) {
-            return new DownloadResult(atlas, downloadDir.resolve(atlas + "_v" + local.get()));
+        if (!force && remote.equals(version)) {
+            return new DownloadResult(atlas, version, downloadDir);
         }
 
         if (!force) log.info("{} local version is out-of-date", atlas);
@@ -294,12 +315,41 @@ public class BrainGlobeDownloader {
         var remoteVersion = versions.get(atlas);
         assert remoteVersion != null;
 
-        var remoteUrl = remoteUrl(atlas, remoteVersion);
+        return download(atlas, remoteVersion, downloadDir);
+    }
+
+    private DownloadResult download(String atlas, String version, Path downloadDir) {
+        var atlasNameVersion = atlas + "_v" + version;
+
+        synchronized (DOWNLOAD_LOCK) {
+            if (isDownloading(atlasNameVersion)) {
+                return new DownloadResult(atlas, version, downloadDir, new IsDownloadingException(atlas, version));
+            }
+
+            DOWNLOAD_LOCK.add(atlasNameVersion);
+        }
+
+        try {
+            return downloadLocked(atlas, version, downloadDir);
+        } catch (IOException e) {
+            return new DownloadResult(atlas, version, downloadDir, e);
+        } finally {
+            synchronized (DOWNLOAD_LOCK) {
+                //noinspection ResultOfMethodCallIgnored
+                DOWNLOAD_LOCK.remove(atlasNameVersion);
+
+                DOWNLOAD_LOCK.notifyAll();
+            }
+        }
+    }
+
+    private DownloadResult downloadLocked(String atlas, String version, Path downloadDir) throws IOException {
+        var remoteUrl = remoteUrl(atlas, version);
         log.info("download {} from {}", atlas, remoteUrl);
 
         var i = remoteUrl.lastIndexOf('/');
         var filename = remoteUrl.substring(i + 1);
-        var downloadFile = Path.of(config.getInternDownloadDir()).resolve(filename);
+        var downloadFile = config.getInternDownloadDir().resolve(filename);
         try {
             Files.createDirectories(downloadFile.getParent());
             if (!curlBinary(remoteUrl, downloadFile)) {
@@ -307,8 +357,13 @@ public class BrainGlobeDownloader {
             }
 
             log.debug("extra to {}", downloadDir);
-            var atlasDir = extract(downloadDir, downloadFile);
-            return new DownloadResult(atlas, atlasDir);
+            var root = extract(downloadDir, downloadFile);
+            var ret = new DownloadResult(atlas, version, downloadDir);
+            if (!ret.root().equals(root)) {
+                log.debug("move {} to {}", root, root.getParent().relativize(ret.root()));
+                Files.move(root, ret.root());
+            }
+            return ret;
         } finally {
             Files.deleteIfExists(downloadFile);
         }
@@ -350,14 +405,106 @@ public class BrainGlobeDownloader {
         return ret;
     }
 
-    public record DownloadResult(String atlas, Path path) {
+    public record DownloadResult(String atlas, String version, Path dir, @Nullable Throwable error) {
 
-        public String version() {
-            return path.getFileName().toString().replaceFirst(".*_v", "");
+        public DownloadResult(String atlas, String version, Path dir) {
+            this(atlas, version, dir, null);
         }
 
+        public String atlasNameVersion() {
+            return atlas + "_v" + version;
+        }
+
+        public Path root() {
+            return dir.resolve(atlasNameVersion());
+        }
+
+        public boolean hasError() {
+            return error != null;
+        }
+
+        public boolean isDownloading() {
+            return error instanceof IsDownloadingException e && e.isDownloading();
+        }
+
+        public boolean isDownloaded() {
+            return error instanceof IsDownloadingException e && !e.isDownloading() && Files.exists(root());
+        }
+
+        public boolean isDownloadFailed() {
+            return error instanceof IsDownloadingException e && !e.isDownloading() && !Files.exists(root());
+        }
+
+        public DownloadResult waitDownload() throws InterruptedException {
+            return waitDownload(0L);
+        }
+
+        public DownloadResult waitDownload(long timeoutMillis) throws InterruptedException {
+            if (error == null || isDownloaded()) {
+                return new DownloadResult(atlas, version, dir);
+            } else if (isDownloading()) {
+                while (true) {
+                    synchronized (DOWNLOAD_LOCK) {
+                        DOWNLOAD_LOCK.wait(timeoutMillis);
+                    }
+
+                    if (isDownloaded()) {
+                        return new DownloadResult(atlas, version, dir);
+                    }
+                }
+            } else {
+                return this;
+            }
+        }
+
+        public CompletableFuture<DownloadResult> waitDownloadCompleted() {
+            if (error == null || isDownloaded()) {
+                return CompletableFuture.completedFuture(new DownloadResult(atlas, version, dir));
+
+            } else if (isDownloading()) {
+                return CompletableFuture.supplyAsync(() -> {
+                    while (true) {
+                        try {
+                            synchronized (DOWNLOAD_LOCK) {
+                                DOWNLOAD_LOCK.wait();
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException(e);
+                        }
+
+                        if (isDownloaded()) {
+                            return new DownloadResult(atlas, version, dir);
+                        }
+                    }
+                });
+
+            } else {
+                return CompletableFuture.failedFuture(error);
+            }
+        }
+
+
         public BrainAtlas get() throws IOException {
-            return new BrainAtlas(path);
+            if (error != null) throw new RuntimeException("has error");
+            return new BrainAtlas(root());
+        }
+    }
+
+    private static class IsDownloadingException extends IOException {
+
+        public final String atlas;
+        public final String version;
+
+        public IsDownloadingException(String atlas, String version) {
+            super(atlas + "_v" + version + " is downloading");
+            this.atlas = atlas;
+            this.version = version;
+        }
+
+        public boolean isDownloading() {
+            var n = atlas + "_v" + version;
+            return DOWNLOAD_LOCK.contains(n);
         }
     }
 
