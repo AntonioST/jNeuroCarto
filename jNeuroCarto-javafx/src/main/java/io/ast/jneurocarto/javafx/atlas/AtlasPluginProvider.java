@@ -1,0 +1,22 @@
+package io.ast.jneurocarto.javafx.atlas;
+
+import java.util.List;
+
+import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.javafx.view.PluginProvider;
+
+public class AtlasPluginProvider implements PluginProvider {
+    @Override
+    public List<String> name() {
+        return List.of(
+          "atlas",
+          "neurocarto.views.atlas:AtlasBrainView" // python name
+        );
+    }
+
+    @Override
+    public AtlasPlugin setup(CartoConfig config, ProbeDescription<?> desp) {
+        return new AtlasPlugin(config);
+    }
+}

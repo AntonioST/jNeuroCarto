@@ -443,13 +443,19 @@ public class BrainGlobeDownloader {
             if (error == null || isDownloaded()) {
                 return new DownloadResult(atlas, version, dir);
             } else if (isDownloading()) {
+                var de = (IsDownloadingException) error;
+                var rt = root();
+
                 while (true) {
                     synchronized (DOWNLOAD_LOCK) {
                         DOWNLOAD_LOCK.wait(timeoutMillis);
                     }
 
-                    if (isDownloaded()) {
+                    if (de.isDownloading()) {
+                    } else if (Files.exists(rt)) { // isDownloaded
                         return new DownloadResult(atlas, version, dir);
+                    } else { // isDownloadFailed
+                        return this;
                     }
                 }
             } else {
@@ -475,6 +481,8 @@ public class BrainGlobeDownloader {
 
                         if (isDownloaded()) {
                             return new DownloadResult(atlas, version, dir);
+                        } else if (isDownloadFailed()) {
+                            return this;
                         }
                     }
                 });
@@ -486,7 +494,7 @@ public class BrainGlobeDownloader {
 
 
         public BrainAtlas get() throws IOException {
-            if (error != null) throw new RuntimeException("has error");
+            if (error != null && !isDownloaded()) throw new RuntimeException("has error");
             return new BrainAtlas(root());
         }
     }

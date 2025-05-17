@@ -1,3 +1,7 @@
+import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
+import io.ast.jneurocarto.javafx.view.PluginProvider;
+import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
+
 module io.ast.jneurocarto.javafx {
     requires static org.jspecify;
 
@@ -23,8 +27,10 @@ module io.ast.jneurocarto.javafx {
     exports io.ast.jneurocarto.javafx.atlas;
 
     exports io.ast.jneurocarto.javafx.view;
-    uses io.ast.jneurocarto.javafx.view.PluginProvider;
-    uses io.ast.jneurocarto.javafx.view.ProbePluginProvider;
+    uses PluginProvider;
+    provides PluginProvider with AtlasPluginProvider;
+
+    uses ProbePluginProvider;
 
     opens io.ast.jneurocarto.javafx.cli to info.picocli;
     exports io.ast.jneurocarto.javafx.cli to javafx.graphics;

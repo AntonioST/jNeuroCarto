@@ -52,7 +52,7 @@ public class Application {
         this.volume = new ImageVolume(volume);
         this.volume.normalizeGrayLevel();
 
-        IOAction.measure(log, "pre load annotations", brain::annotation);
+        IOAction.measure(log, "pre load annotation", brain::annotation);
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
     }
 

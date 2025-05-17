@@ -24,31 +24,31 @@ public final class PluginSetupService {
     public void addMenuInBar(Menu menu) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         var items = app.menuFile.getItems();
-        items.add(items.size() - 2, menu);
+        items.add(items.size() - 1, menu);
     }
 
     public void addMenuInEdit(MenuItem item, boolean isProbePlugin) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         var index = app.findMenuItemIndex(app.menuEdit, isProbePlugin);
-        app.menuEdit.getItems().add(index - 1, item);
+        app.menuEdit.getItems().add(index, item);
     }
 
     public void addMenuInEdit(List<MenuItem> items, boolean isProbePlugin) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         var index = app.findMenuItemIndex(app.menuEdit, isProbePlugin);
-        app.menuEdit.getItems().addAll(index - 1, items);
+        app.menuEdit.getItems().addAll(index, items);
     }
 
     public void addMenuInView(MenuItem item, boolean isProbePlugin) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         var index = app.findMenuItemIndex(app.menuView, isProbePlugin);
-        app.menuView.getItems().add(index - 1, item);
+        app.menuView.getItems().add(index, item);
     }
 
     public void addMenuInView(List<MenuItem> items, boolean isProbePlugin) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         var index = app.findMenuItemIndex(app.menuView, isProbePlugin);
-        app.menuView.getItems().addAll(index - 1, items);
+        app.menuView.getItems().addAll(index, items);
     }
 
     public ProbeView<?> getProbeView() {

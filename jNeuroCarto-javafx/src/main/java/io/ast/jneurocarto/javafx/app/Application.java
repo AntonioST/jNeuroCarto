@@ -593,22 +593,40 @@ public class Application<T> {
         }
         extra.addAll(config.extraViewList);
 
+        var foundPlugins = new HashMap<String, PluginProvider>();
         for (var provider : ServiceLoader.load(PluginProvider.class)) {
-            for (int i = 0; i < extra.size(); i++) {
-                var name = extra.get(i);
-                var pluginName = provider.find(name);
-                if (pluginName != null) {
-                    log.debug("find plugin : {}", pluginName);
-                    extra.remove(i--);
+            // always put provider class name
+            var providerName = provider.getClass().getName();
+            foundPlugins.put(providerName, provider);
 
-                    var plugin = provider.setup(name, config, probe);
-                    plugins.add(plugin);
-                    log.debug("add plugin : {}", plugin.getClass().getName());
+            // and plugin name
+            if (providerName.endsWith("Provider")) {
+                foundPlugins.put(providerName.replaceFirst("Provider$", ""), provider);
+            }
 
-                    var node = plugin.setup(service);
-                    if (node != null) {
-                        pluginLayout.getChildren().add(node);
-                    }
+            var nameList = provider.name();
+            log.debug("found provider {} provides {}", providerName, nameList);
+            for (var name : nameList) {
+                var old = foundPlugins.putIfAbsent(name, provider);
+                if (old != null) {
+                    log.warn("{} conflict with : {}", name, old.getClass().getName());
+                }
+            }
+        }
+
+        for (int i = 0; i < extra.size(); i++) {
+            var name = extra.get(i);
+            var provider = foundPlugins.get(name);
+            if (provider != null) {
+                extra.remove(i--);
+
+                var plugin = provider.setup(config, probe);
+                plugins.add(plugin);
+                log.debug("add plugin : {} - {}", name, plugin.getClass().getName());
+
+                var node = plugin.setup(service);
+                if (node != null) {
+                    pluginLayout.getChildren().add(node);
                 }
             }
         }
