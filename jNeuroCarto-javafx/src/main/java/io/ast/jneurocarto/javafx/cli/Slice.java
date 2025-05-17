@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import io.ast.jneurocarto.atlas.BrainAtlas;
 import io.ast.jneurocarto.atlas.cli.Main;
-import io.ast.jneurocarto.javafx.atlas.AtlasBrainSliceApplication;
+import io.ast.jneurocarto.javafx.atlas.Application;
 import javafx.stage.Stage;
 import picocli.CommandLine;
 
@@ -47,14 +47,14 @@ public class Slice implements Runnable {
             throw new RuntimeException(e);
         }
 
-        new AtlasBrainSliceApplication(brain);
+        new Application(brain);
         javafx.application.Application.launch(App.class);
     }
 
     public static class App extends javafx.application.Application {
         @Override
         public void start(Stage primaryStage) throws Exception {
-            AtlasBrainSliceApplication.getInstance().start(primaryStage);
+            Application.getInstance().start(primaryStage);
         }
     }
 }

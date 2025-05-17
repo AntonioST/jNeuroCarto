@@ -25,9 +25,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-public class AtlasBrainSliceApplication {
+public class Application {
 
-    private static AtlasBrainSliceApplication INSTANCE = null;
+    private static Application INSTANCE = null;
     private final BrainAtlas brain;
     private final ImageVolume volume;
 
@@ -37,9 +37,9 @@ public class AtlasBrainSliceApplication {
     private ImageSliceStack images;
     private ImageSlice image;
 
-    private final Logger log = LoggerFactory.getLogger(AtlasBrainSliceApplication.class);
+    private final Logger log = LoggerFactory.getLogger(Application.class);
 
-    public AtlasBrainSliceApplication(BrainAtlas brain) {
+    public Application(BrainAtlas brain) {
         INSTANCE = this;
         this.brain = brain;
 
@@ -56,7 +56,7 @@ public class AtlasBrainSliceApplication {
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
     }
 
-    public static AtlasBrainSliceApplication getInstance() {
+    public static Application getInstance() {
         return Objects.requireNonNull(INSTANCE, "AtlasBrainSliceApplication is not initialized.");
     }
 
@@ -68,15 +68,14 @@ public class AtlasBrainSliceApplication {
     private RadioButton btnCoronal;
     private RadioButton btnSagittal;
     private RadioButton btnTransverse;
+    private Button btnResetRotation;
     private Button btnResetOffsetWidth;
     private Button btnResetOffsetHeight;
     private Slider sliderPlane;
+    private Slider sliderRotation;
     private Slider sliderOffsetWidth;
     private Slider sliderOffsetHeight;
-    private Label labelPlane;
-    private Label labelOffsetWidth;
-    private Label labelOffsetHeight;
-    private AtlasBrainSliceView imageView;
+    private SliceView imageView;
 
     public void start(Stage stage) {
         this.stage = stage;
@@ -115,7 +114,7 @@ public class AtlasBrainSliceApplication {
     }
 
     private Node sliceView() {
-        imageView = new AtlasBrainSliceView(600, 500);
+        imageView = new SliceView(600, 500);
         imageView.setOnMouseClicked(this::onMouseClickedInSlice);
         imageView.setOnMouseMoved(this::onMouseMovingInSlice);
         imageView.setOnMouseExited(this::onMouseExitedInSlice);
@@ -131,16 +130,21 @@ public class AtlasBrainSliceApplication {
 
         layout.add(new Label("Projection"), 0, 0);
         layout.add(new Label("Plane (mm)"), 0, 1);
-        layout.add(new Label("d(Width) (um)"), 0, 2);
-        layout.add(new Label("d(Height) (um)"), 0, 3);
+        layout.add(new Label("Rotation (deg)"), 0, 2);
+        layout.add(new Label("d(Width) (um)"), 0, 3);
+        layout.add(new Label("d(Height) (um)"), 0, 4);
 
         layout.add(projectView(), 1, 0, 2, 1);
-        layout.add(bindSliderAndLabel(sliderPlane = newSlider(), labelPlane = new Label()), 1, 1);
-        layout.add(bindSliderAndLabel(sliderOffsetWidth = newSlider(), labelOffsetWidth = new Label()), 1, 2);
-        layout.add(bindSliderAndLabel(sliderOffsetHeight = newSlider(), labelOffsetHeight = new Label()), 1, 3);
+        layout.add(bindSliderAndLabel(sliderPlane = newSlider(), new Label()), 1, 1);
+        layout.add(bindSliderAndLabel(sliderRotation = newSlider(), new Label()), 1, 2);
+        layout.add(bindSliderAndLabel(sliderOffsetWidth = newSlider(), new Label()), 1, 3);
+        layout.add(bindSliderAndLabel(sliderOffsetHeight = newSlider(), new Label()), 1, 4);
 
-        layout.add(btnResetOffsetWidth = newSliderResetButton(), 2, 2);
-        layout.add(btnResetOffsetHeight = newSliderResetButton(), 2, 3);
+        layout.add(btnResetRotation = newSliderResetButton(), 2, 2);
+        layout.add(btnResetOffsetWidth = newSliderResetButton(), 2, 3);
+        layout.add(btnResetOffsetHeight = newSliderResetButton(), 2, 4);
+
+        sliderRotation.valueProperty().bindBidirectional(imageView.painter.r);
 
         var c1 = new ColumnConstraints(100, 100, 200);
         c1.setHalignment(HPos.RIGHT);
@@ -187,12 +191,18 @@ public class AtlasBrainSliceApplication {
             slider.maxProperty().bind(maxOffsetProperty);
             slider.minProperty().bind(maxOffsetProperty.negate());
             slider.majorTickUnitProperty().bind(maxOffsetProperty.divide(10));
+        } else if (slider == sliderRotation) {
+            slider.setMax(90);
+            slider.setMin(-90);
+            slider.setMajorTickUnit(10);
         }
 
         slider.valueProperty().addListener((_, _, value) -> {
             String text;
             if (slider == sliderPlane) {
                 text = String.format("%.2f mm", value.doubleValue());
+            } else if (slider == sliderRotation) {
+                text = String.format("%.1f deg", value.doubleValue());
             } else {
                 text = String.format("%d um", value.intValue());
             }
@@ -232,6 +242,8 @@ public class AtlasBrainSliceApplication {
             sliderOffsetWidth.setValue(0);
         } else if (source == btnResetOffsetHeight) {
             sliderOffsetHeight.setValue(0);
+        } else if (source == btnResetRotation) {
+            sliderRotation.setValue(0);
         }
     }
 
@@ -282,10 +294,13 @@ public class AtlasBrainSliceApplication {
             imageView.anchor.setValue(this.image.project(coor));
         }
 
+        sliderRotation.setValue(0);
         sliderOffsetWidth.setValue(0);
         sliderOffsetHeight.setValue(0);
         sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
         sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
+        imageView.painter.ax.set((double) images.width() / 2);
+        imageView.painter.ay.set((double) images.height() / 2);
 
         updateSliceImage();
     }

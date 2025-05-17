@@ -1,61 +1,37 @@
 package io.ast.jneurocarto.javafx.atlas;
 
-import java.util.Objects;
-
 import io.ast.jneurocarto.atlas.ImageSlice;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 
-public class AtlasBrainSliceView extends Canvas {
-
-    private boolean scale = true;
+public class SliceView extends Canvas {
 
     public final ObjectProperty<SliceCoordinate> anchor = new SimpleObjectProperty<>(null);
 
-    private ImageSlice sliceCache;
-    private Image imageCache;
+    public final SlicePainter painter = new SlicePainter();
 
-    public AtlasBrainSliceView() {
+    public SliceView() {
         super(600, 500);
     }
 
-    public AtlasBrainSliceView(double width, double height) {
+    public SliceView(double width, double height) {
         super(width, height);
     }
 
-    public boolean isScale() {
-        return scale;
-    }
-
-    public void setScale(boolean scale) {
-        this.scale = scale;
-    }
-
     public void draw(ImageSlice slice) {
-        Image image;
-        if (Objects.equals(slice, sliceCache)) {
-            image = imageCache;
-        } else {
-            image = imageCache = slice.imageFx();
-            sliceCache = slice;
-        }
-
         var width = getWidth();
-        var height = width * image.getHeight() / image.getWidth();
+        var height = width * slice.heightPx() / slice.widthPx();
         setHeight(height);
+
+        painter.s(width / slice.widthPx());
 
         var gc = getGraphicsContext2D();
         gc.clearRect(0, 0, width, height);
 
-        if (scale) {
-            gc.drawImage(image, 0, 0, width, height);
-        } else {
-            gc.drawImage(image, 0, 0);
-        }
+        painter.draw(gc, slice);
 
         var anchor = this.anchor.get();
         if (anchor != null) {

@@ -2,6 +2,7 @@ module io.ast.jneurocarto.javafx {
     requires static org.jspecify;
 
     requires javafx.base;
+    requires java.desktop;
     requires javafx.graphics;
     requires javafx.controls;
 

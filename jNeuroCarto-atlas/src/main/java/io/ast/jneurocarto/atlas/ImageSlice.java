@@ -31,12 +31,32 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         return stack.resolution();
     }
 
+    /**
+     * {@return width in um.}
+     */
     public double width() {
         return stack.widthUm();
     }
 
+    /**
+     * {@return height in um}
+     */
     public double height() {
         return stack.heightUm();
+    }
+
+    /**
+     * {@return width in pixels}
+     */
+    public int widthPx() {
+        return stack.width();
+    }
+
+    /**
+     * {@return height in pixels}
+     */
+    public int heightPx() {
+        return stack.height();
     }
 
     public int planeAt(int x, int y) {
