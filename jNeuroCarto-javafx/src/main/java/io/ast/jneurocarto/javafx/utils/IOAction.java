@@ -8,7 +8,7 @@ public interface IOAction {
     void doit() throws IOException;
 
     static void measure(Logger log, String message, IOAction action) {
-        Thread.ofVirtual().start(() -> {
+        Thread.ofVirtual().name(message).start(() -> {
             var start = System.currentTimeMillis();
             log.debug("start {}", message);
             try {

@@ -605,11 +605,15 @@ public class Application<T> {
             }
 
             var nameList = provider.name();
-            log.debug("found provider {} provides {}", providerName, nameList);
-            for (var name : nameList) {
-                var old = foundPlugins.putIfAbsent(name, provider);
-                if (old != null) {
-                    log.warn("{} conflict with : {}", name, old.getClass().getName());
+            if (nameList.isEmpty()) {
+                log.debug("found provider {}.", providerName);
+            } else {
+                log.debug("found provider {} provides {}", providerName, nameList);
+                for (var name : nameList) {
+                    var old = foundPlugins.putIfAbsent(name, provider);
+                    if (old != null) {
+                        log.warn("{} conflict with : {}", name, old.getClass().getName());
+                    }
                 }
             }
         }
@@ -620,9 +624,10 @@ public class Application<T> {
             if (provider != null) {
                 extra.remove(i--);
 
+                log.debug("use plugin {}", name);
                 var plugin = provider.setup(config, probe);
+                log.debug("add plugin {}", plugin.getClass().getName());
                 plugins.add(plugin);
-                log.debug("add plugin : {} - {}", name, plugin.getClass().getName());
 
                 var node = plugin.setup(service);
                 if (node != null) {
