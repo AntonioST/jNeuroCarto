@@ -10,15 +10,13 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
@@ -53,7 +51,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         this.config = config;
         download = AtlasBrainService.loadAtlas(config);
 //        setDrawAtlasBrainBoundary(true);
-//        setDrawAtlasBrainImage(false);
+//        setDrawAtlasBrainImage(true);
     }
 
     @Override
@@ -173,6 +171,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         painter = new SlicePainter();
         painter.flipUD(true);
+        painter.flipLR(true);
         painter.invertRotation(true);
 
         var ret = super.setup(service);
@@ -219,7 +218,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         labelStructure = new Label("");
 
-        var layout = new HBox(coorInformation, labelMouseInformation, labelStructure);
+        var layout = new VBox(
+          new HBox(coorInformation, labelMouseInformation),
+          labelStructure
+        );
 
         service.addBelowProbeView(layout);
 
@@ -259,7 +261,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         sliderRotation = newSlider();
         sliderRotation.setMin(-90);
         sliderRotation.setMax(90);
-        sliderRotation.setMajorTickUnit(10);
+        sliderRotation.setMajorTickUnit(15);
         sliderRotation.valueProperty().bindBidirectional(painter.r);
 
         sliderOffsetWidth = newSlider();
@@ -407,14 +409,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
             var dx = e.getX() - prev.getX();
             var dy = e.getY() - prev.getY();
             var q = canvas.getChartTransformScaling(dx, dy);
-            var qx = q.getX();
-            var qy = q.getY();
-            var r = Math.toRadians(-painter.r());
-            var rc = Math.cos(r);
-            var rs = Math.sin(r);
-            dx = qx * rc - qy * rs;
-            dy = qx * rs + qy * rc;
-            painter.translate(dx, dy);
+            painter.translate(q.getX(), q.getY());
             mouseMoved = e;
             e.consume();
             updateSliceImage();
@@ -429,12 +424,15 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
             return;
         }
 
-        var point = canvas.getChartTransform(e.getX(), e.getY());
-//        var coor = image.pullBack(image.planeAt(getCoordinate(e)));
-//        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
-//
-//        labelMouseInformation.setText(text);
-//        updateStructureInformation(coor);
+        // FIXME coordinate is wrong when both translate and rotation happen.
+        var p = new Point2D(e.getX(), e.getY()); // canvas
+        p = canvas.getChartTransform(p); // chart <- canvas
+        p = painter.getSliceTransform().transform(p); // slice <- chart
+        var coor = image.pullBack(image.planeAt(new SliceCoordinate(0, p.getX(), p.getY())));
+        var text = String.format("=(%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+
+        labelMouseInformation.setText(text);
+        updateStructureInformation(coor);
     }
 
     private void onMouseExited(MouseEvent e) {
@@ -469,8 +467,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         log.debug("updateProjection({})", projection);
         images = new ImageSliceStack(brain, volume, projection);
-        painter.sx(images.resolution()[1]);
-        painter.sy(images.resolution()[2]);
         canvas.setResetAxesBoundaries(0, images.widthUm(), 0, images.heightUm());
         canvas.resetAxesBoundaries();
         canvas.setAxesEqualRatio();
@@ -483,8 +479,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         sliderOffsetHeight.setValue(0);
         sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
         sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
-        painter.ax.set((double) images.width() / 2);
-        painter.ay.set((double) images.height() / 2);
 
         updateSliceImage();
     }
@@ -504,7 +498,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var showImage = isDrawAtlasBrainImage();
         var showBoundary = isDrawAtlasBrainBoundary();
 
-        // TODO image is left-right flipped
         var gc = canvas.getBackgroundCanvasGraphicsContext(true);
         gc.setGlobalAlpha(0.5);
 
@@ -513,10 +506,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         }
 
         if (showBoundary) {
+            gc.setGlobalAlpha(1);
             gc.setStroke(Color.BLACK);
             gc.setFill(Color.RED);
             gc.setLineWidth(2);
-            painter.drawBounds(gc, image, !showImage);
+            painter.drawBounds(gc, image);
         }
     }
 

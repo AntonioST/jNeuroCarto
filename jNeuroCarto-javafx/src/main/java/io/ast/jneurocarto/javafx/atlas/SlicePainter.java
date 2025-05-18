@@ -100,32 +100,6 @@ public class SlicePainter {
     }
 
     /**
-     * rotation anchor x position in image[px].
-     */
-    public final DoubleProperty ax = new SimpleDoubleProperty();
-
-    public double ax() {
-        return ax.get();
-    }
-
-    public void ax(double ax) {
-        this.ax.set(ax);
-    }
-
-    /**
-     * rotation anchor y position in image[px].
-     */
-    public final DoubleProperty ay = new SimpleDoubleProperty();
-
-    public double ay() {
-        return ay.get();
-    }
-
-    public void ay(double ay) {
-        this.ay.set(ay);
-    }
-
-    /**
      * flip left-side right
      */
     public final BooleanProperty flipLR = new SimpleBooleanProperty();
@@ -168,23 +142,68 @@ public class SlicePainter {
      * transform *
      *===========*/
 
+    private static final Affine AFF_FLIP_LR = new Affine(-1, 0, 0, 0, 1, 0);
+    private static final Affine AFF_FLIP_UP = new Affine(1, 0, 0, 0, -1, 0);
+
     /**
      * {@return an affine transform from chart to slice coordinate system.}
      */
     public Affine getSliceTransform() {
-        //XXX Unsupported Operation SlicePainter.getSliceTransform
-        throw new UnsupportedOperationException();
+        var x = x();
+        var y = y();
+        var w = (sliceCache == null) ? 0 : sliceCache.width() * sx();
+        var h = (sliceCache == null) ? 0 : sliceCache.height() * sy();
+        var cx = w / 2;
+        var cy = h / 2;
+
+        var r = r();
+        if (invertRotation()) r = -r;
+
+        var aff = new Affine();
+        aff.appendTranslation(x, y);
+        if (flipUD()) {
+            aff.appendTranslation(cx, cy);
+            aff.append(AFF_FLIP_UP);
+            aff.appendTranslation(-cx, -cy);
+        }
+        if (flipLR()) {
+            aff.appendTranslation(cx, cy);
+            aff.append(AFF_FLIP_LR);
+            aff.appendTranslation(-cx, -cy);
+        }
+        aff.appendRotation(r, cx, cy);
+        aff.appendScale(sx(), sy());
+        return aff;
     }
 
     /**
      * {@return an affine transform from slice to chart coordinate system.}
      */
     public Affine getChartTransform() {
-        var ax = ax() * sx();
-        var ay = ay() * sy();
+        var x = x();
+        var y = y();
+        var w = (sliceCache == null) ? 0 : sliceCache.width() * sx();
+        var h = (sliceCache == null) ? 0 : sliceCache.height() * sy();
+        var cx = w / 2;
+        var cy = h / 2;
+
+        var r = r();
+        if (invertRotation()) r = -r;
 
         var aff = new Affine();
-        aff.appendRotation(r(), ax, ay);
+        aff.appendScale(1 / sx(), 1 / sy());
+        aff.appendRotation(-r, cx, cy);
+        if (flipUD()) {
+            aff.appendTranslation(x / 2, y / 2);
+            aff.append(AFF_FLIP_UP);
+            aff.appendTranslation(-x / 2, -y / 2);
+        }
+        if (flipLR()) {
+            aff.appendTranslation(x / 2, y / 2);
+            aff.append(AFF_FLIP_LR);
+            aff.appendTranslation(-x / 2, -y / 2);
+        }
+        aff.appendTranslation(-x, -y);
         return aff;
     }
 
@@ -223,8 +242,8 @@ public class SlicePainter {
 
         var x = x();
         var y = y();
-        var w = slice.widthPx() * sx();
-        var h = slice.heightPx() * sy();
+        var w = slice.width() * sx();
+        var h = slice.height() * sy();
 
         if (flipUD()) {
             y += h;
@@ -243,39 +262,35 @@ public class SlicePainter {
 
             gc.save();
             try {
-                var ax = ax() * sx();
-                var ay = ay() * sy();
-                gc.translate(ax, ay);
+                gc.translate(x, y);
+                gc.translate(w / 2, h / 2);
                 gc.rotate(-r);
-                gc.translate(-ax, -ay);
-                gc.drawImage(image, x, y, w, h);
+                gc.translate(-(w / 2), -(h / 2));
+                gc.drawImage(image, 0, 0, w, h);
             } finally {
                 gc.restore();
             }
         }
     }
 
-    public void drawBounds(GraphicsContext gc, ImageSlice slice, boolean crossing) {
+    public void drawBounds(GraphicsContext gc, ImageSlice slice) {
         var x = x();
         var y = y();
-        var w = slice.widthPx() * sx();
-        var h = slice.heightPx() * sy();
+        var w = slice.width() * sx();
+        var h = slice.height() * sy();
 
         var r = r();
         if (invertRotation()) r = -r;
 
         gc.save();
         try {
-            var ax = ax() * sx();
-            var ay = ay() * sy();
-            gc.translate(ax, ay);
+            gc.translate(x, y);
+            gc.translate(w / 2, h / 2);
             gc.rotate(-r);
-            gc.translate(-ax, -ay);
-            gc.strokeRect(x, y, w, h);
-            if (crossing) {
-                gc.strokeLine(x, y, x + w, y + h);
-                gc.strokeLine(x, y + h, x + w, y);
-            }
+            gc.translate(-(w / 2), -(h / 2));
+            gc.strokeRect(0, 0, w, h);
+            gc.strokeLine(0, 0, w, h);
+            gc.strokeLine(0, h, w, 0);
         } finally {
             gc.restore();
         }

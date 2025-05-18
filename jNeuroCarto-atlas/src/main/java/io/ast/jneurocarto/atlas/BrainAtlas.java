@@ -186,7 +186,12 @@ public class BrainAtlas {
             throw new RuntimeException(e);
         }
 
-        var rid = volume.get(coor);
+        int rid;
+        try {
+            rid = volume.get(coor);
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }
         return structures.get(rid).orElse(null);
     }
 

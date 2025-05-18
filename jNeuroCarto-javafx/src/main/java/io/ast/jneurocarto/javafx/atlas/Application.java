@@ -300,8 +300,6 @@ public class Application {
         sliderOffsetHeight.setValue(0);
         sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
         sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
-        imageView.painter.ax.set((double) images.width() / 2);
-        imageView.painter.ay.set((double) images.height() / 2);
 
         updateSliceImage();
     }
