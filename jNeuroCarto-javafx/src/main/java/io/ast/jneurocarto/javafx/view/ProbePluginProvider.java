@@ -10,5 +10,5 @@ import io.ast.jneurocarto.core.ProbeDescription;
 @NullMarked
 public interface ProbePluginProvider {
 
-    <T> List<ProbePlugin<T>> setup(CartoConfig config, ProbeDescription<T> desp);
+    List<ProbePlugin<?>> setup(CartoConfig config, ProbeDescription<?> desp);
 }

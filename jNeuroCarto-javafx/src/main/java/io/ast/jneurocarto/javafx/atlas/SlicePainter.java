@@ -13,10 +13,12 @@ import javafx.scene.image.Image;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.NonInvertibleTransformException;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.atlas.ImageSlice;
 
+@NullMarked
 public class SlicePainter {
 
     /*============*
@@ -148,14 +150,10 @@ public class SlicePainter {
     private static final Affine AFF_FLIP_LR = new Affine(-1, 0, 0, 0, 1, 0);
     private static final Affine AFF_FLIP_UP = new Affine(1, 0, 0, 0, -1, 0);
 
-    private @Nullable Affine affineCache;
-
     /**
      * {@return an affine transform from slice to chart coordinate system.}
      */
     public Affine getChartTransform() {
-        if (affineCache != null) return affineCache;
-
         var x = x();
         var y = y();
         var w = (sliceCache == null) ? 0 : sliceCache.width();
@@ -181,7 +179,6 @@ public class SlicePainter {
             aff.appendTranslation(-cx, -cy);
         }
         aff.appendRotation(r, cx, cy);
-        affineCache = aff;
         return aff;
     }
 
@@ -200,8 +197,8 @@ public class SlicePainter {
      * draw *
      *======*/
 
-    private ImageSlice sliceCache;
-    private Image imageCache;
+    private @Nullable ImageSlice sliceCache;
+    private @Nullable Image imageCache;
 
     public Bounds getBound(ImageSlice slice) {
         return getBound(slice, false);
@@ -227,7 +224,6 @@ public class SlicePainter {
         } else {
             image = imageCache = slice.imageFx();
             sliceCache = slice;
-            affineCache = null;
         }
 
         var w = slice.width();
@@ -244,10 +240,7 @@ public class SlicePainter {
     }
 
     public void drawBounds(GraphicsContext gc, ImageSlice slice) {
-        if (!Objects.equals(slice, sliceCache)) {
-            sliceCache = slice;
-            affineCache = null;
-        }
+        sliceCache = slice;
 
         var w = slice.width();
         var h = slice.height();
@@ -263,6 +256,4 @@ public class SlicePainter {
             gc.restore();
         }
     }
-
-
 }

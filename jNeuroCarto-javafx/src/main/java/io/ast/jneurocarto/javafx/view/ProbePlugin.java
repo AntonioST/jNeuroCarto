@@ -9,6 +9,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 @NullMarked
 public interface ProbePlugin<T> extends Plugin {
 
+    // TODO how do I need to handle clear chmap case?
     default void onProbeUpdate(T chmap, List<ElectrodeDescription> blueprint) {
     }
 

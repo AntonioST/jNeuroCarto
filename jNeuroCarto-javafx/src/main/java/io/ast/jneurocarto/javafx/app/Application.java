@@ -581,6 +581,8 @@ public class Application<T> {
         var service = new PluginSetupService(this);
 
         for (var provider : ServiceLoader.load(ProbePluginProvider.class)) {
+            log.debug("found provider {}.", provider.getClass().getName());
+
             for (var plugin : provider.setup(config, probe)) {
                 plugins.add(plugin);
                 log.debug("add plugin : {}", plugin.getClass().getName());
