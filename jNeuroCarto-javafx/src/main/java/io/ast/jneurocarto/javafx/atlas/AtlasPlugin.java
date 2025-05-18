@@ -392,7 +392,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
             var dx = e.getX() - prev.getX();
             var dy = e.getY() - prev.getY();
             var q = canvas.getChartTransformScaling(dx, dy);
-            painter.translate(q.getX(), q.getY());
+            var qx = q.getX();
+            var qy = q.getY();
+            var r = Math.toRadians(-painter.r());
+            var rc = Math.cos(r);
+            var rs = Math.sin(r);
+            dx = qx * rc - qy * rs;
+            dy = qx * rs + qy * rc;
+            painter.translate(dx, dy);
             mouseMoved = e;
             e.consume();
             updateSliceImage();

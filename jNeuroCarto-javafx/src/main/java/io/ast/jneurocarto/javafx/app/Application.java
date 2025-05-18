@@ -438,6 +438,7 @@ public class Application<T> {
         about.setOnAction(this::showAbout);
 
         menuHelp.getItems().addAll(
+          new PluginSeparatorMenuItem(),
           about
         );
 

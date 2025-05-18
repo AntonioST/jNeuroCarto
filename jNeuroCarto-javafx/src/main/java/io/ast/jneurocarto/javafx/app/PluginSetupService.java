@@ -12,9 +12,9 @@ import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public final class PluginSetupService {
-    private @Nullable Application app;
+    private @Nullable Application<?> app;
 
-    PluginSetupService(Application app) {
+    PluginSetupService(Application<?> app) {
         this.app = app;
     }
 
@@ -52,6 +52,12 @@ public final class PluginSetupService {
         app.menuView.getItems().addAll(index, items);
     }
 
+    public void addMenuInHelp(MenuItem items) {
+        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var index = app.findMenuItemIndex(app.menuHelp, false);
+        app.menuHelp.getItems().add(index, items);
+    }
+
     public ProbeView<?> getProbeView() {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         return app.view;
@@ -59,7 +65,7 @@ public final class PluginSetupService {
 
     public void addAboveProbeView(Node node) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
-        app.viewLayout.getChildren().add(0, node);
+        app.viewLayout.getChildren().addFirst(node);
     }
 
     public void addBelowProbeView(Node node) {
