@@ -454,7 +454,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      *
      * @return a graphic context.
      */
-    public GraphicsContext getForegroundCanvasGraphicsContext(boolean clear) {
+    public GraphicsContext getForegroundChartGraphicsContext(boolean clear) {
         var gc = foreground.getGraphicsContext2D();
         gc.setTransform(IDENTIFY);
         if (clear) {
@@ -471,7 +471,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      *
      * @return a graphic context
      */
-    public GraphicsContext getBackgroundCanvasGraphicsContext(boolean clear) {
+    public GraphicsContext getBackgroundChartGraphicsContext(boolean clear) {
         var gc = background.getGraphicsContext2D();
         gc.setTransform(IDENTIFY);
         if (clear) {
@@ -500,10 +500,23 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
+    /**
+     * transform a chart point to a canvas point.
+     *
+     * @param p a point in chart coordinate system
+     * @return a point in canvas coordinate system
+     */
     public Point2D getCanvasTransform(Point2D p) {
         return getCanvasTransform(p.getX(), p.getY());
     }
 
+    /**
+     * transform chart point to canvas point.
+     *
+     * @param px a x position of a point in chart coordinate system
+     * @param py a y position of a point in chart coordinate system
+     * @return a point in canvas coordinate system
+     */
     public Point2D getCanvasTransform(double px, double py) {
         var ax = xAxis;
         var ay = yAxis;
@@ -523,6 +536,15 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Point2D(nx, ny);
     }
 
+    /**
+     * transform chart length to canvas length.
+     *
+     * @param vw a x-axis-directed length in chart coordinate system
+     * @param vh a y-axis-directed length in chart coordinate system
+     * @return a directed in canvas coordinate system.
+     * {@link Point2D#getX()} means x-axis-directed length; and
+     * {@link Point2D#getY()} means y-axis-directed length
+     */
     public Point2D getCanvasTransformScaling(double vw, double vh) {
         var ax = xAxis;
         var ay = yAxis;
@@ -559,10 +581,23 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
+    /**
+     * transform a canvas point to a chart point.
+     *
+     * @param p a point in canvas coordinate system
+     * @return a point in chart coordinate system
+     */
     public Point2D getChartTransform(Point2D p) {
         return getChartTransform(p.getX(), p.getY());
     }
 
+    /**
+     * transform canvas point to chart point.
+     *
+     * @param px a x position of a point in canvas coordinate system
+     * @param py a y position of a point in canvas coordinate system
+     * @return a point in chart coordinate system
+     */
     public Point2D getChartTransform(double px, double py) {
         var ax = xAxis;
         var ay = yAxis;
@@ -582,6 +617,15 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Point2D(nx, ny);
     }
 
+    /**
+     * transform canvas length to chart length.
+     *
+     * @param vw a x-axis-directed length in canvas coordinate system
+     * @param vh a y-axis-directed length in canvas coordinate system
+     * @return a directed in chart coordinate system.
+     * {@link Point2D#getX()} means x-axis-directed length; and
+     * {@link Point2D#getY()} means y-axis-directed length
+     */
     public Point2D getChartTransformScaling(double vw, double vh) {
         var ax = xAxis;
         var ay = yAxis;

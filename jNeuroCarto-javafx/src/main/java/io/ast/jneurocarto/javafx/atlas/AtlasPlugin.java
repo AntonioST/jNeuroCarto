@@ -257,6 +257,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         layout.add(new Label("d(Height) (um)"), 0, 4);
 
         sliderPlane = newSlider();
+        sliderPlane.setMajorTickUnit(1);
 
         sliderRotation = newSlider();
         sliderRotation.setMin(-90);
@@ -428,7 +429,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var p = new Point2D(e.getX(), e.getY()); // canvas
         p = canvas.getChartTransform(p); // chart <- canvas
         p = painter.getSliceTransform().transform(p); // slice <- chart
-        var coor = image.pullBack(image.planeAt(new SliceCoordinate(0, p.getX(), p.getY())));
+        var coor = image.pullBack(image.planeAt(p)); // coor <- slice
         var text = String.format("=(%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
 
         labelMouseInformation.setText(text);
@@ -498,7 +499,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var showImage = isDrawAtlasBrainImage();
         var showBoundary = isDrawAtlasBrainBoundary();
 
-        var gc = canvas.getBackgroundCanvasGraphicsContext(true);
+        var gc = canvas.getBackgroundChartGraphicsContext(true);
 
         if (showImage) {
             gc.setGlobalAlpha(0.5);

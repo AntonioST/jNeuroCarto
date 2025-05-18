@@ -2,12 +2,14 @@ package io.ast.jneurocarto.atlas;
 
 import java.awt.image.BufferedImage;
 
+import javafx.geometry.Point2D;
+import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
+
 import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
-import javafx.scene.image.Image;
-import javafx.scene.image.WritableImage;
 
 /**
  * @param plane
@@ -98,6 +100,11 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         return new SliceCoordinate(p, coor.x(), coor.y());
     }
 
+    public SliceCoordinate planeAt(Point2D coor) {
+        var p = planeAt(coor.getX(), coor.getY());
+        return new SliceCoordinate(p, coor);
+    }
+
     /**
      * project coordinate (AP, DV, ML) into (p, x, y)
      *
@@ -171,6 +178,10 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
 
     public ImageSlice withAnchor(SliceCoordinate coor) {
         return withAnchor(coor.x(), coor.y());
+    }
+
+    public ImageSlice withAnchor(Point2D coor) {
+        return withAnchor(coor.getX(), coor.getY());
     }
 
     public ImageSlice withOffset(int dw, int dh) {

@@ -11,6 +11,9 @@ import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.transform.Affine;
+import javafx.scene.transform.NonInvertibleTransformException;
+
+import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.atlas.ImageSlice;
 
@@ -145,10 +148,14 @@ public class SlicePainter {
     private static final Affine AFF_FLIP_LR = new Affine(-1, 0, 0, 0, 1, 0);
     private static final Affine AFF_FLIP_UP = new Affine(1, 0, 0, 0, -1, 0);
 
+    private @Nullable Affine affineCache;
+
     /**
-     * {@return an affine transform from chart to slice coordinate system.}
+     * {@return an affine transform from slice to chart coordinate system.}
      */
-    public Affine getSliceTransform() {
+    public Affine getChartTransform() {
+        if (affineCache != null) return affineCache;
+
         var x = x();
         var y = y();
         var w = (sliceCache == null) ? 0 : sliceCache.width();
@@ -160,6 +167,8 @@ public class SlicePainter {
         if (invertRotation()) r = -r;
 
         var aff = new Affine();
+        // A S T Fx Fy R
+        aff.appendScale(sx(), sy());
         aff.appendTranslation(x, y);
         if (flipUD()) {
             aff.appendTranslation(cx, cy);
@@ -172,39 +181,19 @@ public class SlicePainter {
             aff.appendTranslation(-cx, -cy);
         }
         aff.appendRotation(r, cx, cy);
-        aff.appendScale(sx(), sy());
+        affineCache = aff;
         return aff;
     }
 
     /**
-     * {@return an affine transform from slice to chart coordinate system.}
+     * {@return an affine transform from chart to slice coordinate system.}
      */
-    public Affine getChartTransform() {
-        var x = x();
-        var y = y();
-        var w = (sliceCache == null) ? 0 : sliceCache.width() * sx();
-        var h = (sliceCache == null) ? 0 : sliceCache.height() * sy();
-        var cx = w / 2;
-        var cy = h / 2;
-
-        var r = r();
-        if (invertRotation()) r = -r;
-
-        var aff = new Affine();
-        aff.prependScale(1 / sx(), 1 / sy());
-        aff.prependRotation(-r, cx, cy);
-        if (flipUD()) {
-            aff.prependTranslation(x / 2, y / 2);
-            aff.prepend(AFF_FLIP_UP);
-            aff.prependTranslation(-x / 2, -y / 2);
+    public Affine getSliceTransform() {
+        try {
+            return getChartTransform().createInverse();
+        } catch (NonInvertibleTransformException e) {
+            throw new RuntimeException(e);
         }
-        if (flipLR()) {
-            aff.prependTranslation(x / 2, y / 2);
-            aff.prepend(AFF_FLIP_LR);
-            aff.prependTranslation(-x / 2, -y / 2);
-        }
-        aff.prependTranslation(-x, -y);
-        return aff;
     }
 
     /*======*
@@ -226,7 +215,7 @@ public class SlicePainter {
 
         Bounds ret = new BoundingBox(x, y, w, h);
         if (chartCoor) {
-            ret = getChartTransform().transform(ret);
+            ret = getSliceTransform().transform(ret);
         }
         return ret;
     }
@@ -238,6 +227,7 @@ public class SlicePainter {
         } else {
             image = imageCache = slice.imageFx();
             sliceCache = slice;
+            affineCache = null;
         }
 
         var w = slice.width();
@@ -245,7 +235,7 @@ public class SlicePainter {
         var aff = gc.getTransform();
         gc.save();
         try {
-            aff.append(getSliceTransform());
+            aff.append(getChartTransform());
             gc.setTransform(aff);
             gc.drawImage(image, 0, 0, w, h);
         } finally {
@@ -254,13 +244,17 @@ public class SlicePainter {
     }
 
     public void drawBounds(GraphicsContext gc, ImageSlice slice) {
-        sliceCache = slice;
+        if (!Objects.equals(slice, sliceCache)) {
+            sliceCache = slice;
+            affineCache = null;
+        }
+
         var w = slice.width();
         var h = slice.height();
         var aff = gc.getTransform();
         gc.save();
         try {
-            aff.append(getSliceTransform());
+            aff.append(getChartTransform());
             gc.setTransform(aff);
             gc.strokeRect(0, 0, w, h);
             gc.strokeLine(0, 0, w, h);
