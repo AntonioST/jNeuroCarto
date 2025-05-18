@@ -32,8 +32,12 @@ public final class PluginSetupService {
         app = null;
     }
 
+    private Application<?> checkApplication() {
+        return Objects.requireNonNull(this.app, "service is finished.");
+    }
+
     public void addMenuInBar(Menu menu) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         var items = app.menuFile.getItems();
         items.add(items.size() - 1, menu);
     }
@@ -43,7 +47,7 @@ public final class PluginSetupService {
     }
 
     public void addMenuInEdit(List<MenuItem> items) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         var index = app.findMenuItemIndex(app.menuEdit, plugin instanceof ProbePlugin);
         app.menuEdit.getItems().addAll(index, items);
     }
@@ -53,29 +57,29 @@ public final class PluginSetupService {
     }
 
     public void addMenuInView(List<MenuItem> items) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         var index = app.findMenuItemIndex(app.menuView, plugin instanceof ProbePlugin);
         app.menuView.getItems().addAll(index, items);
     }
 
     public void addMenuInHelp(MenuItem items) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         var index = app.findMenuItemIndex(app.menuHelp, false);
         app.menuHelp.getItems().add(index, items);
     }
 
     public ProbeView<?> getProbeView() {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         return app.view;
     }
 
     public void addAboveProbeView(Node node) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         app.viewLayout.getChildren().addFirst(node);
     }
 
     public void addBelowProbeView(Node node) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
+        var app = checkApplication();
         app.viewLayout.getChildren().add(node);
     }
 }

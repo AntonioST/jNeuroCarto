@@ -429,7 +429,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
             return;
         }
 
-        // TODO
         var point = canvas.getChartTransform(e.getX(), e.getY());
 //        var coor = image.pullBack(image.planeAt(getCoordinate(e)));
 //        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
