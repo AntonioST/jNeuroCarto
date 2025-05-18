@@ -811,7 +811,7 @@ public class Application<T> {
     private @Nullable Path openChannelmapFileDialog(boolean save) {
         var chooser = new FileChooser();
         chooser.setTitle((save ? "Save" : "Load") + " Channelmap file");
-        chooser.setInitialDirectory(repository.currentResourceRoot().toFile());
+        chooser.setInitialDirectory(repository.getCurrentResourceRoot().toFile());
 
         var suffixes = probe.channelMapFileSuffix();
         var exts = suffixes.stream()
@@ -847,7 +847,7 @@ public class Application<T> {
     private @Nullable Path openFileDialog(String description, boolean save, @Nullable String suffix, @Nullable Path initFile) {
         var chooser = new FileChooser();
         chooser.setTitle((save ? "Save" : "Load") + " " + description + " file");
-        chooser.setInitialDirectory(repository.currentResourceRoot().toFile());
+        chooser.setInitialDirectory(repository.getCurrentResourceRoot().toFile());
 
         if (suffix != null) {
             chooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter(description, suffix));

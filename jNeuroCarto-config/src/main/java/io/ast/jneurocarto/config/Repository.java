@@ -30,7 +30,11 @@ public class Repository {
         this.config = config;
     }
 
-    public Path userConfigDir() {
+    public Path getUserConfigDir() {
+        return getUserConfigDir(config);
+    }
+
+    public Path getUserConfigDir(CartoConfig config) {
         if (config.debug) {
             return Path.of(".");
         }
@@ -46,7 +50,11 @@ public class Repository {
         };
     }
 
-    public Path userCacheDir() {
+    public Path getUserCacheDir() {
+        return getUserCacheDir(config);
+    }
+
+    public static Path getUserCacheDir(CartoConfig config) {
         if (config.debug) {
             return Path.of(".");
         }
@@ -61,15 +69,20 @@ public class Repository {
         };
     }
 
-    public Path userCacheFile(String filename) {
+    public Path getUserCacheFile(String filename) {
         if (config.debug) {
             return Path.of(".neurocarto." + filename);
         }
 
-        return userCacheDir().resolve(filename);
+        return getUserCacheDir().resolve(filename);
     }
 
-    public Path userDataDir() {
+    public Path getUserDataDir() {
+        return getUserDataDir(config);
+    }
+
+    public static Path getUserDataDir(CartoConfig config) {
+
         if (config.debug) {
             return Path.of(".");
         }
@@ -86,7 +99,7 @@ public class Repository {
 
     public static final String USER_CONFIG_FILENAME = "neurocarto.config.json";
 
-    public Path userConfigFile() {
+    public Path getUserConfigFile() {
         var p = config.configFile;
         if (p != null) {
             var f = Path.of(p);
@@ -100,7 +113,7 @@ public class Repository {
             return Path.of("." + USER_CONFIG_FILENAME);
         }
 
-        return userConfigDir().resolve(USER_CONFIG_FILENAME);
+        return getUserConfigDir().resolve(USER_CONFIG_FILENAME);
     }
 
     public JsonConfig loadUserConfigs() {
@@ -108,7 +121,7 @@ public class Repository {
     }
 
     public JsonConfig loadUserConfigs(boolean reset) {
-        var f = userConfigFile();
+        var f = getUserConfigFile();
 
         log.debug("load user config : {}", f);
         JsonConfig c;
@@ -145,7 +158,7 @@ public class Repository {
 
 
     public void saveUserConfigs() throws IOException {
-        var f = userConfigFile();
+        var f = getUserConfigFile();
         log.debug("save user config : {}", f);
         userConfig.save(f);
     }
@@ -169,7 +182,7 @@ public class Repository {
         return config;
     }
 
-    public Path currentResourceRoot() {
+    public Path getCurrentResourceRoot() {
         var ret = config.chmapRoot;
         if (ret == null) {
             ret = Path.of(".");
@@ -188,7 +201,7 @@ public class Repository {
     }
 
     public List<Path> listChannelmapFiles(ProbeDescription<?> probe, boolean recursive) throws IOException {
-        var root = currentResourceRoot();
+        var root = getCurrentResourceRoot();
 
         var suffix = probe.channelMapFileSuffix();
 
@@ -226,7 +239,7 @@ public class Repository {
     }
 
     public Path getChannelmapFile(ProbeDescription<?> probe, String name) {
-        var root = currentResourceRoot();
+        var root = getCurrentResourceRoot();
         return root.resolve(getChannelmapName(probe, name));
     }
 

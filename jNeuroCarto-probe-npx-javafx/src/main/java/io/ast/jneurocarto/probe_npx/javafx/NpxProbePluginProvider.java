@@ -14,8 +14,6 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 public class NpxProbePluginProvider implements ProbePluginProvider {
     @Override
     public List<ProbePlugin<?>> setup(CartoConfig config, ProbeDescription<?> desp) {
-        System.out.println("NpxProbePluginProvider");
-        System.out.println(desp);
         if (desp instanceof NpxProbeDescription probe) {
             var ref = new ProbeReferencePlugin(probe);
             var info = new NpxProbeInfoPlugin();

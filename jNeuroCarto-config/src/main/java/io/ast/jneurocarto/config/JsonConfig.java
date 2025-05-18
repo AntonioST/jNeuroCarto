@@ -4,14 +4,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import com.fasterxml.jackson.annotation.JsonRootName;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -77,6 +78,17 @@ public class JsonConfig {
         return mapper.treeToValue(value, clazz);
     }
 
+    public <T> @Nullable List<T> getAsList(Class<T> clazz) throws JsonProcessingException {
+        return getAsList(clazz, getName(clazz));
+    }
+
+    public <T> @Nullable List<T> getAsList(Class<T> clazz, String name) throws JsonProcessingException {
+        var value = maps.get(name);
+        if (value == null) return null;
+        return mapper.treeToValue(value, new TypeReference<>() {
+        });
+    }
+
     public @Nullable JsonConfig getAsConfig(String name) throws JsonProcessingException {
         var value = maps.get(name);
         if (value instanceof ObjectNode obj) {
@@ -100,6 +112,52 @@ public class JsonConfig {
 
     public void clear() {
         maps.clear();
+    }
+
+    public Set<String> keySet() {
+        return maps.keySet();
+    }
+
+    public Set<Entry> entrySet() {
+        return maps.entrySet().stream()
+          .map(Entry::new)
+          .collect(Collectors.toSet());
+    }
+
+    public void forEach(Consumer<Entry> consumer) {
+        Objects.requireNonNull(consumer);
+        maps.forEach((name, node) -> consumer.accept(new Entry(name, node)));
+    }
+
+    public static final class Entry {
+        private final String name;
+        private final JsonNode node;
+
+        Entry(String name, JsonNode node) {
+            this.name = name;
+            this.node = node;
+        }
+
+        Entry(Map.Entry<String, JsonNode> entry) {
+            this(entry.getKey(), entry.getValue());
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public JsonNode node() {
+            return node;
+        }
+
+        public <T> T get(Class<T> clazz) throws JsonProcessingException {
+            return mapper.treeToValue(node, clazz);
+        }
+
+        public <T> List<T> getAsList(Class<T> clazz) throws JsonProcessingException {
+            return mapper.treeToValue(node, new TypeReference<>() {
+            });
+        }
     }
 
 }
