@@ -4,16 +4,22 @@
     -fx-padding: 4px;
     -fx-shape: "M0,0 H10 V10 H0 Z";
 }
-.chart-symbol.electrode-highlighted {
-    -fx-border-color: orange;
-    -fx-border-width: 4px;
-    -fx-padding: 6px;
-    -fx-background-color: null;
-}
 .chart-symbol.captured {
     -fx-background-color: black;
     -fx-scale-x: 1.2;
     -fx-scale-y: 1.2;
+}
+/* highlighted */
+.chart-symbol.electrode-highlighted {
+    -fx-border-color: orange;
+    -fx-border-width: 3px;
+    -fx-padding: 6px;
+    -fx-background-color: null;
+}
+.chart-symbol.electrode-highlighted.captured {
+    -fx-border-color: rgba(255,165,0,0.8);
+    -fx-border-width: 1px;
+    -fx-padding: 6px;
 }
 /* unused */
 .chart-symbol.electrode-state-0 {

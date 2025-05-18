@@ -234,6 +234,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         var showImageSwitch = new CheckBox("Show image");
         showImageSwitch.selectedProperty().bindBidirectional(drawAtlasBrainImage);
+        visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
 
         assert !(heading instanceof Parent);
         var ret = new HBox(heading, showImageSwitch);

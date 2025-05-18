@@ -392,6 +392,9 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     public static class DataSelectEvent extends InputEvent {
         public static final EventType<DataSelectEvent> DATA_SELECT = new EventType<>(InputEvent.ANY, "DATA_SELECT");
 
+        /**
+         * a boundary in chart coordinate system.
+         */
         public final Bounds bounds;
 
         public DataSelectEvent(Bounds bounds) {
