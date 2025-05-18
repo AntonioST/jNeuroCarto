@@ -2,10 +2,13 @@ package io.ast.jneurocarto.javafx.atlas;
 
 import java.util.List;
 
+import org.jspecify.annotations.NullMarked;
+
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 
+@NullMarked
 public class AtlasPluginProvider implements PluginProvider {
     @Override
     public List<String> name() {

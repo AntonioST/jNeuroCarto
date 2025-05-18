@@ -3,11 +3,12 @@ package io.ast.jneurocarto.javafx.app;
 import java.util.List;
 import java.util.Objects;
 
-import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
-
+import javafx.scene.Node;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public final class PluginSetupService {
@@ -54,5 +55,15 @@ public final class PluginSetupService {
     public ProbeView<?> getProbeView() {
         var app = Objects.requireNonNull(this.app, "service is finished.");
         return app.view;
+    }
+
+    public void addAboveProbeView(Node node) {
+        var app = Objects.requireNonNull(this.app, "service is finished.");
+        app.viewLayout.getChildren().add(0, node);
+    }
+
+    public void addBelowProbeView(Node node) {
+        var app = Objects.requireNonNull(this.app, "service is finished.");
+        app.viewLayout.getChildren().add(node);
     }
 }

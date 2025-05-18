@@ -1,13 +1,20 @@
 package io.ast.jneurocarto.javafx.view;
 
-import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.CheckMenuItem;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
-public abstract class InvisibleView {
+import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.javafx.app.PluginSetupService;
+
+public abstract class InvisibleView implements Plugin {
 
     public final BooleanProperty visible = new SimpleBooleanProperty(true);
 
@@ -35,4 +42,26 @@ public abstract class InvisibleView {
         item.selectedProperty().bindBidirectional(visible);
         service.addMenuInView(item, this instanceof ProbePlugin);
     }
+
+    @Override
+    public @Nullable Node setup(PluginSetupService service) {
+        var visibleSwitch = newInvisibleSwitch(name());
+
+        var content = setupContent(service);
+        bindInvisibleNode(content);
+        setupMenuViewItem(service, name());
+
+        var padding = new HBox(content);
+        HBox.setHgrow(content, Priority.ALWAYS);
+        padding.setPadding(new Insets(0, 0, 0, 15));
+
+        var root = new VBox(
+          visibleSwitch,
+          padding
+        );
+
+        return root;
+    }
+
+    protected abstract Node setupContent(PluginSetupService service);
 }

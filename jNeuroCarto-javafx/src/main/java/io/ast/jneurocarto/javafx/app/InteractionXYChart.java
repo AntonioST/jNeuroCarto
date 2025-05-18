@@ -2,16 +2,11 @@ package io.ast.jneurocarto.javafx.app;
 
 import java.util.Objects;
 
-import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.EventHandler;
+import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
@@ -28,6 +23,13 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
+
 @NullMarked
 public class InteractionXYChart<C extends XYChart<Number, Number>> extends StackPane {
 
@@ -38,13 +40,25 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private final Canvas foreground;
     private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
 
+    private double resetX1;
+    private double resetX2;
+    private double resetY1;
+    private double resetY2;
+
     public InteractionXYChart(C chart) {
         this.chart = chart;
+        // https://openjfx.io/javadoc/24/javafx.graphics/javafx/scene/doc-files/cssref.html#xychart
+        var plot = chart.lookup(".chart-plot-background");
+        plot.setStyle("-fx-background-color: transparent;");
 
         xAxis = (NumberAxis) chart.getXAxis();
         yAxis = (NumberAxis) chart.getYAxis();
         xAxis.setAnimated(false);
         yAxis.setAnimated(false);
+        resetX1 = xAxis.getLowerBound();
+        resetX2 = xAxis.getUpperBound();
+        resetY1 = yAxis.getLowerBound();
+        resetY2 = yAxis.getUpperBound();
 
         background = new Canvas();
         background.widthProperty().bind(chart.widthProperty());
@@ -192,6 +206,8 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
             var d2 = (x2 - x1) * scale * r1;
             setAxisBoundary(yAxis, x1 - d1, x2 + d2);
         }
+
+        if (scaleX || scaleY) fireCanvasChange(CanvasChangeEvent.SCALING);
     }
 
     private void onMouseSelecting(MouseEvent start, MouseEvent current) {
@@ -240,6 +256,8 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         x2 = ax.getUpperBound();
         dy = -dy * (x2 - x1) / area.getHeight();
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
+
+        fireCanvasChange(CanvasChangeEvent.MOVING);
     }
 
     /**
@@ -254,6 +272,71 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var y1 = Math.max(Math.min(start.getY(), current.getY()), area.getMinY());
         var y2 = Math.min(Math.max(start.getY(), current.getY()), area.getMaxY());
         return new BoundingBox(x1, y1, x2 - x1, y2 - y1);
+    }
+
+    /*=====================*
+     * canvas moving event *
+     *=====================*/
+
+    public static class CanvasChangeEvent extends InputEvent {
+        public static final EventType<CanvasChangeEvent> ANY = new EventType<>(InputEvent.ANY, "CANVAS_CHANGE");
+        public static final EventType<CanvasChangeEvent> MOVING = new EventType<>(ANY, "CANVAS_MOVING");
+        public static final EventType<CanvasChangeEvent> SCALING = new EventType<>(ANY, "CANVAS_SCALING");
+
+        CanvasChangeEvent(Object source, EventTarget target, EventType<CanvasChangeEvent> type) {
+            super(source, target, type);
+        }
+    }
+
+    private final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasMovingEvent = new SimpleObjectProperty<>(null);
+
+    {
+        addEventHandler(CanvasChangeEvent.MOVING, e -> {
+            var handler = getOnCanvasMoving();
+            if (handler != null) handler.handle(e);
+        });
+    }
+
+    public final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasMovingEventProperty() {
+        return onCanvasMovingEvent;
+    }
+
+    public final void setOnCanvasMoving(EventHandler<CanvasChangeEvent> handler) {
+        onCanvasMovingEvent.set(handler);
+    }
+
+    public final @Nullable EventHandler<CanvasChangeEvent> getOnCanvasMoving() {
+        return onCanvasMovingEvent.get();
+    }
+
+    private final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasScalingEvent = new SimpleObjectProperty<>(null);
+
+    {
+        addEventHandler(CanvasChangeEvent.SCALING, e -> {
+            var handler = getOnCanvasScaling();
+            if (handler != null) handler.handle(e);
+        });
+    }
+
+    public final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasScalingEventProperty() {
+        return onCanvasScalingEvent;
+    }
+
+    public final void setOnCanvasScaling(EventHandler<CanvasChangeEvent> handler) {
+        onCanvasScalingEvent.set(handler);
+    }
+
+    public final @Nullable EventHandler<CanvasChangeEvent> getOnCanvasScaling() {
+        return onCanvasScalingEvent.get();
+    }
+
+    /**
+     *
+     */
+    private void fireCanvasChange(EventType<CanvasChangeEvent> type) {
+        if (!isDisabled()) {
+            fireEvent(new CanvasChangeEvent(this, foreground, type));
+        }
     }
 
     /*=============*
@@ -349,6 +432,8 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      * plotting area transformation *
      *==============================*/
 
+    private static final Affine IDENTIFY = new Affine();
+
     public Bounds getXAxisArea() {
         return foreground.sceneToLocal(xAxis.localToScene(xAxis.getBoundsInLocal()));
     }
@@ -363,18 +448,42 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return foreground.sceneToLocal(plot.localToScene(plot.getBoundsInLocal()));
     }
 
-    public GraphicsContext getForegroundCanvasGraphicsContext() {
+    /**
+     * Get a graphic context that painting graphics on foreground.
+     * Using chart coordinate system.
+     *
+     * @return a graphic context.
+     */
+    public GraphicsContext getForegroundCanvasGraphicsContext(boolean clear) {
         var gc = foreground.getGraphicsContext2D();
+        gc.setTransform(IDENTIFY);
+        if (clear) {
+            gc.clearRect(0, 0, foreground.getWidth(), foreground.getHeight());
+        }
         gc.setTransform(getCanvasTransform());
         return gc;
     }
 
-    public GraphicsContext getBackgroundCanvasGraphicsContext() {
+
+    /**
+     * Get a graphic context that painting graphics on background.
+     * Using chart coordinate system.
+     *
+     * @return a graphic context
+     */
+    public GraphicsContext getBackgroundCanvasGraphicsContext(boolean clear) {
         var gc = background.getGraphicsContext2D();
+        gc.setTransform(IDENTIFY);
+        if (clear) {
+            gc.clearRect(0, 0, background.getWidth(), background.getHeight());
+        }
         gc.setTransform(getCanvasTransform());
         return gc;
     }
 
+    /**
+     * {@return an affine transform from chart to canvas coordinate system.}
+     */
     public Affine getCanvasTransform() {
         var ax = xAxis;
         var ay = yAxis;
@@ -391,6 +500,9 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
+    /**
+     * {@return an affine transform from canvas to chart coordinate system.}
+     */
     public Affine getChartTransform() {
         var ax = xAxis;
         var ay = yAxis;
@@ -407,13 +519,22 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
+
+    public void setResetAxesBoundaries(double x1, double x2, double y1, double y2) {
+        resetX1 = x1;
+        resetX2 = x2;
+        resetY1 = y1;
+        resetY2 = y2;
+    }
+
     public void resetAxesBoundaries() {
-        setAxesBoundaries(0, 1000, 0, 1000);
+        setAxesBoundaries(resetX1, resetX2, resetY1, resetY2);
     }
 
     public void setAxesBoundaries(double x1, double x2, double y1, double y2) {
         setAxisBoundary(xAxis, x1, x2);
         setAxisBoundary(yAxis, y1, y2);
+        fireCanvasChange(CanvasChangeEvent.SCALING);
     }
 
     public void setAxesEqualRatio() {
@@ -430,6 +551,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         y1 = cy - yh / 2;
         y2 = cy + yh / 2;
         setAxisBoundary(yAxis, y1, y2);
+        fireCanvasChange(CanvasChangeEvent.SCALING);
     }
 
     public static void setAxisBoundary(NumberAxis axis, double x1, double x2) {

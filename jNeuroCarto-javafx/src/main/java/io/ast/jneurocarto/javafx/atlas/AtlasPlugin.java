@@ -1,6 +1,25 @@
 package io.ast.jneurocarto.javafx.atlas;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
+
+import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.HPos;
+import javafx.geometry.Point2D;
+import javafx.scene.Node;
+import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -9,15 +28,14 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.javafx.app.InteractionXYChart;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.Plugin;
-import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
 
 @NullMarked
 public class AtlasPlugin extends InvisibleView implements Plugin {
@@ -29,15 +47,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     private ProbeView<?> canvas;
     private SlicePainter painter;
 
-    private ImageSliceStack.@Nullable Projection currentProjection;
-    private @Nullable ImageSliceStack images;
-    private @Nullable ImageSlice image;
-
     private final Logger log = LoggerFactory.getLogger(AtlasPlugin.class);
 
     public AtlasPlugin(CartoConfig config) {
         this.config = config;
         download = AtlasBrainService.loadAtlas(config);
+//        setDrawAtlasBrainBoundary(true);
+//        setDrawAtlasBrainImage(false);
     }
 
     @Override
@@ -50,25 +66,38 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         return "showing brain atlas in background";
     }
 
-    @Override
-    public @Nullable Node setup(PluginSetupService service) {
-        checkBrainAtlas();
+    /*============*
+     * properties *
+     *============*/
 
-        canvas = service.getProbeView();
-        painter = new SlicePainter();
+    public final ObjectProperty<ImageSliceStack.Projection> projection = new SimpleObjectProperty<>();
 
-        var visibleSwitch = newInvisibleSwitch(name());
+    public final ImageSliceStack.Projection getProjection() {
+        return projection.get();
+    }
 
-        var layout = initLayout();
-        bindInvisibleNode(layout);
-        setupMenuViewItem(service, name());
+    public final void setProjection(ImageSliceStack.Projection value) {
+        projection.set(value);
+    }
 
-        var root = new VBox(
-          visibleSwitch,
-          layout
-        );
+    public final BooleanProperty drawAtlasBrainBoundary = new SimpleBooleanProperty(false);
 
-        return root;
+    public final boolean isDrawAtlasBrainBoundary() {
+        return drawAtlasBrainBoundary.get();
+    }
+
+    public final void setDrawAtlasBrainBoundary(boolean value) {
+        drawAtlasBrainBoundary.set(value);
+    }
+
+    public final BooleanProperty drawAtlasBrainImage = new SimpleBooleanProperty(true);
+
+    public final boolean isDrawAtlasBrainImage() {
+        return drawAtlasBrainImage.get();
+    }
+
+    public final void setDrawAtlasBrainImage(boolean value) {
+        drawAtlasBrainImage.set(value);
     }
 
     /*===========================*
@@ -110,7 +139,9 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         if (brain == null) return;
 
         IOAction.measure(log, "load reference", () -> {
-            volume = brain.reference();
+            volume = new ImageVolume(brain.reference());
+            volume.normalizeGrayLevel();
+            Platform.runLater(() -> updateProjection(projection.get()));
         });
         IOAction.measure(log, "pre load annotation", brain::annotation);
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
@@ -120,10 +151,384 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
      * UI layout *
      *===========*/
 
-    private Node initLayout() {
-        var layout = new VBox(
-          new Label("content")
-        );
+    private Label labelMouseInformation;
+    private Label labelStructure;
+    private ToggleGroup groupProjection;
+    private RadioButton btnCoronal;
+    private RadioButton btnSagittal;
+    private RadioButton btnTransverse;
+    private Button btnResetRotation;
+    private Button btnResetOffsetWidth;
+    private Button btnResetOffsetHeight;
+    private Slider sliderPlane;
+    private Slider sliderRotation;
+    private Slider sliderOffsetWidth;
+    private Slider sliderOffsetHeight;
+
+    @Override
+    public @Nullable Node setup(PluginSetupService service) {
+        checkBrainAtlas();
+
+        canvas = service.getProbeView();
+        canvas.addEventFilter(MouseEvent.MOUSE_PRESSED, this::onMouseDragged);
+        canvas.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
+        canvas.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onMouseDragged);
+        canvas.addEventFilter(MouseEvent.MOUSE_MOVED, this::onMouseMoved);
+        canvas.addEventFilter(MouseEvent.MOUSE_EXITED, this::onMouseExited);
+        canvas.addEventFilter(InteractionXYChart.CanvasChangeEvent.ANY, this::onCanvasChange);
+
+        painter = new SlicePainter();
+        painter.flipUD(true);
+
+        var ret = super.setup(service);
+//        bindInvisibleNode(setupToolbar(service));
+        bindInvisibleNode(setupInformationBar(service));
+
+        setProjection(ImageSliceStack.Projection.coronal);
+
+        return ret;
+    }
+
+    private Node setupToolbar(PluginSetupService service) {
+        //XXX Unsupported Operation AtlasPlugin.setupToolbar
+        throw new UnsupportedOperationException();
+    }
+
+    private Node setupInformationBar(PluginSetupService service) {
+        var coorInformation = new Label("(AP, DV, ML) um");
+        labelMouseInformation = new Label("");
+
+        labelStructure = new Label("");
+
+        var layout = new HBox(coorInformation, labelMouseInformation, labelStructure);
+
+        service.addBelowProbeView(layout);
+
         return layout;
     }
+
+    @Override
+    protected Node setupContent(PluginSetupService service) {
+        var layout = new GridPane();
+//        layout.setGridLinesVisible(true);
+        layout.setMinWidth(600);
+        layout.setHgap(5);
+        layout.setVgap(5);
+
+        layout.add(new Label("Projection"), 0, 0);
+        layout.add(new Label("Plane (mm)"), 0, 1);
+        layout.add(new Label("Rotation (deg)"), 0, 2);
+        layout.add(new Label("d(Width) (um)"), 0, 3);
+        layout.add(new Label("d(Height) (um)"), 0, 4);
+
+        sliderPlane = newSlider();
+
+        sliderRotation = newSlider();
+        sliderRotation.setMin(-90);
+        sliderRotation.setMax(90);
+        sliderRotation.setMajorTickUnit(10);
+
+        sliderOffsetWidth = newSlider();
+        sliderOffsetWidth.setMin(-1000);
+        sliderOffsetWidth.setMax(1000);
+        sliderOffsetWidth.setMajorTickUnit(200);
+
+        sliderOffsetHeight = newSlider();
+        sliderOffsetHeight.setMin(-1000);
+        sliderOffsetHeight.setMax(1000);
+        sliderOffsetHeight.setMajorTickUnit(200);
+
+        layout.add(setupProjectButtons(), 1, 0, 2, 1);
+        layout.add(sliderPlane, 1, 1);
+        layout.add(sliderRotation, 1, 2);
+        layout.add(sliderOffsetWidth, 1, 3);
+        layout.add(sliderOffsetHeight, 1, 4);
+
+        layout.add(sliderBoundLabel(sliderPlane), 2, 1);
+        layout.add(sliderBoundLabel(sliderRotation), 2, 2);
+        layout.add(sliderBoundLabel(sliderOffsetWidth), 2, 3);
+        layout.add(sliderBoundLabel(sliderOffsetHeight), 2, 4);
+
+        btnResetRotation = new Button("Reset");
+        btnResetRotation.setOnAction(_ -> sliderRotation.setValue(0));
+
+        btnResetOffsetWidth = new Button("Reset");
+        btnResetOffsetWidth.setOnAction(_ -> sliderOffsetWidth.setValue(0));
+
+        btnResetOffsetHeight = new Button("Reset");
+        btnResetOffsetHeight.setOnAction(_ -> sliderOffsetHeight.setValue(0));
+
+        layout.add(btnResetRotation, 3, 2);
+        layout.add(btnResetOffsetWidth, 3, 3);
+        layout.add(btnResetOffsetHeight, 3, 4);
+
+        var c1 = new ColumnConstraints(100, 100, 200);
+        c1.setHalignment(HPos.RIGHT);
+
+        var c2 = new ColumnConstraints(400, 400, Double.MAX_VALUE);
+        c2.setHgrow(Priority.ALWAYS);
+
+        var c3 = new ColumnConstraints(60, 60, 60);
+        c3.setHalignment(HPos.RIGHT);
+
+        var c4 = new ColumnConstraints(60, 60, 60);
+        c4.setHalignment(HPos.CENTER);
+
+        layout.getColumnConstraints().addAll(c1, c2, c3, c4);
+
+        return layout;
+    }
+
+    private Node setupProjectButtons() {
+        var layout = new HBox();
+
+        groupProjection = new ToggleGroup();
+        btnCoronal = new RadioButton("Coronal");
+        btnCoronal.setToggleGroup(groupProjection);
+        btnCoronal.setOnAction(e -> projection.set(ImageSliceStack.Projection.coronal));
+
+        btnSagittal = new RadioButton("Sagittal");
+        btnSagittal.setToggleGroup(groupProjection);
+        btnCoronal.setOnAction(e -> projection.set(ImageSliceStack.Projection.sagittal));
+
+        btnTransverse = new RadioButton("Transverse");
+        btnTransverse.setToggleGroup(groupProjection);
+        btnCoronal.setOnAction(e -> projection.set(ImageSliceStack.Projection.transverse));
+
+        layout.getChildren().addAll(btnCoronal, btnSagittal, btnTransverse);
+
+        projection.addListener((_, _, proj) -> {
+            log.debug("setProjection({})", proj);
+
+            switch (proj) {
+            case coronal -> groupProjection.selectToggle(btnCoronal);
+            case sagittal -> groupProjection.selectToggle(btnSagittal);
+            case transverse -> groupProjection.selectToggle(btnTransverse);
+            }
+
+            updateProjection(proj);
+        });
+
+        return layout;
+    }
+
+    private Slider newSlider() {
+        var slider = new Slider();
+        slider.setShowTickLabels(true);
+        slider.valueProperty().addListener((_, _, _) -> onSliderMoved());
+        return slider;
+    }
+
+    private Label sliderBoundLabel(Slider slider) {
+        var label = new Label();
+
+        slider.valueProperty().addListener((_, _, value) -> {
+            updateSliderLabel(slider, label, value.doubleValue());
+        });
+
+        updateSliderLabel(slider, label, 0);
+
+        return label;
+    }
+
+    private void updateSliderLabel(Slider slider, Label label, double value) {
+        String text;
+        if (slider == sliderPlane) {
+            text = String.format("%.1f mm", value);
+        } else if (slider == sliderRotation) {
+            text = String.format("%.1f deg", value);
+        } else {
+            text = String.format("%.0f um", value);
+        }
+
+        label.setText(text);
+    }
+
+
+
+    /*==============*
+     * event handle *
+     *==============*/
+
+    private @Nullable MouseEvent mousePress;
+    private @Nullable MouseEvent mouseMoved;
+
+    private void onSliderMoved() {
+        if (images != null) {
+            updateSliceImage();
+//        updateAnchorInformation();
+        }
+    }
+
+    private void onMouseDragged(MouseEvent e) {
+        if (e.getEventType() == MouseEvent.MOUSE_PRESSED) {
+            if (e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
+                mousePress = e;
+            }
+        } else if (e.getEventType() == MouseEvent.MOUSE_RELEASED) {
+            mousePress = null;
+            mouseMoved = null;
+        } else if (e.getEventType() == MouseEvent.MOUSE_DRAGGED && mousePress != null) {
+            var transform = canvas.getChartTransform();
+            var prev = mouseMoved == null ? mousePress : mouseMoved;
+            var dx = e.getX() - prev.getX();
+            var dy = e.getY() - prev.getY();
+            var p = new BoundingBox(0, 0, dx, dy);
+            var q = transform.transform(p);
+            painter.translate(Math.signum(dx) * q.getWidth(), -Math.signum(dy) * q.getHeight());
+            mouseMoved = e;
+            e.consume();
+            updateSliceImage();
+        }
+    }
+
+    private void onMouseMoved(MouseEvent e) {
+        var image = this.image;
+        if (image == null) {
+            labelMouseInformation.setText("");
+            labelStructure.setText("");
+            return;
+        }
+
+        // TODO
+        var point = canvas.getChartTransform().transform(new Point2D(e.getX(), e.getY()));
+//        var coor = image.pullBack(image.planeAt(getCoordinate(e)));
+//        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+//
+//        labelMouseInformation.setText(text);
+//        updateStructureInformation(coor);
+    }
+
+    private void onMouseExited(MouseEvent e) {
+        labelMouseInformation.setText("");
+        labelStructure.setText("");
+    }
+
+    private void onCanvasChange(InteractionXYChart.CanvasChangeEvent e) {
+        updateSliceImage();
+    }
+
+    private SliceCoordinate getSliceCoordinate(MouseEvent e) {
+        var mx = e.getX();
+        var my = e.getY();
+        var p = canvas.getChartTransform().transform(new Point2D(mx, my));
+        var x = (p.getX() - painter.x()) / painter.sx();
+        var y = (p.getY() - painter.y()) / painter.sy();
+        return new SliceCoordinate(0, x, y);
+    }
+
+    /*=====================*
+     * atlas brain drawing *
+     *=====================*/
+
+    private @Nullable ImageSliceStack images;
+    private @Nullable ImageSlice image;
+
+    private void updateProjection(ImageSliceStack.Projection projection) {
+        var brain = this.brain;
+        var volume = this.volume;
+        if (brain == null || volume == null) return;
+
+        log.debug("updateProjection({})", projection);
+        images = new ImageSliceStack(brain, volume, projection);
+        painter.sx(images.resolution()[1]);
+        painter.sy(images.resolution()[2]);
+        canvas.setResetAxesBoundaries(0, images.widthUm(), 0, images.heightUm());
+        canvas.resetAxesBoundaries();
+        canvas.setAxesEqualRatio();
+
+        var maxPlaneLength = images.planeUm() / 1000;
+        sliderPlane.setMax(maxPlaneLength);
+
+        sliderRotation.setValue(0);
+        sliderOffsetWidth.setValue(0);
+        sliderOffsetHeight.setValue(0);
+        sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
+        sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
+        painter.ax.set((double) images.width() / 2);
+        painter.ay.set((double) images.height() / 2);
+
+        updateSliceImage();
+    }
+
+    private void updateSliceImage() {
+        if (images == null) return;
+
+        var plane = sliderPlane.getValue() * 1000;
+        var dw = sliderOffsetWidth.getValue();
+        var dh = sliderOffsetHeight.getValue();
+
+        log.trace("updateSliceImage({}, {}, {})", (int) plane, dw, dh);
+
+        var image = images.sliceAtPlane(plane);
+        this.image = image = image.withOffset(dw, dh);
+
+        // TODO image is left-right flipped
+        var gc = canvas.getBackgroundCanvasGraphicsContext(true);
+        gc.setGlobalAlpha(0.5);
+
+        if (isDrawAtlasBrainImage()) painter.draw(gc, image);
+
+        if (isDrawAtlasBrainBoundary()) {
+            gc.setStroke(Color.BLACK);
+            gc.setFill(Color.RED);
+            gc.setLineWidth(2);
+            painter.drawBounds(gc, image, !isDrawAtlasBrainImage());
+        }
+    }
+
+    /*=================*
+     * information bar *
+     *=================*/
+
+//    private void updateAnchorInformation() {
+//        var image = this.image;
+//        if (image == null) {
+//            labelAnchorInformation.setText("");
+//            return;
+//        }
+//
+//        var anchor = imageView.anchor.get();
+//        if (anchor == null) {
+//            labelAnchorInformation.setText("");
+//            return;
+//        }
+//
+//        var coor = image.pullBack(image.planeAt(anchor));
+//        var text = String.format("[anchor] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+//
+//        labelAnchorInformation.setText(text);
+//    }
+
+    private void updateStructureInformation(Coordinate coor) {
+        var brain = this.brain;
+        if (brain == null) return;
+
+        Thread.ofVirtual().start(() -> {
+            Structure structure = null;
+            try {
+                structure = brain.structureFromCoords(coor);
+            } catch (Exception e) {
+                log.warn("updateStructureInformation fail", e);
+            }
+
+            String text;
+            if (structure == null) {
+                text = "";
+            } else {
+                text = brain.structures().parents(structure).reversed().stream()
+                  .map(Structure::acronym)
+                  .collect(Collectors.joining(" / "));
+
+                var hem = brain.hemisphereFromCoords(coor);
+                if (hem != null) {
+                    text += " [" + hem.name() + "]";
+                }
+            }
+
+            var finalText = text;
+            Platform.runLater(() -> labelStructure.setText(finalText));
+        });
+    }
+
 }

@@ -5,12 +5,6 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.ast.jneurocarto.atlas.*;
-import io.ast.jneurocarto.core.Coordinate;
-import io.ast.jneurocarto.javafx.utils.IOAction;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.event.ActionEvent;
@@ -24,6 +18,13 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.ast.jneurocarto.atlas.*;
+import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.javafx.utils.IOAction;
 
 public class Application {
 

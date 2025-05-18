@@ -10,6 +10,22 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javafx.application.Platform;
+import javafx.beans.property.*;
+import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.*;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -25,24 +41,6 @@ import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
-import javafx.application.Platform;
-import javafx.beans.property.*;
-import javafx.event.ActionEvent;
-import javafx.event.Event;
-import javafx.event.EventHandler;
-import javafx.geometry.Insets;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 
 public class Application<T> {
 
@@ -205,6 +203,7 @@ public class Application<T> {
 
         currentChannelmapFile.addListener((_, _, _) -> updateTitle());
         setupPlugins();
+        stage.sizeToScene();
     }
 
     private void updateTitle() {
@@ -232,10 +231,19 @@ public class Application<T> {
 
     private Parent root() {
         log.debug("init layout");
-        return new VBox(
-          rootMenu(),
-          new HBox(rootLeft(), rootCenter(), rootRight())
-        );
+
+        var menubar = rootMenu();
+        var left = rootLeft();
+        var center = rootCenter();
+        var right = rootRight();
+
+        var content = new HBox(left, center, right);
+        HBox.setHgrow(right, Priority.ALWAYS);
+
+        var root = new VBox(menubar, content);
+        root.setFillWidth(true);
+
+        return root;
     }
 
     /*==========*
@@ -480,9 +488,9 @@ public class Application<T> {
     }
 
 
+    VBox viewLayout;
+    VBox pluginLayout;
     ProbeView<T> view;
-    private VBox pluginLayout;
-
 
     private Parent rootLeft() {
         log.debug("init layout - left");
@@ -523,35 +531,33 @@ public class Application<T> {
           logMessageArea
         );
 
+        root.setMinWidth(300);
         root.setMaxWidth(300);
         root.setSpacing(5);
-        root.setPadding(new Insets(5, 2, 5, 2));
+        root.setPadding(new Insets(5, 5, 5, 5));
         return root;
     }
 
     private Parent rootCenter() {
         log.debug("init layout - center");
 
-        var toolbox = new HBox();
-
-        view = new ProbeView<T>(config, probe);
-        view.setMinWidth(600);
+        view = new ProbeView<>(config, probe);
+        view.setMinWidth(700);
         view.setMinHeight(800);
 
-        var root = new VBox(
-          toolbox,
+        viewLayout = new VBox(
           view
         );
-        return root;
+        return viewLayout;
     }
 
     private Parent rootRight() {
         log.debug("init layout - right");
 
         var root = new VBox();
-        root.setMinWidth(400);
+        root.setMinWidth(600);
         root.setSpacing(5);
-        root.setPadding(new Insets(5, 2, 5, 2));
+        root.setPadding(new Insets(15, 5, 5, 5));
 
         pluginLayout = root;
         return root;
