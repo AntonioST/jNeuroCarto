@@ -40,7 +40,7 @@ public abstract class InvisibleView implements Plugin {
     protected void setupMenuViewItem(PluginSetupService service, String name) {
         var item = new CheckMenuItem(name);
         item.selectedProperty().bindBidirectional(visible);
-        service.addMenuInView(item, this instanceof ProbePlugin);
+        service.addMenuInView(item);
     }
 
     @Override

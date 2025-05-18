@@ -386,7 +386,11 @@ public class Application<T> {
           }).toList();
         selectMethodMenu.getItems().addAll(selectMethodMenuItems);
 
+        var clearLog = new MenuItem("Clear log messages");
+        clearLog.setOnAction(_ -> clearMessages());
+
         var editUserConfig = new MenuItem("Edit user config");
+        editUserConfig.setOnAction(_ -> printMessage("TODO"));
 
         menuEdit.getItems().addAll(
           clear,
@@ -398,7 +402,8 @@ public class Application<T> {
           new SeparatorMenuItem(),
           new PluginSeparatorMenuItem(),
           new ProbePluginSeparatorMenuItem(),
-          editUserConfig
+          editUserConfig,
+          clearLog
         );
 
         return menuEdit;
@@ -580,11 +585,13 @@ public class Application<T> {
                 plugins.add(plugin);
                 log.debug("add plugin : {}", plugin.getClass().getName());
 
+                service.bind(plugin);
                 var node = plugin.setup(service);
+                service.bind(null);
+
                 if (node != null) {
                     pluginLayout.getChildren().add(node);
                 }
-
             }
         }
 
@@ -636,7 +643,10 @@ public class Application<T> {
                 log.debug("add plugin {}", plugin.getClass().getName());
                 plugins.add(plugin);
 
+                service.bind(plugin);
                 var node = plugin.setup(service);
+                service.bind(null);
+
                 if (node != null) {
                     pluginLayout.getChildren().add(node);
                 }

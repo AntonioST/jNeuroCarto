@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.javafx.atlas;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
@@ -177,6 +178,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var ret = super.setup(service);
 //        bindInvisibleNode(setupToolbar(service));
         bindInvisibleNode(setupInformationBar(service));
+        setupMenuItems(service);
 
         setProjection(ImageSliceStack.Projection.coronal);
 
@@ -191,6 +193,19 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         drawAtlasBrainBoundary.addListener((_, _, _) -> updateSliceImage());
 
         return ret;
+    }
+
+    private void setupMenuItems(PluginSetupService service) {
+        var setCoordinate = new MenuItem("Set atlas brain coordinate");
+        setCoordinate.setOnAction(_ -> LogMessageService.printMessage("TODO"));
+        service.addMenuInEdit(List.of(setCoordinate));
+
+        var about = new MenuItem("About - " + name());
+        about.setOnAction(e -> LogMessageService.printMessage("""
+          Atlas Brain - %s
+          provider by io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.atlas.AtlasPlugin
+          """.formatted(download.atlasNameVersion())));
+        service.addMenuInHelp(about);
     }
 
     private Node setupToolbar(PluginSetupService service) {

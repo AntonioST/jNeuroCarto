@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -10,12 +11,21 @@ import javafx.scene.control.MenuItem;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.javafx.view.Plugin;
+import io.ast.jneurocarto.javafx.view.ProbePlugin;
+
 @NullMarked
 public final class PluginSetupService {
+
     private @Nullable Application<?> app;
+    private @Nullable Plugin plugin;
 
     PluginSetupService(Application<?> app) {
         this.app = app;
+    }
+
+    void bind(@Nullable Plugin plugin) {
+        this.plugin = plugin;
     }
 
     void dispose() {
@@ -28,27 +38,23 @@ public final class PluginSetupService {
         items.add(items.size() - 1, menu);
     }
 
-    public void addMenuInEdit(MenuItem item, boolean isProbePlugin) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
-        var index = app.findMenuItemIndex(app.menuEdit, isProbePlugin);
-        app.menuEdit.getItems().add(index, item);
+    public void addMenuInEdit(MenuItem... item) {
+        addMenuInEdit(Arrays.asList(item));
     }
 
-    public void addMenuInEdit(List<MenuItem> items, boolean isProbePlugin) {
+    public void addMenuInEdit(List<MenuItem> items) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
-        var index = app.findMenuItemIndex(app.menuEdit, isProbePlugin);
+        var index = app.findMenuItemIndex(app.menuEdit, plugin instanceof ProbePlugin);
         app.menuEdit.getItems().addAll(index, items);
     }
 
-    public void addMenuInView(MenuItem item, boolean isProbePlugin) {
-        var app = Objects.requireNonNull(this.app, "service is finished.");
-        var index = app.findMenuItemIndex(app.menuView, isProbePlugin);
-        app.menuView.getItems().add(index, item);
+    public void addMenuInView(MenuItem... item) {
+        addMenuInView(Arrays.asList(item));
     }
 
-    public void addMenuInView(List<MenuItem> items, boolean isProbePlugin) {
+    public void addMenuInView(List<MenuItem> items) {
         var app = Objects.requireNonNull(this.app, "service is finished.");
-        var index = app.findMenuItemIndex(app.menuView, isProbePlugin);
+        var index = app.findMenuItemIndex(app.menuView, plugin instanceof ProbePlugin);
         app.menuView.getItems().addAll(index, items);
     }
 
