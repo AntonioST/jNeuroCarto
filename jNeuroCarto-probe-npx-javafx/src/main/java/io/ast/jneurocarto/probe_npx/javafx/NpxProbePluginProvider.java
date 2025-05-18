@@ -17,8 +17,9 @@ public class NpxProbePluginProvider implements ProbePluginProvider {
         System.out.println("NpxProbePluginProvider");
         System.out.println(desp);
         if (desp instanceof NpxProbeDescription probe) {
-            var ref = new ProbeReferencePlugin(config, probe);
-            return List.of(ref);
+            var ref = new ProbeReferencePlugin(probe);
+            var info = new NpxProbeInfoPlugin();
+            return List.of(ref, info);
         } else {
             return List.of();
         }

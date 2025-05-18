@@ -400,8 +400,8 @@ public class Application<T> {
           selectMethodMenu,
           autoFresh,
           new SeparatorMenuItem(),
-          new PluginSeparatorMenuItem(),
           new ProbePluginSeparatorMenuItem(),
+          new PluginSeparatorMenuItem(),
           editUserConfig,
           clearLog
         );
@@ -428,8 +428,8 @@ public class Application<T> {
           resetProbeViewAxes,
           resetProbeViewAxesRatio,
           new SeparatorMenuItem(),
-          new PluginSeparatorMenuItem(),
           new ProbePluginSeparatorMenuItem(),
+          new PluginSeparatorMenuItem(),
           clearLog
         );
 

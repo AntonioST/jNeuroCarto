@@ -193,7 +193,7 @@ public final class Select implements Callable<Integer> {
             var info = ChannelMaps.channelEfficiency(newChmap, electrodes);
             System.out.println("Efficiency:");
             System.out.printf("+ %-8s - %s\n", "area", info.area());
-            System.out.printf("+ %-8s - %s\n", "channel", info.channel());
+            System.out.printf("+ %-8s - %s\n", "channel", info.efficiency());
         }
 
         return 0;

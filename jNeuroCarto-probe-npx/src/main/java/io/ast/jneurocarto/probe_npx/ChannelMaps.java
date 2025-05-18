@@ -317,7 +317,7 @@ public final class ChannelMaps {
         /**
          * {@return channel efficiency}
          */
-        public double channel() {
+        public double efficiency() {
             return channelComplete * incomplete();
         }
     }
@@ -402,7 +402,7 @@ public final class ChannelMaps {
                 scope.fork(() -> {
                     var newMap = selector.select(desp, chmap, blueprint);
                     if (desp.validateChannelmap(newMap)) {
-                        var efficiency = channelEfficiency(newMap, blueprint).channel();
+                        var efficiency = channelEfficiency(newMap, blueprint).efficiency();
                         return new Result(newMap, efficiency);
                     } else {
                         return new Result(null, 0);
@@ -410,7 +410,7 @@ public final class ChannelMaps {
                 });
             }
 
-            var ret = new Result(chmap, channelEfficiency(chmap, blueprint).channel());
+            var ret = new Result(chmap, channelEfficiency(chmap, blueprint).efficiency());
             return scope.join().result().stream()
               .reduce(ret, Result::max)
               .result;
@@ -546,7 +546,7 @@ public final class ChannelMaps {
                 var newMap = selector.select(desp, chmap, blueprint);
                 var index = bp.indexBlueprint(newMap);
                 var complete = desp.validateChannelmap(newMap);
-                var efficiency = channelEfficiency(newMap, blueprint).channel();
+                var efficiency = channelEfficiency(newMap, blueprint).efficiency();
                 return new Result(index, complete, efficiency);
             });
 

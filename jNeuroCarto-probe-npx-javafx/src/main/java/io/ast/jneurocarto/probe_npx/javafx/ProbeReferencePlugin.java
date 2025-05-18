@@ -15,7 +15,6 @@ import javafx.util.StringConverter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
@@ -26,12 +25,10 @@ import io.ast.jneurocarto.probe_npx.ReferenceInfo;
 @NullMarked
 public class ProbeReferencePlugin implements ProbePlugin<ChannelMap> {
 
-    private final CartoConfig config;
     private final NpxProbeDescription probe;
     private @Nullable ChannelMap chmap;
 
-    public ProbeReferencePlugin(CartoConfig config, NpxProbeDescription probe) {
-        this.config = config;
+    public ProbeReferencePlugin(NpxProbeDescription probe) {
         this.probe = probe;
         reference.addListener((_, _, info) -> onReferenceChanged(info));
     }
