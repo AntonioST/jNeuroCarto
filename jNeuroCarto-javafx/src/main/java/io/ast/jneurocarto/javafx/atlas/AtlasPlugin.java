@@ -51,7 +51,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         this.config = config;
         download = AtlasBrainService.loadAtlas(config);
 //        setDrawAtlasBrainBoundary(true);
-//        setDrawAtlasBrainImage(true);
+//        setDrawAtlasBrainImage(false);
     }
 
     @Override
@@ -172,7 +172,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         painter = new SlicePainter();
         painter.flipUD(true);
         painter.flipLR(true);
-        painter.invertRotation(true);
+        painter.invertRotation(false);
 
         var ret = super.setup(service);
 //        bindInvisibleNode(setupToolbar(service));
@@ -499,9 +499,9 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var showBoundary = isDrawAtlasBrainBoundary();
 
         var gc = canvas.getBackgroundCanvasGraphicsContext(true);
-        gc.setGlobalAlpha(0.5);
 
         if (showImage) {
+            gc.setGlobalAlpha(0.5);
             painter.draw(gc, image);
         }
 

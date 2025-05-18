@@ -131,7 +131,7 @@ public class SlicePainter {
     public final BooleanProperty invertRotation = new SimpleBooleanProperty();
 
     public boolean invertRotation() {
-        return flipUD.get();
+        return invertRotation.get();
     }
 
     public void invertRotation(boolean value) {
@@ -151,8 +151,8 @@ public class SlicePainter {
     public Affine getSliceTransform() {
         var x = x();
         var y = y();
-        var w = (sliceCache == null) ? 0 : sliceCache.width() * sx();
-        var h = (sliceCache == null) ? 0 : sliceCache.height() * sy();
+        var w = (sliceCache == null) ? 0 : sliceCache.width();
+        var h = (sliceCache == null) ? 0 : sliceCache.height();
         var cx = w / 2;
         var cy = h / 2;
 
@@ -191,19 +191,19 @@ public class SlicePainter {
         if (invertRotation()) r = -r;
 
         var aff = new Affine();
-        aff.appendScale(1 / sx(), 1 / sy());
-        aff.appendRotation(-r, cx, cy);
+        aff.prependScale(1 / sx(), 1 / sy());
+        aff.prependRotation(-r, cx, cy);
         if (flipUD()) {
-            aff.appendTranslation(x / 2, y / 2);
-            aff.append(AFF_FLIP_UP);
-            aff.appendTranslation(-x / 2, -y / 2);
+            aff.prependTranslation(x / 2, y / 2);
+            aff.prepend(AFF_FLIP_UP);
+            aff.prependTranslation(-x / 2, -y / 2);
         }
         if (flipLR()) {
-            aff.appendTranslation(x / 2, y / 2);
-            aff.append(AFF_FLIP_LR);
-            aff.appendTranslation(-x / 2, -y / 2);
+            aff.prependTranslation(x / 2, y / 2);
+            aff.prepend(AFF_FLIP_LR);
+            aff.prependTranslation(-x / 2, -y / 2);
         }
-        aff.appendTranslation(-x, -y);
+        aff.prependTranslation(-x, -y);
         return aff;
     }
 
@@ -240,54 +240,28 @@ public class SlicePainter {
             sliceCache = slice;
         }
 
-        var x = x();
-        var y = y();
-        var w = slice.width() * sx();
-        var h = slice.height() * sy();
-
-        if (flipUD()) {
-            y += h;
-            h = -h;
-        }
-        if (flipLR()) {
-            x += w;
-            w = -w;
-        }
-
-        var r = r();
-        if (r == 0.0) {
-            gc.drawImage(image, x, y, w, h);
-        } else {
-            if (invertRotation()) r = -r;
-
-            gc.save();
-            try {
-                gc.translate(x, y);
-                gc.translate(w / 2, h / 2);
-                gc.rotate(-r);
-                gc.translate(-(w / 2), -(h / 2));
-                gc.drawImage(image, 0, 0, w, h);
-            } finally {
-                gc.restore();
-            }
+        var w = slice.width();
+        var h = slice.height();
+        var aff = gc.getTransform();
+        gc.save();
+        try {
+            aff.append(getSliceTransform());
+            gc.setTransform(aff);
+            gc.drawImage(image, 0, 0, w, h);
+        } finally {
+            gc.restore();
         }
     }
 
     public void drawBounds(GraphicsContext gc, ImageSlice slice) {
-        var x = x();
-        var y = y();
-        var w = slice.width() * sx();
-        var h = slice.height() * sy();
-
-        var r = r();
-        if (invertRotation()) r = -r;
-
+        sliceCache = slice;
+        var w = slice.width();
+        var h = slice.height();
+        var aff = gc.getTransform();
         gc.save();
         try {
-            gc.translate(x, y);
-            gc.translate(w / 2, h / 2);
-            gc.rotate(-r);
-            gc.translate(-(w / 2), -(h / 2));
+            aff.append(getSliceTransform());
+            gc.setTransform(aff);
             gc.strokeRect(0, 0, w, h);
             gc.strokeLine(0, 0, w, h);
             gc.strokeLine(0, h, w, 0);
