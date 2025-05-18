@@ -151,6 +151,19 @@ public class SlicePainter {
         flipUD.set(value);
     }
 
+    /**
+     * invert rotation direction
+     */
+    public final BooleanProperty invertRotation = new SimpleBooleanProperty();
+
+    public boolean invertRotation() {
+        return flipUD.get();
+    }
+
+    public void invertRotation(boolean value) {
+        invertRotation.set(value);
+    }
+
     /*===========*
      * transform *
      *===========*/
@@ -226,6 +239,8 @@ public class SlicePainter {
         if (r == 0.0) {
             gc.drawImage(image, x, y, w, h);
         } else {
+            if (invertRotation()) r = -r;
+
             gc.save();
             try {
                 var ax = ax() * sx();
@@ -247,6 +262,8 @@ public class SlicePainter {
         var h = slice.heightPx() * sy();
 
         var r = r();
+        if (invertRotation()) r = -r;
+
         gc.save();
         try {
             var ax = ax() * sx();

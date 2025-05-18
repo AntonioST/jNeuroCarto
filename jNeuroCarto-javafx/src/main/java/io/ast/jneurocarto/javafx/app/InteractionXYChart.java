@@ -500,6 +500,46 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
+    public Point2D getCanvasTransform(Point2D p) {
+        return getCanvasTransform(p.getX(), p.getY());
+    }
+
+    public Point2D getCanvasTransform(double px, double py) {
+        var ax = xAxis;
+        var ay = yAxis;
+        var area = getPlottingArea();
+        var w = ax.getUpperBound() - ax.getLowerBound();
+        var h = ay.getUpperBound() - ay.getLowerBound();
+
+        var mxx = area.getWidth() / w;
+        var mxy = 0;
+        var mxt = area.getMinX() - ax.getLowerBound() * area.getWidth() / w;
+        var myx = 0;
+        var myy = -area.getHeight() / h;
+        var myt = area.getMaxY() + ay.getLowerBound() * area.getHeight() / h;
+
+        var nx = mxx * px + mxy * py + mxt;
+        var ny = myx * px + myy * py + myt;
+        return new Point2D(nx, ny);
+    }
+
+    public Point2D getCanvasTransformScaling(double vw, double vh) {
+        var ax = xAxis;
+        var ay = yAxis;
+        var area = getPlottingArea();
+        var w = ax.getUpperBound() - ax.getLowerBound();
+        var h = ay.getUpperBound() - ay.getLowerBound();
+
+        var mxx = area.getWidth() / w;
+        var mxy = 0;
+        var myx = 0;
+        var myy = -area.getHeight() / h;
+
+        var nx = mxx * vw + mxy * vh;
+        var ny = myx * vw + myy * vh;
+        return new Point2D(nx, ny);
+    }
+
     /**
      * {@return an affine transform from canvas to chart coordinate system.}
      */
@@ -517,6 +557,46 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var myy = -h / area.getHeight();
         var myt = ay.getLowerBound() + area.getMaxY() * h / area.getHeight();
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
+    }
+
+    public Point2D getChartTransform(Point2D p) {
+        return getChartTransform(p.getX(), p.getY());
+    }
+
+    public Point2D getChartTransform(double px, double py) {
+        var ax = xAxis;
+        var ay = yAxis;
+        var area = getPlottingArea();
+        var w = ax.getUpperBound() - ax.getLowerBound();
+        var h = ay.getUpperBound() - ay.getLowerBound();
+
+        var mxx = w / area.getWidth();
+        var mxy = 0;
+        var mxt = ax.getLowerBound() - area.getMinX() * w / area.getWidth();
+        var myx = 0;
+        var myy = -h / area.getHeight();
+        var myt = ay.getLowerBound() + area.getMaxY() * h / area.getHeight();
+
+        var nx = mxx * px + mxy * py + mxt;
+        var ny = myx * px + myy * py + myt;
+        return new Point2D(nx, ny);
+    }
+
+    public Point2D getChartTransformScaling(double vw, double vh) {
+        var ax = xAxis;
+        var ay = yAxis;
+        var area = getPlottingArea();
+        var w = ax.getUpperBound() - ax.getLowerBound();
+        var h = ay.getUpperBound() - ay.getLowerBound();
+
+        var mxx = w / area.getWidth();
+        var mxy = 0;
+        var myx = 0;
+        var myy = -h / area.getHeight();
+
+        var nx = mxx * vw + mxy * vh;
+        var ny = myx * vw + myy * vh;
+        return new Point2D(nx, ny);
     }
 
 

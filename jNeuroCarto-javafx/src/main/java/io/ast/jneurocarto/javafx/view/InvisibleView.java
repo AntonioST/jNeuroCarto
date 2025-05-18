@@ -45,22 +45,26 @@ public abstract class InvisibleView implements Plugin {
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        var visibleSwitch = newInvisibleSwitch(name());
+        var heading = setupHeading(service);
 
         var content = setupContent(service);
         bindInvisibleNode(content);
         setupMenuViewItem(service, name());
 
-        var padding = new HBox(content);
+        var paddedContent = new HBox(content);
         HBox.setHgrow(content, Priority.ALWAYS);
-        padding.setPadding(new Insets(0, 0, 0, 15));
+        paddedContent.setPadding(new Insets(0, 0, 0, 15));
 
         var root = new VBox(
-          visibleSwitch,
-          padding
+          heading,
+          paddedContent
         );
 
         return root;
+    }
+
+    protected Node setupHeading(PluginSetupService service) {
+        return newInvisibleSwitch(name());
     }
 
     protected abstract Node setupContent(PluginSetupService service);

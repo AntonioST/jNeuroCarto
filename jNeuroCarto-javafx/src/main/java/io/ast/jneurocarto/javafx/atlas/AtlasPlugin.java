@@ -8,10 +8,9 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.geometry.BoundingBox;
 import javafx.geometry.HPos;
-import javafx.geometry.Point2D;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -170,6 +169,17 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         checkBrainAtlas();
 
         canvas = service.getProbeView();
+
+        painter = new SlicePainter();
+        painter.flipUD(true);
+        painter.invertRotation(true);
+
+        var ret = super.setup(service);
+//        bindInvisibleNode(setupToolbar(service));
+        bindInvisibleNode(setupInformationBar(service));
+
+        setProjection(ImageSliceStack.Projection.coronal);
+
         canvas.addEventFilter(MouseEvent.MOUSE_PRESSED, this::onMouseDragged);
         canvas.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
         canvas.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onMouseDragged);
@@ -177,14 +187,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         canvas.addEventFilter(MouseEvent.MOUSE_EXITED, this::onMouseExited);
         canvas.addEventFilter(InteractionXYChart.CanvasChangeEvent.ANY, this::onCanvasChange);
 
-        painter = new SlicePainter();
-        painter.flipUD(true);
-
-        var ret = super.setup(service);
-//        bindInvisibleNode(setupToolbar(service));
-        bindInvisibleNode(setupInformationBar(service));
-
-        setProjection(ImageSliceStack.Projection.coronal);
+        drawAtlasBrainImage.addListener((_, _, _) -> updateSliceImage());
+        drawAtlasBrainBoundary.addListener((_, _, _) -> updateSliceImage());
 
         return ret;
     }
@@ -208,6 +212,20 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     }
 
     @Override
+    protected Node setupHeading(PluginSetupService service) {
+        var heading = super.setupHeading(service);
+
+        var showImageSwitch = new CheckBox("Show image");
+        showImageSwitch.selectedProperty().bindBidirectional(drawAtlasBrainImage);
+
+        assert !(heading instanceof Parent);
+        var ret = new HBox(heading, showImageSwitch);
+        ret.setSpacing(10);
+
+        return ret;
+    }
+
+    @Override
     protected Node setupContent(PluginSetupService service) {
         var layout = new GridPane();
 //        layout.setGridLinesVisible(true);
@@ -227,6 +245,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         sliderRotation.setMin(-90);
         sliderRotation.setMax(90);
         sliderRotation.setMajorTickUnit(10);
+        sliderRotation.valueProperty().bindBidirectional(painter.r);
 
         sliderOffsetWidth = newSlider();
         sliderOffsetWidth.setMin(-1000);
@@ -289,11 +308,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         btnSagittal = new RadioButton("Sagittal");
         btnSagittal.setToggleGroup(groupProjection);
-        btnCoronal.setOnAction(e -> projection.set(ImageSliceStack.Projection.sagittal));
+        btnSagittal.setOnAction(e -> projection.set(ImageSliceStack.Projection.sagittal));
 
         btnTransverse = new RadioButton("Transverse");
         btnTransverse.setToggleGroup(groupProjection);
-        btnCoronal.setOnAction(e -> projection.set(ImageSliceStack.Projection.transverse));
+        btnTransverse.setOnAction(e -> projection.set(ImageSliceStack.Projection.transverse));
 
         layout.getChildren().addAll(btnCoronal, btnSagittal, btnTransverse);
 
@@ -369,13 +388,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
             mousePress = null;
             mouseMoved = null;
         } else if (e.getEventType() == MouseEvent.MOUSE_DRAGGED && mousePress != null) {
-            var transform = canvas.getChartTransform();
             var prev = mouseMoved == null ? mousePress : mouseMoved;
             var dx = e.getX() - prev.getX();
             var dy = e.getY() - prev.getY();
-            var p = new BoundingBox(0, 0, dx, dy);
-            var q = transform.transform(p);
-            painter.translate(Math.signum(dx) * q.getWidth(), -Math.signum(dy) * q.getHeight());
+            var q = canvas.getChartTransformScaling(dx, dy);
+            painter.translate(q.getX(), q.getY());
             mouseMoved = e;
             e.consume();
             updateSliceImage();
@@ -391,7 +408,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         }
 
         // TODO
-        var point = canvas.getChartTransform().transform(new Point2D(e.getX(), e.getY()));
+        var point = canvas.getChartTransform(e.getX(), e.getY());
 //        var coor = image.pullBack(image.planeAt(getCoordinate(e)));
 //        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
 //
@@ -411,7 +428,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     private SliceCoordinate getSliceCoordinate(MouseEvent e) {
         var mx = e.getX();
         var my = e.getY();
-        var p = canvas.getChartTransform().transform(new Point2D(mx, my));
+        var p = canvas.getChartTransform(mx, my);
         var x = (p.getX() - painter.x()) / painter.sx();
         var y = (p.getY() - painter.y()) / painter.sy();
         return new SliceCoordinate(0, x, y);
@@ -463,17 +480,22 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var image = images.sliceAtPlane(plane);
         this.image = image = image.withOffset(dw, dh);
 
+        var showImage = isDrawAtlasBrainImage();
+        var showBoundary = isDrawAtlasBrainBoundary();
+
         // TODO image is left-right flipped
         var gc = canvas.getBackgroundCanvasGraphicsContext(true);
         gc.setGlobalAlpha(0.5);
 
-        if (isDrawAtlasBrainImage()) painter.draw(gc, image);
+        if (showImage) {
+            painter.draw(gc, image);
+        }
 
-        if (isDrawAtlasBrainBoundary()) {
+        if (showBoundary) {
             gc.setStroke(Color.BLACK);
             gc.setFill(Color.RED);
             gc.setLineWidth(2);
-            painter.drawBounds(gc, image, !isDrawAtlasBrainImage());
+            painter.drawBounds(gc, image, !showImage);
         }
     }
 
