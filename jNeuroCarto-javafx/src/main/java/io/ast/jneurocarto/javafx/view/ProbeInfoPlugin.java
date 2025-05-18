@@ -87,11 +87,7 @@ public abstract class ProbeInfoPlugin<T> extends InvisibleView implements ProbeP
                 log.warn(label, e);
             }
 
-            if (value == null) {
-                content.setText("");
-            } else {
-                content.setText(value);
-            }
+            content.setText(value == null ? "" : value);
         }
     }
 }
