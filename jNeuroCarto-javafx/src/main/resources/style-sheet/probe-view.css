@@ -21,15 +21,15 @@
     -fx-border-width: 1px;
     -fx-padding: 6px;
 }
-/* unused */
+/* STATE_UNUSED */
 .chart-symbol.electrode-state-0 {
     -fx-background-color: black;
 }
-/* used */
+/* STATE_USED */
 .chart-symbol.electrode-state-1 {
     -fx-background-color: green;
 }
-/* disabled */
+/* STATE_DISABLED */
 .chart-symbol.electrode-state-2 {
     -fx-background-color: rgba(255,0,0,0.2);
     -fx-scale-x: 0.8;

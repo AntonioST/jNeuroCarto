@@ -1042,12 +1042,16 @@ public class Application<T> {
         var blueprint = getBlueprint();
         if (blueprint == null) return;
 
+        log.debug("refreshSelection({})", method);
         var selector = getSelector(method);
         if (selector == null) {
             printMessage("cannot found selector : " + method);
             return;
         }
+        log.debug("use selector {}", selector.getClass().getName());
 
+        log.debug("start selection");
+        long start = System.currentTimeMillis();
         T newMap;
         try {
             newMap = selector.select(probe, chmap, blueprint);
@@ -1056,6 +1060,8 @@ public class Application<T> {
             log.warn("refreshSelection", ex);
             return;
         }
+        long pass = System.currentTimeMillis() - start;
+        log.debug("stop selection. use {} sec", String.format("%.4f", (double) pass / 1000));
 
         view.setChannelmap(newMap);
         view.resetElectrodeState();

@@ -1,5 +1,8 @@
 package io.ast.jneurocarto.javafx.cli;
 
+import java.io.IOException;
+
+import javafx.application.Platform;
 import javafx.stage.Stage;
 
 import org.slf4j.LoggerFactory;
@@ -25,8 +28,18 @@ public class Main {
             Thread.ofVirtual().start(() -> preloadAtlasBrain(config));
         }
 
-        new Application(config);
+        var app = new Application(config);
         javafx.application.Application.launch(App.class);
+
+        if (config.file != null) {
+            Platform.runLater(() -> {
+                try {
+                    app.loadChannelmap(config.file);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
 
     public static class App extends javafx.application.Application {

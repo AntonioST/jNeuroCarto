@@ -9,8 +9,8 @@ public interface IOAction {
 
     static void measure(Logger log, String message, IOAction action) {
         Thread.ofVirtual().name(message).start(() -> {
-            var start = System.currentTimeMillis();
             log.debug("start {}", message);
+            var start = System.currentTimeMillis();
             try {
                 action.doit();
             } catch (IOException e) {
