@@ -236,7 +236,10 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         var filename = file.getFileName().toString();
         if (!filename.endsWith(".npy")) throw new IllegalArgumentException("not a .npy filename : " + filename);
 
-        var data = Numpy.read(file);
+        // int[C][R] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
+        var data = Numpy.read(file, new Numpy.OfD2Int(true));
+        if (data.length != 5) throw new IllegalArgumentException("bad blueprint file format");
+
         var length = data[0].length;
 
         for (var code : supportedProbeType()) {
@@ -253,7 +256,9 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         var filename = file.getFileName().toString();
         if (!filename.endsWith(".npy")) throw new IllegalArgumentException("not a .npy filename : " + filename);
 
-        var data = Numpy.read(file);
+        // int[5][N] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
+        var data = Numpy.read(file, new Numpy.OfD2Int(true));
+        if (data.length != 5) throw new IllegalArgumentException("bad blueprint file format");
 
         return readBlueprint(data, allElectrodes(chmap));
     }
@@ -297,6 +302,6 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
             ret[4][i] = e.category();
         }
 
-        Numpy.write(file, ret);
+        Numpy.write(file, ret, new Numpy.OfD2Int(true));
     }
 }

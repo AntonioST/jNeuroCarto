@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
 
-
 import static java.nio.file.StandardOpenOption.*;
 
 /// [Numpy format](https://numpy.org/devdocs/reference/generated/numpy.lib.format.html)
@@ -109,77 +108,417 @@ public final class Numpy {
             if (ret < 0) return -1;
             return ret + key.length();
         }
+    }
 
+    public sealed interface ArrayCreator<T> permits ValueArray {
+        T create(NumpyHeader header);
+
+        void checkFor(T data);
+
+        int[] shape();
+
+        String descr();
+
+        int valueSize();
+
+        /**
+         * read value from buffer.
+         *
+         * @param ret
+         * @param pos
+         * @param buffer
+         * @return successful
+         */
+        boolean read(T ret, long pos, ByteBuffer buffer);
+
+        /**
+         * write value into buffer.
+         *
+         * @param ret
+         * @param pos
+         * @param buffer
+         * @return successful
+         */
+        boolean write(T ret, long pos, ByteBuffer buffer);
 
     }
 
-    /**
-     * @param file .npy file
-     * @return int[5][N] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
-     * @throws IOException
-     */
-    public static int[][] read(Path file) throws IOException {
-        try (var channel = Files.newByteChannel(file)) {
-            return read(channel);
+    private static sealed abstract class ValueArray<T> implements ArrayCreator<T> permits D1Array, D2Array {
+
+        final char valueType;
+        int valueSize = 0;
+
+        ValueArray(char valueType) {
+            this.valueType = valueType;
+            valueSize = switch (valueType) {
+                case 'i' -> 4;
+                case 'f' -> 8;
+                default -> 0;
+            };
+        }
+
+        @Override
+        public final int valueSize() {
+            return valueSize;
+        }
+
+        final void checkValue(NumpyHeader header) {
+            var descr = header.descr();
+            var valueType = descr.charAt(1);
+            valueSize = Integer.parseInt(descr.substring(2));
+            if (valueType != this.valueType) throw new RuntimeException("not an " + this.valueType + " array, but : " + descr);
+            if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8)
+                throw new RuntimeException("not an " + this.valueType + " array, but : " + descr);
+        }
+
+        @Override
+        public final String descr() {
+            return "<" + valueType + valueSize;
+        }
+
+        final int readInt(ByteBuffer buffer) {
+            return switch (valueSize) {
+                case 1 -> buffer.get();
+                case 2 -> buffer.getShort();
+                case 4 -> buffer.getInt();
+                case 8 -> (int) buffer.getLong();
+                default -> throw new RuntimeException();
+            };
+        }
+
+        final void writeInt(ByteBuffer buffer, int value) {
+            switch (valueSize) {
+            case 1 -> buffer.put((byte) value);
+            case 2 -> buffer.putShort((short) value);
+            case 4 -> buffer.putInt(value);
+            case 8 -> buffer.putLong(value);
+            default -> throw new RuntimeException();
+            }
+        }
+
+        final double readDouble(ByteBuffer buffer) {
+            return buffer.getDouble();
+        }
+
+        final void writeDouble(ByteBuffer buffer, double value) {
+            buffer.putDouble(value);
+        }
+    }
+
+    private static abstract sealed class D1Array<T> extends ValueArray<T> permits OfInt, OfDouble {
+
+        int length;
+
+        D1Array(char valueType) {
+            super(valueType);
+        }
+
+        final int checkShape(NumpyHeader header) {
+            var shape = header.shape();
+
+            if (shape.length != 1) throw new RuntimeException("not an 1-d array : " + Arrays.toString(shape));
+            checkValue(header);
+            length = shape[0];
+            return length;
+        }
+
+        @Override
+        public final int[] shape() {
+            return new int[]{length};
+        }
+
+        final void checkFor(int length) {
+            this.length = length;
+        }
+
+    }
+
+    private static sealed abstract class D2Array<T> extends ValueArray<T> permits OfD2Int, OfD2Double {
+
+        final boolean columnFirst;
+        int rows;
+        int columns;
+        int length1;
+        int length2;
+        int index1;
+        int index2;
+
+        D2Array(char valueType, boolean columnFirst) {
+            super(valueType);
+            this.columnFirst = columnFirst;
+        }
+
+        final void checkShape(NumpyHeader header) {
+            var shape = header.shape();
+
+            if (shape.length != 2) throw new RuntimeException("not an 2-d array : " + Arrays.toString(shape));
+            rows = shape[0];
+            columns = shape[1];
+
+            if (columnFirst) {
+                length1 = columns;
+                length2 = rows;
+            } else {
+                length1 = rows;
+                length2 = columns;
+            }
+
+            checkValue(header);
+        }
+
+        @Override
+        public final int[] shape() {
+            return new int[]{rows, columns};
+        }
+
+        final void checkFor(int length1, int length2) {
+            this.length1 = length1;
+            this.length2 = length2;
+            if (columnFirst) {
+                columns = length1;
+                rows = length2;
+            } else {
+                rows = length1;
+                columns = length2;
+            }
+        }
+
+        final boolean index(long pos) {
+            if (columnFirst) {
+                index1 = (int) (pos % columns);
+                index2 = (int) (pos / columns);
+            } else {
+                index1 = (int) (pos / columns);
+                index2 = (int) (pos % columns);
+            }
+            return index1 < length1 && index2 < length2;
+        }
+    }
+
+    public static final class OfInt extends D1Array<int[]> {
+        public OfInt() {
+            super('i');
+        }
+
+        @Override
+        public int[] create(NumpyHeader header) {
+            return new int[checkShape(header)];
+        }
+
+        @Override
+        public void checkFor(int[] data) {
+            checkFor(data.length);
+        }
+
+        @Override
+        public boolean read(int[] ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < ret.length) {
+                ret[p] = readInt(buffer);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean write(int[] ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < ret.length) {
+                writeInt(buffer, ret[p]);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public static final class OfD2Int extends D2Array<int[][]> {
+        public OfD2Int() {
+            super('i', false);
+        }
+
+        public OfD2Int(boolean columnFirst) {
+            super('i', columnFirst);
+        }
+
+        @Override
+        public int[][] create(NumpyHeader header) {
+            checkShape(header);
+            var ret = new int[length1][length2];
+            for (int i = 0; i < length1; i++) ret[i] = new int[length2];
+            return ret;
+        }
+
+        @Override
+        public void checkFor(int[][] data) {
+            var length1 = data.length;
+            var length2 = data[0].length;
+            for (int i = 1; i < length1; i++) {
+                if (data[i].length != length2) throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
+            }
+            checkFor(length1, length2);
+        }
+
+        @Override
+        public boolean read(int[][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                ret[index1][index2] = readInt(buffer);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean write(int[][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                writeInt(buffer, ret[index1][index2]);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public static final class OfDouble extends D1Array<double[]> {
+        public OfDouble() {
+            super('f');
+        }
+
+        @Override
+        public double[] create(NumpyHeader header) {
+            return new double[checkShape(header)];
+        }
+
+        @Override
+        public void checkFor(double[] data) {
+            checkFor(data.length);
+        }
+
+        @Override
+        public boolean read(double[] ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < ret.length) {
+                ret[p] = readDouble(buffer);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean write(double[] ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < ret.length) {
+                writeDouble(buffer, ret[p]);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    public static final class OfD2Double extends D2Array<double[][]> {
+        public OfD2Double() {
+            super('f', false);
+        }
+
+        public OfD2Double(boolean columnFirst) {
+            super('f', columnFirst);
+        }
+
+        @Override
+        public double[][] create(NumpyHeader header) {
+            checkShape(header);
+            var ret = new double[length1][length2];
+            for (int i = 0; i < length1; i++) ret[i] = new double[length2];
+            return ret;
+        }
+
+        @Override
+        public void checkFor(double[][] data) {
+            var length1 = data.length;
+            var length2 = data[0].length;
+            for (int i = 1; i < length1; i++) {
+                if (data[i].length != length2) throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
+            }
+            checkFor(length1, length2);
+        }
+
+        @Override
+        public boolean read(double[][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                ret[index1][index2] = readDouble(buffer);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean write(double[][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                writeDouble(buffer, ret[index1][index2]);
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
     /**
-     * @param in
-     * @return int[5][N] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
+     * read numpy array from file.
+     *
+     * @param file .npy file
+     * @param of   array create handler
+     * @return
      * @throws IOException
      */
-    public static int[][] read(InputStream in) throws IOException {
-        return read(Channels.newChannel(in));
+    public static <T> T read(Path file, ArrayCreator<T> of) throws IOException {
+        try (var channel = Files.newByteChannel(file)) {
+            return read(channel, of);
+        }
+    }
+
+    /**
+     * read numpy array from stream.
+     *
+     * @param in
+     * @param of array create handler
+     * @return
+     * @throws IOException
+     */
+    public static <T> T read(InputStream in, ArrayCreator<T> of) throws IOException {
+        return read(Channels.newChannel(in), of);
     }
 
     /**
      * @param channel
-     * @return int[5][N] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
+     * @return int[C][R] array
      * @throws IOException
      */
-    private static int[][] read(ReadableByteChannel channel) throws IOException {
+    private static <T> T read(ReadableByteChannel channel, ArrayCreator<T> of) throws IOException {
         var header = readHeader(channel);
 
-        var shape = header.shape();
-        if (shape.length != 2) throw new IOException("not an 2-d array : " + Arrays.toString(shape));
-        // (N, (shank, col, row, state, category))
-        var length = shape[0];
-        var columns = shape[1];
-        if (columns != 5) throw new IOException("not an (N, 5) array : " + Arrays.toString(shape));
+        if (header.fortranOrder()) throw new IOException("not an C-array");
 
-        if (header.fortranOrder()) throw new IOException("not an (N, 5) C-array");
+        T ret = of.create(header);
 
         var descr = header.descr();
         boolean isLittle = descr.charAt(0) == '<';
-        var valueType = descr.charAt(1);
-        var valueSize = Integer.parseInt(descr.substring(2));
-        if (valueType != 'i') throw new IOException("not an (N, 5) int array, but : " + descr);
-        if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8)
-            throw new IOException("not an (N, 5) int array, but : " + descr);
 
-        var buffer = ByteBuffer.allocate(32 * 5);
+        var valueSize = of.valueSize();
+        var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
         buffer.order(isLittle ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
 
-        var ret = new int[5][];
-        for (int c = 0; c < 5; c++) ret[c] = new int[length];
-
-        int r = 0;
-        while (r < length) {
+        long pos = 0L;
+        while (true) {
             buffer.clear();
-            if (channel.read(buffer) < 0) throw new IOException("EOF");
+            if (channel.read(buffer) < 0) break;
             buffer.flip();
-
-            while (buffer.remaining() >= 5) {
-                for (int c = 0; c < 5; c++) {
-                    switch (valueSize) {
-                    case 1 -> ret[c][r] = buffer.get();
-                    case 2 -> ret[c][r] = buffer.getShort();
-                    case 4 -> ret[c][r] = buffer.getInt();
-                    case 8 -> ret[c][r] = (int) buffer.getLong();
-                    }
-                }
-                r++;
+            while (buffer.remaining() >= valueSize) {
+                of.read(ret, pos++, buffer);
             }
         }
 
@@ -187,47 +526,64 @@ public final class Numpy {
     }
 
     /**
+     * write numpy array to file.
+     *
      * @param file
-     * @param array int[5][N] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
+     * @param array
      * @throws IOException
      */
     public static void write(Path file, int[][] array) throws IOException {
-        checkOutArray(array);
+        var of = new OfD2Int();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, double[][] array) throws IOException {
+        var of = new OfD2Double();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static <T> void write(Path file, T array, ArrayCreator<T> of) throws IOException {
+        of.checkFor(array);
         try (var channel = Files.newByteChannel(file, CREATE, TRUNCATE_EXISTING, WRITE)) {
-            write(channel, array);
+            write(channel, array, of);
         }
     }
 
     /**
+     * write numpy array to stream.
+     *
      * @param out
-     * @param array int[5][N] array that {0: shank, 1: column, 2: row, 3: state, 4: category}
+     * @param array
      * @throws IOException
      */
     public static void write(OutputStream out, int[][] array) throws IOException {
-        checkOutArray(array);
-        write(Channels.newChannel(out), array);
+        var of = new OfD2Int();
+        of.checkFor(array);
+        write(out, array, of);
     }
 
-    private static void checkOutArray(int[][] array) {
-        if (array.length != 5) throw new IllegalArgumentException("not an array[5][N]");
-        var length = array[0].length;
-        if (array[1].length != length) throw new IllegalArgumentException("not an array[5][N]");
-        if (array[2].length != length) throw new IllegalArgumentException("not an array[5][N]");
-        if (array[3].length != length) throw new IllegalArgumentException("not an array[5][N]");
-        if (array[4].length != length) throw new IllegalArgumentException("not an array[5][N]");
+    public static void write(OutputStream out, double[][] array) throws IOException {
+        var of = new OfD2Double();
+        of.checkFor(array);
+        write(out, array, of);
     }
 
-    private static void write(WritableByteChannel channel, int[][] array) throws IOException {
-        var length = array[0].length;
-        writeHeader(channel, NumpyHeader.of(1, 0, "<i4", false, new int[]{length, 5}));
+    public static <T> void write(OutputStream out, T array, ArrayCreator<T> of) throws IOException {
+        of.checkFor(array);
+        write(Channels.newChannel(out), array, of);
+    }
 
-        var buffer = ByteBuffer.allocate(32 * 5);
+    private static <T> void write(WritableByteChannel channel, T array, ArrayCreator<T> of) throws IOException {
+        writeHeader(channel, NumpyHeader.of(1, 0, of.descr(), false, of.shape()));
+
+        var valueSize = of.valueSize();
+        var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        for (int i = 0; i < length; i++) {
-            for (int c = 0; c < 5; c++) {
-                buffer.putInt(array[c][i]);
-            }
+        long pos = 0L;
+        while (of.write(array, pos++, buffer)) {
 
             if (buffer.remaining() == 0) {
                 buffer.flip();

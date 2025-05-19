@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class NumpyTest {
@@ -64,10 +63,10 @@ public class NumpyTest {
     }
 
     @Test
-    void readNumpyFile() throws IOException {
+    void readNumpyIntArrayFile() throws IOException {
         var file = Path.of("src/test/resources/Fig3_example.blueprint.npy");
         assertTrue(Files.exists(file));
-        var data = Numpy.read(file);
+        var data = Numpy.read(file, new Numpy.OfD2Int(true));
         assertEquals(5, data.length);
         assertEquals(5120, data[0].length);
         assertEquals(5120, data[1].length);
@@ -97,7 +96,7 @@ public class NumpyTest {
     }
 
     @Test
-    void readWriteNumpyArray() throws IOException {
+    void readWriteNumpyIntArray() throws IOException {
         var data = new int[5][];
         for (int i = 0; i < 5; i++) {
             data[i] = new int[12];
@@ -110,16 +109,48 @@ public class NumpyTest {
         var file = Files.createTempFile(Path.of("target"), "test-", ".npy");
 
         try {
-            Numpy.write(file, data);
+            Numpy.write(file, data, new Numpy.OfD2Int(true));
 
-            var back = Numpy.read(file);
+            var back = Numpy.read(file, new Numpy.OfD2Int(true));
             assert2DArrayEquals(data, back);
         } finally {
             Files.deleteIfExists(file);
         }
     }
 
+    @Test
+    void readWriteNumpyDoubleArray() throws IOException {
+        var data = new double[5][];
+        for (int i = 0; i < 5; i++) {
+            data[i] = new double[12];
+            for (int j = 0; j < 12; j++) {
+                data[i][j] = Math.random();
+            }
+        }
+        assert2DArrayEquals(data, data);
+
+        var file = Files.createTempFile(Path.of("target"), "test-", ".npy");
+
+        try {
+            Numpy.write(file, data, new Numpy.OfD2Double(true));
+
+            var back = Numpy.read(file, new Numpy.OfD2Double(true));
+            assert2DArrayEquals(data, back);
+        } finally {
+//            System.out.println(file);
+            Files.deleteIfExists(file);
+        }
+    }
+
     private static void assert2DArrayEquals(int[][] expect, int[][] actual) {
+        assertEquals(expect.length, actual.length, () -> "expect[" + expect.length + "] != actual[" + actual.length + "]");
+        for (int i = 0, length = expect.length; i < length; i++) {
+            int j = i;
+            assertArrayEquals(expect[i], actual[i], () -> "expect[" + j + "][*] != actual[" + j + "][*]");
+        }
+    }
+
+    private static void assert2DArrayEquals(double[][] expect, double[][] actual) {
         assertEquals(expect.length, actual.length, () -> "expect[" + expect.length + "] != actual[" + actual.length + "]");
         for (int i = 0, length = expect.length; i < length; i++) {
             int j = i;
