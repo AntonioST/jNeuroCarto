@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
@@ -17,7 +15,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -27,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.Coordinate;
-import io.ast.jneurocarto.javafx.app.InteractionXYChart;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
@@ -50,8 +46,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     public AtlasPlugin(CartoConfig config) {
         this.config = config;
         download = AtlasBrainService.loadAtlas(config);
-//        setDrawAtlasBrainBoundary(true);
-//        setDrawAtlasBrainImage(false);
     }
 
     @Override
@@ -78,25 +72,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         projection.set(value);
     }
 
-    public final BooleanProperty drawAtlasBrainBoundary = new SimpleBooleanProperty(false);
 
-    public final boolean isDrawAtlasBrainBoundary() {
-        return drawAtlasBrainBoundary.get();
-    }
-
-    public final void setDrawAtlasBrainBoundary(boolean value) {
-        drawAtlasBrainBoundary.set(value);
-    }
-
-    public final BooleanProperty drawAtlasBrainImage = new SimpleBooleanProperty(true);
-
-    public final boolean isDrawAtlasBrainImage() {
-        return drawAtlasBrainImage.get();
-    }
-
-    public final void setDrawAtlasBrainImage(boolean value) {
-        drawAtlasBrainImage.set(value);
-    }
 
     /*===========================*
      * BrainAtlas initialization *
@@ -173,6 +149,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         painter.flipUD(true);
         painter.flipLR(true);
         painter.invertRotation(false);
+        canvas.addBackgroundPlotting(painter);
 
         var ret = super.setup(service);
 //        bindInvisibleNode(setupToolbar(service));
@@ -186,10 +163,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         canvas.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onMouseDragged);
         canvas.addEventFilter(MouseEvent.MOUSE_MOVED, this::onMouseMoved);
         canvas.addEventFilter(MouseEvent.MOUSE_EXITED, this::onMouseExited);
-        canvas.addEventFilter(InteractionXYChart.CanvasChangeEvent.ANY, this::onCanvasChange);
-
-        drawAtlasBrainImage.addListener((_, _, _) -> updateSliceImage());
-        drawAtlasBrainBoundary.addListener((_, _, _) -> updateSliceImage());
 
         return ret;
     }
@@ -233,7 +206,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         var heading = super.setupHeading(service);
 
         var showImageSwitch = new CheckBox("Show image");
-        showImageSwitch.selectedProperty().bindBidirectional(drawAtlasBrainImage);
+        showImageSwitch.selectedProperty().bindBidirectional(painter.visible);
+        showImageSwitch.selectedProperty().addListener((_, _, _) -> updateSliceImage());
         visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
 
         assert !(heading instanceof Parent);
@@ -442,10 +416,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         labelStructure.setText("");
     }
 
-    private void onCanvasChange(InteractionXYChart.CanvasChangeEvent e) {
-        updateSliceImage();
-    }
-
     private SliceCoordinate getSliceCoordinate(MouseEvent e) {
         var mx = e.getX();
         var my = e.getY();
@@ -496,24 +466,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         var image = images.sliceAtPlane(plane);
         this.image = image = image.withOffset(dw, dh);
-
-        var showImage = isDrawAtlasBrainImage();
-        var showBoundary = isDrawAtlasBrainBoundary();
-
-        var gc = canvas.getBackgroundChartGraphicsContext(true);
-
-        if (showImage) {
-            gc.setGlobalAlpha(0.5);
-            painter.draw(gc, image);
-        }
-
-        if (showBoundary) {
-            gc.setGlobalAlpha(1);
-            gc.setStroke(Color.BLACK);
-            gc.setFill(Color.RED);
-            gc.setLineWidth(2);
-            painter.drawBounds(gc, image);
-        }
+        painter.update(image);
+        canvas.repaintBackground();
     }
 
     /*=================*

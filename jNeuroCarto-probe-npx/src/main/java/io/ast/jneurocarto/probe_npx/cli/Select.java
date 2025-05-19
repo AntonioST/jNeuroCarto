@@ -75,7 +75,7 @@ public final class Select implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        log = LoggerFactory.getLogger(getClass());
+        log = LoggerFactory.getLogger(Select.class);
         log.debug("run()");
 
         if (listSelectors) {

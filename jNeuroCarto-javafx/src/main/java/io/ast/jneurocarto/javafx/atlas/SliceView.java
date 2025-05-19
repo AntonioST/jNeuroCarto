@@ -1,11 +1,12 @@
 package io.ast.jneurocarto.javafx.atlas;
 
-import io.ast.jneurocarto.atlas.ImageSlice;
-import io.ast.jneurocarto.atlas.SliceCoordinate;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.paint.Color;
+
+import io.ast.jneurocarto.atlas.ImageSlice;
+import io.ast.jneurocarto.atlas.SliceCoordinate;
 
 public class SliceView extends Canvas {
 
@@ -31,7 +32,8 @@ public class SliceView extends Canvas {
         var gc = getGraphicsContext2D();
         gc.clearRect(0, 0, width, height);
 
-        painter.draw(gc, slice);
+        painter.update(slice);
+        painter.draw(gc);
 
         var anchor = this.anchor.get();
         if (anchor != null) {

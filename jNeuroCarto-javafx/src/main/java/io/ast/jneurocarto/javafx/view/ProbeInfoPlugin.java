@@ -24,11 +24,6 @@ public abstract class ProbeInfoPlugin<T> extends InvisibleView implements ProbeP
         return "Probe information";
     }
 
-    @Override
-    public String description() {
-        return "Probe information";
-    }
-
     public abstract List<String> listAllInfoLabels();
 
     public abstract @Nullable String getInfoValue(String info, T chmap, List<ElectrodeDescription> blueprint);

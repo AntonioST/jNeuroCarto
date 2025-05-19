@@ -17,7 +17,8 @@ public class NpxProbePluginProvider implements ProbePluginProvider {
         if (desp instanceof NpxProbeDescription probe) {
             var ref = new ProbeReferencePlugin(probe);
             var info = new NpxProbeInfoPlugin();
-            return List.of(ref, info);
+            var density = new ElectrodeDensityPlugin();
+            return List.of(ref, info, density);
         } else {
             return List.of();
         }

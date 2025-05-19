@@ -10,6 +10,7 @@ import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.NonInvertibleTransformException;
 
@@ -17,9 +18,10 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.atlas.ImageSlice;
+import io.ast.jneurocarto.javafx.app.InteractionXYChart;
 
 @NullMarked
-public class SlicePainter {
+public class SlicePainter implements InteractionXYChart.PlottingJob {
 
     /*============*
      * properties *
@@ -143,6 +145,47 @@ public class SlicePainter {
         invertRotation.set(value);
     }
 
+    public final DoubleProperty imageAlpha = new SimpleDoubleProperty(1);
+
+    public final double getImageAlpha() {
+        return imageAlpha.get();
+    }
+
+    public final void setImageAlpha(double alpha) {
+        if (!(0 <= alpha && alpha <= 1)) throw new IllegalArgumentException();
+        imageAlpha.set(alpha);
+    }
+
+    public final BooleanProperty drawAtlasBrainBoundary = new SimpleBooleanProperty(false);
+
+    public final boolean isDrawAtlasBrainBoundary() {
+        return drawAtlasBrainBoundary.get();
+    }
+
+    public final void setDrawAtlasBrainBoundary(boolean value) {
+        drawAtlasBrainBoundary.set(value);
+    }
+
+    public final BooleanProperty drawAtlasBrainImage = new SimpleBooleanProperty(true);
+
+    public final boolean isDrawAtlasBrainImage() {
+        return drawAtlasBrainImage.get();
+    }
+
+    public final void setDrawAtlasBrainImage(boolean value) {
+        drawAtlasBrainImage.set(value);
+    }
+
+    public final BooleanProperty visible = new SimpleBooleanProperty(true);
+
+    public boolean isVisible() {
+        return visible.get();
+    }
+
+    public void setVisible(boolean value) {
+        visible.set(value);
+    }
+
     /*===========*
      * transform *
      *===========*/
@@ -200,31 +243,29 @@ public class SlicePainter {
     private @Nullable ImageSlice sliceCache;
     private @Nullable Image imageCache;
 
-    public Bounds getBound(ImageSlice slice) {
-        return getBound(slice, false);
+    public void update(ImageSlice slice) {
+        if (!Objects.equals(slice, sliceCache)) {
+            sliceCache = slice;
+            imageCache = slice.imageFx();
+        }
     }
 
-    public Bounds getBound(ImageSlice slice, boolean chartCoor) {
-        var x = x();
-        var y = y();
-        var w = slice.widthPx() * sx();
-        var h = slice.heightPx() * sy();
+    public Bounds getBound() {
+        var w = (sliceCache == null) ? 0 : sliceCache.width();
+        var h = (sliceCache == null) ? 0 : sliceCache.height();
 
-        Bounds ret = new BoundingBox(x, y, w, h);
-        if (chartCoor) {
-            ret = getSliceTransform().transform(ret);
-        }
+        Bounds ret = new BoundingBox(0, 0, w, h);
+        ret = getChartTransform().transform(ret);
         return ret;
     }
 
-    public void draw(GraphicsContext gc, ImageSlice slice) {
-        Image image;
-        if (Objects.equals(slice, sliceCache)) {
-            image = imageCache;
-        } else {
-            image = imageCache = slice.imageFx();
-            sliceCache = slice;
-        }
+    public void draw(GraphicsContext gc) {
+        if (!isVisible()) return;
+
+        var slice = sliceCache;
+        if (slice == null) return;
+        var image = imageCache;
+        if (image == null) return;
 
         var w = slice.width();
         var h = slice.height();
@@ -233,27 +274,32 @@ public class SlicePainter {
         try {
             aff.append(getChartTransform());
             gc.setTransform(aff);
-            gc.drawImage(image, 0, 0, w, h);
+
+            if (isDrawAtlasBrainImage()) {
+                drawImage(gc, image, w, h);
+            }
+            if (isDrawAtlasBrainBoundary()) {
+                drawBounds(gc, slice);
+            }
         } finally {
             gc.restore();
         }
     }
 
-    public void drawBounds(GraphicsContext gc, ImageSlice slice) {
-        sliceCache = slice;
+    private void drawImage(GraphicsContext gc, Image image, double w, double h) {
+        gc.setGlobalAlpha(getImageAlpha());
+        gc.drawImage(image, 0, 0, w, h);
+    }
 
+    private void drawBounds(GraphicsContext gc, ImageSlice slice) {
         var w = slice.width();
         var h = slice.height();
-        var aff = gc.getTransform();
-        gc.save();
-        try {
-            aff.append(getChartTransform());
-            gc.setTransform(aff);
-            gc.strokeRect(0, 0, w, h);
-            gc.strokeLine(0, 0, w, h);
-            gc.strokeLine(0, h, w, 0);
-        } finally {
-            gc.restore();
-        }
+
+        gc.setGlobalAlpha(1);
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(2);
+        gc.strokeRect(0, 0, w, h);
+        gc.strokeLine(0, 0, w, h);
+        gc.strokeLine(0, h, w, 0);
     }
 }

@@ -49,6 +49,8 @@ public abstract class InvisibleView implements Plugin {
         var heading = setupHeading(service);
 
         var content = setupContent(service);
+        if (content == null) return heading;
+
         bindInvisibleNode(content);
         setupMenuViewItem(service, name());
 
@@ -68,5 +70,5 @@ public abstract class InvisibleView implements Plugin {
         return newInvisibleSwitch(name());
     }
 
-    protected abstract Node setupContent(PluginSetupService service);
+    protected abstract @Nullable Node setupContent(PluginSetupService service);
 }

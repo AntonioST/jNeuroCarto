@@ -1,9 +1,10 @@
 package io.ast.jneurocarto.javafx.view;
 
+import javafx.scene.Node;
+
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
-import javafx.scene.Node;
 
 public interface Plugin {
 
@@ -11,7 +12,9 @@ public interface Plugin {
         return getClass().getSimpleName();
     }
 
-    String description();
+    default String description() {
+        return name();
+    }
 
     @Nullable
     Node setup(PluginSetupService service);

@@ -564,6 +564,80 @@ public final class ChannelMaps {
         }
     }
 
+    public static double[][] calculateElectrodeDensity(ChannelMap chmap, double dy, double smooth) {
+        if (smooth < 0) throw new IllegalArgumentException();
+        var type = chmap.type();
+        var kernel = newSmoothKernel(smooth / dy);
+        var density = new double[chmap.nShank()][];
+        var npr = (int) (type.spacePerRow() / dy);
+        var nr = npr * chmap.nRowPerShank();
+        var shank = new double[nr];
+        var output = shank.clone();
+        for (int i = 0, length = density.length; i < length; i++) {
+            density[i] = convolution(fill(chmap, i, npr, shank), kernel, output);
+            Arrays.fill(shank, 0);
+            Arrays.fill(output, 0);
+        }
+        return density;
+    }
+
+    private static double[] newSmoothKernel(double std) {
+        if (std < 0) throw new IllegalArgumentException();
+        double[] kernel;
+        if (std == 0) {
+            return new double[]{1};
+        } else {
+            var n = (int) Math.floor(3 * std);
+            kernel = new double[2 * n + 1];
+            var var = 2 * std * std;
+            var sum = 0.0;
+            for (int i = 0; i <= n; i++) {
+                var v = Math.exp(-i * i / var);
+                kernel[n + i] = v;
+                if (i > 0) {
+                    kernel[n - i] = v;
+                    sum += v + v;
+                } else {
+                    sum += v;
+                }
+            }
+            for (int i = 0; i < kernel.length; i++) {
+                kernel[i] /= sum;
+            }
+            return kernel;
+        }
+    }
+
+    private static double[] fill(ChannelMap chmap, int shank, int npr, double[] count) {
+        for (var e : chmap.channels()) {
+            if (e != null && e.shank == shank) {
+                count[e.row * npr]++;
+            }
+        }
+        return count;
+    }
+
+    private static double[] convolution(double[] array, double[] kernel, double[] output) {
+        int m = array.length;
+        int n2 = kernel.length;
+        int n = n2 / 2; // assume kernel is odd-sized and symmetric
+
+        if (output.length != m) throw new IllegalArgumentException();
+
+        for (int i = 0; i < m; i++) {
+            double sum = 0;
+            for (int j = 0; j < n2; j++) {
+                int k = i + j - n; // center the kernel
+                if (k >= 0 && k < m) {
+                    sum += array[k] * kernel[j];
+                }
+            }
+            output[i] = sum;
+        }
+
+        return output;
+    }
+
     public static String printProbe(ChannelMap chmap) {
         return printProbe(chmap, false, false);
     }

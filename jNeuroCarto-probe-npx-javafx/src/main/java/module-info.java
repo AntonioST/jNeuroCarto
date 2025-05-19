@@ -14,6 +14,7 @@ module io.ast.jneurocarto.probe_npx.javafx {
     requires io.ast.jneurocarto.config;
     requires io.ast.jneurocarto.javafx;
     requires io.ast.jneurocarto.probe_npx;
+    requires java.desktop;
 
     exports io.ast.jneurocarto.probe_npx.javafx;
 

@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import javafx.application.Platform;
@@ -335,7 +337,13 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      */
     private void fireCanvasChange(EventType<CanvasChangeEvent> type) {
         if (!isDisabled()) {
-            fireEvent(new CanvasChangeEvent(this, foreground, type));
+            try {
+                plotting = true;
+                fireEvent(new CanvasChangeEvent(this, foreground, type));
+            } finally {
+                plotting = false;
+            }
+            repaint();
         }
     }
 
@@ -429,6 +437,60 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
                 Platform.runLater(() -> handler.handle(event));
             }
         }
+    }
+
+    /*================*
+     * plotting queue *
+     *================*/
+
+    public interface PlottingJob {
+        void draw(GraphicsContext gc);
+    }
+
+    private final List<PlottingJob> foregroundJobs = new ArrayList<>();
+    private final List<PlottingJob> backgroundJobs = new ArrayList<>();
+    private boolean plotting = false;
+
+    public void addForegroundPlotting(PlottingJob job) {
+        LoggerFactory.getLogger(getClass()).debug("addForegroundPlotting {}", job.getClass().getSimpleName());
+        foregroundJobs.add(job);
+    }
+
+    public boolean removeForegroundPlotting(PlottingJob job) {
+        LoggerFactory.getLogger(getClass()).debug("removeForegroundPlotting {}", job.getClass().getSimpleName());
+        return foregroundJobs.remove(job);
+    }
+
+    public void addBackgroundPlotting(PlottingJob job) {
+        LoggerFactory.getLogger(getClass()).debug("addBackgroundPlotting {}", job.getClass().getSimpleName());
+        backgroundJobs.add(job);
+    }
+
+    public boolean removeBackgroundPlotting(PlottingJob job) {
+        LoggerFactory.getLogger(getClass()).debug("removeBackgroundPlotting {}", job.getClass().getSimpleName());
+        return backgroundJobs.remove(job);
+    }
+
+    public void repaintForeground() {
+        if (plotting) return;
+        var gc = getForegroundChartGraphicsContext(true);
+        for (var job : foregroundJobs) {
+            job.draw(gc);
+        }
+    }
+
+    public void repaintBackground() {
+        if (plotting) return;
+        var gc = getBackgroundChartGraphicsContext(true);
+        for (var job : backgroundJobs) {
+            job.draw(gc);
+        }
+    }
+
+    public void repaint() {
+        if (plotting) return;
+        repaintBackground();
+        repaintForeground();
     }
 
     /*==============================*
