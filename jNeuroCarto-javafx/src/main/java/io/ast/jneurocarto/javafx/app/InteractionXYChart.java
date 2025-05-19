@@ -3,6 +3,8 @@ package io.ast.jneurocarto.javafx.app;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
@@ -13,6 +15,7 @@ import javafx.event.EventType;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.chart.NumberAxis;
@@ -21,6 +24,7 @@ import javafx.scene.input.InputEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
@@ -36,9 +40,11 @@ import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
 public class InteractionXYChart<C extends XYChart<Number, Number>> extends StackPane {
 
     private final C chart;
+    private final Region chartPlottingArea;
     private final NumberAxis xAxis;
     private final NumberAxis yAxis;
     private final Canvas background;
+    private final Canvas data;
     private final Canvas foreground;
     private final Canvas top;
     private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
@@ -50,9 +56,6 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     public InteractionXYChart(C chart) {
         this.chart = chart;
-        // https://openjfx.io/javadoc/24/javafx.graphics/javafx/scene/doc-files/cssref.html#xychart
-        var plot = chart.lookup(".chart-plot-background");
-        plot.setStyle("-fx-background-color: transparent;");
 
         xAxis = (NumberAxis) chart.getXAxis();
         yAxis = (NumberAxis) chart.getYAxis();
@@ -63,20 +66,33 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         resetY1 = yAxis.getLowerBound();
         resetY2 = yAxis.getUpperBound();
 
+        // https://openjfx.io/javadoc/24/javafx.graphics/javafx/scene/doc-files/cssref.html#xychart
+        chartPlottingArea = (Region) chart.lookup(".chart-plot-background");
+        chartPlottingArea.layoutXProperty().addListener((_, _, _) -> updateCanvasLayout());
+        chartPlottingArea.layoutYProperty().addListener((_, _, _) -> updateCanvasLayout());
+        chartPlottingArea.setStyle("-fx-background-color: transparent;");
+
         background = new Canvas();
-        background.widthProperty().bind(chart.widthProperty());
-        background.heightProperty().bind(chart.heightProperty());
+        background.setManaged(false);
+        background.widthProperty().bind(chartPlottingArea.widthProperty());
+        background.heightProperty().bind(chartPlottingArea.heightProperty());
+
+        data = new Canvas();
+        data.setManaged(false);
+        data.widthProperty().bind(chartPlottingArea.widthProperty());
+        data.heightProperty().bind(chartPlottingArea.heightProperty());
 
         foreground = new Canvas();
-        foreground.widthProperty().bind(chart.widthProperty());
-        foreground.heightProperty().bind(chart.heightProperty());
+        foreground.setManaged(false);
+        foreground.widthProperty().bind(chartPlottingArea.widthProperty());
+        foreground.heightProperty().bind(chartPlottingArea.heightProperty());
 
         top = new Canvas();
         top.setMouseTransparent(false);
         top.widthProperty().bind(chart.widthProperty());
         top.heightProperty().bind(chart.heightProperty());
 
-        getChildren().addAll(background, chart, foreground, top);
+        getChildren().addAll(background, chart, data, foreground, top);
 
         top.setOnMousePressed(this::onMousePressed);
         top.setOnMouseReleased(this::onMouseReleased);
@@ -87,6 +103,54 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     public C getChart() {
         return chart;
+    }
+
+    /*=============*
+     * data series *
+     *=============*/
+
+    public InteractionXYData getData() {
+        return new InteractionXYData(this, data, false);
+    }
+
+    public InteractionXYData getForegroundData() {
+        return new InteractionXYData(this, data, true);
+    }
+
+    public InteractionXYData getBackgroundData() {
+        return new InteractionXYData(this, data, true);
+    }
+
+    public static Stream<XYChart.Data<Number, Number>> getVisible(XYChart.Series<Number, Number> series) {
+        return series.getData().stream()
+          .filter(it -> it.getNode().isVisible());
+    }
+
+    public static void setVisible(XYChart.Series<Number, Number> series, boolean visible) {
+        for (XYChart.Data<Number, Number> it : series.getData()) {
+            it.getNode().setVisible(visible);
+        }
+    }
+
+    public static void setVisible(XYChart.Series<Number, Number> series, Predicate<@Nullable Object> tester) {
+        for (XYChart.Data<Number, Number> it : series.getData()) {
+            var value = it.getExtraValue();
+            it.getNode().setVisible(tester.test(value));
+        }
+    }
+
+    public static <T> void setVisible(XYChart.Series<Number, Number> series, Class<T> cls, Predicate<T> tester) {
+        for (XYChart.Data<Number, Number> it : series.getData()) {
+            var value = it.getExtraValue();
+            var visible = value != null && cls.isInstance(value) && tester.test((T) value);
+            it.getNode().setVisible(visible);
+        }
+    }
+
+
+    public static boolean hasStyleClass(XYChart.Data<Number, Number> data, String css) {
+        Node node;
+        return (node = data.getNode()) != null && StylesheetsUtils.hasStyleClass(node, css);
     }
 
     public static void applyStyleClass(XYChart.Data<Number, Number> data, String css) {
@@ -115,17 +179,99 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         }
     }
 
+    public static Stream<XYChart.Data<Number, Number>> filterStyleClass(XYChart.Series<Number, Number> series, String css) {
+        return series.getData().stream()
+          .filter(it -> hasStyleClass(it, css));
+    }
+
+    public static Stream<XYChart.Data<Number, Number>> filterAndRemoveStyleClass(XYChart.Series<Number, Number> series, String css) {
+        return series.getData().stream().filter(it -> {
+            var ret = hasStyleClass(it, css);
+            if (ret) removeStyleClass(it, css);
+            return ret;
+        });
+    }
+
+    public static Stream<XYChart.Data<Number, Number>> filterInBound(XYChart.Series<Number, Number> series, Bounds bounds, boolean all) {
+        return series.getData().stream().filter(it -> {
+            var x = it.getXValue().doubleValue();
+            var y = it.getYValue().doubleValue();
+            return bounds.contains(x, y) && (all || it.getNode().isVisible());
+        });
+    }
+
+    public static Stream<XYChart.Data<Number, Number>> filterInBoundAndSetStyleClass(XYChart.Series<Number, Number> series, Bounds bounds, String css, boolean all) {
+        return series.getData().stream().filter(it -> {
+            var x = it.getXValue().doubleValue();
+            var y = it.getYValue().doubleValue();
+            var r = bounds.contains(x, y) && (all || it.getNode().isVisible());
+            if (r) {
+                applyStyleClass(it, css);
+            } else {
+                removeStyleClass(it, css);
+            }
+            return r;
+        });
+    }
+
+    public static Stream<XYChart.Data<Number, Number>> filterExtraValue(XYChart.Series<Number, Number> series, Predicate<@Nullable Object> tester) {
+        Objects.requireNonNull(tester);
+        return series.getData().stream()
+          .filter(it -> tester.test(it.getExtraValue()));
+    }
+
+    public static <T> Stream<XYChart.Data<Number, Number>> filterExtraValue(XYChart.Series<Number, Number> series, Class<T> cls, Predicate<T> tester) {
+        return series.getData().stream().filter(it -> {
+            var value = it.getExtraValue();
+            return value != null && cls.isInstance(value) && tester.test((T) value);
+        });
+    }
+
+    public static Stream<XYChart.Data<Number, Number>> filterExtraValueAndSetStyleClass(XYChart.Series<Number, Number> series, String css, Predicate<@Nullable Object> tester) {
+        Objects.requireNonNull(tester);
+        return series.getData().stream().filter(it -> {
+            var ret = tester.test(it.getExtraValue());
+            if (ret) {
+                applyStyleClass(it, css);
+            } else {
+                removeStyleClass(it, css);
+            }
+            return ret;
+        });
+    }
+
+    public static <T> Stream<XYChart.Data<Number, Number>> filterExtraValueAndSetStyleClass(XYChart.Series<Number, Number> series, String css, Class<T> cls, Predicate<T> tester) {
+        return series.getData().stream().filter(it -> {
+            var value = it.getExtraValue();
+            var ret = value != null && cls.isInstance(value) && tester.test((T) value);
+            if (ret) {
+                applyStyleClass(it, css);
+            } else {
+                removeStyleClass(it, css);
+            }
+            return ret;
+        });
+    }
+
+    /*========*
+     * events *
+     *========*/
+
     private @Nullable MouseEvent mousePress;
     private @Nullable MouseEvent mouseMoving;
-    private @Nullable NumberAxis previousXAxis;
-    private @Nullable NumberAxis previousYAxis;
+    private double previousXL;
+    private double previousXU;
+    private double previousYL;
+    private double previousYU;
     private @Nullable Bounds previousArea;
 
     private void onMousePressed(MouseEvent e) {
         mousePress = e;
         if (e.getButton() == MouseButton.SECONDARY) {
-            previousXAxis = new NumberAxis(xAxis.getLowerBound(), xAxis.getUpperBound(), 1);
-            previousYAxis = new NumberAxis(yAxis.getLowerBound(), yAxis.getUpperBound(), 1);
+            previousXL = xAxis.getLowerBound();
+            previousXU = xAxis.getUpperBound();
+            previousYL = yAxis.getLowerBound();
+            previousYU = yAxis.getUpperBound();
             previousArea = getPlottingArea();
         }
     }
@@ -154,8 +300,6 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
         mousePress = null;
         mouseMoving = null;
-        previousXAxis = null;
-        previousYAxis = null;
         previousArea = null;
 
         if (start != null) {
@@ -252,15 +396,13 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var dx = current.getX() - start.getX();
         var dy = current.getY() - start.getY();
 
-        var ax = Objects.requireNonNull(previousXAxis);
-        var x1 = ax.getLowerBound();
-        var x2 = ax.getUpperBound();
+        var x1 = previousXL;
+        var x2 = previousXU;
         dx = dx * (x2 - x1) / area.getWidth();
         setAxisBoundary(xAxis, x1 - dx, x2 - dx);
 
-        ax = Objects.requireNonNull(previousYAxis);
-        x1 = ax.getLowerBound();
-        x2 = ax.getUpperBound();
+        x1 = previousYL;
+        x2 = previousYU;
         dy = -dy * (x2 - x1) / area.getHeight();
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
 
@@ -341,6 +483,8 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      *
      */
     private void fireCanvasChange(EventType<CanvasChangeEvent> type) {
+//        updateCanvasLayout();
+
         if (!isDisabled()) {
             try {
                 plotting = true;
@@ -351,6 +495,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
             repaint();
         }
     }
+
 
     /*=============*
      * touch event *
@@ -482,7 +627,6 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         for (var job : foregroundJobs) {
             job.draw(gc);
         }
-        clearNonPlottingArea(gc);
     }
 
     public void repaintBackground() {
@@ -491,25 +635,6 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         for (var job : backgroundJobs) {
             job.draw(gc);
         }
-        clearNonPlottingArea(gc);
-    }
-
-    private void clearNonPlottingArea(GraphicsContext gc) {
-        gc.setTransform(IDENTIFY);
-
-        var area = getPlottingArea();
-        var w = top.getWidth();
-        var h = top.getHeight();
-        var x1 = area.getMinX();
-        var x2 = area.getMaxX();
-        var y1 = area.getMinY();
-        var y2 = area.getMaxY();
-        var ah = area.getHeight();
-
-        gc.clearRect(0, 0, w, y1);
-        gc.clearRect(0, y2, w, h - y2);
-        gc.clearRect(0, y1, x1, ah);
-        gc.clearRect(x2, y1, w - x2, ah);
     }
 
     public void repaint() {
@@ -533,9 +658,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     public Bounds getPlottingArea() {
-        // https://openjfx.io/javadoc/24/javafx.graphics/javafx/scene/doc-files/cssref.html#xychart
-        var plot = chart.lookup(".chart-plot-background");
-        return foreground.sceneToLocal(plot.localToScene(plot.getBoundsInLocal()));
+        return foreground.sceneToLocal(chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal()));
     }
 
     /**
@@ -553,7 +676,6 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         gc.setTransform(getCanvasTransform());
         return gc;
     }
-
 
     /**
      * Get a graphic context that painting graphics on background.
@@ -733,7 +855,6 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Point2D(nx, ny);
     }
 
-
     public void setResetAxesBoundaries(double x1, double x2, double y1, double y2) {
         resetX1 = x1;
         resetX2 = x2;
@@ -781,5 +902,15 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         axis.setTickUnit(ux);
     }
 
+    private void updateCanvasLayout() {
+        var a = chartPlottingArea;
+        var b = sceneToLocal(a.localToScene(a.getBoundsInLocal()));
+        var x = b.getMinX();
+        var y = b.getMinY();
+
+        foreground.relocate(x, y);
+        data.relocate(x, y);
+        background.relocate(x, y);
+    }
 
 }

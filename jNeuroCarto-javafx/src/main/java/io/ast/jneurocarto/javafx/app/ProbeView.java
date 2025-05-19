@@ -1,11 +1,14 @@
 package io.ast.jneurocarto.javafx.app;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javafx.geometry.Bounds;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.ScatterChart;
+import javafx.scene.chart.XYChart;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -16,7 +19,6 @@ import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.Blueprint;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
-import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
 
 @NullMarked
 public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
@@ -28,7 +30,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     private final CartoConfig config;
     private final ProbeDescription<T> probe;
     private final Map<String, CodedSeries> electrodes = new HashMap<>();
-    private final CodedSeries highlighted;
+    private CodedSeries highlighted;
 
     private @Nullable T channelmap;
     private @Nullable List<ElectrodeDescription> blueprint;
@@ -74,11 +76,11 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         series.setName(name);
 
         var ret = new CodedSeries(code, series);
-        resetSeries(ret, electrodes);
+        setSeries(ret, electrodes);
         return ret;
     }
 
-    private void resetSeries(CodedSeries series, List<ElectrodeDescription> electrodes) {
+    private void setSeries(CodedSeries series, List<ElectrodeDescription> electrodes) {
         var s = electrodes.stream()
           .map(it -> new ScatterChart.Data<Number, Number>(it.x(), it.y(), it))
           .toList();
@@ -89,13 +91,27 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     }
 
     private void resetSeries(List<ElectrodeDescription> electrodes) {
-        for (var series : this.electrodes.values()) {
-            resetSeries(series, electrodes);
-            series.setVisible(false);
-            getCssStyleClass(series.name()).ifPresent(series::applyStyleClass);
-        }
+        var scatter = getChart();
 
-        resetSeries(highlighted, electrodes);
+        var ret = scatter.getData().stream().map(series -> {
+              var name = series.getName();
+              var newSeries = newSeries(name, electrodes);
+              if (STATE_HIGHLIGHTED.equals(name)) {
+                  highlighted = newSeries;
+              } else {
+                  this.electrodes.put(name, newSeries);
+              }
+              return newSeries;
+          }).map(CodedSeries::series)
+          .toList();
+
+        scatter.getData().clear();
+        scatter.getData().addAll(ret);
+
+        this.electrodes.values().forEach(it -> {
+            it.setVisible(false);
+            getCssStyleClass(it.name()).ifPresent(it::applyStyleClass);
+        });
         highlighted.setVisible(false);
         getCssStyleClass(STATE_HIGHLIGHTED).ifPresent(highlighted::applyStyleClass);
     }
@@ -118,72 +134,60 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         }
 
         private void applyStyleClass(String style) {
-            series.getData().forEach(it -> InteractionXYChart.applyStyleClass(it, style));
+            InteractionXYChart.applyStyleClass(series, style);
         }
 
         private List<ElectrodeDescription> getVisible() {
-            return series.getData().stream()
-              .filter(it -> it.getNode().isVisible())
-              .map(it -> (ElectrodeDescription) it.getExtraValue())
-              .toList();
+            return toElectrodeList(InteractionXYChart.getVisible(series));
         }
 
         private void setVisible(boolean visible) {
-            series.getData().forEach(it -> it.getNode().setVisible(visible));
+            InteractionXYChart.setVisible(series, visible);
         }
 
         private void setVisible(Set<ElectrodeDescription> electrodes) {
-            series.getData().forEach(it -> {
-                var visible = electrodes.contains((ElectrodeDescription) it.getExtraValue());
-                it.getNode().setVisible(visible);
-            });
+            InteractionXYChart.setVisible(series, ElectrodeDescription.class, electrodes::contains);
         }
 
         private List<ElectrodeDescription> getCaptured(boolean reset) {
-            return series.getData().stream()
-              .filter(it -> StylesheetsUtils.hasStyleClass(it.getNode(), CLASS_CAPTURED))
-              .peek(it -> {
-                  if (reset) {
-                      StylesheetsUtils.removeStyleClass(it.getNode(), CLASS_CAPTURED);
-                  }
-              }).map(it -> (ElectrodeDescription) it.getExtraValue())
-              .toList();
+            Stream<XYChart.Data<Number, Number>> stream;
+            if (reset) {
+                stream = InteractionXYChart.filterAndRemoveStyleClass(series, CLASS_CAPTURED);
+            } else {
+                stream = InteractionXYChart.filterStyleClass(series, CLASS_CAPTURED);
+            }
+
+            return toElectrodeList(stream);
         }
 
         private List<ElectrodeDescription> getCaptured(Bounds bounds, boolean set) {
-            return series.getData().stream().filter(it -> {
-                  var x = it.getXValue().doubleValue();
-                  var y = it.getYValue().doubleValue();
-                  var ret = it.getNode().isVisible() && bounds.contains(x, y);
-                  if (set) {
-                      if (ret) {
-                          StylesheetsUtils.addStyleClass(it.getNode(), CLASS_CAPTURED);
-                      } else {
-                          StylesheetsUtils.removeStyleClass(it.getNode(), CLASS_CAPTURED);
-                      }
-                  }
-                  return ret;
-              }).map(it -> (ElectrodeDescription) it.getExtraValue())
-              .toList();
+            Stream<XYChart.Data<Number, Number>> stream;
+            if (set) {
+                stream = InteractionXYChart.filterInBoundAndSetStyleClass(series, bounds, CLASS_CAPTURED, false);
+            } else {
+                stream = InteractionXYChart.filterInBound(series, bounds, false);
+            }
+
+            return toElectrodeList(stream);
         }
 
         private void setCapture(boolean captured) {
             if (captured) {
-                series.getData().forEach(it -> StylesheetsUtils.addStyleClass(it.getNode(), CLASS_CAPTURED));
+                InteractionXYChart.applyStyleClass(series, CLASS_CAPTURED);
             } else {
-                series.getData().forEach(it -> StylesheetsUtils.removeStyleClass(it.getNode(), CLASS_CAPTURED));
+                InteractionXYChart.removeStyleClass(series, CLASS_CAPTURED);
             }
         }
 
         private void setCapture(Set<ElectrodeDescription> electrodes) {
-            for (var data : series.getData()) {
-                var captured = electrodes.contains((ElectrodeDescription) data.getExtraValue());
-                if (captured) {
-                    StylesheetsUtils.addStyleClass(data.getNode(), CLASS_CAPTURED);
-                } else {
-                    StylesheetsUtils.removeStyleClass(data.getNode(), CLASS_CAPTURED);
-                }
-            }
+            InteractionXYChart.filterExtraValueAndSetStyleClass(series, CLASS_CAPTURED, ElectrodeDescription.class, electrodes::contains)
+              .forEach((Consumer<? super XYChart.Data<Number, Number>>) _ -> {
+              });
+        }
+
+        private static List<ElectrodeDescription> toElectrodeList(Stream<XYChart.Data<Number, Number>> stream) {
+            return stream.map(it -> (ElectrodeDescription) it.getExtraValue())
+              .toList();
         }
     }
 
