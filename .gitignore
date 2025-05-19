@@ -1,2 +1,9 @@
 target/
+generated/
 .idea/
+
+# Neuropixels files
+*.imro
+*.meta
+*.npy
+*.json

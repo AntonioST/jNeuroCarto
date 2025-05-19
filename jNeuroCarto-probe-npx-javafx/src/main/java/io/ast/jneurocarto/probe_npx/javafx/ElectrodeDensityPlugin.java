@@ -29,10 +29,28 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
 
     private static final Affine IDENTIFY = new Affine();
     private @Nullable ProbeView<?> canvas;
+
+    /**
+     * ChannelMap cache.
+     */
     private @Nullable ChannelMap chmap;
+
+    /**
+     * hash code of {@link #chmap}
+     */
     private int chmapHash = 0;
+
+    /**
+     * the result of {@link ChannelMaps#calculateElectrodeDensity(ChannelMap, double, double)}.
+     * Updated only when the {@link #chmap} is updated, via comparing {@link #chmapHash}.
+     */
     private double @Nullable [][] density;
+
+    /**
+     * the pre-allocated array for storing transformed density curves.
+     */
     private double @Nullable [][][] curves;
+
     private final Logger log = LoggerFactory.getLogger(ElectrodeDensityPlugin.class);
 
     public ElectrodeDensityPlugin() {
@@ -100,11 +118,16 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
             log.debug("update electrode density");
             density = ChannelMaps.calculateElectrodeDensity(chmap, getSpacing(), getSmooth());
 
-            curves = new double[density.length][2][density[0].length + 1];
-            for (int i = 0; i < density.length; i++) {
-                curves[i] = new double[2][];
-                curves[i][0] = new double[density[0].length + 1];
-                curves[i][1] = new double[density[0].length + 1];
+            var nShank = density.length;
+            var length = density[0].length;
+
+            if (curves == null || curves.length != nShank || curves[0][0].length != length) {
+                curves = new double[nShank][2][length];
+                for (int i = 0; i < nShank; i++) {
+                    curves[i] = new double[2][];
+                    curves[i][0] = new double[length];
+                    curves[i][1] = new double[length];
+                }
             }
 
             var canvas = this.canvas;
@@ -135,14 +158,11 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
             var dos = density[shank];
             var zero = shank * ps + 2 * pc;
 
-            var p = aff.transform(zero, 0);
             var curve = curves[shank];
-            curve[0][0] = p.getX();
-            curve[1][0] = p.getY();
             for (int i = 0, length = dos.length; i < length; i++) {
-                p = aff.transform(zero + dos[i] * ps, i * spacing);
-                curve[0][i + 1] = p.getX();
-                curve[1][i + 1] = p.getY();
+                var p = aff.transform(zero + dos[i] * ps, i * spacing);
+                curve[0][i] = p.getX();
+                curve[1][i] = p.getY();
             }
         }
 
