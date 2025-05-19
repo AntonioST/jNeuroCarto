@@ -205,6 +205,17 @@ public class Application<T> {
         currentChannelmapFile.addListener((_, _, _) -> updateTitle());
         setupPlugins();
         stage.sizeToScene();
+
+        if (config.file != null) {
+            // TODO does not work
+            Platform.runLater(() -> {
+                try {
+                    loadChannelmap(config.file);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
     }
 
     private void updateTitle() {
@@ -962,7 +973,7 @@ public class Application<T> {
         if (!Files.exists(channelmapFile)) throw new FileNotFoundException(channelmapFile.toString());
 
         log.debug("changeResourceRoot {}", channelmapFile.getParent());
-        repository.changeResourceRoot(channelmapFile.getParent());
+        repository.changeResourceRoot(channelmapFile.toAbsolutePath().getParent());
 
         log.debug("loadChannelmap {}", channelmapFile.getFileName());
         var chmap = repository.loadChannelmapFile(probe, channelmapFile);
