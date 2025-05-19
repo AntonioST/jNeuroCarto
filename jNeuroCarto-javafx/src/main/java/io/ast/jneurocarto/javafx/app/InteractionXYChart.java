@@ -40,6 +40,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private final NumberAxis yAxis;
     private final Canvas background;
     private final Canvas foreground;
+    private final Canvas top;
     private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
 
     private double resetX1;
@@ -67,17 +68,21 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         background.heightProperty().bind(chart.heightProperty());
 
         foreground = new Canvas();
-        foreground.setMouseTransparent(false);
         foreground.widthProperty().bind(chart.widthProperty());
         foreground.heightProperty().bind(chart.heightProperty());
 
-        getChildren().addAll(background, chart, foreground);
+        top = new Canvas();
+        top.setMouseTransparent(false);
+        top.widthProperty().bind(chart.widthProperty());
+        top.heightProperty().bind(chart.heightProperty());
 
-        foreground.setOnMousePressed(this::onMousePressed);
-        foreground.setOnMouseReleased(this::onMouseReleased);
-        foreground.setOnMouseDragged(this::onMouseDragged);
-        foreground.setOnMouseClicked(this::onMouseClicked);
-        foreground.setOnScroll(this::onMouseWheeled);
+        getChildren().addAll(background, chart, foreground, top);
+
+        top.setOnMousePressed(this::onMousePressed);
+        top.setOnMouseReleased(this::onMouseReleased);
+        top.setOnMouseDragged(this::onMouseDragged);
+        top.setOnMouseClicked(this::onMouseClicked);
+        top.setOnScroll(this::onMouseWheeled);
     }
 
     public C getChart() {
@@ -161,9 +166,9 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
             }
         }
 
-        var gc = foreground.getGraphicsContext2D();
-        var w = foreground.getWidth();
-        var h = foreground.getHeight();
+        var gc = top.getGraphicsContext2D();
+        var w = top.getWidth();
+        var h = top.getHeight();
         gc.clearRect(0, 0, w, h);
     }
 
@@ -194,7 +199,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         if (scaleX) {
             var x1 = xAxis.getLowerBound();
             var x2 = xAxis.getUpperBound();
-            var r1 = (px) / foreground.getWidth();
+            var r1 = (px) / top.getWidth();
             var d1 = (x2 - x1) * scale * r1;
             var d2 = (x2 - x1) * scale * (1 - r1);
             setAxisBoundary(xAxis, x1 - d1, x2 + d2);
@@ -203,7 +208,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         if (scaleY) {
             var x1 = yAxis.getLowerBound();
             var x2 = yAxis.getUpperBound();
-            var r1 = (py) / foreground.getHeight();
+            var r1 = (py) / top.getHeight();
             var d1 = (x2 - x1) * scale * (1 - r1);
             var d2 = (x2 - x1) * scale * r1;
             setAxisBoundary(yAxis, x1 - d1, x2 + d2);
@@ -213,7 +218,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     private void onMouseSelecting(MouseEvent start, MouseEvent current) {
-        var gc = foreground.getGraphicsContext2D();
+        var gc = top.getGraphicsContext2D();
         var area = getPlottingArea();
         gc.clearRect(area.getMinX(), area.getMinY(), area.getWidth(), area.getHeight());
 
@@ -339,7 +344,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         if (!isDisabled()) {
             try {
                 plotting = true;
-                fireEvent(new CanvasChangeEvent(this, foreground, type));
+                fireEvent(new CanvasChangeEvent(this, top, type));
             } finally {
                 plotting = false;
             }
@@ -477,6 +482,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         for (var job : foregroundJobs) {
             job.draw(gc);
         }
+        clearNonPlottingArea(gc);
     }
 
     public void repaintBackground() {
@@ -485,6 +491,25 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         for (var job : backgroundJobs) {
             job.draw(gc);
         }
+        clearNonPlottingArea(gc);
+    }
+
+    private void clearNonPlottingArea(GraphicsContext gc) {
+        gc.setTransform(IDENTIFY);
+
+        var area = getPlottingArea();
+        var w = top.getWidth();
+        var h = top.getHeight();
+        var x1 = area.getMinX();
+        var x2 = area.getMaxX();
+        var y1 = area.getMinY();
+        var y2 = area.getMaxY();
+        var ah = area.getHeight();
+
+        gc.clearRect(0, 0, w, y1);
+        gc.clearRect(0, y2, w, h - y2);
+        gc.clearRect(0, y1, x1, ah);
+        gc.clearRect(x2, y1, w - x2, ah);
     }
 
     public void repaint() {

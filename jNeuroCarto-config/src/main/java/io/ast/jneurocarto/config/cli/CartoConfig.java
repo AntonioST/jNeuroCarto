@@ -37,7 +37,7 @@ public final class CartoConfig implements Runnable {
 
     @Option(names = "--atlas", paramLabel = "NAME", defaultValue = "25",
       converter = AtlasNameConverter.class,
-      description = "atlas mouse brain name")
+      description = "atlas mouse brain name. Use empty string to disable atlas plugin.")
     public String atlasName;
 
     @ArgGroup(/*exclusive = true, multiplicity = "0..1"*/)

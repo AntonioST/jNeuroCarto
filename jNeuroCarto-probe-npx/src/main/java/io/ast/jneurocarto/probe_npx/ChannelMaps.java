@@ -572,11 +572,10 @@ public final class ChannelMaps {
         var npr = (int) (type.spacePerRow() / dy);
         var nr = npr * chmap.nRowPerShank();
         var shank = new double[nr];
-        var output = shank.clone();
         for (int i = 0, length = density.length; i < length; i++) {
+            var output = shank.clone();
             density[i] = convolution(fill(chmap, i, npr, shank), kernel, output);
             Arrays.fill(shank, 0);
-            Arrays.fill(output, 0);
         }
         return density;
     }

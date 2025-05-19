@@ -37,6 +37,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ProbeProviders;
+import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
@@ -641,6 +642,11 @@ public class Application<T> {
                 extra.remove(i--);
 
                 log.debug("use plugin {}", name);
+                if (provider instanceof AtlasPluginProvider && (config.atlasName == null || config.atlasName.isEmpty())) {
+                    log.debug("empty atlas brain name, skip");
+                    continue;
+                }
+
                 var plugin = provider.setup(config, probe);
                 log.debug("add plugin {}", plugin.getClass().getName());
                 plugins.add(plugin);

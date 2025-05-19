@@ -1,12 +1,13 @@
 package io.ast.jneurocarto.javafx.cli;
 
+import javafx.stage.Stage;
+
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.Application;
 import io.ast.jneurocarto.javafx.atlas.AtlasBrainService;
 import io.ast.jneurocarto.javafx.utils.IOAction;
-import javafx.stage.Stage;
 import picocli.CommandLine;
 
 public class Main {
@@ -20,7 +21,7 @@ public class Main {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
         }
 
-        if (config.atlasName != null && AtlasBrainService.isPreloadAtlasBrain()) {
+        if (config.atlasName != null && !config.atlasName.isEmpty() && AtlasBrainService.isPreloadAtlasBrain()) {
             Thread.ofVirtual().start(() -> preloadAtlasBrain(config));
         }
 

@@ -8,6 +8,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -26,10 +27,12 @@ import io.ast.jneurocarto.probe_npx.ChannelMaps;
 @NullMarked
 public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin<ChannelMap>, InteractionXYChart.PlottingJob {
 
+    private static final Affine IDENTIFY = new Affine();
     private @Nullable ProbeView<?> canvas;
     private @Nullable ChannelMap chmap;
     private int chmapHash = 0;
     private double @Nullable [][] density;
+    private double @Nullable [][][] curves;
     private final Logger log = LoggerFactory.getLogger(ElectrodeDensityPlugin.class);
 
     public ElectrodeDensityPlugin() {
@@ -97,6 +100,13 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
             log.debug("update electrode density");
             density = ChannelMaps.calculateElectrodeDensity(chmap, getSpacing(), getSmooth());
 
+            curves = new double[density.length][2][density[0].length + 1];
+            for (int i = 0; i < density.length; i++) {
+                curves[i] = new double[2][];
+                curves[i][0] = new double[density[0].length + 1];
+                curves[i][1] = new double[density[0].length + 1];
+            }
+
             var canvas = this.canvas;
             if (canvas != null) canvas.repaintForeground();
         }
@@ -110,26 +120,50 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
     public void draw(GraphicsContext gc) {
         var chmap = this.chmap;
         var density = this.density;
+        var curves = this.curves;
         if (chmap == null || density == null || !isVisible()) return;
-
-        gc.setStroke(Color.BLUE);
-        gc.setLineWidth(2);
 
         var ps = chmap.type().spacePerShank();
         var pc = chmap.type().spacePerColumn();
         var spacing = getSpacing();
 
+        // Because line width is affect by scaling,
+        // we save the transformed positions first,
+        // then plot the positions without the transformation.
+        var aff = gc.getTransform();
         for (int shank = 0; shank < density.length; shank++) {
             var dos = density[shank];
-            var zero = shank * ps + pc;
+            var zero = shank * ps + 2 * pc;
 
-            gc.beginPath();
-            gc.moveTo(zero, 0);
+            var p = aff.transform(zero, 0);
+            var curve = curves[shank];
+            curve[0][0] = p.getX();
+            curve[1][0] = p.getY();
             for (int i = 0, length = dos.length; i < length; i++) {
-                gc.lineTo(zero + dos[i] * pc, i * spacing);
+                p = aff.transform(zero + dos[i] * ps, i * spacing);
+                curve[0][i + 1] = p.getX();
+                curve[1][i + 1] = p.getY();
             }
-            System.out.println();
-            gc.stroke();
+        }
+
+        gc.save();
+        try {
+            gc.setTransform(IDENTIFY);
+            gc.setGlobalAlpha(1);
+            gc.setStroke(Color.BLUE);
+            gc.setLineWidth(1);
+            for (int shank = 0; shank < density.length; shank++) {
+                var curve = curves[shank];
+
+                gc.beginPath();
+                gc.moveTo(curve[0][0], curve[1][0]);
+                for (int i = 1, length = curve[0].length; i < length; i++) {
+                    gc.lineTo(curve[0][i], curve[1][i]);
+                }
+                gc.stroke();
+            }
+        } finally {
+            gc.restore();
         }
     }
 }
