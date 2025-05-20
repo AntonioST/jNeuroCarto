@@ -15,9 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.config.cli.CartoConfig;
-import io.ast.jneurocarto.core.Blueprint;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 

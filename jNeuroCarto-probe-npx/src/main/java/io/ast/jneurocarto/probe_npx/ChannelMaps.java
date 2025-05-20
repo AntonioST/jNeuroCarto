@@ -8,9 +8,9 @@ import java.util.concurrent.*;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import io.ast.jneurocarto.core.Blueprint;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
 
 @NullMarked
 public final class ChannelMaps {

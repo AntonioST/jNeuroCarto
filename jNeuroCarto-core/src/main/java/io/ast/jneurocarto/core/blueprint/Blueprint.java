@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.core;
+package io.ast.jneurocarto.core.blueprint;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -11,6 +11,9 @@ import java.util.stream.Gatherer;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.ProbeDescription;
 
 @NullMarked
 public class Blueprint<T> {
@@ -27,12 +30,9 @@ public class Blueprint<T> {
      */
     boolean modified = false;
 
-    @Nullable
-    int[] shank;
-    @Nullable
-    int[] posx;
-    @Nullable
-    int[] posy;
+    int @Nullable [] shank;
+    int @Nullable [] posx;
+    int @Nullable [] posy;
     int dx;
     int dy;
 

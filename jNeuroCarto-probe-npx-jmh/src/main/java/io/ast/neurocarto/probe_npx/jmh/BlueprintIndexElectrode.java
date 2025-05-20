@@ -7,8 +7,8 @@ import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.ast.jneurocarto.core.Blueprint;
-import io.ast.jneurocarto.core.BlueprintToolkit;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;

@@ -1,12 +1,14 @@
-package io.ast.jneurocarto.core;
+package io.ast.jneurocarto.core.blueprint;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.ToIntFunction;
 import java.util.stream.Gatherer;
 
 import org.jspecify.annotations.NullMarked;
 
-import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
+import io.ast.jneurocarto.core.ProbeDescription;
 
 @NullMarked
 public final class BlueprintToolkit<T> {
@@ -210,6 +212,10 @@ public final class BlueprintToolkit<T> {
         setBlueprint(ret);
     }
 
+    /*=======================*
+     * electrode surrounding *
+     *=======================*/
+
     public int[] surrounding(int electrode, boolean diagonal) {
         var ret = new int[8];
         surrounding(electrode, diagonal, ret);
@@ -257,23 +263,27 @@ public final class BlueprintToolkit<T> {
         };
     }
 
+    /*=====================*
+     * category clustering *
+     *=====================*/
+
     /**
      * @param diagonal does surrounding includes electrodes on diagonal?
      * @return {@code E}-length int-array that the surrounding electrode shared same positive int value.
      */
-    public int[] findClustering(boolean diagonal) {
-        if (length() == 0) return new int[0];
+    public Clustering findClustering(boolean diagonal) {
+        if (length() == 0) return Clustering.EMPTY;
 
         var src = blueprint();
         var minCate = Arrays.stream(src).min().orElse(ProbeDescription.CATE_UNSET);
         var maxCate = Arrays.stream(src).max().orElse(ProbeDescription.CATE_UNSET);
 
-        var ret = new int[length()];
+        var ret = new Clustering(length());
 
         // electrodes are belonging to same the category.
         if (minCate == maxCate) {
             if (minCate != ProbeDescription.CATE_UNSET) {
-                Arrays.fill(ret, 1);
+                ret.fill(1);
             }
             return ret;
         }
@@ -283,13 +293,13 @@ public final class BlueprintToolkit<T> {
         for (int i = 0, length = src.length; i < length; i++) {
             int cate = src[i];
             if (cate != ProbeDescription.CATE_UNSET) {
-                ret[i] = group++;
+                ret.set(i, group++);
 
                 surrounding(i, diagonal, surr);
                 for (int k = 0; k < 8; k++) {
                     var j = surr[k];
                     if (j >= 0) {
-                        unionGroupIdentify(ret, i, j);
+                        ret.unionClusteringGroup(i, j);
                     }
                 }
             }
@@ -298,17 +308,17 @@ public final class BlueprintToolkit<T> {
         return ret;
     }
 
-    public int[] findClustering(int category, boolean diagonal) {
-        if (length() == 0) return new int[0];
+    public Clustering findClustering(int category, boolean diagonal) {
+        if (length() == 0) return Clustering.EMPTY;
 
         var src = blueprint();
         var n = (int) Arrays.stream(src).filter(i -> i == category).count();
 
-        var ret = new int[length()];
+        var ret = new Clustering(length());
 
         // electrodes are belonging to same the category.
         if (n == length()) {
-            Arrays.fill(ret, 1);
+            ret.fill(1);
             return ret;
         }
 
@@ -317,45 +327,19 @@ public final class BlueprintToolkit<T> {
         for (int i = 0, length = src.length; i < length; i++) {
             int cate = src[i];
             if (cate == category) {
-                ret[i] = group++;
+                ret.set(i, group++);
 
                 surrounding(i, diagonal, surr);
                 for (int k = 0; k < 8; k++) {
                     var j = surr[k];
                     if (j >= 0) {
-                        unionGroupIdentify(ret, i, j);
+                        ret.unionClusteringGroup(i, j);
                     }
                 }
             }
         }
 
         return ret;
-    }
-
-
-    private static void unionGroupIdentify(int[] blueprint, int i, int j) {
-        if (i == j) return;
-
-        var a = blueprint[i];
-        var b = blueprint[j];
-        if (a == 0 && b == 0) return;
-
-        if (a == 0) {
-            blueprint[i] = b;
-        } else if (b == 0) {
-            blueprint[j] = a;
-        } else {
-            var c = Math.min(a, b);
-            if (a != c) {
-                for (int k = 0, length = blueprint.length; k < length; k++) {
-                    if (blueprint[k] == a) blueprint[k] = c;
-                }
-            } else {
-                for (int k = 0, length = blueprint.length; k < length; k++) {
-                    if (blueprint[k] == b) blueprint[k] = c;
-                }
-            }
-        }
     }
 
 
@@ -373,29 +357,9 @@ public final class BlueprintToolkit<T> {
         return getClusteringEdges(clustering);
     }
 
-    private List<ClusteringEdges> getClusteringEdges(int[] clustering) {
-        var maxGroup = Arrays.stream(clustering).max().orElse(0);
-        if (maxGroup == 0) return List.of();
-
-        record Most(int group, int count) {
-            Most add(Most other) {
-                return new Most(other.group, Most.this.count + other.count);
-            }
-        }
-
-        // calculate the mode value of clustering groups.
-        var most = (int) Arrays.stream(clustering)
-          .mapToObj(group -> new Most(group, 1))
-          .gather(Gatherer.<Most, HashMap<Integer, Most>, Most>ofSequential(
-            HashMap::new,
-            (state, element, _) -> {
-                state.merge(element.group, element, Most::add);
-                return true;
-            },
-            (state, downstream) -> state.values().forEach(downstream::push)
-          )).max(Comparator.comparingInt(Most::count))
-          .map(Most::count)
-          .orElse(0);
+    private List<ClusteringEdges> getClusteringEdges(Clustering clustering) {
+        var mode = clustering.modeGroup();
+        if (mode.group() == 0) return List.of();
 
         var src = blueprint();
         var shank = shank();
@@ -404,31 +368,22 @@ public final class BlueprintToolkit<T> {
 
         var ret = new ArrayList<ClusteringEdges>();
 
-        var area = new int[most];
+        var index = new int[mode.count()];
 
-        for (int g = 0; g < maxGroup; g++) {
-            int s = -1;
-            int c = ProbeDescription.CATE_UNSET;
+        for (var g : clustering.groups()) {
 
-            var pointer = 0;
-            for (int i = 0, length = clustering.length; i < length; i++) {
-                int group = clustering[i];
-                if (group == g) {
-                    if (s < 0) {
-                        s = shank[i];
-                        c = src[i];
-                    }
+            var size = clustering.indexOfGroup(g, index);
+            if (size == 0) continue;
 
-                    area[pointer++] = i;
-                }
-            }
+            int s = shank[index[0]];
+            int c = src[index[0]];
 
-            if (pointer == 1) {
-                var x = posx[area[0]];
-                var y = posy[area[0]];
+            if (size == 1) {
+                var x = posx[index[0]];
+                var y = posy[index[0]];
                 ret.add(pointClustering(c, s, x, y));
             } else {
-                ret.add(areaClustering(c, s, Arrays.copyOfRange(area, 0, pointer)));
+                ret.add(areaClustering(c, s, Arrays.copyOfRange(index, 0, size)));
             }
         }
 
