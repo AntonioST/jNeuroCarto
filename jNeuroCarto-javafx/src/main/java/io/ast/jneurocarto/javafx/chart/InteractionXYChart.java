@@ -153,7 +153,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     public static <T> void setVisible(XYChart.Series<Number, Number> series, Class<T> cls, Predicate<T> tester) {
         for (XYChart.Data<Number, Number> it : series.getData()) {
             var value = it.getExtraValue();
-            var visible = value != null && cls.isInstance(value) && tester.test((T) value);
+            var visible = cls.isInstance(value) && tester.test((T) value);
             it.getNode().setVisible(visible);
         }
     }
@@ -234,7 +234,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     public static <T> Stream<XYChart.Data<Number, Number>> filterExtraValue(XYChart.Series<Number, Number> series, Class<T> cls, Predicate<T> tester) {
         return series.getData().stream().filter(it -> {
             var value = it.getExtraValue();
-            return value != null && cls.isInstance(value) && tester.test((T) value);
+            return cls.isInstance(value) && tester.test((T) value);
         });
     }
 

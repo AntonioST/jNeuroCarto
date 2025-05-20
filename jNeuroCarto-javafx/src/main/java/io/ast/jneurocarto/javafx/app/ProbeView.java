@@ -24,7 +24,6 @@ import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 @NullMarked
 public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
 
-
     private static final String STATE_HIGHLIGHTED = "_highlighted_";
     private static final Color COLOR_UNUSED = Color.BLACK;
     private static final Color COLOR_USED = Color.GREEN;
