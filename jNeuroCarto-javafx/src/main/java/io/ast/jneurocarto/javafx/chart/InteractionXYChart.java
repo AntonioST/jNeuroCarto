@@ -1,6 +1,5 @@
 package io.ast.jneurocarto.javafx.chart;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -345,7 +344,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         boolean scaleX = false;
         boolean scaleY = false;
 
-        if (getPlottingArea().contains(p)) {
+        if (getPlottingAreaFromTop().contains(p)) {
             scaleY = scaleX = true;
         } else if (getXAxisArea().contains(p)) {
             scaleX = true;
@@ -377,7 +376,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     private void onMouseSelecting(MouseEvent start, MouseEvent current) {
         var gc = top.getGraphicsContext2D();
-        var area = getPlottingArea();
+        var area = getPlottingAreaFromTop();
         gc.clearRect(area.getMinX(), area.getMinY(), area.getWidth(), area.getHeight());
 
         var rect = getMouseSelectBound(start, current);
@@ -398,7 +397,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     private void onMouseSelectZooming(MouseEvent start, MouseEvent end) {
-        var transform = getChartTransform();
+        var transform = getChartTransform(getPlottingAreaFromTop());
         var bound = getMouseSelectBound(start, end);
         bound = transform.transform(bound);
         log.trace("onMouseSelectZooming {} (transformed)", bound);
@@ -426,10 +425,10 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     /**
      * @param start
      * @param current
-     * @return a boundary in canvas coordinate system.
+     * @return a boundary in top coordinate system.
      */
     private Bounds getMouseSelectBound(MouseEvent start, MouseEvent current) {
-        var area = getPlottingArea();
+        var area = getPlottingAreaFromTop();
         var x1 = Math.max(Math.min(start.getX(), current.getX()), area.getMinX());
         var x2 = Math.min(Math.max(start.getX(), current.getX()), area.getMaxX());
         var y1 = Math.max(Math.min(start.getY(), current.getY()), area.getMinY());
@@ -541,14 +540,14 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     /**
-     * @param point  a touch point in canvas coordinate system.
+     * @param point  a touch point in top coordinate system.
      * @param button
      */
     private void fireDataTouchEvent(Point2D point, MouseButton button) {
         if (!isDisabled()) {
             var handler = getOnDataTouch();
             if (handler != null) {
-                var transform = getChartTransform();
+                var transform = getChartTransform(getPlottingAreaFromTop());
                 var event = new DataTouchEvent(transform.transform(point), button);
                 Platform.runLater(() -> handler.handle(event));
             }
@@ -588,13 +587,13 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     /**
-     * @param bounds a boundary in canvas coordinate system.
+     * @param bounds a boundary in top coordinate system.
      */
     private void fireDataSelectEvent(Bounds bounds) {
         if (!isDisabled()) {
             var handler = getOnDataSelect();
             if (handler != null) {
-                var transform = getChartTransform();
+                var transform = getChartTransform(getPlottingAreaFromTop());
                 var event = new DataSelectEvent(transform.transform(bounds));
                 Platform.runLater(() -> handler.handle(event));
             }
@@ -609,23 +608,23 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         void draw(GraphicsContext gc);
     }
 
-    private static class WeakRefPlottingJob implements PlottingJob {
-        private final WeakReference<PlottingJob> reference;
-
-        WeakRefPlottingJob(PlottingJob plotting) {
-            reference = new WeakReference<>(plotting);
-        }
-
-        boolean isInvalid() {
-            return reference.get() == null;
-        }
-
-        @Override
-        public void draw(GraphicsContext gc) {
-            var plotting = reference.get();
-            if (plotting != null) plotting.draw(gc);
-        }
-    }
+//    private static class WeakRefPlottingJob implements PlottingJob {
+//        private final WeakReference<PlottingJob> reference;
+//
+//        WeakRefPlottingJob(PlottingJob plotting) {
+//            reference = new WeakReference<>(plotting);
+//        }
+//
+//        boolean isInvalid() {
+//            return reference.get() == null;
+//        }
+//
+//        @Override
+//        public void draw(GraphicsContext gc) {
+//            var plotting = reference.get();
+//            if (plotting != null) plotting.draw(gc);
+//        }
+//    }
 
     private final List<PlottingJob> foregroundJobs = new ArrayList<>();
     private final List<PlottingJob> backgroundJobs = new ArrayList<>();
@@ -682,17 +681,20 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private static final Affine IDENTIFY = new Affine();
 
     public Bounds getXAxisArea() {
-        return foreground.sceneToLocal(xAxis.localToScene(xAxis.getBoundsInLocal()));
+        return top.sceneToLocal(xAxis.localToScene(xAxis.getBoundsInLocal()));
     }
 
     public Bounds getYAxisArea() {
-        return foreground.sceneToLocal(yAxis.localToScene(yAxis.getBoundsInLocal()));
+        return top.sceneToLocal(yAxis.localToScene(yAxis.getBoundsInLocal()));
+    }
+
+    private Bounds getPlottingAreaFromTop() {
+        return top.sceneToLocal(chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal()));
     }
 
     public Bounds getPlottingArea() {
-        // now both foreground and chartPlottingArea have same bounds.
+        // both foreground and chartPlottingArea have same bounds.
         return chartPlottingArea.getBoundsInLocal();
-//        return foreground.sceneToLocal(chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal()));
     }
 
     /**

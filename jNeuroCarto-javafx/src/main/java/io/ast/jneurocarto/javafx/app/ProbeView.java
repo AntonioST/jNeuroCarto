@@ -94,21 +94,20 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
             ret.fill(color);
             if (code == ProbeDescription.STATE_DISABLED) {
                 ret.alpha(0.2);
-                ret.w(0.8);
-                ret.h(0.8);
-                ret.z(7);
-            } else {
                 ret.w(2);
                 ret.h(2);
+                ret.z(7);
+            } else {
+                ret.w(4);
+                ret.h(4);
                 ret.z(10);
             }
         } else if (STATE_HIGHLIGHTED.equals(name)) {
             ret.fill(COLOR_HIGHLIGHTED);
-            ret.w(4);
-            ret.h(4);
-            ret.linewidth(2);
+            ret.w(8);
+            ret.h(6);
+            ret.linewidth(4);
             ret.z(5);
-            ret.alpha(0.5);
         }
 
         interaction.addSeries(ret);
