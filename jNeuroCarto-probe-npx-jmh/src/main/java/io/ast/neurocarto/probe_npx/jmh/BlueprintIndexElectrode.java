@@ -8,7 +8,7 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import io.ast.jneurocarto.core.Blueprint;
-import io.ast.jneurocarto.core.BlueprintTool;
+import io.ast.jneurocarto.core.BlueprintToolkit;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
@@ -25,7 +25,10 @@ public class BlueprintIndexElectrode {
 
     NpxProbeType type;
     Blueprint<ChannelMap> blueprint;
-    BlueprintTool<ChannelMap> tool;
+
+    int[] shank;
+    int[] posx;
+    int[] posy;
 
     int[] s;
     int[] x;
@@ -36,7 +39,10 @@ public class BlueprintIndexElectrode {
         type = NpxProbeType.of(code);
         var probe = new NpxProbeDescription();
         blueprint = new Blueprint<>(probe, new ChannelMap(type));
-        tool = new BlueprintTool<>(blueprint);
+        var tool = new BlueprintToolkit<>(blueprint);
+        shank = tool.shank();
+        posx = tool.posx();
+        posy = tool.posy();
 
         record T(int index, double value) {
         }
@@ -72,10 +78,10 @@ public class BlueprintIndexElectrode {
     }
 
     public int indexSXY(int s, int x, int y) {
-        var shank = tool.shank();
-        var posx = tool.posx();
-        var posy = tool.posy();
-        for (int i = 0, length = tool.length(); i < length; i++) {
+        var shank = this.shank;
+        var posx = this.posx;
+        var posy = this.posy;
+        for (int i = 0, length = shank.length; i < length; i++) {
             if (shank[i] == s && posx[i] == x && posy[i] == y) return i;
         }
         return -1;
@@ -93,10 +99,10 @@ public class BlueprintIndexElectrode {
     }
 
     public int indexYSX(int s, int x, int y) {
-        var shank = tool.shank();
-        var posx = tool.posx();
-        var posy = tool.posy();
-        for (int i = 0, length = tool.length(); i < length; i++) {
+        var shank = this.shank;
+        var posx = this.posx;
+        var posy = this.posy;
+        for (int i = 0, length = shank.length; i < length; i++) {
             if (posy[i] == y && shank[i] == s && posx[i] == x) return i;
         }
         return -1;
