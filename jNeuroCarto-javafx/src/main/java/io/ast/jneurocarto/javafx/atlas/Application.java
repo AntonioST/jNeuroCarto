@@ -58,7 +58,7 @@ public class Application {
     }
 
     public static Application getInstance() {
-        return Objects.requireNonNull(INSTANCE, "AtlasBrainSliceApplication is not initialized.");
+        return Objects.requireNonNull(INSTANCE, "atlas.Application is not initialized.");
     }
 
     private Stage stage;

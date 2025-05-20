@@ -1,11 +1,14 @@
-package io.ast.jneurocarto.javafx.app;
+package io.ast.jneurocarto.javafx.chart;
 
-import java.awt.geom.Point2D;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -42,14 +45,24 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
     public static class XY {
         double x;
         double y;
+        final @Nullable Object external;
 
         public XY(Point2D p) {
-            this(p.getX(), p.getY());
+            this(p.getX(), p.getY(), null);
         }
 
         public XY(double x, double y) {
+            this(x, y, null);
+        }
+
+        public XY(Point2D p, @Nullable Object external) {
+            this(p.getX(), p.getY(), external);
+        }
+
+        public XY(double x, double y, @Nullable Object external) {
             this.x = x;
             this.y = y;
+            this.external = external;
         }
 
         public double x() {
@@ -67,21 +80,23 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
         public void y(double y) {
             this.y = y;
         }
+
+        public @Nullable Object external() {
+            return external;
+        }
     }
 
     public static class XYSeries {
         public final String name;
-        double z = 0;
-        double w = 1;
-        double h = 1;
-        double lw = 1;
-        @Nullable
-        Color border = null;
-        @Nullable
-        Color fill = null;
-        @Nullable
-        Color line = null;
-        boolean visible;
+        private double z = 0;
+        private double w = 1;
+        private double h = 1;
+        private double lw = 1;
+        private double alpha = 1;
+        private @Nullable Color border = null;
+        private @Nullable Color fill = null;
+        private @Nullable Color line = null;
+        private boolean visible = true;
 
         private List<XY> data = new ArrayList<>();
 
@@ -89,7 +104,7 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
             this.name = name;
         }
 
-        public String nName() {
+        public String name() {
             return name;
         }
 
@@ -127,6 +142,14 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
 
         public void linewidth(double lw) {
             this.lw = lw;
+        }
+
+        public double alpha() {
+            return alpha;
+        }
+
+        public void alpha(double alpha) {
+            this.alpha = alpha;
         }
 
         /**
@@ -169,6 +192,87 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
 
         public void setVisible(boolean visible) {
             this.visible = visible;
+        }
+
+        public Stream<XY> data() {
+            return data.stream();
+        }
+
+        public void clearData() {
+            data.clear();
+        }
+
+        public XY addData(Point2D p) {
+            var ret = new XY(p);
+            data.add(ret);
+            return ret;
+        }
+
+        public void addData(XY data) {
+            this.data.add(data);
+        }
+
+        public void addData(List<XY> data) {
+            this.data.addAll(data);
+        }
+
+        public void addData(Stream<XY> data) {
+            data.forEach(this.data::add);
+        }
+
+        public void copyData(XYSeries other) {
+            other.data.addAll(data);
+        }
+
+        public void copyData(XYSeries other, Predicate<XY> tester) {
+            for (XY xy : data) {
+                if (tester.test(xy)) {
+                    other.addData(xy);
+                }
+            }
+        }
+
+        public void transferData(XYSeries other) {
+            other.data.addAll(data);
+            data.clear();
+        }
+
+        public void transferData(XYSeries other, Predicate<XY> tester) {
+            var iter = data.iterator();
+            while (iter.hasNext()) {
+                var xy = iter.next();
+                if (tester.test(xy)) {
+                    other.addData(xy);
+                    iter.remove();
+                }
+            }
+        }
+
+        public XY removeData(int index) {
+            return data.remove(index);
+        }
+
+        public List<XY> removeData(int index, int length) {
+            var ret = new ArrayList<XY>(length);
+            var iter = data.listIterator(index);
+            for (int i = 0; i < length; i++) {
+                ret.add(iter.next());
+                iter.remove();
+            }
+            return ret;
+        }
+
+        public List<XY> removeData(Predicate<XY> tester) {
+            var ret = new ArrayList<XY>(size());
+            var iter = data.iterator();
+            while (iter.hasNext()) {
+                var xy = iter.next();
+                if (tester.test(xy)) {
+                    ret.add(xy);
+                    iter.remove();
+                }
+            }
+            return ret;
         }
 
         public void paint(GraphicsContext gc) {
@@ -219,9 +323,11 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
             gc.save();
             try {
                 gc.setTransform(IDENTIFY);
+                gc.setGlobalAlpha(alpha);
                 gc.setLineWidth(lw);
                 if (line != null && length > 0) {
                     gc.setStroke(line);
+                    gc.beginPath();
                     gc.moveTo(p[0][offset], p[1][offset]);
                     for (int i = 1; i < length; i++) {
                         gc.lineTo(p[0][i + offset], p[1][i + offset]);
@@ -229,15 +335,19 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
                     gc.stroke();
                 }
                 if (fill != null) {
+                    var dx = w / 2;
+                    var dy = h / 2;
                     gc.setFill(fill);
                     for (int i = 0; i < length; i++) {
-                        gc.fillRect(p[0][i + offset], p[1][i + offset], w, h);
+                        gc.fillRect(p[0][i + offset] - dx, p[1][i + offset] - dy, w, h);
                     }
                 }
                 if (border != null) {
+                    var dx = w / 2;
+                    var dy = h / 2;
                     gc.setStroke(border);
                     for (int i = 0; i < length; i++) {
-                        gc.strokeRect(p[0][i + offset], p[1][i + offset], w, h);
+                        gc.strokeRect(p[0][i + offset] - dx, p[1][i + offset] - dy, w, h);
                     }
                 }
             } finally {
@@ -245,6 +355,40 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
             }
         }
     }
+
+    /*========*
+     * Series *
+     *========*/
+
+    public XYSeries addSeries(String name) {
+        var ret = new XYSeries(name);
+        data.add(ret);
+        return ret;
+    }
+
+    public void addSeries(XYSeries series) {
+        data.add(series);
+    }
+
+    public void addSeries(Collection<XYSeries> series) {
+        data.addAll(series);
+    }
+
+    public @Nullable XYSeries removeSeries(String name) {
+        for (int i = 0, size = data.size(); i < size; i++) {
+            var ret = data.get(i);
+            if (ret.name.equals(name)) {
+                data.remove(i);
+                return ret;
+            }
+        }
+        return null;
+    }
+
+    public void clearSeries() {
+        data.clear();
+    }
+
 
     /*==========*
      * plotting *

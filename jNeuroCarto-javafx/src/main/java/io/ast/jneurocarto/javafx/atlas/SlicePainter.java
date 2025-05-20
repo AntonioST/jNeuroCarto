@@ -18,7 +18,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.atlas.ImageSlice;
-import io.ast.jneurocarto.javafx.app.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 
 @NullMarked
 public class SlicePainter implements InteractionXYChart.PlottingJob {

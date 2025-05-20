@@ -16,9 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
-import io.ast.jneurocarto.javafx.app.InteractionXYChart;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
@@ -100,6 +100,7 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
     protected @Nullable Node setupContent(PluginSetupService service) {
         canvas = service.getProbeView();
         canvas.addForegroundPlotting(this);
+        visible.addListener((_, _, _) -> canvas.repaintForeground());
 
         return null;
     }

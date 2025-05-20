@@ -34,5 +34,7 @@ module io.ast.jneurocarto.javafx {
 
     opens io.ast.jneurocarto.javafx.cli to info.picocli;
     exports io.ast.jneurocarto.javafx.cli to javafx.graphics;
+    exports io.ast.jneurocarto.javafx.chart;
+    opens io.ast.jneurocarto.javafx.chart to io.ast.jneurocarto.javafx.base;
 
 }

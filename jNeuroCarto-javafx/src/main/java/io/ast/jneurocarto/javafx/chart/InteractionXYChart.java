@@ -1,5 +1,6 @@
-package io.ast.jneurocarto.javafx.app;
+package io.ast.jneurocarto.javafx.chart;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -44,8 +45,9 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private final NumberAxis xAxis;
     private final NumberAxis yAxis;
     private final Canvas background;
-    private final Canvas data;
+    private final Canvas plotting;
     private final Canvas foreground;
+    private @Nullable InteractionXYData plottingData;
     private final Canvas top;
     private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
 
@@ -77,10 +79,10 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         background.widthProperty().bind(chartPlottingArea.widthProperty());
         background.heightProperty().bind(chartPlottingArea.heightProperty());
 
-        data = new Canvas();
-        data.setManaged(false);
-        data.widthProperty().bind(chartPlottingArea.widthProperty());
-        data.heightProperty().bind(chartPlottingArea.heightProperty());
+        plotting = new Canvas();
+        plotting.setManaged(false);
+        plotting.widthProperty().bind(chartPlottingArea.widthProperty());
+        plotting.heightProperty().bind(chartPlottingArea.heightProperty());
 
         foreground = new Canvas();
         foreground.setManaged(false);
@@ -92,7 +94,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         top.widthProperty().bind(chart.widthProperty());
         top.heightProperty().bind(chart.heightProperty());
 
-        getChildren().addAll(background, chart, data, foreground, top);
+        getChildren().addAll(background, chart, plotting, foreground, top);
 
         top.setOnMousePressed(this::onMousePressed);
         top.setOnMouseReleased(this::onMouseReleased);
@@ -109,16 +111,21 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      * data series *
      *=============*/
 
-    public InteractionXYData getData() {
-        return new InteractionXYData(this, data, false);
+
+    public InteractionXYData getPlotting() {
+        var ret = plottingData;
+        if (ret == null) {
+            plottingData = ret = new InteractionXYData(this, plotting, false);
+        }
+        return ret;
     }
 
     public InteractionXYData getForegroundData() {
-        return new InteractionXYData(this, data, true);
+        return new InteractionXYData(this, foreground, true);
     }
 
     public InteractionXYData getBackgroundData() {
-        return new InteractionXYData(this, data, true);
+        return new InteractionXYData(this, background, true);
     }
 
     public static Stream<XYChart.Data<Number, Number>> getVisible(XYChart.Series<Number, Number> series) {
@@ -282,13 +289,17 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var start = mousePress;
         if (start != null) {
             switch (start.getButton()) {
-            case MouseButton.PRIMARY -> onMouseSelecting(start, e);
+            case MouseButton.PRIMARY -> {
+                onMouseSelecting(start, e);
+                e.consume();
+            }
             case MouseButton.SECONDARY -> {
                 if (start.isControlDown()) {
                     onMouseSelecting(start, e);
                 } else {
                     onMouseDragging(start, e);
                 }
+                e.consume();
             }
             }
         }
@@ -305,8 +316,10 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         if (start != null) {
             if (start.getButton() == MouseButton.PRIMARY && moving != null) {
                 onMouseSelected(start, e);
+                e.consume();
             } else if (start.getButton() == MouseButton.SECONDARY && start.isControlDown()) {
                 onMouseSelectZooming(start, e);
+                e.consume();
             }
         }
 
@@ -359,6 +372,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         }
 
         if (scaleX || scaleY) fireCanvasChange(CanvasChangeEvent.SCALING);
+        e.consume();
     }
 
     private void onMouseSelecting(MouseEvent start, MouseEvent current) {
@@ -483,14 +497,12 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      *
      */
     private void fireCanvasChange(EventType<CanvasChangeEvent> type) {
-//        updateCanvasLayout();
-
         if (!isDisabled()) {
             try {
-                plotting = true;
+                repaintBlocker = true;
                 fireEvent(new CanvasChangeEvent(this, top, type));
             } finally {
-                plotting = false;
+                repaintBlocker = false;
             }
             repaint();
         }
@@ -597,9 +609,27 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         void draw(GraphicsContext gc);
     }
 
+    private static class WeakRefPlottingJob implements PlottingJob {
+        private final WeakReference<PlottingJob> reference;
+
+        WeakRefPlottingJob(PlottingJob plotting) {
+            reference = new WeakReference<>(plotting);
+        }
+
+        boolean isInvalid() {
+            return reference.get() == null;
+        }
+
+        @Override
+        public void draw(GraphicsContext gc) {
+            var plotting = reference.get();
+            if (plotting != null) plotting.draw(gc);
+        }
+    }
+
     private final List<PlottingJob> foregroundJobs = new ArrayList<>();
     private final List<PlottingJob> backgroundJobs = new ArrayList<>();
-    private boolean plotting = false;
+    private boolean repaintBlocker = false;
 
     public void addForegroundPlotting(PlottingJob job) {
         LoggerFactory.getLogger(getClass()).debug("addForegroundPlotting {}", job.getClass().getSimpleName());
@@ -622,7 +652,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     public void repaintForeground() {
-        if (plotting) return;
+        if (repaintBlocker) return;
         var gc = getForegroundChartGraphicsContext(true);
         for (var job : foregroundJobs) {
             job.draw(gc);
@@ -630,7 +660,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     public void repaintBackground() {
-        if (plotting) return;
+        if (repaintBlocker) return;
         var gc = getBackgroundChartGraphicsContext(true);
         for (var job : backgroundJobs) {
             job.draw(gc);
@@ -638,8 +668,10 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     public void repaint() {
-        if (plotting) return;
+        if (repaintBlocker) return;
         repaintBackground();
+        var data = plottingData;
+        if (data != null) data.repaint();
         repaintForeground();
     }
 
@@ -658,7 +690,9 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     public Bounds getPlottingArea() {
-        return foreground.sceneToLocal(chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal()));
+        // now both foreground and chartPlottingArea have same bounds.
+        return chartPlottingArea.getBoundsInLocal();
+//        return foreground.sceneToLocal(chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal()));
     }
 
     /**
@@ -778,19 +812,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      * {@return an affine transform from canvas to chart coordinate system.}
      */
     public Affine getChartTransform() {
-        var ax = xAxis;
-        var ay = yAxis;
-        var area = getPlottingArea();
-        var w = ax.getUpperBound() - ax.getLowerBound();
-        var h = ay.getUpperBound() - ay.getLowerBound();
-
-        var mxx = w / area.getWidth();
-        var mxy = 0;
-        var mxt = ax.getLowerBound() - area.getMinX() * w / area.getWidth();
-        var myx = 0;
-        var myy = -h / area.getHeight();
-        var myt = ay.getLowerBound() + area.getMaxY() * h / area.getHeight();
-        return new Affine(mxx, mxy, mxt, myx, myy, myt);
+        return getChartTransform(getPlottingArea());
     }
 
     /**
@@ -811,9 +833,104 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      * @return a point in chart coordinate system
      */
     public Point2D getChartTransform(double px, double py) {
+        return getChartTransform(px, py, getPlottingArea());
+    }
+
+    /**
+     * transform canvas length to chart length.
+     *
+     * @param vw a x-axis-directed length in canvas coordinate system
+     * @param vh a y-axis-directed length in canvas coordinate system
+     * @return a directed in chart coordinate system.
+     * {@link Point2D#getX()} means x-axis-directed length; and
+     * {@link Point2D#getY()} means y-axis-directed length
+     */
+    public Point2D getChartTransformScaling(double vw, double vh) {
+        return getChartTransformScaling(vw, vh, getPlottingArea());
+    }
+
+    /**
+     * {@return an affine transform from scene to chart coordinate system.}
+     */
+    public Affine getChartTransformFromScene() {
+        var area = chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal());
+        return getChartTransform(area);
+    }
+
+    /**
+     * transform a scene point to a chart point.
+     *
+     * @param p a point on scene
+     * @return a point in chart coordinate system
+     */
+    public Point2D getChartTransformFromScene(Point2D p) {
+        return getChartTransformFromScene(p.getX(), p.getY());
+    }
+
+    /**
+     * transform scene point to chart point.
+     *
+     * @param px a x position of a point on scene
+     * @param py a y position of a point on scene
+     * @return a point in chart coordinate system
+     */
+    public Point2D getChartTransformFromScene(double px, double py) {
+        var area = chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal());
+        return getChartTransform(px, py, area);
+    }
+
+    /**
+     * transform scene length to chart length.
+     *
+     * @param vw a x-axis-directed length on scene
+     * @param vh a y-axis-directed length on scene
+     * @return a directed in chart coordinate system.
+     * {@link Point2D#getX()} means x-axis-directed length; and
+     * {@link Point2D#getY()} means y-axis-directed length
+     */
+    public Point2D getChartTransformScalingFromScene(double vw, double vh) {
+        var area = chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal());
+        return getChartTransformScaling(vw, vh, area);
+    }
+
+    /**
+     * {@return an affine transform from area's coordinate to chart coordinate system.}
+     */
+    private Affine getChartTransform(Bounds area) {
         var ax = xAxis;
         var ay = yAxis;
-        var area = getPlottingArea();
+        var w = ax.getUpperBound() - ax.getLowerBound();
+        var h = ay.getUpperBound() - ay.getLowerBound();
+
+        var mxx = w / area.getWidth();
+        var mxy = 0;
+        var mxt = ax.getLowerBound() - area.getMinX() * w / area.getWidth();
+        var myx = 0;
+        var myy = -h / area.getHeight();
+        var myt = ay.getLowerBound() + area.getMaxY() * h / area.getHeight();
+        return new Affine(mxx, mxy, mxt, myx, myy, myt);
+    }
+
+    /**
+     * transform an area's  point to a chart point.
+     *
+     * @param p a point in area's coordinate system
+     * @return a point in chart coordinate system
+     */
+    private Point2D getChartTransform(Point2D p, Bounds area) {
+        return getChartTransformFromScene(p.getX(), p.getY());
+    }
+
+    /**
+     * transform an area's point to chart point.
+     *
+     * @param px a x position of a point in area's coordinate system
+     * @param py a y position of a point in area's coordinate system
+     * @return a point in chart coordinate system
+     */
+    public Point2D getChartTransform(double px, double py, Bounds area) {
+        var ax = xAxis;
+        var ay = yAxis;
         var w = ax.getUpperBound() - ax.getLowerBound();
         var h = ay.getUpperBound() - ay.getLowerBound();
 
@@ -830,18 +947,17 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     /**
-     * transform canvas length to chart length.
+     * transform area's length to chart length.
      *
-     * @param vw a x-axis-directed length in canvas coordinate system
-     * @param vh a y-axis-directed length in canvas coordinate system
+     * @param vw a x-axis-directed length in area's coordinate system
+     * @param vh a y-axis-directed length in area's coordinate system
      * @return a directed in chart coordinate system.
      * {@link Point2D#getX()} means x-axis-directed length; and
      * {@link Point2D#getY()} means y-axis-directed length
      */
-    public Point2D getChartTransformScaling(double vw, double vh) {
+    public Point2D getChartTransformScaling(double vw, double vh, Bounds area) {
         var ax = xAxis;
         var ay = yAxis;
-        var area = getPlottingArea();
         var w = ax.getUpperBound() - ax.getLowerBound();
         var h = ay.getUpperBound() - ay.getLowerBound();
 
@@ -909,7 +1025,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var y = b.getMinY();
 
         foreground.relocate(x, y);
-        data.relocate(x, y);
+        plotting.relocate(x, y);
         background.relocate(x, y);
     }
 
