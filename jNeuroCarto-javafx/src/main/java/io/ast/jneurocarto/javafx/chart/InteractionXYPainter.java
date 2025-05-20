@@ -18,7 +18,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class InteractionXYData implements InteractionXYChart.PlottingJob {
+public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
     private static final Affine IDENTIFY = new Affine();
     private final InteractionXYChart<?> chart;
@@ -27,7 +27,7 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
     private final GraphicsContext gc;
     private final List<XYSeries> data = new ArrayList<>();
 
-    InteractionXYData(InteractionXYChart<?> chart, Canvas canvas, boolean passive) {
+    InteractionXYPainter(InteractionXYChart<?> chart, Canvas canvas, boolean passive) {
         this.chart = chart;
         this.canvas = canvas;
         this.passive = passive;
@@ -202,6 +202,12 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
             data.clear();
         }
 
+        public XY addData(double x, double y) {
+            var ret = new XY(x, y);
+            data.add(ret);
+            return ret;
+        }
+
         public XY addData(Point2D p) {
             var ret = new XY(p);
             data.add(ret);
@@ -360,6 +366,10 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
      * Series *
      *========*/
 
+    public int seriesNumber() {
+        return data.size();
+    }
+
     public XYSeries addSeries(String name) {
         var ret = new XYSeries(name);
         data.add(ret);
@@ -372,6 +382,27 @@ public class InteractionXYData implements InteractionXYChart.PlottingJob {
 
     public void addSeries(Collection<XYSeries> series) {
         data.addAll(series);
+    }
+
+    public @Nullable XYSeries getSeries(String name) {
+        for (XYSeries ret : data) {
+            if (ret.name.equals(name)) {
+                return ret;
+            }
+        }
+        return null;
+    }
+
+    public XYSeries getOrNewSeries(String name) {
+        for (XYSeries ret : data) {
+            if (ret.name.equals(name)) {
+                return ret;
+            }
+        }
+
+        var ret = new XYSeries(name);
+        data.add(ret);
+        return ret;
     }
 
     public @Nullable XYSeries removeSeries(String name) {

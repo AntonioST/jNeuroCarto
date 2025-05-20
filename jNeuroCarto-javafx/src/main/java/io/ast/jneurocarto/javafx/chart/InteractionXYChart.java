@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.javafx.chart;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -46,7 +47,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private final Canvas background;
     private final Canvas plotting;
     private final Canvas foreground;
-    private @Nullable InteractionXYData plottingData;
+    private @Nullable InteractionXYPainter painter;
     private final Canvas top;
     private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
 
@@ -111,20 +112,24 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      *=============*/
 
 
-    public InteractionXYData getPlotting() {
-        var ret = plottingData;
+    public InteractionXYPainter getPlotting() {
+        var ret = painter;
         if (ret == null) {
-            plottingData = ret = new InteractionXYData(this, plotting, false);
+            painter = ret = new InteractionXYPainter(this, plotting, false);
         }
         return ret;
     }
 
-    public InteractionXYData getForegroundData() {
-        return new InteractionXYData(this, foreground, true);
+    public InteractionXYPainter getForegroundPainter() {
+        var ret = new InteractionXYPainter(this, foreground, true);
+        addForegroundPlotting(new WeakRefPlottingJob(ret));
+        return ret;
     }
 
-    public InteractionXYData getBackgroundData() {
-        return new InteractionXYData(this, background, true);
+    public InteractionXYPainter getBackgroundPainter() {
+        var ret = new InteractionXYPainter(this, background, true);
+        addBackgroundPlotting(new WeakRefPlottingJob(ret));
+        return ret;
     }
 
     public static Stream<XYChart.Data<Number, Number>> getVisible(XYChart.Series<Number, Number> series) {
@@ -608,23 +613,23 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         void draw(GraphicsContext gc);
     }
 
-//    private static class WeakRefPlottingJob implements PlottingJob {
-//        private final WeakReference<PlottingJob> reference;
-//
-//        WeakRefPlottingJob(PlottingJob plotting) {
-//            reference = new WeakReference<>(plotting);
-//        }
-//
-//        boolean isInvalid() {
-//            return reference.get() == null;
-//        }
-//
-//        @Override
-//        public void draw(GraphicsContext gc) {
-//            var plotting = reference.get();
-//            if (plotting != null) plotting.draw(gc);
-//        }
-//    }
+    private static class WeakRefPlottingJob implements PlottingJob {
+        private final WeakReference<PlottingJob> reference;
+
+        WeakRefPlottingJob(PlottingJob plotting) {
+            reference = new WeakReference<>(plotting);
+        }
+
+        boolean isInvalid() {
+            return reference.get() == null;
+        }
+
+        @Override
+        public void draw(GraphicsContext gc) {
+            var plotting = reference.get();
+            if (plotting != null) plotting.draw(gc);
+        }
+    }
 
     private final List<PlottingJob> foregroundJobs = new ArrayList<>();
     private final List<PlottingJob> backgroundJobs = new ArrayList<>();
@@ -653,23 +658,35 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     public void repaintForeground() {
         if (repaintBlocker) return;
         var gc = getForegroundChartGraphicsContext(true);
-        for (var job : foregroundJobs) {
-            job.draw(gc);
+        var iter = foregroundJobs.iterator();
+        while (iter.hasNext()) {
+            var job = iter.next();
+            if (job instanceof WeakRefPlottingJob w && w.isInvalid()) {
+                iter.remove();
+            } else {
+                job.draw(gc);
+            }
         }
     }
 
     public void repaintBackground() {
         if (repaintBlocker) return;
         var gc = getBackgroundChartGraphicsContext(true);
-        for (var job : backgroundJobs) {
-            job.draw(gc);
+        var iter = backgroundJobs.iterator();
+        while (iter.hasNext()) {
+            var job = iter.next();
+            if (job instanceof WeakRefPlottingJob w && w.isInvalid()) {
+                iter.remove();
+            } else {
+                job.draw(gc);
+            }
         }
     }
 
     public void repaint() {
         if (repaintBlocker) return;
         repaintBackground();
-        var data = plottingData;
+        var data = painter;
         if (data != null) data.repaint();
         repaintForeground();
     }

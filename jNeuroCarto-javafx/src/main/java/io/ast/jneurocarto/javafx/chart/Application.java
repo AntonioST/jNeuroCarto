@@ -30,8 +30,8 @@ public class Application {
 
     private Stage stage;
     private InteractionXYChart<ScatterChart<Number, Number>> chart;
-    private InteractionXYData data;
-    private InteractionXYData.XYSeries series;
+    private InteractionXYPainter data;
+    private InteractionXYPainter.XYSeries series;
 
     public void start(Stage stage) {
         this.stage = stage;

@@ -19,7 +19,7 @@ import io.ast.jneurocarto.core.Blueprint;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.InteractionXYData;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 
 @NullMarked
 public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
@@ -33,10 +33,10 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
     private final CartoConfig config;
     private final ProbeDescription<T> probe;
-    private final InteractionXYData interaction;
-    private final Map<String, InteractionXYData.XYSeries> electrodes = new HashMap<>();
-    private final Map<String, InteractionXYData.XYSeries> captured = new HashMap<>();
-    private InteractionXYData.XYSeries highlighted;
+    private final InteractionXYPainter interaction;
+    private final Map<String, InteractionXYPainter.XYSeries> electrodes = new HashMap<>();
+    private final Map<String, InteractionXYPainter.XYSeries> captured = new HashMap<>();
+    private InteractionXYPainter.XYSeries highlighted;
 
     private @Nullable T channelmap;
     private @Nullable List<ElectrodeDescription> blueprint;
@@ -79,8 +79,8 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         }
     }
 
-    private InteractionXYData.XYSeries newSeries(String name) {
-        var ret = new InteractionXYData.XYSeries(name);
+    private InteractionXYPainter.XYSeries newSeries(String name) {
+        var ret = new InteractionXYPainter.XYSeries(name);
 
         var code = probe.stateOf(name).orElse(-1);
         var color = switch (code) {
@@ -114,14 +114,14 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         return ret;
     }
 
-    private void setSeries(InteractionXYData.XYSeries series, Stream<ElectrodeDescription> electrodes) {
+    private void setSeries(InteractionXYPainter.XYSeries series, Stream<ElectrodeDescription> electrodes) {
         series.clearData();
-        series.addData(electrodes.map(it -> new InteractionXYData.XY(it.x(), it.y(), it)));
+        series.addData(electrodes.map(it -> new InteractionXYPainter.XY(it.x(), it.y(), it)));
     }
 
 
-    private static List<ElectrodeDescription> transferData(InteractionXYData.XYSeries src,
-                                                           InteractionXYData.@Nullable XYSeries dst) {
+    private static List<ElectrodeDescription> transferData(InteractionXYPainter.XYSeries src,
+                                                           InteractionXYPainter.@Nullable XYSeries dst) {
         var ret = src.data().map(it -> (ElectrodeDescription) it.external()).toList();
         if (dst != null) {
             src.transferData(dst);
@@ -129,8 +129,8 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         return ret;
     }
 
-    private static List<ElectrodeDescription> transferData(InteractionXYData.XYSeries src,
-                                                           InteractionXYData.XYSeries dst,
+    private static List<ElectrodeDescription> transferData(InteractionXYPainter.XYSeries src,
+                                                           InteractionXYPainter.XYSeries dst,
                                                            Predicate<ElectrodeDescription> tester) {
         var ret = new ArrayList<ElectrodeDescription>(src.size());
         src.transferData(dst, it -> {
@@ -145,8 +145,8 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         return ret;
     }
 
-    private static List<ElectrodeDescription> copyData(InteractionXYData.XYSeries src,
-                                                       InteractionXYData.XYSeries dst,
+    private static List<ElectrodeDescription> copyData(InteractionXYPainter.XYSeries src,
+                                                       InteractionXYPainter.XYSeries dst,
                                                        Predicate<ElectrodeDescription> tester) {
         var ret = new ArrayList<ElectrodeDescription>(src.size());
         src.copyData(dst, it -> {

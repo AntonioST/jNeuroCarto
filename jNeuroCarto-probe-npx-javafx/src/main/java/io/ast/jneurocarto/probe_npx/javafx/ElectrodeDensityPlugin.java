@@ -6,7 +6,6 @@ import java.util.Objects;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Node;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
 
@@ -18,17 +17,18 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
 
 @NullMarked
-public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin<ChannelMap>, InteractionXYChart.PlottingJob {
+public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin<ChannelMap> {
 
     private static final Affine IDENTIFY = new Affine();
     private @Nullable ProbeView<?> canvas;
+    private InteractionXYPainter painter;
 
     /**
      * ChannelMap cache.
@@ -46,10 +46,6 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
      */
     private double @Nullable [][] density;
 
-    /**
-     * the pre-allocated array for storing transformed density curves.
-     */
-    private double @Nullable [][][] curves;
 
     private final Logger log = LoggerFactory.getLogger(ElectrodeDensityPlugin.class);
 
@@ -99,8 +95,9 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
     @Override
     protected @Nullable Node setupContent(PluginSetupService service) {
         canvas = service.getProbeView();
-        canvas.addForegroundPlotting(this);
         visible.addListener((_, _, _) -> canvas.repaintForeground());
+
+        painter = canvas.getForegroundPainter();
 
         return null;
     }
@@ -119,20 +116,44 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
             log.debug("update electrode density");
             density = ChannelMaps.calculateElectrodeDensity(chmap, getSpacing(), getSmooth());
 
-            var nShank = density.length;
-            var length = density[0].length;
+            updateXYData(chmap, density);
 
-            if (curves == null || curves.length != nShank || curves[0][0].length != length) {
-                curves = new double[nShank][2][length];
-                for (int i = 0; i < nShank; i++) {
-                    curves[i] = new double[2][];
-                    curves[i][0] = new double[length];
-                    curves[i][1] = new double[length];
-                }
+            repaint();
+        }
+    }
+
+    private void updateXYData(ChannelMap chmap, double[][] density) {
+        var ps = chmap.type().spacePerShank();
+        var pc = chmap.type().spacePerColumn();
+        var spacing = getSpacing();
+
+        var nShank = density.length;
+        var length = density[0].length;
+
+        if (painter.seriesNumber() == 0) {
+
+            for (int shank = 0; shank < nShank; shank++) {
+                var series = painter.addSeries("baseline-" + shank);
+                series.line(Color.BLUE);
+                series.linewidth(1);
+                series.alpha(0.5);
+                var zero = shank * ps + 2 * pc;
+                series.addData(zero, 0);
+                series.addData(zero, length * spacing);
             }
+        }
 
-            var canvas = this.canvas;
-            if (canvas != null) canvas.repaintForeground();
+        for (int shank = 0; shank < nShank; shank++) {
+            var series = painter.getOrNewSeries("shank-" + shank);
+            series.line(Color.BLUE);
+            series.linewidth(1);
+            series.clearData();
+
+            var zero = shank * ps + 2 * pc;
+            var curve = density[shank];
+            for (int i = 0; i < length; i++) {
+                series.addData(zero + curve[i] * ps, i * spacing);
+            }
         }
     }
 
@@ -140,51 +161,8 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
      * curve plotting *
      *================*/
 
-    @Override
-    public void draw(GraphicsContext gc) {
-        var chmap = this.chmap;
-        var density = this.density;
-        var curves = this.curves;
-        if (chmap == null || density == null || !isVisible()) return;
-
-        var ps = chmap.type().spacePerShank();
-        var pc = chmap.type().spacePerColumn();
-        var spacing = getSpacing();
-
-        // Because line width is affect by scaling,
-        // we save the transformed positions first,
-        // then plot the positions without the transformation.
-        var aff = gc.getTransform();
-        for (int shank = 0; shank < density.length; shank++) {
-            var dos = density[shank];
-            var zero = shank * ps + 2 * pc;
-
-            var curve = curves[shank];
-            for (int i = 0, length = dos.length; i < length; i++) {
-                var p = aff.transform(zero + dos[i] * ps, i * spacing);
-                curve[0][i] = p.getX();
-                curve[1][i] = p.getY();
-            }
-        }
-
-        gc.save();
-        try {
-            gc.setTransform(IDENTIFY);
-            gc.setGlobalAlpha(1);
-            gc.setStroke(Color.BLUE);
-            gc.setLineWidth(1);
-            for (int shank = 0; shank < density.length; shank++) {
-                var curve = curves[shank];
-
-                gc.beginPath();
-                gc.moveTo(curve[0][0], curve[1][0]);
-                for (int i = 1, length = curve[0].length; i < length; i++) {
-                    gc.lineTo(curve[0][i], curve[1][i]);
-                }
-                gc.stroke();
-            }
-        } finally {
-            gc.restore();
-        }
+    public void repaint() {
+        var canvas = this.canvas;
+        if (canvas != null) canvas.repaintForeground();
     }
 }
