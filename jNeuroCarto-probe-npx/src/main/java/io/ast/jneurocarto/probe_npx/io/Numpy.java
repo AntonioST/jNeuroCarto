@@ -40,6 +40,8 @@ import static java.nio.file.StandardOpenOption.*;
 /// 00000060: 2020 2020 2020 2020 2020 2020 2020 2020
 /// 00000070: 2020 2020 2020 2020 2020 2020 2020 200a                 .
 ///```
+///
+/// TODO any library?
 @NullMarked
 public final class Numpy {
 
@@ -143,7 +145,7 @@ public final class Numpy {
 
     }
 
-    private static sealed abstract class ValueArray<T> implements ArrayCreator<T> permits D1Array, D2Array {
+    private static sealed abstract class ValueArray<T> implements ArrayCreator<T> permits D1Array, D2Array, D3Array {
 
         final char valueType;
         int valueSize = 0;
@@ -295,6 +297,49 @@ public final class Numpy {
         }
     }
 
+    private static abstract sealed class D3Array<T> extends ValueArray<T> permits OfD3Int, OfD3Double {
+        int plans;
+        int rows;
+        int columns;
+        int p;
+        int r;
+        int c;
+
+        D3Array(char valueType) {
+            super(valueType);
+        }
+
+        final void checkShape(NumpyHeader header) {
+            var shape = header.shape();
+            if (shape.length != 3) throw new RuntimeException("not an 3-d array : " + Arrays.toString(shape));
+            plans = shape[0];
+            rows = shape[1];
+            columns = shape[2];
+            checkValue(header);
+        }
+
+
+        @Override
+        public final int[] shape() {
+            return new int[]{plans, rows, columns};
+        }
+
+        final void checkFor(int plans, int rows, int columns) {
+            this.plans = plans;
+            this.rows = rows;
+            this.columns = columns;
+        }
+
+        final boolean index(long pos) {
+            var rc = rows * columns;
+            p = (int) (pos / rc);
+            var q = (int) (pos % rc);
+            rows = q / c;
+            columns = q % c;
+            return p < plans && r < rows && c < columns;
+        }
+    }
+
     public static final class OfInt extends D1Array<int[]> {
         public OfInt() {
             super('i');
@@ -316,9 +361,8 @@ public final class Numpy {
             if (p < ret.length) {
                 ret[p] = readInt(buffer);
                 return true;
-            } else {
-                return false;
             }
+            return false;
         }
 
         @Override
@@ -327,9 +371,8 @@ public final class Numpy {
             if (p < ret.length) {
                 writeInt(buffer, ret[p]);
                 return true;
-            } else {
-                return false;
             }
+            return false;
         }
     }
 
@@ -353,7 +396,7 @@ public final class Numpy {
         @Override
         public void checkFor(int[][] data) {
             var length1 = data.length;
-            var length2 = data[0].length;
+            var length2 = length1 == 0 ? 0 : data[0].length;
             for (int i = 1; i < length1; i++) {
                 if (data[i].length != length2) throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
             }
@@ -365,9 +408,8 @@ public final class Numpy {
             if (index(pos)) {
                 ret[index1][index2] = readInt(buffer);
                 return true;
-            } else {
-                return false;
             }
+            return false;
         }
 
         @Override
@@ -375,9 +417,60 @@ public final class Numpy {
             if (index(pos)) {
                 writeInt(buffer, ret[index1][index2]);
                 return true;
-            } else {
-                return false;
             }
+            return false;
+        }
+    }
+
+    public static final class OfD3Int extends D3Array<int[][][]> {
+        public OfD3Int() {
+            super('i');
+        }
+
+        @Override
+        public int[][][] create(NumpyHeader header) {
+            checkShape(header);
+            var ret = new int[plans][][];
+            for (int p = 0; p < plans; p++) {
+                var row = ret[p] = new int[rows][];
+                for (int r = 0; r < rows; r++) {
+                    row[r] = new int[columns];
+                }
+            }
+            return ret;
+        }
+
+        @Override
+        public void checkFor(int[][][] data) {
+            var plans = data.length;
+            var rows = plans == 0 ? 0 : data[0].length;
+            var columns = plans == 0 || rows == 0 ? 0 : data[0][0].length;
+            for (int p = 1; p < plans; p++) {
+                var row = data[p];
+                if (row.length != rows) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                for (int r = 0; r < rows; r++) {
+                    if (row[r].length != columns) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                }
+            }
+            checkFor(plans, rows, columns);
+        }
+
+        @Override
+        public boolean read(int[][][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                ret[p][r][c] = readInt(buffer);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean write(int[][][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                writeInt(buffer, ret[p][r][c]);
+                return true;
+            }
+            return false;
         }
     }
 
@@ -467,6 +560,58 @@ public final class Numpy {
         }
     }
 
+    public static final class OfD3Double extends D3Array<double[][][]> {
+        public OfD3Double() {
+            super('f');
+        }
+
+        @Override
+        public double[][][] create(NumpyHeader header) {
+            checkShape(header);
+            var ret = new double[plans][][];
+            for (int p = 0; p < plans; p++) {
+                var row = ret[p] = new double[rows][];
+                for (int r = 0; r < rows; r++) {
+                    row[r] = new double[columns];
+                }
+            }
+            return ret;
+        }
+
+        @Override
+        public void checkFor(double[][][] data) {
+            var plans = data.length;
+            var rows = plans == 0 ? 0 : data[0].length;
+            var columns = plans == 0 || rows == 0 ? 0 : data[0][0].length;
+            for (int p = 1; p < plans; p++) {
+                var row = data[p];
+                if (row.length != rows) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                for (int r = 0; r < rows; r++) {
+                    if (row[r].length != columns) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                }
+            }
+            checkFor(plans, rows, columns);
+        }
+
+        @Override
+        public boolean read(double[][][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                ret[p][r][c] = readDouble(buffer);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean write(double[][][] ret, long pos, ByteBuffer buffer) {
+            if (index(pos)) {
+                writeDouble(buffer, ret[p][r][c]);
+                return true;
+            }
+            return false;
+        }
+    }
+
     /**
      * read numpy array from file.
      *
@@ -525,6 +670,7 @@ public final class Numpy {
         return ret;
     }
 
+
     /**
      * write numpy array to file.
      *
@@ -532,14 +678,38 @@ public final class Numpy {
      * @param array
      * @throws IOException
      */
+    public static void write(Path file, int[] array) throws IOException {
+        var of = new OfInt();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
     public static void write(Path file, int[][] array) throws IOException {
         var of = new OfD2Int();
         of.checkFor(array);
         write(file, array, of);
     }
 
+    public static void write(Path file, int[][][] array) throws IOException {
+        var of = new OfD3Int();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, double[] array) throws IOException {
+        var of = new OfDouble();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
     public static void write(Path file, double[][] array) throws IOException {
         var of = new OfD2Double();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, double[][][] array) throws IOException {
+        var of = new OfD3Double();
         of.checkFor(array);
         write(file, array, of);
     }
@@ -558,14 +728,38 @@ public final class Numpy {
      * @param array
      * @throws IOException
      */
+    public static void write(OutputStream out, int[] array) throws IOException {
+        var of = new OfInt();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
     public static void write(OutputStream out, int[][] array) throws IOException {
         var of = new OfD2Int();
         of.checkFor(array);
         write(out, array, of);
     }
 
+    public static void write(OutputStream out, int[][][] array) throws IOException {
+        var of = new OfD3Int();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, double[] array) throws IOException {
+        var of = new OfDouble();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
     public static void write(OutputStream out, double[][] array) throws IOException {
         var of = new OfD2Double();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, double[][][] array) throws IOException {
+        var of = new OfD3Double();
         of.checkFor(array);
         write(out, array, of);
     }
