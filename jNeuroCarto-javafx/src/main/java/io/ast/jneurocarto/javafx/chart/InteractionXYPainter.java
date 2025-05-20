@@ -370,6 +370,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         return data.size();
     }
 
+    public List<String> listSeriesName() {
+        return data.stream().map(XYSeries::name).toList();
+    }
+
     public XYSeries addSeries(String name) {
         var ret = new XYSeries(name);
         data.add(ret);

@@ -7,7 +7,6 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
-import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -26,8 +25,7 @@ import io.ast.jneurocarto.probe_npx.ChannelMaps;
 @NullMarked
 public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin<ChannelMap> {
 
-    private static final Affine IDENTIFY = new Affine();
-    private @Nullable ProbeView<?> canvas;
+    private ProbeView<?> canvas;
     private InteractionXYPainter painter;
 
     /**
@@ -130,7 +128,12 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
         var nShank = density.length;
         var length = density[0].length;
 
-        if (painter.seriesNumber() == 0) {
+        var nBaseline = (int) painter.listSeriesName().stream()
+          .filter(it -> it.startsWith("baseline-"))
+          .count();
+
+        if (nShank != nBaseline) {
+            painter.clearSeries();
 
             for (int shank = 0; shank < nShank; shank++) {
                 var series = painter.addSeries("baseline-" + shank);
@@ -162,7 +165,6 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
      *================*/
 
     public void repaint() {
-        var canvas = this.canvas;
-        if (canvas != null) canvas.repaintForeground();
+        canvas.repaintForeground();
     }
 }
