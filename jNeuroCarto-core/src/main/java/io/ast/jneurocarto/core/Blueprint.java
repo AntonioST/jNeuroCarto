@@ -20,18 +20,21 @@ public class Blueprint<T> {
     private final List<ElectrodeDescription> electrodes;
 
     private static final int[] EMPTY_BLUEPRINT = new int[0];
-    private final int[] blueprint;
+    final int[] blueprint;
 
     /**
      * any modification on blueprint, but no sync back to electrodes.
      */
-    private boolean modified = false;
+    boolean modified = false;
 
-    private @Nullable int[] shank;
-    private @Nullable int[] posx;
-    private @Nullable int[] posy;
-    private int dx;
-    private int dy;
+    @Nullable
+    int[] shank;
+    @Nullable
+    int[] posx;
+    @Nullable
+    int[] posy;
+    int dx;
+    int dy;
 
     public Blueprint(ProbeDescription<T> probe) {
         this.probe = probe;
@@ -120,14 +123,15 @@ public class Blueprint<T> {
         return modified;
     }
 
-    public OptionalInt indexElectrode(ElectrodeDescription e) {
-        int s = e.s();
-        int x = e.x();
-        int y = e.y();
+    public OptionalInt indexElectrode(int s, int x, int y) {
         for (int i = 0, length = blueprint.length; i < length; i++) {
             if (shank[i] == s && posx[i] == x && posy[i] == y) return OptionalInt.of(i);
         }
         return OptionalInt.empty();
+    }
+
+    public OptionalInt indexElectrode(ElectrodeDescription e) {
+        return indexElectrode(e.s(), e.x(), e.y());
     }
 
     /**

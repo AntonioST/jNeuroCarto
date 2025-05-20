@@ -30,7 +30,6 @@ public class ChannelmapUtils {
                 electrode[i] = i;
             }
         }
-
     }
 
     @Benchmark

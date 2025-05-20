@@ -12,6 +12,7 @@ module io.ast.jneurocarto.probe_npx {
     requires io.ast.jneurocarto.core;
 
     exports io.ast.jneurocarto.probe_npx;
+    exports io.ast.jneurocarto.probe_npx.blueprint;
     exports io.ast.jneurocarto.probe_npx.select;
     opens io.ast.jneurocarto.probe_npx.cli to info.picocli;
 
