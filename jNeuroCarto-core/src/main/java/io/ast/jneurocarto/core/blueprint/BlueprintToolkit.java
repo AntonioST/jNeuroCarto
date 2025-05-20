@@ -578,8 +578,16 @@ public final class BlueprintToolkit<T> {
         return ret;
     }
 
-    public void fillClusteringEdges(List<ClusteringEdges> edges) {
+    /*=================*
+     * fill clustering *
+     *=================*/
 
+    public void fillClusteringEdges(List<ClusteringEdges> edges) {
+        var blueprint = blueprint();
+        for (var edge : edges) {
+            fillClusteringEdges(edge, blueprint);
+        }
+        markDirty();
     }
 
     public void fillClusteringEdges(List<ClusteringEdges> edges, int category) {
@@ -587,6 +595,59 @@ public final class BlueprintToolkit<T> {
     }
 
     public void fillClusteringEdges(ClusteringEdges edge) {
+        fillClusteringEdges(edge, blueprint());
+        markDirty();
     }
 
+    public int[] fillClusteringEdges(ClusteringEdges edge, int[] dst) {
+        var c = edge.category();
+        var s = edge.shank();
+        var e = edge.setCorner(dx() / 2, dx() / 2);
+
+        var shank = shank();
+        var posx = posx();
+        var posy = posy();
+
+        for (int i = 0, length = dst.length; i < length; i++) {
+            if (shank[i] == s) {
+                var x = posx[i];
+                var y = posy[i];
+                if (e.contains(x, y)) {
+                    dst[i] = c;
+                }
+            }
+        }
+        return dst;
+    }
+
+    /*====================*
+     * fill category zone *
+     *====================*/
+
+    public void fill(int category) {
+        fill(category, 0);
+    }
+
+    public void fill(int category, int threshold) {
+        for (var clustering : getClusteringEdges(category)) {
+            if (Math.abs(clustering.area()) >= threshold) {
+                clustering = clustering.convex();
+                fillClusteringEdges(clustering);
+            }
+        }
+    }
+
+    public void extend(int category, int step) {
+        extend(category, step, 0);
+    }
+
+    public void extend(int category, int step, int threshold) {
+    }
+
+    public void reduce(int category, int step) {
+        reduce(category, step, 0);
+    }
+
+    public void reduce(int category, int step, int threshold) {
+    }
 }

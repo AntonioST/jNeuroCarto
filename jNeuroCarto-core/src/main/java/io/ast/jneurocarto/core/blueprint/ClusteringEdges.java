@@ -38,26 +38,68 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
 
     public ClusteringEdges setCorner(int dx, int dy) {
         if (dx < 0 || dy < 0) throw new IllegalArgumentException();
-        return setCorner(dx, dy, -dx, dy, -dx, -dy, dx, -dy);
-    }
-
-    public ClusteringEdges setCorner(int dx1, int dy1, int dx3, int dy3, int dx5, int dy5, int dx7, int dy7) {
-        var dx = new int[]{0, dx1, 0, dx3, 0, dx5, 0, dx7, 0};
-        var dy = new int[]{0, dy1, 0, dy3, 0, dy5, 0, dy7, 0};
-        var edges = this.edges.stream().filter(corner -> {
+        var dx2 = new int[]{0, dx, 0, -dx, 0, -dx, 0, dx, 0};
+        var dy2 = new int[]{0, dy, 0, dy, 0, -dy, 0, -dy, 0};
+        var edges1 = this.edges.stream().filter(corner -> {
             var c = corner.corner;
             // corner at 0, 2, 4, 6 are removed
             return c == 1 || c == 3 || c == 5 || c == 7;
         }).map(corner -> {
             var c = corner.corner;
-            return new Corner(corner.x + dx[c], corner.y + dy[c], 8);
+            return new Corner(corner.x + dx2[c], corner.y + dy2[c], 8);
         }).toList();
-        return new ClusteringEdges(category, shank, edges);
+        return new ClusteringEdges(category, shank, edges1);
+    }
+
+    public int area() {
+        var area = 0;
+        for (int i = 0, size = edges.size(); i < size; i++) {
+            var p = edges.get(i);
+            var q = edges.get((i + 1) % size);
+            area += (p.x * q.y) - (q.x * p.y);
+        }
+        return area;
+    }
+
+    public ClusteringEdges convex() {
+        if (edges.isEmpty()) return this;
+
+        var x1 = edges.stream().mapToInt(Corner::x).min().getAsInt();
+        var x2 = edges.stream().mapToInt(Corner::x).max().getAsInt();
+        var y1 = edges.stream().mapToInt(Corner::y).min().getAsInt();
+        var y2 = edges.stream().mapToInt(Corner::y).max().getAsInt();
+
+        return new ClusteringEdges(category, shank, List.of(
+          new Corner(x1, y1, 5),
+          new Corner(x2, y1, 7),
+          new Corner(x2, y2, 1),
+          new Corner(x1, y2, 3)
+        ));
     }
 
     public ClusteringEdges offset(int x, int y) {
         var edges = this.edges.stream().map(it -> new Corner(it.x + x, it.y + y, it.corner)).toList();
         return new ClusteringEdges(category, shank, edges);
+    }
+
+    public boolean contains(int x, int y) {
+        var left = 0;
+        for (int i = 0, size = edges.size(); i < size; i++) {
+            var p = edges.get(i);
+            var q = edges.get((i + 1) % size);
+            if (p.y > q.y) {
+                var t = p;
+                p = q;
+                q = t;
+            }
+            if (p.y < y && y <= q.y) {
+                var xx = p.x + (double) (q.x - p.x) * (y - p.y) / (q.y - p.y);
+                if (x > xx) {
+                    left++;
+                }
+            }
+        }
+        return left % 2 == 1;
     }
 
 
