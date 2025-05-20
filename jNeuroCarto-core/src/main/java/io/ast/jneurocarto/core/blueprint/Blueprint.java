@@ -83,11 +83,16 @@ public class Blueprint<T> {
           .sorted()
           .boxed()
           .gather(Gatherer.<Integer, int[], Integer>ofSequential(
-            () -> new int[1],
+            () -> new int[]{Integer.MIN_VALUE},
             (state, element, downstream) -> {
-                var ret = element - state[0];
-                state[0] = element;
-                return downstream.push(ret);
+                if (state[0] == Integer.MIN_VALUE) {
+                    state[0] = element;
+                    return true;
+                } else {
+                    var ret = element - state[0];
+                    state[0] = element;
+                    return downstream.push(ret);
+                }
             }
           )).mapToInt(it -> it)
           .min()
@@ -253,6 +258,12 @@ public class Blueprint<T> {
         if (chmap == null) throw new RuntimeException("missing channelmap");
 
         probe.saveBlueprint(file, electrodes());
+    }
+
+    public Blueprint<T> set(int category) {
+        Arrays.fill(blueprint, category);
+        modified = true;
+        return this;
     }
 
     /**
