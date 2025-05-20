@@ -368,7 +368,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     private void onSliderMoved() {
         if (images != null) {
             updateSliceImage();
-//        updateAnchorInformation();
         }
     }
 
@@ -400,7 +399,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
             return;
         }
 
-        // FIXME coordinate is wrong when both translate and rotation happen.
         var p = new Point2D(e.getX(), e.getY()); // canvas
         p = canvas.getChartTransform(p); // chart <- canvas
         p = painter.getSliceTransform().transform(p); // slice <- chart
@@ -473,25 +471,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     /*=================*
      * information bar *
      *=================*/
-
-//    private void updateAnchorInformation() {
-//        var image = this.image;
-//        if (image == null) {
-//            labelAnchorInformation.setText("");
-//            return;
-//        }
-//
-//        var anchor = imageView.anchor.get();
-//        if (anchor == null) {
-//            labelAnchorInformation.setText("");
-//            return;
-//        }
-//
-//        var coor = image.pullBack(image.planeAt(anchor));
-//        var text = String.format("[anchor] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
-//
-//        labelAnchorInformation.setText(text);
-//    }
 
     private void updateStructureInformation(Coordinate coor) {
         var brain = this.brain;

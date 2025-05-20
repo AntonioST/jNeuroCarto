@@ -23,19 +23,15 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     private static final Affine IDENTIFY = new Affine();
     private final InteractionXYChart<?> chart;
     private final Canvas canvas;
-    private final boolean passive;
+    private final int layer;
     private final GraphicsContext gc;
     private final List<XYSeries> data = new ArrayList<>();
 
-    InteractionXYPainter(InteractionXYChart<?> chart, Canvas canvas, boolean passive) {
+    InteractionXYPainter(InteractionXYChart<?> chart, Canvas canvas, int layer) {
         this.chart = chart;
         this.canvas = canvas;
-        this.passive = passive;
+        this.layer = layer;
         gc = canvas.getGraphicsContext2D();
-    }
-
-    public boolean isPassive() {
-        return passive;
     }
 
     /*==============*
@@ -432,16 +428,22 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     private @Nullable SoftReference<double[][]> transformedCache;
 
     public void repaint() {
-        if (passive) return;
-        clear();
-        gc.setTransform(chart.getCanvasTransform());
-        draw(gc);
+        if (layer == 0) {
+            clear();
+            gc.setTransform(chart.getCanvasTransform());
+            draw(gc);
+        } else if (layer > 0) {
+            chart.repaintForeground();
+        } else {
+            chart.repaintBackground();
+        }
     }
 
     public void clear() {
-        if (passive) return;
-        gc.setTransform(IDENTIFY);
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        if (layer == 0) {
+            gc.setTransform(IDENTIFY);
+            gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        }
     }
 
     @Override

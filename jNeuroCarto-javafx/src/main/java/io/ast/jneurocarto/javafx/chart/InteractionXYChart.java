@@ -115,19 +115,19 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     public InteractionXYPainter getPlotting() {
         var ret = painter;
         if (ret == null) {
-            painter = ret = new InteractionXYPainter(this, plotting, false);
+            painter = ret = new InteractionXYPainter(this, plotting, 0);
         }
         return ret;
     }
 
     public InteractionXYPainter getForegroundPainter() {
-        var ret = new InteractionXYPainter(this, foreground, true);
+        var ret = new InteractionXYPainter(this, foreground, 1);
         addForegroundPlotting(new WeakRefPlottingJob(ret));
         return ret;
     }
 
     public InteractionXYPainter getBackgroundPainter() {
-        var ret = new InteractionXYPainter(this, background, true);
+        var ret = new InteractionXYPainter(this, background, -1);
         addBackgroundPlotting(new WeakRefPlottingJob(ret));
         return ret;
     }
@@ -444,6 +444,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     /*=====================*
      * canvas moving event *
      *=====================*/
+
 
     public static class CanvasChangeEvent extends InputEvent {
         public static final EventType<CanvasChangeEvent> ANY = new EventType<>(InputEvent.ANY, "CANVAS_CHANGE");

@@ -165,6 +165,6 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
      *================*/
 
     public void repaint() {
-        canvas.repaintForeground();
+        painter.repaint();
     }
 }
