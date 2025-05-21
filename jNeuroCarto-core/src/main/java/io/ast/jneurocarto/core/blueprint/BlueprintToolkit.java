@@ -3,8 +3,6 @@ package io.ast.jneurocarto.core.blueprint;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.ToIntFunction;
-import java.util.stream.Gatherer;
 
 import org.jspecify.annotations.NullMarked;
 
@@ -12,10 +10,29 @@ import io.ast.jneurocarto.core.ProbeDescription;
 
 @NullMarked
 public final class BlueprintToolkit<T> {
+
+    /**
+     * wrapped blueprint.
+     */
     private final Blueprint<T> blueprint;
 
+    /**
+     * warp {@link BlueprintToolkit} onto {@code blueprint}.
+     *
+     * @param blueprint
+     */
     public BlueprintToolkit(Blueprint<T> blueprint) {
         this.blueprint = blueprint;
+    }
+
+    /**
+     * create a copied {@link BlueprintToolkit} from {@code blueprint}.
+     * The wrapped {@link Blueprint} will be cloned.
+     *
+     * @param blueprint
+     */
+    public BlueprintToolkit(BlueprintToolkit<T> blueprint) {
+        this(new Blueprint<>(blueprint.blueprint));
     }
 
     /*========*
@@ -62,8 +79,43 @@ public final class BlueprintToolkit<T> {
 
     public void setBlueprint(int[] blueprint) {
         var dst = this.blueprint.blueprint;
-        System.arraycopy(blueprint, 0, dst, 0, dst.length);
-        markDirty();
+        if (blueprint.length != dst.length) throw new RuntimeException();
+        if (dst != blueprint) {
+            System.arraycopy(blueprint, 0, dst, 0, dst.length);
+            markDirty();
+        }
+    }
+
+    public void setBlueprint(Blueprint<T> blueprint) {
+        if (blueprint != this.blueprint) {
+            setBlueprint(blueprint.blueprint);
+        }
+    }
+
+    public void setBlueprint(BlueprintToolkit<T> blueprint) {
+        setBlueprint(blueprint.blueprint);
+    }
+
+    public void mergeBlueprint(int[] blueprint) {
+        var dst = this.blueprint.blueprint;
+        if (blueprint.length != dst.length) throw new RuntimeException();
+        if (dst != blueprint) {
+            for (int i = 0, length = dst.length; i < length; i++) {
+                if (dst[i] == ProbeDescription.CATE_UNSET) dst[i] = blueprint[i];
+            }
+
+            markDirty();
+        }
+    }
+
+    public void mergeBlueprint(Blueprint<T> blueprint) {
+        if (blueprint != this.blueprint) {
+            mergeBlueprint(blueprint.blueprint);
+        }
+    }
+
+    public void mergeBlueprint(BlueprintToolkit<T> blueprint) {
+        mergeBlueprint(blueprint.blueprint);
     }
 
     public void markDirty() {
@@ -85,30 +137,28 @@ public final class BlueprintToolkit<T> {
         return -1;
     }
 
-
-    private static int indexOf(int[] array, int value) {
-        for (int i = 0, length = array.length; i < length; i++) {
-            if (array[i] == value) return i;
-        }
-        return -1;
-    }
-
     /*============================*
      * category zone manipulation *
      *============================*/
 
     public void move(int step) {
         if (step == 0 || length() == 0) return;
+        setBlueprint(move(blueprint(), step));
+    }
+
+    public int[] move(int[] blueprint, int step) {
+        if (length() != blueprint.length) throw new RuntimeException();
+
+        var ret = blueprint.clone();
+        if (step == 0 || length() == 0) return ret;
 
         var shank = shank();
         var posx = posx();
         var posy = posy();
         var dy = dy();
 
-        var src = blueprint();
-        var ret = newBlueprint();
-        for (int i = 0, length = src.length; i < length; i++) {
-            var cate = src[i];
+        for (int i = 0, length = blueprint.length; i < length; i++) {
+            var cate = blueprint[i];
             if (cate != ProbeDescription.CATE_UNSET) {
                 var s = shank[i];
                 var x = posx[i];
@@ -120,21 +170,27 @@ public final class BlueprintToolkit<T> {
             }
         }
 
-        setBlueprint(ret);
+        return ret;
     }
 
     public void move(int step, int category) {
         if (step == 0 || length() == 0) return;
+        setBlueprint(move(blueprint(), step, category));
+    }
+
+    public int[] move(int[] blueprint, int step, int category) {
+        if (length() != blueprint.length) throw new RuntimeException();
+
+        var ret = blueprint.clone();
+        if (step == 0 || length() == 0) return ret;
 
         var shank = shank();
         var posx = posx();
         var posy = posy();
         var dy = dy();
 
-        var src = blueprint();
-        var ret = src.clone();
-        for (int i = 0, length = src.length; i < length; i++) {
-            var cate = src[i];
+        for (int i = 0, length = blueprint.length; i < length; i++) {
+            var cate = blueprint[i];
             if (cate == category) {
                 var s = shank[i];
                 var x = posx[i];
@@ -147,11 +203,19 @@ public final class BlueprintToolkit<T> {
             }
         }
 
-        setBlueprint(ret);
+        return ret;
     }
 
     public void move(int step, int[] index) {
         if (step == 0 || length() == 0 || index.length == 0) return;
+        setBlueprint(move(blueprint(), step, index));
+    }
+
+    public int[] move(int[] blueprint, int step, int[] index) {
+        if (length() != blueprint.length) throw new RuntimeException();
+
+        var ret = blueprint.clone();
+        if (step == 0 || length() == 0 || index.length == 0) return ret;
 
         var shank = shank();
         var posx = posx();
@@ -161,12 +225,10 @@ public final class BlueprintToolkit<T> {
         Arrays.sort(index);
         var pointer = 0;
 
-        var src = blueprint();
-        var ret = src.clone();
-        for (int i = 0, length = src.length; i < length; i++) {
+        for (int i = 0, length = blueprint.length; i < length; i++) {
             if (pointer < index.length && index[pointer] == i) {
                 pointer++;
-                var cate = src[i];
+                var cate = blueprint[i];
                 if (cate != ProbeDescription.CATE_UNSET) {
                     var s = shank[i];
                     var x = posx[i];
@@ -180,23 +242,28 @@ public final class BlueprintToolkit<T> {
             }
         }
 
-        setBlueprint(ret);
+        return ret;
     }
 
     public void move(int step, boolean[] mask) {
         if (mask.length != length()) throw new IllegalArgumentException();
+        setBlueprint(move(blueprint(), step, mask));
+    }
 
-        if (step == 0 || length() == 0) return;
+    public int[] move(int[] blueprint, int step, boolean[] mask) {
+        if (length() != blueprint.length) throw new RuntimeException();
+        if (mask.length != length()) throw new IllegalArgumentException();
+
+        var ret = blueprint.clone();
+        if (step == 0 || length() == 0) return ret;
 
         var shank = shank();
         var posx = posx();
         var posy = posy();
         var dy = dy();
 
-        var src = blueprint();
-        var ret = src.clone();
-        for (int i = 0, length = src.length; i < length; i++) {
-            var cate = src[i];
+        for (int i = 0, length = blueprint.length; i < length; i++) {
+            var cate = blueprint[i];
             if (cate != ProbeDescription.CATE_UNSET && mask[i]) {
                 var s = shank[i];
                 var x = posx[i];
@@ -209,13 +276,25 @@ public final class BlueprintToolkit<T> {
             }
         }
 
-        setBlueprint(ret);
+        return ret;
     }
 
     /*=======================*
      * electrode surrounding *
      *=======================*/
 
+    /// get surrounding electrode index of the {@code electrode}.
+    ///
+    /// corner code:
+    /// ```text
+    /// 3 2 1
+    /// 4 8 0
+    /// 5 6 7
+    ///```
+    ///
+    /// @param electrode electrode index
+    /// @param diagonal
+    /// @return 8-length electrode index array. {@code -1} if no electrode.
     public int[] surrounding(int electrode, boolean diagonal) {
         var ret = new int[8];
         surrounding(electrode, diagonal, ret);
@@ -242,6 +321,18 @@ public final class BlueprintToolkit<T> {
         }
     }
 
+    /// get electrode index at corner of the {@code electrode}.
+    ///
+    /// corner code:
+    /// ```text
+    /// 3 2 1
+    /// 4 8 0
+    /// 5 6 7
+    ///```
+    ///
+    /// @param electrode electrode index
+    /// @param c         corner code
+    /// @return electrode index
     public int surrounding(int electrode, int c) {
         var s = shank()[electrode];
         var x = posx()[electrode];
@@ -249,6 +340,20 @@ public final class BlueprintToolkit<T> {
         return surrounding(s, x, y, c);
     }
 
+    /// get electrode index at corner of the electrode on (s, x, y).
+    ///
+    /// corner code:
+    /// ```text
+    /// 3 2 1
+    /// 4 8 0
+    /// 5 6 7
+    ///```
+    ///
+    /// @param s shank
+    /// @param x x position
+    /// @param y y position
+    /// @param c corner code
+    /// @return electrode index
     public int surrounding(int s, int x, int y, int c) {
         return switch (c % 8) {
             case 0 -> index(s, x + 1, y);
@@ -272,13 +377,17 @@ public final class BlueprintToolkit<T> {
      * @return {@code E}-length int-array that the surrounding electrode shared same positive int value.
      */
     public Clustering findClustering(boolean diagonal) {
-        if (length() == 0) return Clustering.EMPTY;
+        return findClustering(blueprint(), diagonal);
+    }
 
-        var src = blueprint();
-        var minCate = Arrays.stream(src).min().orElse(ProbeDescription.CATE_UNSET);
-        var maxCate = Arrays.stream(src).max().orElse(ProbeDescription.CATE_UNSET);
+    public Clustering findClustering(int[] blueprint, boolean diagonal) {
+        var length = blueprint.length;
+        if (length == 0) return Clustering.EMPTY;
 
-        var ret = new Clustering(length());
+        var minCate = Arrays.stream(blueprint).min().orElse(ProbeDescription.CATE_UNSET);
+        var maxCate = Arrays.stream(blueprint).max().orElse(ProbeDescription.CATE_UNSET);
+
+        var ret = new Clustering(length);
 
         // electrodes are belonging to same the category.
         if (minCate == maxCate) {
@@ -290,8 +399,8 @@ public final class BlueprintToolkit<T> {
 
         var surr = new int[8];
         var group = 1;
-        for (int i = 0, length = src.length; i < length; i++) {
-            int cate = src[i];
+        for (int i = 0; i < length; i++) {
+            int cate = blueprint[i];
             if (cate != ProbeDescription.CATE_UNSET) {
                 ret.set(i, group++);
 
@@ -309,23 +418,27 @@ public final class BlueprintToolkit<T> {
     }
 
     public Clustering findClustering(int category, boolean diagonal) {
-        if (length() == 0) return Clustering.EMPTY;
+        return findClustering(blueprint(), category, diagonal);
+    }
 
-        var src = blueprint();
-        var n = (int) Arrays.stream(src).filter(i -> i == category).count();
+    public Clustering findClustering(int[] blueprint, int category, boolean diagonal) {
+        int length = blueprint.length;
+        if (length == 0) return Clustering.EMPTY;
 
-        var ret = new Clustering(length());
+        var n = (int) Arrays.stream(blueprint).filter(i -> i == category).count();
+
+        var ret = new Clustering(length);
 
         // electrodes are belonging to same the category.
-        if (n == length()) {
+        if (n == length) {
             ret.fill(1);
             return ret;
         }
 
         var surr = new int[8];
         var group = 1;
-        for (int i = 0, length = src.length; i < length; i++) {
-            int cate = src[i];
+        for (int i = 0; i < length; i++) {
+            int cate = blueprint[i];
             if (cate == category) {
                 ret.set(i, group++);
 
@@ -345,19 +458,27 @@ public final class BlueprintToolkit<T> {
 
     public List<ClusteringEdges> getClusteringEdges() {
         if (length() == 0) return List.of();
+        return getClusteringEdges(findClustering(false));
+    }
 
-        var clustering = findClustering(false);
-        return getClusteringEdges(clustering);
+    public List<ClusteringEdges> getClusteringEdges(int[] blueprint) {
+        if (length() != blueprint.length) throw new RuntimeException();
+        if (blueprint.length == 0) return List.of();
+        return getClusteringEdges(findClustering(blueprint, false));
     }
 
     public List<ClusteringEdges> getClusteringEdges(int category) {
         if (length() == 0) return List.of();
-
-        var clustering = findClustering(category, false);
-        return getClusteringEdges(clustering);
+        return getClusteringEdges(findClustering(category, false));
     }
 
-    private List<ClusteringEdges> getClusteringEdges(Clustering clustering) {
+    public List<ClusteringEdges> getClusteringEdges(int[] blueprint, int category) {
+        if (length() != blueprint.length) throw new RuntimeException();
+        if (blueprint.length == 0) return List.of();
+        return getClusteringEdges(findClustering(blueprint, category, false));
+    }
+
+    public List<ClusteringEdges> getClusteringEdges(Clustering clustering) {
         var mode = clustering.modeGroup();
         if (mode.group() == 0) return List.of();
 
@@ -371,7 +492,6 @@ public final class BlueprintToolkit<T> {
         var index = new int[mode.count()];
 
         for (var g : clustering.groups()) {
-
             var size = clustering.indexOfGroup(g, index);
             if (size == 0) continue;
 
@@ -381,197 +501,9 @@ public final class BlueprintToolkit<T> {
             if (size == 1) {
                 var x = posx[index[0]];
                 var y = posy[index[0]];
-                ret.add(pointClustering(c, s, x, y));
+                ret.add(ClusteringUtils.pointClustering(c, s, x, y));
             } else {
-                ret.add(areaClustering(c, s, Arrays.copyOfRange(index, 0, size)));
-            }
-        }
-
-        return ret;
-    }
-
-    private static ClusteringEdges pointClustering(int c, int s, int x, int y) {
-        return new ClusteringEdges(c, s, List.of(
-          new ClusteringEdges.Corner(x, y, 1),
-          new ClusteringEdges.Corner(x, y, 3),
-          new ClusteringEdges.Corner(x, y, 5),
-          new ClusteringEdges.Corner(x, y, 7)
-        ));
-    }
-
-    private ClusteringEdges areaClustering(int c, int s, int[] index) {
-        return new ClusteringEdges(c, s, walkClusteringArea(index));
-    }
-
-    private record Index(int i, int x, int y) {
-        private static Gatherer<Index, ?, Index> minOn(ToIntFunction<Index> mapper) {
-            return Gatherer.<Index, List<Index>, Index>ofSequential(
-              ArrayList::new,
-              (state, element, _) -> {
-                  if (!state.isEmpty() && mapper.applyAsInt(element) < mapper.applyAsInt(state.getFirst())) {
-                      state.clear();
-                  }
-                  state.add(element);
-                  return true;
-              },
-              (state, downstream) -> state.forEach(downstream::push)
-            );
-        }
-    }
-
-    private record WalkAction(int direction, List<FollowAction> actions) {
-
-        private static List<FollowAction> getAction(int direction) {
-            for (var action : ACTIONS) {
-                if (action.direction == direction) return action.actions;
-            }
-            throw new RuntimeException();
-        }
-    }
-
-    private sealed interface FollowAction permits Turn, Back {
-    }
-
-    record Turn(int action, int corner) implements FollowAction {
-    }
-
-    record Back(int[] corners, int action) implements FollowAction {
-    }
-
-    private static WalkAction[] ACTIONS = {
-      // WalkAction(direction=i->j)
-      // rightward
-      new WalkAction(0, List.of(
-        // Turn(action=j->k, corner),
-        // * * *
-        // i j *
-        //   k *
-        new Turn(6, 5),
-        // * * *
-        // i j k
-        // ?
-        new Turn(0, 6),
-        // * k
-        // i j
-        //
-        new Turn(2, 7),
-        // ?
-        // i j
-        //
-        new Back(new int[]{7, 1, 3}, 2)
-      )),
-      // downward
-      new WalkAction(6, List.of(
-        //   i *
-        // k j *
-        // * * *
-        new Turn(4, 3),
-        // ? i *
-        //   j *
-        //   k *
-        new Turn(6, 4),
-        // ? i *
-        //   j k
-        //
-        new Turn(0, 5),
-        // ? i ?
-        //   j
-        //
-        new Back(new int[]{5, 7, 1}, 0)
-      )),
-      // leftward
-      new WalkAction(4, List.of(
-        // ? k
-        // * j i
-        // * * *
-        new Turn(2, 1),
-        //
-        // k j i
-        // * * *
-        new Turn(4, 2),
-        //
-        //   j i
-        // ? k *
-        new Turn(6, 3),
-        //
-        //  j i
-        //    ?
-        new Back(new int[]{3, 5, 7}, 6)
-      )),
-      // upward
-      new WalkAction(2, List.of(
-        // * * *
-        // * j k
-        // * i
-        new Turn(0, 7),
-        // * k
-        // * j
-        // * i
-        new Turn(2, 0),
-        //
-        // k j
-        // * i
-        new Turn(4, 1),
-        //
-        //   j
-        // ? i
-        new Back(new int[]{1, 3, 5}, 4)
-      )),
-    };
-
-    private List<ClusteringEdges.Corner> walkClusteringArea(int[] index) {
-        if (index.length == 0) throw new IllegalArgumentException();
-
-        var posx = posx();
-        var posy = posy();
-
-        var start = Arrays.stream(index)
-          .mapToObj(i -> new Index(i, posx[i], posy[i]))
-          .gather(Index.minOn(Index::x))
-          .gather(Index.minOn(Index::y))
-          .findFirst()
-          .get();
-
-        var ret = new ArrayList<ClusteringEdges.Corner>();
-
-        // * ?
-        // i * ?
-        //   ? ?
-        int i = start.i;
-        int d = 0; // right
-        int x = start.x;
-        int y = start.y;
-        ret.add(new ClusteringEdges.Corner(x, y, 5));
-
-        while (!(start.i == i && d == 6)) {
-            if (indexOf(index, i) < 0) throw new RuntimeException();
-
-            x = posx[index[i]];
-            y = posy[index[i]];
-
-            loop:
-            for (var actions : WalkAction.getAction(d)) {
-                switch (actions) {
-                case Turn(int action, int corner) -> {
-                    var j = surrounding(index[i], action);
-                    if (j >= 0) { // is index[i]+action located in probe?
-                        var k = indexOf(index, j);
-                        if (k >= 0) { // is index[i]+action located in index?
-                            ret.add(new ClusteringEdges.Corner(x, y, corner));
-                            i = k;
-                            d = action;
-                            break loop;
-                        }
-                    }
-                }
-                case Back(int[] corners, int action) -> {
-                    for (var corner : corners) {
-                        ret.add(new ClusteringEdges.Corner(x, y, corner));
-                    }
-                    d = action;
-                    break loop;
-                }
-                }
+                ret.add(ClusteringUtils.areaClustering(this, c, s, Arrays.copyOfRange(index, 0, size)));
             }
         }
 
@@ -585,21 +517,36 @@ public final class BlueprintToolkit<T> {
     public void fillClusteringEdges(List<ClusteringEdges> edges) {
         var blueprint = blueprint();
         for (var edge : edges) {
-            fillClusteringEdges(edge, blueprint);
+            fillClusteringEdges(blueprint, edge);
         }
         markDirty();
     }
 
+    public int[] fillClusteringEdges(int[] blueprint, List<ClusteringEdges> edges) {
+        for (var edge : edges) {
+            fillClusteringEdges(blueprint, edge);
+        }
+        return blueprint;
+    }
+
     public void fillClusteringEdges(List<ClusteringEdges> edges, int category) {
-        fillClusteringEdges(edges.stream().map(it -> it.withCategory(category)).toList());
+        var clustering = edges.stream().map(it -> it.withCategory(category)).toList();
+        fillClusteringEdges(clustering);
+    }
+
+    public int[] fillClusteringEdges(int[] blueprint, List<ClusteringEdges> edges, int category) {
+        var clustering = edges.stream().map(it -> it.withCategory(category)).toList();
+        return fillClusteringEdges(blueprint, clustering);
     }
 
     public void fillClusteringEdges(ClusteringEdges edge) {
-        fillClusteringEdges(edge, blueprint());
+        fillClusteringEdges(blueprint(), edge);
         markDirty();
     }
 
-    public int[] fillClusteringEdges(ClusteringEdges edge, int[] dst) {
+    public int[] fillClusteringEdges(int[] blueprint, ClusteringEdges edge) {
+        if (length() != blueprint.length) throw new RuntimeException();
+
         var c = edge.category();
         var s = edge.shank();
         var e = edge.setCorner(dx() / 2, dx() / 2);
@@ -608,16 +555,16 @@ public final class BlueprintToolkit<T> {
         var posx = posx();
         var posy = posy();
 
-        for (int i = 0, length = dst.length; i < length; i++) {
+        for (int i = 0, length = blueprint.length; i < length; i++) {
             if (shank[i] == s) {
                 var x = posx[i];
                 var y = posy[i];
                 if (e.contains(x, y)) {
-                    dst[i] = c;
+                    blueprint[i] = c;
                 }
             }
         }
-        return dst;
+        return blueprint;
     }
 
     /*====================*
@@ -625,29 +572,64 @@ public final class BlueprintToolkit<T> {
      *====================*/
 
     public void fill(int category) {
-        fill(category, 0);
+        fill(blueprint(), category, 0);
+        markDirty();
+    }
+
+    public int[] fill(int[] blueprint, int category) {
+        return fill(blueprint, category, 0);
     }
 
     public void fill(int category, int threshold) {
-        for (var clustering : getClusteringEdges(category)) {
+        fill(blueprint(), category, threshold);
+        markDirty();
+    }
+
+    public int[] fill(int[] blueprint, int category, int threshold) {
+        for (var clustering : getClusteringEdges(blueprint, category)) {
             if (Math.abs(clustering.area()) >= threshold) {
                 clustering = clustering.convex();
-                fillClusteringEdges(clustering);
+                fillClusteringEdges(blueprint, clustering);
             }
         }
+        return blueprint;
     }
 
     public void extend(int category, int step) {
-        extend(category, step, 0);
+        extend(blueprint(), category, step, 0);
+        markDirty();
+    }
+
+    public int[] extend(int[] blueprint, int category, int step) {
+        return extend(blueprint, category, step, 0);
     }
 
     public void extend(int category, int step, int threshold) {
+        extend(blueprint(), category, step, threshold);
+        markDirty();
+    }
+
+    public int[] extend(int[] blueprint, int category, int step, int threshold) {
+        //XXX Unsupported Operation BlueprintToolkit.extend
+        throw new UnsupportedOperationException();
     }
 
     public void reduce(int category, int step) {
-        reduce(category, step, 0);
+        reduce(blueprint(), category, step, 0);
+        markDirty();
+    }
+
+    public int[] reduce(int[] blueprint, int category, int step) {
+        return reduce(blueprint, category, step, 0);
     }
 
     public void reduce(int category, int step, int threshold) {
+        reduce(blueprint(), category, step, threshold);
+        markDirty();
+    }
+
+    public int[] reduce(int[] blueprint, int category, int step, int threshold) {
+        //XXX Unsupported Operation BlueprintToolkit.reduce
+        throw new UnsupportedOperationException();
     }
 }

@@ -26,7 +26,7 @@ public class Blueprint<T> {
     final int[] blueprint;
 
     /**
-     * any modification on blueprint, but no sync back to electrodes.
+     * any modification on {@code blueprint}, but no sync back to {@code electrodes}.
      */
     boolean modified = false;
 
@@ -75,6 +75,8 @@ public class Blueprint<T> {
             dx = blueprint.dx;
             dy = blueprint.dy;
         }
+
+        modified = blueprint.modified;
     }
 
     private static int minDiffSet(int[] x) {
@@ -360,12 +362,13 @@ public class Blueprint<T> {
     public Blueprint<T> merge(Blueprint<T> other) {
         var length = blueprint.length;
         if (length != other.blueprint.length) throw new RuntimeException();
+        if (this != other) {
+            for (int i = 0; i < length; i++) {
+                if (blueprint[i] == ProbeDescription.CATE_UNSET) blueprint[i] = other.blueprint[i];
+            }
 
-        for (int i = 0; i < length; i++) {
-            if (blueprint[i] == ProbeDescription.CATE_UNSET) blueprint[i] = other.blueprint[i];
+            modified = true;
         }
-
-        modified = true;
         return this;
     }
 
