@@ -161,24 +161,19 @@ final class ClusteringUtils {
         ret.add(new ClusteringEdges.Corner(x, y, 5));
 
         while (!(start.i == i && d == 6)) {
-            if (indexOf(index, i) < 0) throw new RuntimeException();
-
-            x = posx[index[i]];
-            y = posy[index[i]];
+            x = posx[i];
+            y = posy[i];
 
             loop:
             for (var actions : WalkAction.getAction(d)) {
                 switch (actions) {
                 case Turn(int action, int corner) -> {
-                    var j = toolkit.surrounding(index[i], action);
-                    if (j >= 0) { // is index[i]+action located in probe?
-                        var k = indexOf(index, j);
-                        if (k >= 0) { // is index[i]+action located in index?
-                            ret.add(new ClusteringEdges.Corner(x, y, corner));
-                            i = k;
-                            d = action;
-                            break loop;
-                        }
+                    var j = toolkit.surrounding(i, action);
+                    if (j >= 0 && indexOf(index, j) >= 0) {
+                        ret.add(new ClusteringEdges.Corner(x, y, corner));
+                        i = j;
+                        d = action;
+                        break loop;
                     }
                 }
                 case Back(int[] corners, int action) -> {

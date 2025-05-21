@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.DoublePredicate;
 import java.util.function.IntBinaryOperator;
-import java.util.function.IntPredicate;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -64,11 +64,11 @@ public final class BlueprintToolkit<T> {
         return blueprint.posy;
     }
 
-    public int dx() {
+    public double dx() {
         return blueprint.dx;
     }
 
-    public int dy() {
+    public double dy() {
         return blueprint.dy;
     }
 
@@ -324,17 +324,7 @@ public final class BlueprintToolkit<T> {
         var ret = new int[length];
         if (step == 0 || length == 0 || index.length == 0) return ret;
 
-        Arrays.sort(index);
-        var pointer = new AtomicInteger();
-
-        return move(ret, blueprint, step, (i, _) -> {
-            var p = pointer.get();
-            if (p < index.length && index[p] == i) {
-                return pointer.incrementAndGet();
-            } else {
-                return 0;
-            }
-        });
+        return move(ret, blueprint, step, index);
     }
 
     /**
@@ -362,6 +352,20 @@ public final class BlueprintToolkit<T> {
 
         var x = ProbeDescription.CATE_UNSET;
         return move(ret, blueprint, step, (i, cate) -> (cate != x && mask[i]) ? 1 : 0);
+    }
+
+    private int[] move(int[] output, int[] blueprint, int step, int[] index) {
+        Arrays.sort(index);
+        var pointer = new AtomicInteger();
+
+        return move(output, blueprint, step, (i, _) -> {
+            var p = pointer.get();
+            if (p < index.length && index[p] == i) {
+                return pointer.incrementAndGet();
+            } else {
+                return 0;
+            }
+        });
     }
 
     /**
@@ -393,7 +397,7 @@ public final class BlueprintToolkit<T> {
             if (tester.applyAsInt(i, cate) > 0) {
                 var s = shank[i];
                 var x = posx[i];
-                var y = posy[i] + step * dy;
+                var y = (int) (posy[i] + step * dy);
                 j = index(s, x, y);
             }
 
@@ -440,9 +444,9 @@ public final class BlueprintToolkit<T> {
         } else {
             for (int i = 0; i < 4; i++) {
                 // 0, 2, 4, 6
-                output[i] = surrounding(s, x, y, i * 2);
+                output[2 * i] = surrounding(s, x, y, i * 2);
                 // 1, 3, 5, 7
-                output[i + 1] = -1;
+                output[2 * i + 1] = -1;
             }
         }
     }
@@ -516,10 +520,7 @@ public final class BlueprintToolkit<T> {
         var ret = new Clustering(length);
 
         // electrodes are belonging to same the category.
-        if (minCate == maxCate) {
-            if (minCate != ProbeDescription.CATE_UNSET) {
-                ret.fill(1);
-            }
+        if (minCate == maxCate && minCate == ProbeDescription.CATE_UNSET) {
             return ret;
         }
 
@@ -528,12 +529,13 @@ public final class BlueprintToolkit<T> {
         for (int i = 0; i < length; i++) {
             int cate = blueprint[i];
             if (cate != ProbeDescription.CATE_UNSET) {
-                ret.set(i, group++);
+                if (ret.get(i) == 0) {
+                    ret.set(i, group++);
+                }
 
                 surrounding(i, diagonal, surr);
-                for (int k = 0; k < 8; k++) {
-                    var j = surr[k];
-                    if (j >= 0) {
+                for (var j : surr) {
+                    if (j >= 0 && blueprint[j] == cate) {
                         ret.unionClusteringGroup(i, j);
                     }
                 }
@@ -590,7 +592,8 @@ public final class BlueprintToolkit<T> {
     public List<ClusteringEdges> getClusteringEdges(int[] blueprint) {
         if (length() != blueprint.length) throw new RuntimeException();
         if (blueprint.length == 0) return List.of();
-        return getClusteringEdges(findClustering(blueprint, false));
+        var clustering = findClustering(blueprint, false);
+        return getClusteringEdges(clustering);
     }
 
     public List<ClusteringEdges> getClusteringEdges(int category) {
@@ -618,7 +621,7 @@ public final class BlueprintToolkit<T> {
         var index = new int[mode.count()];
 
         for (var g : clustering.groups()) {
-            var size = clustering.indexOfGroup(g, index);
+            var size = clustering.indexGroup(g, index);
             if (size == 0) continue;
 
             int s = shank[index[0]];
@@ -713,7 +716,7 @@ public final class BlueprintToolkit<T> {
      * fill category zone *
      *====================*/
 
-    public record AreaThreshold(int lower, int upper) implements IntPredicate {
+    public record AreaThreshold(int lower, int upper) implements DoublePredicate {
         public static final AreaThreshold ALL = new AreaThreshold(0, Integer.MAX_VALUE);
 
         public AreaThreshold(int upper) {
@@ -721,9 +724,16 @@ public final class BlueprintToolkit<T> {
         }
 
         @Override
-        public boolean test(int value) {
+        public boolean test(double value) {
             return lower <= value && value < upper;
         }
+    }
+
+    /**
+     * fill all category zones as rectangle.
+     */
+    public void fill() {
+        setBlueprint(fill(blueprint(), AreaThreshold.ALL));
     }
 
     /**
@@ -733,6 +743,16 @@ public final class BlueprintToolkit<T> {
      */
     public void fill(int category) {
         setBlueprint(fill(blueprint(), category, AreaThreshold.ALL));
+    }
+
+    /**
+     * fill all category zones as rectangle.
+     *
+     * @param blueprint
+     * @return filled result, a copied {@code blueprint}.
+     */
+    public int[] fill(int[] blueprint) {
+        return fill(blueprint, AreaThreshold.ALL);
     }
 
     /**
@@ -747,25 +767,12 @@ public final class BlueprintToolkit<T> {
     }
 
     /**
-     * fill category zone as rectangle.
+     * fill all category zones as rectangle.
      *
-     * @param category
-     * @param threshold only for zone which it's area below threshold.
+     * @param threshold
      */
-    public void fill(int category, int threshold) {
-        setBlueprint(fill(blueprint(), category, new AreaThreshold(threshold)));
-    }
-
-    /**
-     * fill category zone as rectangle.
-     *
-     * @param blueprint
-     * @param category
-     * @param threshold only for zone which it's area below threshold.
-     * @return filled result, a copied {@code blueprint}.
-     */
-    public int[] fill(int[] blueprint, int category, int threshold) {
-        return fill(blueprint, category, new AreaThreshold(threshold));
+    public void fill(AreaThreshold threshold) {
+        setBlueprint(fill(blueprint(), threshold));
     }
 
     /**
@@ -776,6 +783,23 @@ public final class BlueprintToolkit<T> {
      */
     public void fill(int category, AreaThreshold threshold) {
         setBlueprint(fill(blueprint(), category, threshold));
+    }
+
+    /**
+     * fill all category zones as rectangle.
+     *
+     * @param blueprint
+     * @param threshold
+     * @return filled result, a copied {@code blueprint}.
+     */
+    public int[] fill(int[] blueprint, AreaThreshold threshold) {
+        for (var clustering : getClusteringEdges(blueprint)) {
+            if (threshold.test(Math.abs(clustering.area()))) {
+                clustering = clustering.convex();
+                fillClusteringEdges(blueprint, clustering);
+            }
+        }
+        return blueprint;
     }
 
     /**
@@ -860,21 +884,20 @@ public final class BlueprintToolkit<T> {
      */
     public int[] extend(int[] output, int[] blueprint, int category, int step, AreaThreshold threshold) {
         var clustering = findClustering(blueprint, category, true);
-        var tmp = new int[blueprint.length];
         for (var group : clustering.groups()) {
-            if (threshold.test(clustering.groupCount(group))) {
-                Arrays.fill(tmp, ProbeDescription.CATE_UNSET);
-
-                var src = new int[blueprint.length];
-                clustering.isolate(blueprint, group, src);
-
-                for (int i = -step; i <= step; i++) {
-                    move(tmp, src, step, (_, _) -> 1);
-                    or(output, tmp, category, output);
-                }
+            if (!threshold.test(clustering.groupCount(group))) {
+                clustering.removeGroup(group);
             }
         }
-        return output;
+
+        var index = clustering.indexGroup();
+        var ret = new int[blueprint.length];
+        var tmp = new int[blueprint.length];
+        for (int i = -step; i <= step; i++) {
+            move(tmp, blueprint, step, index);
+            or(ret, tmp, category, ret);
+        }
+        return merge(ret, blueprint, output);
     }
 
     public void reduce(int category, int step) {

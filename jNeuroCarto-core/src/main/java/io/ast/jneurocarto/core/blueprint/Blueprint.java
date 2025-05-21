@@ -33,8 +33,8 @@ public class Blueprint<T> {
     int @Nullable [] shank;
     int @Nullable [] posx;
     int @Nullable [] posy;
-    int dx;
-    int dy;
+    double dx;
+    double dy;
 
     public Blueprint(ProbeDescription<T> probe) {
         this.probe = probe;
@@ -79,7 +79,7 @@ public class Blueprint<T> {
         modified = blueprint.modified;
     }
 
-    private static int minDiffSet(int[] x) {
+    private static double minDiffSet(int[] x) {
         return Arrays.stream(x)
           .distinct()
           .sorted()
@@ -131,6 +131,9 @@ public class Blueprint<T> {
     }
 
     public OptionalInt indexElectrode(int s, int x, int y) {
+        if (shank == null) return OptionalInt.empty();
+        assert posx != null;
+        assert posy != null;
         for (int i = 0, length = blueprint.length; i < length; i++) {
             if (shank[i] == s && posx[i] == x && posy[i] == y) return OptionalInt.of(i);
         }

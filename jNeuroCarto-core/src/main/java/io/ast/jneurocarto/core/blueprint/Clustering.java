@@ -15,6 +15,10 @@ public record Clustering(int[] clustering) {
         this(new int[length]);
     }
 
+    Clustering(Clustering clustering) {
+        this(clustering.clustering.clone());
+    }
+
     public record Mode(int group, int count) {
         Mode add(Mode other) {
             return new Mode(other.group, Mode.this.count + other.count);
@@ -27,6 +31,34 @@ public record Clustering(int[] clustering) {
 
     public int get(int i) {
         return clustering[i];
+    }
+
+    int get(int[] i) {
+        var ret = -1;
+        for (var j : i) {
+            var g = clustering[j];
+            if (g < 0) throw new RuntimeException();
+            if (ret < 0) {
+                ret = g;
+            } else if (ret != g) {
+                throw new RuntimeException();
+            }
+        }
+        return ret;
+    }
+
+    void set(int i, int group) {
+        clustering[i] = group;
+    }
+
+    void set(int[] i, int group) {
+        for (var j : i) {
+            clustering[j] = group;
+        }
+    }
+
+    void fill(int group) {
+        Arrays.fill(clustering, group);
     }
 
     public int groupNumber() {
@@ -47,6 +79,40 @@ public record Clustering(int[] clustering) {
         return (int) Arrays.stream(clustering)
           .filter(it -> it == group)
           .count();
+    }
+
+    public int[] indexGroup() {
+        var ret = new int[clustering.length];
+        var size = 0;
+        for (int i = 0, length = clustering.length; i < length; i++) {
+            if (clustering[i] > 0) ret[size++] = i;
+        }
+        return Arrays.copyOfRange(ret, 0, size);
+    }
+
+    public int[] indexGroup(int group) {
+        var ret = new int[clustering.length];
+        var size = 0;
+        for (int i = 0, length = clustering.length; i < length; i++) {
+            if (clustering[i] == group) ret[size++] = i;
+        }
+        return Arrays.copyOfRange(ret, 0, size);
+    }
+
+    int indexGroup(int group, int[] output) {
+        var pointer = 0;
+        for (int i = 0, length = clustering.length; i < length; i++) {
+            if (clustering[i] == group) {
+                output[pointer++] = i;
+            }
+        }
+        return pointer;
+    }
+
+    public void removeGroup(int group) {
+        for (int i = 0, length = clustering.length; i < length; i++) {
+            if (clustering[i] == group) clustering[i] = 0;
+        }
     }
 
     public int[] isolate(int[] blueprint, int group) {
@@ -89,23 +155,6 @@ public record Clustering(int[] clustering) {
           .orElse(new Mode(0, groupCount(0)));
     }
 
-    void set(int i, int group) {
-        clustering[i] = group;
-    }
-
-    void fill(int group) {
-        Arrays.fill(clustering, group);
-    }
-
-    int indexOfGroup(int group, int[] output) {
-        var pointer = 0;
-        for (int i = 0, length = clustering.length; i < length; i++) {
-            if (clustering[i] == group) {
-                output[pointer++] = i;
-            }
-        }
-        return pointer;
-    }
 
     int unionClusteringGroup(int i, int j) {
         if (i == j) return clustering[i];

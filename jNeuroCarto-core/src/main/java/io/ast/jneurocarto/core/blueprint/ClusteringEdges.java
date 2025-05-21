@@ -17,15 +17,15 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
     /// @param x      bottom left x position in um.
     /// @param y      bottom left y position in um.
     /// @param corner corner code
-    public record Corner(int x, int y, int corner) {
+    public record Corner(double x, double y, int corner) {
     }
 
-    public int[] x() {
-        return edges.stream().mapToInt(Corner::x).toArray();
+    public double[] x() {
+        return edges.stream().mapToDouble(Corner::x).toArray();
     }
 
-    public int[] y() {
-        return edges.stream().mapToInt(Corner::y).toArray();
+    public double[] y() {
+        return edges.stream().mapToDouble(Corner::y).toArray();
     }
 
     public ClusteringEdges withShank(int shank) {
@@ -36,10 +36,10 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
         return new ClusteringEdges(category, shank, edges);
     }
 
-    public ClusteringEdges setCorner(int dx, int dy) {
+    public ClusteringEdges setCorner(double dx, double dy) {
         if (dx < 0 || dy < 0) throw new IllegalArgumentException();
-        var dx2 = new int[]{0, dx, 0, -dx, 0, -dx, 0, dx, 0};
-        var dy2 = new int[]{0, dy, 0, dy, 0, -dy, 0, -dy, 0};
+        var dx2 = new double[]{0, dx, 0, -dx, 0, -dx, 0, dx, 0};
+        var dy2 = new double[]{0, dy, 0, dy, 0, -dy, 0, -dy, 0};
         var edges1 = this.edges.stream().filter(corner -> {
             var c = corner.corner;
             // corner at 0, 2, 4, 6 are removed
@@ -51,8 +51,8 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
         return new ClusteringEdges(category, shank, edges1);
     }
 
-    public int area() {
-        var area = 0;
+    public double area() {
+        var area = 0.0;
         for (int i = 0, size = edges.size(); i < size; i++) {
             var p = edges.get(i);
             var q = edges.get((i + 1) % size);
@@ -64,10 +64,10 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
     public ClusteringEdges convex() {
         if (edges.isEmpty()) return this;
 
-        var x1 = edges.stream().mapToInt(Corner::x).min().getAsInt();
-        var x2 = edges.stream().mapToInt(Corner::x).max().getAsInt();
-        var y1 = edges.stream().mapToInt(Corner::y).min().getAsInt();
-        var y2 = edges.stream().mapToInt(Corner::y).max().getAsInt();
+        var x1 = edges.stream().mapToDouble(Corner::x).min().getAsDouble();
+        var x2 = edges.stream().mapToDouble(Corner::x).max().getAsDouble();
+        var y1 = edges.stream().mapToDouble(Corner::y).min().getAsDouble();
+        var y2 = edges.stream().mapToDouble(Corner::y).max().getAsDouble();
 
         return new ClusteringEdges(category, shank, List.of(
           new Corner(x1, y1, 5),
@@ -77,12 +77,12 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
         ));
     }
 
-    public ClusteringEdges offset(int x, int y) {
+    public ClusteringEdges offset(double x, double y) {
         var edges = this.edges.stream().map(it -> new Corner(it.x + x, it.y + y, it.corner)).toList();
         return new ClusteringEdges(category, shank, edges);
     }
 
-    public boolean contains(int x, int y) {
+    public boolean contains(double x, double y) {
         var left = 0;
         for (int i = 0, size = edges.size(); i < size; i++) {
             var p = edges.get(i);
@@ -93,7 +93,7 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
                 q = t;
             }
             if (p.y < y && y <= q.y) {
-                var xx = p.x + (double) (q.x - p.x) * (y - p.y) / (q.y - p.y);
+                var xx = p.x + (q.x - p.x) * (y - p.y) / (q.y - p.y);
                 if (x > xx) {
                     left++;
                 }
