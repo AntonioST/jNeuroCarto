@@ -1,10 +1,15 @@
 package io.ast.jneurocarto.core.blueprint;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntBinaryOperator;
+import java.util.function.IntPredicate;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ProbeDescription;
 
@@ -45,6 +50,10 @@ public final class BlueprintToolkit<T> {
 
     public int[] shank() {
         return blueprint.shank;
+    }
+
+    public int nShank() {
+        return (int) Arrays.stream(shank()).distinct().count();
     }
 
     public int[] posx() {
@@ -122,6 +131,60 @@ public final class BlueprintToolkit<T> {
         blueprint.modified = true;
     }
 
+    public void printBlueprint() {
+        printBlueprint(blueprint.blueprint);
+    }
+
+    public String toStringBlueprint() {
+        return toStringBlueprint(blueprint.blueprint);
+    }
+
+    public void printBlueprint(int[] blueprint) {
+        try {
+            printBlueprint(blueprint, System.out);
+        } catch (IOException e) {
+        }
+    }
+
+    public String toStringBlueprint(int[] blueprint) {
+        var sb = new StringBuilder();
+        try {
+            printBlueprint(blueprint, sb);
+        } catch (IOException e) {
+        }
+        return sb.toString();
+    }
+
+    public void printBlueprint(int[] blueprint, Appendable out) throws IOException {
+        if (length() != blueprint.length) throw new RuntimeException();
+
+        var shanks = Arrays.stream(shank()).distinct().sorted().toArray();
+        var posx = Arrays.stream(posx()).distinct().sorted().toArray();
+        var posy = Arrays.stream(posy()).distinct().sorted().toArray();
+        var maxCate = Arrays.stream(blueprint).max().orElse(0);
+        var format = maxCate >= 10 ? "%2d" : "%d";
+        var empty = maxCate >= 10 ? "  " : " ";
+
+        for (int si = 0, ns = shanks.length; si < ns; si++) {
+            int s = shanks[si];
+            if (si > 0) out.append("-".repeat(posx.length * 2 - 1)).append('\n');
+            for (int yi = 0, ny = posy.length; yi < ny; yi++) {
+                int y = posy[yi];
+                for (int xi = 0, nx = posx.length; xi < nx; xi++) {
+                    int x = posx[xi];
+                    int i = index(s, x, y);
+                    if (xi > 0) out.append(' ');
+                    if (i >= 0) {
+                        out.append(format.formatted(blueprint[i]));
+                    } else {
+                        out.append(empty);
+                    }
+                }
+                out.append('\n');
+            }
+        }
+    }
+
     /*===========*
      * utilities *
      *===========*/
@@ -137,146 +200,209 @@ public final class BlueprintToolkit<T> {
         return -1;
     }
 
+    private int[] and(int[] a, int[] b, int t, int @Nullable [] c) {
+        int length = a.length;
+        if (b.length != length) throw new RuntimeException();
+
+        if (c == null) {
+            c = new int[length];
+        } else if (c.length != length) {
+            throw new RuntimeException();
+        }
+
+        for (int i = 0; i < length; i++) {
+            c[i] = a[i] * b[i] != 0 ? t : 0;
+        }
+        return c;
+    }
+
+    private int[] or(int[] a, int[] b, int t, int @Nullable [] c) {
+        int length = a.length;
+        if (b.length != length) throw new RuntimeException();
+
+        if (c == null) {
+            c = new int[length];
+        } else if (c.length != length) {
+            throw new RuntimeException();
+        }
+
+        for (int i = 0; i < length; i++) {
+            c[i] = a[i] + b[i] != 0 ? t : 0;
+        }
+        return c;
+    }
+
+    private int[] merge(int[] a, int[] b, int @Nullable [] c) {
+        int length = a.length;
+        if (b.length != length) throw new RuntimeException();
+
+        if (c == null) {
+            c = new int[length];
+        } else if (c.length != length) {
+            throw new RuntimeException();
+        }
+
+        for (int i = 0; i < length; i++) {
+            c[i] = a[i] != 0 ? a[i] : b[i];
+        }
+        return c;
+    }
+
+
     /*============================*
      * category zone manipulation *
      *============================*/
 
+    /**
+     * @param step y movement
+     */
     public void move(int step) {
         if (step == 0 || length() == 0) return;
         setBlueprint(move(blueprint(), step));
     }
 
+    /**
+     * @param blueprint
+     * @param step      y movement
+     * @return moved result, a copied {@code blueprint}.
+     */
     public int[] move(int[] blueprint, int step) {
-        if (length() != blueprint.length) throw new RuntimeException();
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
 
-        var ret = blueprint.clone();
+        var ret = new int[length];
         if (step == 0 || length() == 0) return ret;
 
-        var shank = shank();
-        var posx = posx();
-        var posy = posy();
-        var dy = dy();
-
-        for (int i = 0, length = blueprint.length; i < length; i++) {
-            var cate = blueprint[i];
-            if (cate != ProbeDescription.CATE_UNSET) {
-                var s = shank[i];
-                var x = posx[i];
-                var y = posy[i] + step * dy;
-                var j = index(s, x, y);
-                if (j >= 0) {
-                    ret[j] = cate;
-                }
-            }
-        }
-
-        return ret;
+        return move(ret, blueprint, step, (_, _) -> 1);
     }
 
+
+    /**
+     * @param step     y movement
+     * @param category restrict on category
+     */
     public void move(int step, int category) {
         if (step == 0 || length() == 0) return;
         setBlueprint(move(blueprint(), step, category));
     }
 
+    /**
+     * @param blueprint
+     * @param step      y movement
+     * @param category  restrict on category
+     * @return moved result, a copied {@code blueprint}.
+     */
     public int[] move(int[] blueprint, int step, int category) {
-        if (length() != blueprint.length) throw new RuntimeException();
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
 
-        var ret = blueprint.clone();
+        var ret = new int[length];
         if (step == 0 || length() == 0) return ret;
 
-        var shank = shank();
-        var posx = posx();
-        var posy = posy();
-        var dy = dy();
-
-        for (int i = 0, length = blueprint.length; i < length; i++) {
-            var cate = blueprint[i];
-            if (cate == category) {
-                var s = shank[i];
-                var x = posx[i];
-                var y = posy[i] + step * dy;
-                var j = index(s, x, y);
-                if (j >= 0) {
-                    ret[i] = ProbeDescription.CATE_UNSET;
-                    ret[j] = cate;
-                }
-            }
-        }
-
-        return ret;
+        return move(ret, blueprint, step, (_, cate) -> cate == category ? 1 : 0);
     }
 
+    /**
+     * @param step  y movement
+     * @param index electrode indexes
+     */
     public void move(int step, int[] index) {
         if (step == 0 || length() == 0 || index.length == 0) return;
         setBlueprint(move(blueprint(), step, index));
     }
 
+    /**
+     * @param blueprint
+     * @param step      y movement
+     * @param index     electrode indexes
+     * @return moved result, a copied {@code blueprint}.
+     */
     public int[] move(int[] blueprint, int step, int[] index) {
-        if (length() != blueprint.length) throw new RuntimeException();
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
 
-        var ret = blueprint.clone();
-        if (step == 0 || length() == 0 || index.length == 0) return ret;
-
-        var shank = shank();
-        var posx = posx();
-        var posy = posy();
-        var dy = dy();
+        var ret = new int[length];
+        if (step == 0 || length == 0 || index.length == 0) return ret;
 
         Arrays.sort(index);
-        var pointer = 0;
+        var pointer = new AtomicInteger();
 
-        for (int i = 0, length = blueprint.length; i < length; i++) {
-            if (pointer < index.length && index[pointer] == i) {
-                pointer++;
-                var cate = blueprint[i];
-                if (cate != ProbeDescription.CATE_UNSET) {
-                    var s = shank[i];
-                    var x = posx[i];
-                    var y = posy[i] + step * dy;
-                    var j = index(s, x, y);
-                    if (j >= 0 && Arrays.binarySearch(index, j) >= 0) {
-                        ret[i] = ProbeDescription.CATE_UNSET;
-                        ret[j] = cate;
-                    }
-                }
+        return move(ret, blueprint, step, (i, _) -> {
+            var p = pointer.get();
+            if (p < index.length && index[p] == i) {
+                return pointer.incrementAndGet();
+            } else {
+                return 0;
             }
-        }
-
-        return ret;
+        });
     }
 
+    /**
+     * @param step y movement
+     * @param mask electrode mask array
+     */
     public void move(int step, boolean[] mask) {
-        if (mask.length != length()) throw new IllegalArgumentException();
+        if (length() != mask.length) throw new IllegalArgumentException();
         setBlueprint(move(blueprint(), step, mask));
     }
 
+    /**
+     * @param blueprint
+     * @param step      y movement
+     * @param mask      electrode mask array
+     * @return moved result, a copied {@code blueprint}.
+     */
     public int[] move(int[] blueprint, int step, boolean[] mask) {
-        if (length() != blueprint.length) throw new RuntimeException();
-        if (mask.length != length()) throw new IllegalArgumentException();
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
+        if (length != mask.length) throw new RuntimeException();
 
-        var ret = blueprint.clone();
-        if (step == 0 || length() == 0) return ret;
+        var ret = new int[length];
+        if (step == 0 || length == 0) return ret;
+
+        var x = ProbeDescription.CATE_UNSET;
+        return move(ret, blueprint, step, (i, cate) -> (cate != x && mask[i]) ? 1 : 0);
+    }
+
+    /**
+     * move electrodes along y-axis.
+     * <br/>
+     * This method does not reset the content of {@code output}.
+     *
+     * @param output    output blueprint.
+     * @param blueprint source blueprint.
+     * @param step      y movement
+     * @param tester    whether move this electrode with the signature {@code (electrode, category) -> 1_or_0}.
+     * @return {@code output} itself.
+     */
+    public int[] move(int[] output, int[] blueprint, int step, IntBinaryOperator tester) {
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
+        if (length != output.length) throw new RuntimeException();
+        if (step == 0 || length == 0) return output;
 
         var shank = shank();
         var posx = posx();
         var posy = posy();
         var dy = dy();
 
-        for (int i = 0, length = blueprint.length; i < length; i++) {
+        for (int i = 0; i < length; i++) {
+            int j = i;
             var cate = blueprint[i];
-            if (cate != ProbeDescription.CATE_UNSET && mask[i]) {
+
+            if (tester.applyAsInt(i, cate) > 0) {
                 var s = shank[i];
                 var x = posx[i];
                 var y = posy[i] + step * dy;
-                var j = index(s, x, y);
-                if (j >= 0) {
-                    ret[i] = ProbeDescription.CATE_UNSET;
-                    ret[j] = cate;
-                }
+                j = index(s, x, y);
+            }
+
+            if (j >= 0 && output[j] == ProbeDescription.CATE_UNSET) {
+                output[j] = cate;
             }
         }
 
-        return ret;
+        return output;
     }
 
     /*=======================*
@@ -522,6 +648,11 @@ public final class BlueprintToolkit<T> {
         markDirty();
     }
 
+    /**
+     * @param blueprint output blueprint.
+     * @param edges
+     * @return
+     */
     public int[] fillClusteringEdges(int[] blueprint, List<ClusteringEdges> edges) {
         for (var edge : edges) {
             fillClusteringEdges(blueprint, edge);
@@ -534,6 +665,12 @@ public final class BlueprintToolkit<T> {
         fillClusteringEdges(clustering);
     }
 
+    /**
+     * @param blueprint output blueprint.
+     * @param edges
+     * @param category  overwrite category.
+     * @return
+     */
     public int[] fillClusteringEdges(int[] blueprint, List<ClusteringEdges> edges, int category) {
         var clustering = edges.stream().map(it -> it.withCategory(category)).toList();
         return fillClusteringEdges(blueprint, clustering);
@@ -544,6 +681,11 @@ public final class BlueprintToolkit<T> {
         markDirty();
     }
 
+    /**
+     * @param blueprint output blueprint.
+     * @param edge
+     * @return {@code blueprint} itself.
+     */
     public int[] fillClusteringEdges(int[] blueprint, ClusteringEdges edge) {
         if (length() != blueprint.length) throw new RuntimeException();
 
@@ -571,23 +713,82 @@ public final class BlueprintToolkit<T> {
      * fill category zone *
      *====================*/
 
+    public record AreaThreshold(int lower, int upper) implements IntPredicate {
+        public static final AreaThreshold ALL = new AreaThreshold(0, Integer.MAX_VALUE);
+
+        public AreaThreshold(int upper) {
+            this(0, upper);
+        }
+
+        @Override
+        public boolean test(int value) {
+            return lower <= value && value < upper;
+        }
+    }
+
+    /**
+     * fill category zone as rectangle.
+     *
+     * @param category
+     */
     public void fill(int category) {
-        fill(blueprint(), category, 0);
-        markDirty();
+        setBlueprint(fill(blueprint(), category, AreaThreshold.ALL));
     }
 
+    /**
+     * fill category zone as rectangle.
+     *
+     * @param blueprint
+     * @param category
+     * @return filled result, a copied {@code blueprint}.
+     */
     public int[] fill(int[] blueprint, int category) {
-        return fill(blueprint, category, 0);
+        return fill(blueprint, category, AreaThreshold.ALL);
     }
 
+    /**
+     * fill category zone as rectangle.
+     *
+     * @param category
+     * @param threshold only for zone which it's area below threshold.
+     */
     public void fill(int category, int threshold) {
-        fill(blueprint(), category, threshold);
-        markDirty();
+        setBlueprint(fill(blueprint(), category, new AreaThreshold(threshold)));
     }
 
+    /**
+     * fill category zone as rectangle.
+     *
+     * @param blueprint
+     * @param category
+     * @param threshold only for zone which it's area below threshold.
+     * @return filled result, a copied {@code blueprint}.
+     */
     public int[] fill(int[] blueprint, int category, int threshold) {
+        return fill(blueprint, category, new AreaThreshold(threshold));
+    }
+
+    /**
+     * fill category zone as rectangle.
+     *
+     * @param category
+     * @param threshold
+     */
+    public void fill(int category, AreaThreshold threshold) {
+        setBlueprint(fill(blueprint(), category, threshold));
+    }
+
+    /**
+     * fill category zone as rectangle.
+     *
+     * @param blueprint
+     * @param category
+     * @param threshold
+     * @return filled result, a copied {@code blueprint}.
+     */
+    public int[] fill(int[] blueprint, int category, AreaThreshold threshold) {
         for (var clustering : getClusteringEdges(blueprint, category)) {
-            if (Math.abs(clustering.area()) >= threshold) {
+            if (threshold.test(Math.abs(clustering.area()))) {
                 clustering = clustering.convex();
                 fillClusteringEdges(blueprint, clustering);
             }
@@ -596,27 +797,88 @@ public final class BlueprintToolkit<T> {
     }
 
     public void extend(int category, int step) {
-        extend(blueprint(), category, step, 0);
-        markDirty();
+        setBlueprint(extend(blueprint(), category, step, AreaThreshold.ALL));
     }
 
+    /**
+     * @param blueprint
+     * @param category
+     * @param step
+     * @return extended result, a copied {@code blueprint}.
+     */
     public int[] extend(int[] blueprint, int category, int step) {
-        return extend(blueprint, category, step, 0);
+        return extend(blueprint, category, step, AreaThreshold.ALL);
     }
 
     public void extend(int category, int step, int threshold) {
-        extend(blueprint(), category, step, threshold);
-        markDirty();
+        setBlueprint(extend(blueprint(), category, step, new AreaThreshold(threshold)));
     }
 
+    /**
+     * @param blueprint
+     * @param category
+     * @param step
+     * @param threshold
+     * @return extended result, a copied {@code blueprint}.
+     */
     public int[] extend(int[] blueprint, int category, int step, int threshold) {
-        //XXX Unsupported Operation BlueprintToolkit.extend
-        throw new UnsupportedOperationException();
+        return extend(blueprint, category, step, new AreaThreshold(threshold));
+    }
+
+    public void extend(int category, int step, AreaThreshold threshold) {
+        setBlueprint(extend(blueprint(), category, step, threshold));
+    }
+
+    /**
+     * @param blueprint
+     * @param category
+     * @param step
+     * @param threshold
+     * @return extended result, a copied {@code blueprint}.
+     */
+    public int[] extend(int[] blueprint, int category, int step, AreaThreshold threshold) {
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
+
+        var ret = blueprint.clone();
+        if (step == 0 || length == 0) return ret;
+
+        return extend(ret, blueprint, category, step, threshold);
+    }
+
+    /**
+     * extend category zones.
+     * <br/>
+     * This method does not reset the content of {@code output}.
+     *
+     * @param output    output blueprint
+     * @param blueprint source blueprint
+     * @param category
+     * @param step
+     * @param threshold
+     * @return {@code output} itself.
+     */
+    public int[] extend(int[] output, int[] blueprint, int category, int step, AreaThreshold threshold) {
+        var clustering = findClustering(blueprint, category, true);
+        var tmp = new int[blueprint.length];
+        for (var group : clustering.groups()) {
+            if (threshold.test(clustering.groupCount(group))) {
+                Arrays.fill(tmp, ProbeDescription.CATE_UNSET);
+
+                var src = new int[blueprint.length];
+                clustering.isolate(blueprint, group, src);
+
+                for (int i = -step; i <= step; i++) {
+                    move(tmp, src, step, (_, _) -> 1);
+                    or(output, tmp, category, output);
+                }
+            }
+        }
+        return output;
     }
 
     public void reduce(int category, int step) {
-        reduce(blueprint(), category, step, 0);
-        markDirty();
+        setBlueprint(reduce(blueprint(), category, step, 0));
     }
 
     public int[] reduce(int[] blueprint, int category, int step) {
@@ -624,8 +886,7 @@ public final class BlueprintToolkit<T> {
     }
 
     public void reduce(int category, int step, int threshold) {
-        reduce(blueprint(), category, step, threshold);
-        markDirty();
+        setBlueprint(reduce(blueprint(), category, step, threshold));
     }
 
     public int[] reduce(int[] blueprint, int category, int step, int threshold) {

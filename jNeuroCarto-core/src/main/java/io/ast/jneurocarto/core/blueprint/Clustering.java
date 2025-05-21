@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.stream.Gatherer;
 
+import io.ast.jneurocarto.core.ProbeDescription;
+
 public record Clustering(int[] clustering) {
 
     public static Clustering EMPTY = new Clustering(new int[0]);
@@ -45,6 +47,31 @@ public record Clustering(int[] clustering) {
         return (int) Arrays.stream(clustering)
           .filter(it -> it == group)
           .count();
+    }
+
+    public int[] isolate(int[] blueprint, int group) {
+        return isolate(blueprint, group, ProbeDescription.CATE_UNSET);
+    }
+
+    public int[] isolate(int[] blueprint, int group, int[] output) {
+        return isolate(blueprint, group, output, ProbeDescription.CATE_UNSET);
+    }
+
+    public int[] isolate(int[] blueprint, int group, int zero) {
+        if (blueprint.length != clustering.length) throw new RuntimeException();
+        for (int i = 0, length = clustering.length; i < length; i++) {
+            if (clustering[i] != group) blueprint[i] = zero;
+        }
+        return blueprint;
+    }
+
+    public int[] isolate(int[] blueprint, int group, int[] output, int zero) {
+        if (blueprint.length != clustering.length) throw new RuntimeException();
+        if (output.length != clustering.length) throw new RuntimeException();
+        for (int i = 0, length = clustering.length; i < length; i++) {
+            output[i] = clustering[i] == group ? blueprint[i] : zero;
+        }
+        return blueprint;
     }
 
     public Mode modeGroup() {
