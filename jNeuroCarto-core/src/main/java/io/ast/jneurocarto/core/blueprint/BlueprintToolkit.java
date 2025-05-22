@@ -15,6 +15,7 @@ import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.numpy.Numpy;
+import io.ast.jneurocarto.core.numpy.UnsupportedNumpyDataFormatException;
 
 @NullMarked
 public class BlueprintToolkit<T> {
@@ -1045,22 +1046,25 @@ public class BlueprintToolkit<T> {
         var filename = file.getFileName().toString();
         var i = filename.lastIndexOf('.');
         var suffix = filename.substring(i);
-        return switch (suffix) {
-            case ".npy" -> loadNumpyBlueprint(file);
-            case ".csv", ".tsv" -> throw new UnsupportedEncodingException("TODO");
-            default -> {
-                var bp = new Blueprint<>(blueprint);
-                bp.load(file);
-                yield bp.blueprint;
+        if (suffix.equals(".npy")) {
+            try {
+                return loadNumpyBlueprint(file);
+            } catch (UnsupportedNumpyDataFormatException e) {
             }
-        };
+        } else if (suffix.equals(".csv") || suffix.equals(".tsv")) {
+            throw new UnsupportedEncodingException("TODO");
+        }
+
+        var bp = new Blueprint<>(blueprint);
+        bp.load(file);
+        return bp.blueprint;
     }
 
     private static int[] loadNumpyBlueprint(Path file) throws IOException {
         var result = Numpy.read(file, header -> switch (header.ndim()) {
             case 1 -> Numpy.ofInt();
             case 2 -> Numpy.ofD2Int(true);
-            default -> throw new RuntimeException("unknown shape");
+            default -> throw new UnsupportedNumpyDataFormatException(header, "unknown shape");
         });
 
         return switch (result.ndim()) {

@@ -18,16 +18,19 @@ public abstract class ValueArray<T> {
         this.valueSize = valueSize;
     }
 
-    final void checkValue(NumpyHeader header) {
+    protected final void checkValue(NumpyHeader header) {
         var descr = header.descr();
         var valueType = descr.charAt(1);
         valueSize = Integer.parseInt(descr.substring(2));
-        if (valueType != this.valueType) throw new RuntimeException("not an " + this.valueType + " array, but : " + descr);
-        if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8)
-            throw new RuntimeException("not an " + this.valueType + " array, but : " + descr);
+        if (valueType != this.valueType) {
+            throw new UnsupportedNumpyDataFormatException(header, "not an " + this.valueType + " array, but : " + descr);
+        }
+        if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8) {
+            throw new UnsupportedNumpyDataFormatException(header, "not an " + this.valueType + " array, but : " + descr);
+        }
     }
 
-    abstract int[] shape();
+    public abstract int[] shape();
 
     public final String descr() {
         return (valueSize == 1 ? "|" : "<") + valueType + valueSize;
@@ -39,14 +42,14 @@ public abstract class ValueArray<T> {
      * @param header
      * @return
      */
-    abstract T create(NumpyHeader header);
+    protected abstract T create(NumpyHeader header);
 
     /**
      * check the array instance and initialize itself before writing.
      *
      * @param data
      */
-    abstract void checkFor(T data);
+    protected abstract void checkFor(T data);
 
     /**
      * read a value from buffer.
@@ -56,7 +59,7 @@ public abstract class ValueArray<T> {
      * @param buffer
      * @return successful
      */
-    abstract boolean read(T ret, long pos, ByteBuffer buffer);
+    protected abstract boolean read(T ret, long pos, ByteBuffer buffer);
 
     /**
      * write a value into buffer.
@@ -66,7 +69,7 @@ public abstract class ValueArray<T> {
      * @param buffer
      * @return successful
      */
-    abstract boolean write(T ret, long pos, ByteBuffer buffer);
+    protected abstract boolean write(T ret, long pos, ByteBuffer buffer);
 
     protected final int readInt(ByteBuffer buffer) {
         return switch (valueSize) {

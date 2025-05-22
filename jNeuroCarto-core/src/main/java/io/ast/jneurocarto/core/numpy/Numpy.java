@@ -237,18 +237,18 @@ public final class Numpy {
         }
 
         @Override
-        int[] shape() {
+        public int[] shape() {
             return shape;
         }
 
         @Override
-        ByteBuffer create(NumpyHeader header) {
+        protected ByteBuffer create(NumpyHeader header) {
             this.shape = header.shape();
             return buffer;
         }
 
         @Override
-        final void checkFor(ByteBuffer data) {
+        protected final void checkFor(ByteBuffer data) {
             if (buffer != data) throw new RuntimeException();
         }
 
@@ -274,7 +274,7 @@ public final class Numpy {
          * @return successful
          */
         @Override
-        boolean read(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
+        protected boolean read(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
             return ret.remaining() > 0;
         }
 
@@ -300,7 +300,7 @@ public final class Numpy {
          * @return successful
          */
         @Override
-        boolean write(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
+        protected boolean write(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
             return ret.remaining() > 0;
         }
     }
@@ -415,7 +415,9 @@ public final class Numpy {
             var length1 = data.length;
             var length2 = length1 == 0 ? 0 : data[0].length;
             for (int i = 1; i < length1; i++) {
-                if (data[i].length != length2) throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
+                if (data[i].length != length2) {
+                    throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
+                }
             }
             checkFor(length1, length2);
         }
@@ -468,9 +470,13 @@ public final class Numpy {
             var columns = plans == 0 || rows == 0 ? 0 : data[0][0].length;
             for (int p = 1; p < plans; p++) {
                 var row = data[p];
-                if (row.length != rows) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                if (row.length != rows) {
+                    throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                }
                 for (int r = 0; r < rows; r++) {
-                    if (row[r].length != columns) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                    if (row[r].length != columns) {
+                        throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                    }
                 }
             }
             checkFor(plans, rows, columns);
@@ -508,18 +514,18 @@ public final class Numpy {
         }
 
         @Override
-        FlattenIntArray create(NumpyHeader header) {
+        protected FlattenIntArray create(NumpyHeader header) {
             checkShape(header);
             return new FlattenIntArray(shape, new int[total]);
         }
 
         @Override
-        void checkFor(FlattenIntArray data) {
+        protected void checkFor(FlattenIntArray data) {
             checkFor(data.shape, data.array.length);
         }
 
         @Override
-        boolean read(FlattenIntArray ret, long pos, ByteBuffer buffer) {
+        protected boolean read(FlattenIntArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
                 ret.array[p] = readInt(buffer);
@@ -529,7 +535,7 @@ public final class Numpy {
         }
 
         @Override
-        boolean write(FlattenIntArray ret, long pos, ByteBuffer buffer) {
+        protected boolean write(FlattenIntArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
                 writeInt(buffer, ret.array[p]);
@@ -611,7 +617,9 @@ public final class Numpy {
             var length1 = data.length;
             var length2 = data[0].length;
             for (int i = 1; i < length1; i++) {
-                if (data[i].length != length2) throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
+                if (data[i].length != length2) {
+                    throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
+                }
             }
             checkFor(length1, length2);
         }
@@ -666,9 +674,13 @@ public final class Numpy {
             var columns = plans == 0 || rows == 0 ? 0 : data[0][0].length;
             for (int p = 1; p < plans; p++) {
                 var row = data[p];
-                if (row.length != rows) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                if (row.length != rows) {
+                    throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                }
                 for (int r = 0; r < rows; r++) {
-                    if (row[r].length != columns) throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                    if (row[r].length != columns) {
+                        throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
+                    }
                 }
             }
             checkFor(plans, rows, columns);
@@ -707,18 +719,18 @@ public final class Numpy {
         }
 
         @Override
-        FlattenDoubleArray create(NumpyHeader header) {
+        protected FlattenDoubleArray create(NumpyHeader header) {
             checkShape(header);
             return new FlattenDoubleArray(shape, new double[total]);
         }
 
         @Override
-        void checkFor(FlattenDoubleArray data) {
+        protected void checkFor(FlattenDoubleArray data) {
             checkFor(data.shape, data.array.length);
         }
 
         @Override
-        boolean read(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
+        protected boolean read(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
                 ret.array[p] = readDouble(buffer);
@@ -728,7 +740,7 @@ public final class Numpy {
         }
 
         @Override
-        boolean write(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
+        protected boolean write(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
                 writeDouble(buffer, ret.array[p]);
@@ -837,7 +849,7 @@ public final class Numpy {
     private static Read read(ReadableByteChannel channel, CheckNumberHeader checker) throws IOException {
         var header = readHeader(channel);
 
-        if (header.fortranOrder()) throw new IOException("not an C-array");
+        if (header.fortranOrder()) throw new UnsupportedNumpyDataFormatException(header, "not an C-array");
 
         ValueArray of = checker.check(header);
         Object ret = of.create(header);
