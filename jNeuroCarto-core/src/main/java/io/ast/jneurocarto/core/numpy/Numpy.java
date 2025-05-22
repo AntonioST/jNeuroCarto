@@ -806,6 +806,72 @@ public final class Numpy {
         return ret;
     }
 
+    public interface CheckNumberHeader {
+        ValueArray<?> check(NumpyHeader header);
+    }
+
+    public record Read(NumpyHeader header, Object data) {
+        public int ndim() {
+            return header().ndim();
+        }
+
+        public int[] shape() {
+            return header.shape();
+        }
+
+        public String descr() {
+            return header.descr();
+        }
+    }
+
+    public static Read read(Path file, CheckNumberHeader checker) throws IOException {
+        try (var channel = Files.newByteChannel(file)) {
+            return read(channel, checker);
+        }
+    }
+
+    public static Read read(InputStream in, CheckNumberHeader checker) throws IOException {
+        return read(Channels.newChannel(in), checker);
+    }
+
+    private static Read read(ReadableByteChannel channel, CheckNumberHeader checker) throws IOException {
+        var header = readHeader(channel);
+
+        if (header.fortranOrder()) throw new IOException("not an C-array");
+
+        ValueArray of = checker.check(header);
+        Object ret = of.create(header);
+
+        if (of instanceof OfBuffer buffer) {
+            long pos = 0L;
+            while (true) {
+                var read = channel.read(buffer.buffer);
+                if (read < 0) break;
+                pos += read;
+                if (!buffer.read(buffer.buffer, pos, null)) break;
+            }
+        } else {
+            var descr = header.descr();
+            boolean isLittle = descr.charAt(0) == '<';
+
+            var valueSize = of.valueSize;
+            var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
+            buffer.order(isLittle ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
+
+            long pos = 0L;
+            while (true) {
+                buffer.clear();
+                if (channel.read(buffer) < 0) break;
+                buffer.flip();
+                while (buffer.remaining() >= valueSize) {
+                    of.read(ret, pos++, buffer);
+                }
+            }
+        }
+
+        return new Read(header, ret);
+    }
+
 
     /**
      * write numpy array to file.

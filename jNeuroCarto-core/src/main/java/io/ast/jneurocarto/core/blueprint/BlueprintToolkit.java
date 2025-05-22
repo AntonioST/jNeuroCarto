@@ -1,6 +1,8 @@
 package io.ast.jneurocarto.core.blueprint;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.stream.Gatherer;
 import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.numpy.Numpy;
 
 @NullMarked
 public class BlueprintToolkit<T> {
@@ -1032,5 +1035,38 @@ public class BlueprintToolkit<T> {
         }
 
         return output;
+    }
+
+    /*=========*
+     * File IO *
+     *=========*/
+
+    public int[] loadBlueprint(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        var i = filename.lastIndexOf('.');
+        var suffix = filename.substring(i);
+        return switch (suffix) {
+            case ".npy" -> loadNumpyBlueprint(file);
+            case ".csv", ".tsv" -> throw new UnsupportedEncodingException("TODO");
+            default -> {
+                var bp = new Blueprint<>(blueprint);
+                bp.load(file);
+                yield bp.blueprint;
+            }
+        };
+    }
+
+    private static int[] loadNumpyBlueprint(Path file) throws IOException {
+        var result = Numpy.read(file, header -> switch (header.ndim()) {
+            case 1 -> Numpy.ofInt();
+            case 2 -> Numpy.ofD2Int(true);
+            default -> throw new RuntimeException("unknown shape");
+        });
+
+        return switch (result.ndim()) {
+            case 1 -> (int[]) result.data();
+            case 2 -> ((int[][]) result.data())[4];
+            default -> throw new RuntimeException("unknown result");
+        };
     }
 }

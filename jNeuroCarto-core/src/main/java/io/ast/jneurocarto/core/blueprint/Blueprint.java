@@ -18,9 +18,9 @@ import io.ast.jneurocarto.core.ProbeDescription;
 @NullMarked
 public class Blueprint<T> {
 
-    private final ProbeDescription<T> probe;
-    private final @Nullable T chmap;
-    private final List<ElectrodeDescription> electrodes;
+    final ProbeDescription<T> probe;
+    final @Nullable T chmap;
+    final List<ElectrodeDescription> electrodes;
 
     private static final int[] EMPTY_BLUEPRINT = new int[0];
     final int[] blueprint;

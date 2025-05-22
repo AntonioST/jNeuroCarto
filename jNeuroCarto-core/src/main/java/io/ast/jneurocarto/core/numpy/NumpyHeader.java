@@ -52,6 +52,17 @@ public record NumpyHeader(int majorVersion, int minorVersion, String data) {
           .toArray();
     }
 
+    public int ndim() {
+        var i = indexOf("shape");
+        if (i < 0) throw new IllegalArgumentException("shape key not found");
+        var j = data.indexOf("(", i + 1);
+        if (j < 0) throw new IllegalArgumentException("shape value not found");
+        var k = data.indexOf(")", j + 1);
+        if (k < 0) throw new IllegalArgumentException("shape value not found");
+        return (int) Arrays.stream(data.substring(j + 1, k).split(", +"))
+          .count();
+    }
+
     private int indexOf(String name) {
         var key = "'" + name + "':";
         var ret = data.indexOf(key);
