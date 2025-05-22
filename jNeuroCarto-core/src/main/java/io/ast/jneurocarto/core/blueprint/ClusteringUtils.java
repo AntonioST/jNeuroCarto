@@ -24,13 +24,13 @@ final class ClusteringUtils {
         private static Gatherer<Index, ?, Index> minOn(ToIntFunction<Index> mapper) {
             return Gatherer.<Index, List<Index>, Index>ofSequential(
               ArrayList::new,
-              (state, element, _) -> {
+              Gatherer.Integrator.ofGreedy((state, element, _) -> {
                   if (!state.isEmpty() && mapper.applyAsInt(element) < mapper.applyAsInt(state.getFirst())) {
                       state.clear();
                   }
                   state.add(element);
                   return true;
-              },
+              }),
               (state, downstream) -> state.forEach(downstream::push)
             );
         }

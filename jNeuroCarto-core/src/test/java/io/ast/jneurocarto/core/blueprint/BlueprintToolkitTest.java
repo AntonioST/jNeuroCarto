@@ -196,7 +196,6 @@ public class BlueprintToolkitTest {
     }
 
     @Test
-    @Order(1)
     public void move() {
         var bp = fromShape(2, 3, 2);
         bp.setBlueprint(new int[]{
@@ -233,7 +232,6 @@ public class BlueprintToolkitTest {
     }
 
     @Test
-    @Order(1)
     public void moveBlueprint() {
         var bp = fromShape(2, 3, 2);
         var blueprint = new int[]{
@@ -271,7 +269,32 @@ public class BlueprintToolkitTest {
     }
 
     @Test
-    @Order(1)
+    public void noMoveBlueprint() {
+        var bp = fromShape(2, 3, 2);
+        var blueprint = new int[]{
+          2, 0,
+          1, 2,
+          0, 1,
+          //---
+          4, 0,
+          3, 4,
+          0, 3,
+        };
+        var o = blueprint.clone();
+
+        assertBlueprintEquals(bp, new int[]{
+          2, 0,
+          1, 2,
+          0, 1,
+          //---
+          4, 0,
+          3, 4,
+          0, 3,
+        }, bp.move(blueprint, 0));
+        assertArrayEquals(o, blueprint);
+    }
+
+    @Test
     public void moveBlueprintCategory() {
         var bp = fromShape(2, 3, 2);
         var blueprint = new int[]{
@@ -321,7 +344,6 @@ public class BlueprintToolkitTest {
 
 
     @Test
-    @Order(2)
     public void clustering() {
         var bp = fromShape(1, 5, 2);
         assertClusteringEquals(bp, new int[]{
@@ -354,7 +376,6 @@ public class BlueprintToolkitTest {
     }
 
     @Test
-    @Order(2)
     public void clusteringWithDiagonal() {
         var bp = fromShape(1, 5, 2);
         assertClusteringEquals(bp, new int[]{
@@ -384,10 +405,69 @@ public class BlueprintToolkitTest {
           0, 1,
           1, 1,
         }, true));
+
+        assertClusteringEquals(bp, new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        }, bp.findClustering(new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        }, true));
     }
 
     @Test
-    @Order(3)
+    public void clusteringCategory() {
+        var bp = fromShape(1, 5, 2);
+        assertClusteringEquals(bp, new int[]{
+          1, 1,
+          0, 1,
+          1, 1,
+          0, 1,
+          1, 1,
+        }, bp.findClustering(new int[]{
+          1, 1,
+          0, 1,
+          1, 1,
+          0, 1,
+          1, 1,
+        }, 1, false));
+
+        assertClusteringEquals(bp, new int[]{
+          1, 1,
+          0, 1,
+          0, 0,
+          0, 2,
+          2, 2,
+        }, bp.findClustering(new int[]{
+          1, 1,
+          0, 1,
+          2, 2,
+          0, 1,
+          1, 1,
+        }, 1, false));
+
+        assertClusteringEquals(bp, new int[]{
+          1, 1,
+          0, 1,
+          1, 0,
+          0, 1,
+          1, 1,
+        }, bp.findClustering(new int[]{
+          1, 1,
+          0, 1,
+          1, 0,
+          0, 1,
+          1, 1,
+        }, 1, true));
+    }
+
+    @Test
     public void fill() {
         var bp = fromShape(1, 5, 2);
         bp.setBlueprint(new int[]{
@@ -441,7 +521,192 @@ public class BlueprintToolkitTest {
           0, 0,
         }, bp.blueprint());
 
+        bp.setBlueprint(new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        });
 
+        bp.fill();
+        assertBlueprintEquals(bp, new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        }, bp.blueprint());
+    }
+
+    @Test
+    public void fillWithThreshold() {
+        var bp = fromShape(1, 5, 2);
+        bp.setBlueprint(new int[]{
+          2, 2,
+          2, 2,
+          2, 0,
+          0, 1,
+          1, 1,
+        });
+
+        bp.fill(new BlueprintToolkit.AreaThreshold(4, 10));
+        assertBlueprintEquals(bp, new int[]{
+          2, 2,
+          2, 2,
+          2, 2,
+          0, 1,
+          1, 1,
+        }, bp.blueprint());
+
+        bp.setBlueprint(new int[]{
+          2, 2,
+          2, 2,
+          2, 0,
+          0, 1,
+          1, 1,
+        });
+
+        bp.fill(new BlueprintToolkit.AreaThreshold(0, 4));
+        assertBlueprintEquals(bp, new int[]{
+          2, 2,
+          2, 2,
+          2, 0,
+          1, 1,
+          1, 1,
+        }, bp.blueprint());
+    }
+
+    @Test
+    public void extend() {
+        var bp = fromShape(1, 5, 2);
+        bp.setBlueprint(new int[]{
+          0, 0,
+          0, 0,
+          1, 1,
+          0, 0,
+          0, 0,
+        });
+
+        bp.extend(1, 1);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        }, bp.blueprint());
+    }
+
+    @Test
+    public void extendWithValue() {
+        var bp = fromShape(1, 5, 2);
+        bp.setBlueprint(new int[]{
+          0, 0,
+          0, 0,
+          1, 1,
+          0, 0,
+          0, 0,
+        });
+
+        bp.extend(1, 1, 2);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0,
+          2, 2,
+          1, 1,
+          2, 2,
+          0, 0,
+        }, bp.blueprint());
+    }
+
+    @Test
+    public void reduce() {
+        var bp = fromShape(1, 7, 2);
+        bp.setBlueprint(new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        });
+
+        bp.reduce(1, 1);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0,
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+          0, 0,
+        }, bp.blueprint());
+
+        bp.setBlueprint(new int[]{
+          2, 2,
+          1, 1,
+          1, 1,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        });
+
+        bp.reduce(1, 1);
+        assertBlueprintEquals(bp, new int[]{
+          2, 2,
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+          0, 0,
+        }, bp.blueprint());
+    }
+
+    @Test
+    public void reduceWithValue() {
+        var bp = fromShape(1, 7, 2);
+        bp.setBlueprint(new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        });
+
+        bp.reduce(1, 1, 2);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0,
+          2, 2,
+          1, 1,
+          1, 1,
+          1, 1,
+          2, 2,
+          0, 0,
+        }, bp.blueprint());
+    }
+
+    @Test
+    public void reduceToNone() {
+        var bp = fromShape(1, 4, 2);
+        bp.setBlueprint(new int[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          0, 0,
+        });
+
+        bp.reduce(1, 1);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
+        }, bp.blueprint());
     }
 
 }

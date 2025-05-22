@@ -51,14 +51,37 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
         return new ClusteringEdges(category, shank, edges1);
     }
 
+    private Corner setCorner(Corner corner, double dx, double dy) {
+        var x = corner.x;
+        var y = corner.y;
+        return switch (corner.corner) {
+            case 0 -> new Corner(x + dx, y + 0, 8);
+            case 1 -> new Corner(x + dx, y + dy, 8);
+            case 2 -> new Corner(x + 0, y + dy, 8);
+            case 3 -> new Corner(x - dx, y + dy, 8);
+            case 4 -> new Corner(x - dx, y + 0, 8);
+            case 5 -> new Corner(x - dx, y - dy, 8);
+            case 6 -> new Corner(x + 0, y - dy, 8);
+            case 7 -> new Corner(x + dx, y - dy, 8);
+            case 8 -> corner;
+            default -> throw new IllegalArgumentException();
+        };
+    }
+
     public double area() {
         var area = 0.0;
         for (int i = 0, size = edges.size(); i < size; i++) {
             var p = edges.get(i);
             var q = edges.get((i + 1) % size);
-            area += (p.x * q.y) - (q.x * p.y);
+
+            var px = p.x;
+            var py = p.y;
+            var qy = q.y;
+            var qx = q.x;
+
+            area += (px * qy) - (qx * py);
         }
-        return area;
+        return area / 2;
     }
 
     public ClusteringEdges convex() {

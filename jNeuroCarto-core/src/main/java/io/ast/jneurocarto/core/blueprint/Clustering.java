@@ -146,10 +146,10 @@ public record Clustering(int[] clustering) {
           .mapToObj(group -> new Mode(group, 1))
           .gather(Gatherer.<Mode, HashMap<Integer, Mode>, Mode>ofSequential(
             HashMap::new,
-            (state, element, _) -> {
+            Gatherer.Integrator.ofGreedy((state, element, _) -> {
                 state.merge(element.group, element, Mode::add);
                 return true;
-            },
+            }),
             (state, downstream) -> state.values().forEach(downstream::push)
           )).max(Comparator.comparingInt(Mode::count))
           .orElse(new Mode(0, groupCount(0)));
