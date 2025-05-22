@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.probe_npx.io;
+package io.ast.jneurocarto.core.numpy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,9 +11,9 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import static java.nio.file.StandardOpenOption.*;
 
@@ -51,168 +51,12 @@ public final class Numpy {
         throw new RuntimeException();
     }
 
-    record NumpyHeader(
-      int majorVersion,
-      int minorVersion,
-      String data
-    ) {
-        NumpyHeader {
-            data = data.strip();
-            if (!(data.startsWith("{") && data.endsWith("}"))) {
-                throw new IllegalArgumentException("not a dict string : " + data);
-            }
-        }
-
-        public static NumpyHeader of(int majorVersion, int minorVersion, String descr, boolean fortranOrder, int[] shape) {
-            var data = "{'descr': '" +
-                       descr +
-                       "', 'fortran_order': " +
-                       (fortranOrder ? "True" : "False") +
-                       ", 'shape': (" +
-                       Arrays.stream(shape).mapToObj(Integer::toString).collect(Collectors.joining(", ")) +
-                       "), }";
-            return new NumpyHeader(majorVersion, minorVersion, data);
-        }
-
-        public String descr() {
-            var i = indexOf("descr");
-            if (i < 0) throw new IllegalArgumentException("descr key not found");
-            var j = data.indexOf("'", i + 1);
-            if (j < 0) throw new IllegalArgumentException("descr value not found");
-            var k = data.indexOf("'", j + 1);
-            if (k < 0) throw new IllegalArgumentException("descr value not found");
-            return data.substring(j + 1, k);
-        }
-
-        public boolean fortranOrder() {
-            var i = indexOf("fortran_order");
-            if (i < 0) throw new IllegalArgumentException("fortran_order key not found");
-            var j = data.indexOf(",", i + 1);
-            if (j < 0) throw new IllegalArgumentException("fortran_order value not found");
-            return Boolean.parseBoolean(data.substring(i + 1, j).strip().toLowerCase());
-        }
-
-        public int[] shape() {
-            var i = indexOf("shape");
-            if (i < 0) throw new IllegalArgumentException("shape key not found");
-            var j = data.indexOf("(", i + 1);
-            if (j < 0) throw new IllegalArgumentException("shape value not found");
-            var k = data.indexOf(")", j + 1);
-            if (k < 0) throw new IllegalArgumentException("shape value not found");
-            return Arrays.stream(data.substring(j + 1, k).split(", +"))
-              .mapToInt(Integer::parseInt)
-              .toArray();
-        }
-
-        private int indexOf(String name) {
-            var key = "'" + name + "':";
-            var ret = data.indexOf(key);
-            if (ret < 0) return -1;
-            return ret + key.length();
-        }
-    }
-
-    public sealed interface ArrayCreator<T> permits ValueArray {
-        T create(NumpyHeader header);
-
-        void checkFor(T data);
-
-        int[] shape();
-
-        String descr();
-
-        int valueSize();
-
-        /**
-         * read value from buffer.
-         *
-         * @param ret
-         * @param pos
-         * @param buffer
-         * @return successful
-         */
-        boolean read(T ret, long pos, ByteBuffer buffer);
-
-        /**
-         * write value into buffer.
-         *
-         * @param ret
-         * @param pos
-         * @param buffer
-         * @return successful
-         */
-        boolean write(T ret, long pos, ByteBuffer buffer);
-
-    }
-
-    private static sealed abstract class ValueArray<T> implements ArrayCreator<T> permits D1Array, D2Array, D3Array {
-
-        final char valueType;
-        int valueSize = 0;
-
-        ValueArray(char valueType) {
-            this.valueType = valueType;
-            valueSize = switch (valueType) {
-                case 'i' -> 4;
-                case 'f' -> 8;
-                default -> 0;
-            };
-        }
-
-        @Override
-        public final int valueSize() {
-            return valueSize;
-        }
-
-        final void checkValue(NumpyHeader header) {
-            var descr = header.descr();
-            var valueType = descr.charAt(1);
-            valueSize = Integer.parseInt(descr.substring(2));
-            if (valueType != this.valueType) throw new RuntimeException("not an " + this.valueType + " array, but : " + descr);
-            if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8)
-                throw new RuntimeException("not an " + this.valueType + " array, but : " + descr);
-        }
-
-        @Override
-        public final String descr() {
-            return "<" + valueType + valueSize;
-        }
-
-        final int readInt(ByteBuffer buffer) {
-            return switch (valueSize) {
-                case 1 -> buffer.get();
-                case 2 -> buffer.getShort();
-                case 4 -> buffer.getInt();
-                case 8 -> (int) buffer.getLong();
-                default -> throw new RuntimeException();
-            };
-        }
-
-        final void writeInt(ByteBuffer buffer, int value) {
-            switch (valueSize) {
-            case 1 -> buffer.put((byte) value);
-            case 2 -> buffer.putShort((short) value);
-            case 4 -> buffer.putInt(value);
-            case 8 -> buffer.putLong(value);
-            default -> throw new RuntimeException();
-            }
-        }
-
-        final double readDouble(ByteBuffer buffer) {
-            return buffer.getDouble();
-        }
-
-        final void writeDouble(ByteBuffer buffer, double value) {
-            buffer.putDouble(value);
-        }
-    }
-
-    private static abstract sealed class D1Array<T> extends ValueArray<T> permits OfInt, OfDouble {
+    private static abstract class D1Array<T> extends ValueArray<T> {
 
         int length;
 
-        D1Array(char valueType) {
-            super(valueType);
+        D1Array(char valueType, int valeSize) {
+            super(valueType, valeSize);
         }
 
         final int checkShape(NumpyHeader header) {
@@ -235,7 +79,7 @@ public final class Numpy {
 
     }
 
-    private static sealed abstract class D2Array<T> extends ValueArray<T> permits OfD2Int, OfD2Double {
+    private static abstract class D2Array<T> extends ValueArray<T> {
 
         final boolean columnFirst;
         int rows;
@@ -245,8 +89,8 @@ public final class Numpy {
         int index1;
         int index2;
 
-        D2Array(char valueType, boolean columnFirst) {
-            super(valueType);
+        D2Array(char valueType, int valeSize, boolean columnFirst) {
+            super(valueType, valeSize);
             this.columnFirst = columnFirst;
         }
 
@@ -297,7 +141,7 @@ public final class Numpy {
         }
     }
 
-    private static abstract sealed class D3Array<T> extends ValueArray<T> permits OfD3Int, OfD3Double {
+    private static abstract class D3Array<T> extends ValueArray<T> {
         int plans;
         int rows;
         int columns;
@@ -305,8 +149,8 @@ public final class Numpy {
         int r;
         int c;
 
-        D3Array(char valueType) {
-            super(valueType);
+        D3Array(char valueType, int valeSize) {
+            super(valueType, valeSize);
         }
 
         final void checkShape(NumpyHeader header) {
@@ -317,7 +161,6 @@ public final class Numpy {
             columns = shape[2];
             checkValue(header);
         }
-
 
         @Override
         public final int[] shape() {
@@ -340,9 +183,175 @@ public final class Numpy {
         }
     }
 
-    public static final class OfInt extends D1Array<int[]> {
-        public OfInt() {
-            super('i');
+    private static abstract class FlattenArray<T> extends ValueArray<T> {
+        int[] shape;
+        int total;
+
+        FlattenArray(char valueType, int valeSize) {
+            super(valueType, valeSize);
+        }
+
+        final void checkShape(NumpyHeader header) {
+            shape = header.shape();
+            if (shape.length > 0) {
+                var total = 1L;
+                for (int j : shape) total *= j;
+                if (total >= Integer.MAX_VALUE) {
+                    throw new RuntimeException("over jvm limitation");
+                }
+                this.total = (int) total;
+            } else {
+                this.total = 0;
+            }
+
+            checkValue(header);
+        }
+
+        final void checkFor(int[] shape, int total) {
+            this.shape = shape;
+            if (shape.length > 0) {
+                var t = 1L;
+                for (int j : shape) t *= j;
+                if (t >= Integer.MAX_VALUE) {
+                    throw new RuntimeException("over jvm limitation");
+                }
+                this.total = (int) t;
+            } else {
+                this.total = 0;
+            }
+            if (this.total != total) throw new RuntimeException();
+        }
+
+        @Override
+        public final int[] shape() {
+            return shape;
+        }
+    }
+
+    public static class OfBuffer extends ValueArray<ByteBuffer> {
+        final ByteBuffer buffer;
+        int[] shape;
+
+        public OfBuffer(ByteBuffer buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        int[] shape() {
+            return shape;
+        }
+
+        @Override
+        ByteBuffer create(NumpyHeader header) {
+            this.shape = header.shape();
+            return buffer;
+        }
+
+        @Override
+        final void checkFor(ByteBuffer data) {
+            if (buffer != data) throw new RuntimeException();
+        }
+
+        /**
+         * this method has changed its purpose from reading value into
+         * a callback of read value.
+         * <br/>
+         * If you have limited size of {@link #buffer}, make sure transfer the data from it
+         * for next coming data.
+         * <p>
+         * {@snippet :
+         * boolean read(ByteBuffer ret, long pos, ByteBuffer buffer) {
+         *     ret.flip();
+         *     // do something read from ret.
+         *     ret.reset();
+         *     return true;
+         * }
+         *}
+         *
+         * @param ret    {@link #buffer}
+         * @param pos    the position of read data.
+         * @param buffer always {@code null}.
+         * @return successful
+         */
+        @Override
+        boolean read(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
+            return ret.remaining() > 0;
+        }
+
+        /**
+         * this method has changed its purpose from writing value into
+         * a pre-callback of written value.
+         * <br/>
+         * If you have limited size of {@link #buffer}, make sure transfer the data into it
+         * for next writing action.
+         * <p>
+         * {@snippet :
+         * boolean write(ByteBuffer ret, long pos, ByteBuffer buffer) {
+         *     ret.reset();
+         *     // do something writing into ret.
+         *     ret.flip();
+         *     return true;
+         * }
+         *}
+         *
+         * @param ret    {@link #buffer}
+         * @param pos    the position of written data.
+         * @param buffer always {@code null}.
+         * @return successful
+         */
+        @Override
+        boolean write(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
+            return ret.remaining() > 0;
+        }
+    }
+
+    public static ValueArray<boolean[]> ofBoolean() {
+        return new OfBoolean();
+    }
+
+    private static final class OfBoolean extends D1Array<boolean[]> {
+        private OfBoolean() {
+            super('b', 1);
+        }
+
+        @Override
+        public boolean[] create(NumpyHeader header) {
+            return new boolean[checkShape(header)];
+        }
+
+        @Override
+        public void checkFor(boolean[] data) {
+            checkFor(data.length);
+        }
+
+        @Override
+        public boolean read(boolean[] ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < ret.length) {
+                ret[p] = readInt(buffer) > 0;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean write(boolean[] ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < ret.length) {
+                writeInt(buffer, ret[p] ? 1 : 0);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public static ValueArray<int[]> ofInt() {
+        return new OfInt();
+    }
+
+    private static final class OfInt extends D1Array<int[]> {
+        private OfInt() {
+            super('i', 4);
         }
 
         @Override
@@ -376,13 +385,21 @@ public final class Numpy {
         }
     }
 
-    public static final class OfD2Int extends D2Array<int[][]> {
-        public OfD2Int() {
-            super('i', false);
+    public static ValueArray<int[][]> ofD2Int() {
+        return new OfD2Int();
+    }
+
+    public static ValueArray<int[][]> ofD2Int(boolean columnFirst) {
+        return new OfD2Int(columnFirst);
+    }
+
+    private static final class OfD2Int extends D2Array<int[][]> {
+        private OfD2Int() {
+            super('i', 4, false);
         }
 
-        public OfD2Int(boolean columnFirst) {
-            super('i', columnFirst);
+        private OfD2Int(boolean columnFirst) {
+            super('i', 4, columnFirst);
         }
 
         @Override
@@ -422,9 +439,13 @@ public final class Numpy {
         }
     }
 
-    public static final class OfD3Int extends D3Array<int[][][]> {
-        public OfD3Int() {
-            super('i');
+    public static ValueArray<int[][][]> ofD3Int() {
+        return new OfD3Int();
+    }
+
+    private static final class OfD3Int extends D3Array<int[][][]> {
+        private OfD3Int() {
+            super('i', 4);
         }
 
         @Override
@@ -474,9 +495,57 @@ public final class Numpy {
         }
     }
 
-    public static final class OfDouble extends D1Array<double[]> {
-        public OfDouble() {
-            super('f');
+    public record FlattenIntArray(int[] shape, int[] array) {
+    }
+
+    public static ValueArray<FlattenIntArray> ofFlattenInt() {
+        return new OfFlattenInt();
+    }
+
+    private static final class OfFlattenInt extends FlattenArray<FlattenIntArray> {
+        private OfFlattenInt() {
+            super('i', 4);
+        }
+
+        @Override
+        FlattenIntArray create(NumpyHeader header) {
+            checkShape(header);
+            return new FlattenIntArray(shape, new int[total]);
+        }
+
+        @Override
+        void checkFor(FlattenIntArray data) {
+            checkFor(data.shape, data.array.length);
+        }
+
+        @Override
+        boolean read(FlattenIntArray ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < total) {
+                ret.array[p] = readInt(buffer);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        boolean write(FlattenIntArray ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < total) {
+                writeInt(buffer, ret.array[p]);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public static ValueArray<double[]> ofDouble() {
+        return new OfDouble();
+    }
+
+    private static final class OfDouble extends D1Array<double[]> {
+        private OfDouble() {
+            super('f', 8);
         }
 
         @Override
@@ -512,13 +581,21 @@ public final class Numpy {
         }
     }
 
-    public static final class OfD2Double extends D2Array<double[][]> {
-        public OfD2Double() {
-            super('f', false);
+    public static ValueArray<double[][]> ofD2Double() {
+        return new OfD2Double();
+    }
+
+    public static ValueArray<double[][]> ofD2Double(boolean columnFirst) {
+        return new OfD2Double(columnFirst);
+    }
+
+    private static final class OfD2Double extends D2Array<double[][]> {
+        private OfD2Double() {
+            super('f', 8, false);
         }
 
-        public OfD2Double(boolean columnFirst) {
-            super('f', columnFirst);
+        private OfD2Double(boolean columnFirst) {
+            super('f', 8, columnFirst);
         }
 
         @Override
@@ -560,9 +637,13 @@ public final class Numpy {
         }
     }
 
-    public static final class OfD3Double extends D3Array<double[][][]> {
-        public OfD3Double() {
-            super('f');
+    public static ValueArray<double[][][]> ofD3Double() {
+        return new OfD3Double();
+    }
+
+    private static final class OfD3Double extends D3Array<double[][][]> {
+        private OfD3Double() {
+            super('f', 8);
         }
 
         @Override
@@ -612,6 +693,51 @@ public final class Numpy {
         }
     }
 
+
+    public record FlattenDoubleArray(int[] shape, double[] array) {
+    }
+
+    public static ValueArray<FlattenDoubleArray> ofFlattenDouble() {
+        return new OfFlattenDouble();
+    }
+
+    private static final class OfFlattenDouble extends FlattenArray<FlattenDoubleArray> {
+        private OfFlattenDouble() {
+            super('f', 8);
+        }
+
+        @Override
+        FlattenDoubleArray create(NumpyHeader header) {
+            checkShape(header);
+            return new FlattenDoubleArray(shape, new double[total]);
+        }
+
+        @Override
+        void checkFor(FlattenDoubleArray data) {
+            checkFor(data.shape, data.array.length);
+        }
+
+        @Override
+        boolean read(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < total) {
+                ret.array[p] = readDouble(buffer);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        boolean write(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
+            var p = (int) pos;
+            if (p < total) {
+                writeDouble(buffer, ret.array[p]);
+                return true;
+            }
+            return false;
+        }
+    }
+
     /**
      * read numpy array from file.
      *
@@ -620,7 +746,7 @@ public final class Numpy {
      * @return
      * @throws IOException
      */
-    public static <T> T read(Path file, ArrayCreator<T> of) throws IOException {
+    public static <T> T read(Path file, ValueArray<T> of) throws IOException {
         try (var channel = Files.newByteChannel(file)) {
             return read(channel, of);
         }
@@ -634,7 +760,7 @@ public final class Numpy {
      * @return
      * @throws IOException
      */
-    public static <T> T read(InputStream in, ArrayCreator<T> of) throws IOException {
+    public static <T> T read(InputStream in, ValueArray<T> of) throws IOException {
         return read(Channels.newChannel(in), of);
     }
 
@@ -643,27 +769,37 @@ public final class Numpy {
      * @return int[C][R] array
      * @throws IOException
      */
-    private static <T> T read(ReadableByteChannel channel, ArrayCreator<T> of) throws IOException {
+    private static <T> T read(ReadableByteChannel channel, ValueArray<T> of) throws IOException {
         var header = readHeader(channel);
 
         if (header.fortranOrder()) throw new IOException("not an C-array");
 
         T ret = of.create(header);
 
-        var descr = header.descr();
-        boolean isLittle = descr.charAt(0) == '<';
+        if (of instanceof OfBuffer buffer) {
+            long pos = 0L;
+            while (true) {
+                var read = channel.read(buffer.buffer);
+                if (read < 0) break;
+                pos += read;
+                if (!buffer.read(buffer.buffer, pos, null)) break;
+            }
+        } else {
+            var descr = header.descr();
+            boolean isLittle = descr.charAt(0) == '<';
 
-        var valueSize = of.valueSize();
-        var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
-        buffer.order(isLittle ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
+            var valueSize = of.valueSize;
+            var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
+            buffer.order(isLittle ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
 
-        long pos = 0L;
-        while (true) {
-            buffer.clear();
-            if (channel.read(buffer) < 0) break;
-            buffer.flip();
-            while (buffer.remaining() >= valueSize) {
-                of.read(ret, pos++, buffer);
+            long pos = 0L;
+            while (true) {
+                buffer.clear();
+                if (channel.read(buffer) < 0) break;
+                buffer.flip();
+                while (buffer.remaining() >= valueSize) {
+                    of.read(ret, pos++, buffer);
+                }
             }
         }
 
@@ -714,7 +850,13 @@ public final class Numpy {
         write(file, array, of);
     }
 
-    public static <T> void write(Path file, T array, ArrayCreator<T> of) throws IOException {
+    public static void write(Path file, boolean[] array) throws IOException {
+        var of = new OfBoolean();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static <T> void write(Path file, T array, ValueArray<T> of) throws IOException {
         of.checkFor(array);
         try (var channel = Files.newByteChannel(file, CREATE, TRUNCATE_EXISTING, WRITE)) {
             write(channel, array, of);
@@ -764,32 +906,49 @@ public final class Numpy {
         write(out, array, of);
     }
 
-    public static <T> void write(OutputStream out, T array, ArrayCreator<T> of) throws IOException {
+    public static void write(OutputStream out, boolean[] array) throws IOException {
+        var of = new OfBoolean();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static <T> void write(OutputStream out, T array, ValueArray<T> of) throws IOException {
         of.checkFor(array);
         write(Channels.newChannel(out), array, of);
     }
 
-    private static <T> void write(WritableByteChannel channel, T array, ArrayCreator<T> of) throws IOException {
+    private static <T> void write(WritableByteChannel channel, T array, ValueArray<T> of) throws IOException {
         writeHeader(channel, NumpyHeader.of(1, 0, of.descr(), false, of.shape()));
 
-        var valueSize = of.valueSize();
-        var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        if (of instanceof OfBuffer buffer) {
+            var ret = (ByteBuffer) array;
 
-        long pos = 0L;
-        while (of.write(array, pos++, buffer)) {
+            long pos = 0L;
+            while (true) {
+                if (!buffer.write(ret, pos, null)) break;
 
-            if (buffer.remaining() == 0) {
+                pos += buffer.buffer.limit();
+                channel.write(ret);
+            }
+        } else {
+            var valueSize = of.valueSize;
+            var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+            long pos = 0L;
+            while (of.write(array, pos++, buffer)) {
+                if (buffer.remaining() == 0) {
+                    buffer.flip();
+                    channel.write(buffer);
+                    buffer.clear();
+                }
+            }
+
+            if (buffer.position() > 0) {
                 buffer.flip();
                 channel.write(buffer);
                 buffer.clear();
             }
-        }
-
-        if (buffer.position() > 0) {
-            buffer.flip();
-            channel.write(buffer);
-            buffer.clear();
         }
     }
 
@@ -837,10 +996,10 @@ public final class Numpy {
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         buffer.put(MAGIC);
-        buffer.put((byte) header.majorVersion);
-        buffer.put((byte) header.minorVersion);
+        buffer.put((byte) header.majorVersion());
+        buffer.put((byte) header.minorVersion());
 
-        var data = header.data.getBytes();
+        var data = header.data().getBytes();
         int length = buffer.position() + 2 + data.length;
         length = ((length / 64) + 1) * 64 - buffer.position() - 2;
         buffer.putShort((short) length);

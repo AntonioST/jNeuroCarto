@@ -7,9 +7,9 @@ import java.nio.file.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
-import io.ast.jneurocarto.probe_npx.io.Numpy;
 import picocli.CommandLine;
 
 @CommandLine.Command(

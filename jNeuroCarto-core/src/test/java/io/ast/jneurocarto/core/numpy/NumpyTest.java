@@ -1,5 +1,6 @@
-package io.ast.jneurocarto.probe_npx.io;
+package io.ast.jneurocarto.core.numpy;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,7 +17,23 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class NumpyTest {
 
-    record NumpyHeaderTestData(
+    private static void assert2DArrayEquals(int[][] expect, int[][] actual) {
+        assertEquals(expect.length, actual.length, () -> "expect[" + expect.length + "] != actual[" + actual.length + "]");
+        for (int i = 0, length = expect.length; i < length; i++) {
+            int j = i;
+            assertArrayEquals(expect[i], actual[i], () -> "expect[" + j + "][*] != actual[" + j + "][*]");
+        }
+    }
+
+    private static void assert2DArrayEquals(double[][] expect, double[][] actual) {
+        assertEquals(expect.length, actual.length, () -> "expect[" + expect.length + "] != actual[" + actual.length + "]");
+        for (int i = 0, length = expect.length; i < length; i++) {
+            int j = i;
+            assertArrayEquals(expect[i], actual[i], () -> "expect[" + j + "][*] != actual[" + j + "][*]");
+        }
+    }
+
+    public record NumpyHeaderTestData(
       String data,
       String descr,
       boolean fortranOrder,
@@ -24,7 +41,7 @@ public class NumpyTest {
     ) {
     }
 
-    static List<NumpyHeaderTestData> numpyHeaderData() {
+    public static List<NumpyHeaderTestData> numpyHeaderData() {
         return List.of(
           new NumpyHeaderTestData(
             "{'descr': '<i8', 'fortran_order': False, 'shape': (5120, 5), }                                                       \n",
@@ -47,8 +64,8 @@ public class NumpyTest {
 
     @ParameterizedTest
     @MethodSource()
-    void numpyHeaderData(NumpyHeaderTestData data) {
-        var header = new Numpy.NumpyHeader(0, 0, data.data);
+    public void numpyHeaderData(NumpyHeaderTestData data) {
+        var header = new NumpyHeader(0, 0, data.data);
         assertEquals(data.data.strip(), header.data());
         assertEquals(data.descr, header.descr());
         assertEquals(data.fortranOrder, header.fortranOrder());
@@ -59,14 +76,14 @@ public class NumpyTest {
     @MethodSource("numpyHeaderData")
     void numpyHeaderDataOf(NumpyHeaderTestData data) {
         assertEquals(data.data.strip(),
-          Numpy.NumpyHeader.of(0, 0, data.descr, data.fortranOrder, data.shape).data());
+          NumpyHeader.of(0, 0, data.descr, data.fortranOrder, data.shape).data());
     }
 
     @Test
-    void readNumpyIntArrayFile() throws IOException {
+    public void readNumpyIntArrayFile() throws IOException {
         var file = Path.of("src/test/resources/Fig3_example.blueprint.npy");
         assertTrue(Files.exists(file));
-        var data = Numpy.read(file, new Numpy.OfD2Int(true));
+        var data = Numpy.read(file, Numpy.ofD2Int(true));
         assertEquals(5, data.length);
         assertEquals(5120, data[0].length);
         assertEquals(5120, data[1].length);
@@ -76,7 +93,7 @@ public class NumpyTest {
     }
 
     @Test
-    void readWriteNumpyHeader() throws IOException {
+    public void readWriteNumpyHeader() throws IOException {
         var file = Path.of("src/test/resources/Fig3_example.blueprint.npy");
         assertTrue(Files.exists(file));
 
@@ -96,7 +113,7 @@ public class NumpyTest {
     }
 
     @Test
-    void readWriteNumpyIntArray() throws IOException {
+    public void readWriteNumpyIntArray() throws IOException {
         var data = new int[5][];
         for (int i = 0; i < 5; i++) {
             data[i] = new int[12];
@@ -106,20 +123,23 @@ public class NumpyTest {
         }
         assert2DArrayEquals(data, data);
 
-        var file = Files.createTempFile(Path.of("target"), "test-", ".npy");
+        byte[] arr;
 
-        try {
-            Numpy.write(file, data, new Numpy.OfD2Int(true));
-
-            var back = Numpy.read(file, new Numpy.OfD2Int(true));
-            assert2DArrayEquals(data, back);
-        } finally {
-            Files.deleteIfExists(file);
+        try (var out = new ByteArrayOutputStream()) {
+            Numpy.write(out, data, Numpy.ofD2Int(true));
+            out.close();
+            arr = out.toByteArray();
         }
+
+        int[][] back;
+        try (var in = new ByteArrayInputStream(arr)) {
+            back = Numpy.read(in, Numpy.ofD2Int(true));
+        }
+        assert2DArrayEquals(data, back);
     }
 
     @Test
-    void readWriteNumpyDoubleArray() throws IOException {
+    public void readWriteNumpyDoubleArray() throws IOException {
         var data = new double[5][];
         for (int i = 0; i < 5; i++) {
             data[i] = new double[12];
@@ -129,33 +149,41 @@ public class NumpyTest {
         }
         assert2DArrayEquals(data, data);
 
-        var file = Files.createTempFile(Path.of("target"), "test-", ".npy");
+        byte[] arr;
 
-        try {
-            Numpy.write(file, data, new Numpy.OfD2Double(true));
-
-            var back = Numpy.read(file, new Numpy.OfD2Double(true));
-            assert2DArrayEquals(data, back);
-        } finally {
-//            System.out.println(file);
-            Files.deleteIfExists(file);
+        try (var out = new ByteArrayOutputStream()) {
+            Numpy.write(out, data, Numpy.ofD2Double(true));
+            out.close();
+            arr = out.toByteArray();
         }
+
+        double[][] back;
+        try (var in = new ByteArrayInputStream(arr)) {
+            back = Numpy.read(in, Numpy.ofD2Double(true));
+        }
+        assert2DArrayEquals(data, back);
     }
 
-    private static void assert2DArrayEquals(int[][] expect, int[][] actual) {
-        assertEquals(expect.length, actual.length, () -> "expect[" + expect.length + "] != actual[" + actual.length + "]");
-        for (int i = 0, length = expect.length; i < length; i++) {
-            int j = i;
-            assertArrayEquals(expect[i], actual[i], () -> "expect[" + j + "][*] != actual[" + j + "][*]");
+    @Test
+    public void readWriteBooleanArray() throws IOException {
+        var data = new boolean[100];
+        for (int i = 0; i < 100; i++) {
+            data[i] = Math.random() > 0.5;
         }
-    }
 
-    private static void assert2DArrayEquals(double[][] expect, double[][] actual) {
-        assertEquals(expect.length, actual.length, () -> "expect[" + expect.length + "] != actual[" + actual.length + "]");
-        for (int i = 0, length = expect.length; i < length; i++) {
-            int j = i;
-            assertArrayEquals(expect[i], actual[i], () -> "expect[" + j + "][*] != actual[" + j + "][*]");
+        byte[] arr;
+
+        try (var out = new ByteArrayOutputStream()) {
+            Numpy.write(out, data);
+            out.close();
+            arr = out.toByteArray();
         }
+
+        boolean[] back;
+        try (var in = new ByteArrayInputStream(arr)) {
+            back = Numpy.read(in, Numpy.ofBoolean());
+        }
+        assertArrayEquals(data, back);
     }
 
 

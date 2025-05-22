@@ -7,6 +7,7 @@ module io.ast.jneurocarto.core {
 
     exports io.ast.jneurocarto.core;
     exports io.ast.jneurocarto.core.blueprint;
+    exports io.ast.jneurocarto.core.numpy;
 
     uses ElectrodeSelectorProvider;
     uses ProbeProvider;
