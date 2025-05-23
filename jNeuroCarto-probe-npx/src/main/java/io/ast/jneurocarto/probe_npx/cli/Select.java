@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
@@ -190,7 +191,8 @@ public final class Select implements Callable<Integer> {
             ChannelMaps.printProbe(System.out, List.of(chmap, newChmap), true);
         }
         if (printResultInfo) {
-            var info = ChannelMaps.channelEfficiency(newChmap, electrodes);
+            var bp = new Blueprint<>(desp, newChmap, electrodes);
+            var info = ChannelMaps.channelEfficiency(bp);
             System.out.println("Efficiency:");
             System.out.printf("+ %-8s - %s\n", "area", info.area());
             System.out.printf("+ %-8s - %s\n", "channel", info.efficiency());

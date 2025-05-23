@@ -9,9 +9,11 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.javafx.view.ProbeInfoPlugin;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
+import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 
 @NullMarked
 public class NpxProbeInfoPlugin extends ProbeInfoPlugin<ChannelMap> {
@@ -30,15 +32,17 @@ public class NpxProbeInfoPlugin extends ProbeInfoPlugin<ChannelMap> {
 
     @Override
     public @Nullable String getInfoValue(String info, ChannelMap chmap, List<ElectrodeDescription> blueprint) {
+        var bp = new Blueprint<>(new NpxProbeDescription(), chmap, blueprint);
         return switch (info) {
-            case "used channels" -> getUsedChannels(chmap);
-            case "request electrodes" -> getRequestElectrodes(blueprint);
-            case "channel efficiency" -> getChannelEfficiency(chmap, blueprint);
+            case "used channels" -> getUsedChannels(bp);
+            case "request electrodes" -> getRequestElectrodes(bp);
+            case "channel efficiency" -> getChannelEfficiency(bp);
             default -> null;
         };
     }
 
-    private String getUsedChannels(ChannelMap chmap) {
+    private String getUsedChannels(Blueprint<ChannelMap> blueprint) {
+        var chmap = Objects.requireNonNull(blueprint.channelmap());
         var used = chmap.size();
         var total = chmap.nChannel();
         var channels = chmap.channels();
@@ -52,12 +56,12 @@ public class NpxProbeInfoPlugin extends ProbeInfoPlugin<ChannelMap> {
         return "%d, total=%d (%s)".formatted(used, total, ups);
     }
 
-    private String getRequestElectrodes(List<ElectrodeDescription> blueprint) {
+    private String getRequestElectrodes(Blueprint<ChannelMap> blueprint) {
         return "%.2f".formatted(ChannelMaps.requestElectrode(blueprint));
     }
 
-    private String getChannelEfficiency(ChannelMap chmap, List<ElectrodeDescription> blueprint) {
-        var eff = ChannelMaps.channelEfficiency(chmap, blueprint);
+    private String getChannelEfficiency(Blueprint<ChannelMap> blueprint) {
+        var eff = ChannelMaps.channelEfficiency(blueprint);
         return "%.1f%%".formatted(100 * eff.efficiency());
     }
 }
