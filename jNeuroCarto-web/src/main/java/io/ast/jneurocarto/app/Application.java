@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Bean;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.theme.Theme;
 
-import io.ast.jneurocarto.config.CartoUserConfig;
-import io.ast.jneurocarto.config.Repository;
-import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.cli.CartoConfig;
+import io.ast.jneurocarto.core.config.CartoUserConfig;
+import io.ast.jneurocarto.core.config.Repository;
 import picocli.CommandLine;
 
 @SpringBootApplication

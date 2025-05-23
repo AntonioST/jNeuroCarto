@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.config.cli;
+package io.ast.jneurocarto.core.cli;
 
 import java.nio.file.Path;
 import java.util.List;

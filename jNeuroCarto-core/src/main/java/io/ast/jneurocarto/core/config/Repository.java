@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.config;
+package io.ast.jneurocarto.core.config;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -13,9 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.cli.CartoConfig;
 
 @NullMarked
 public class Repository {

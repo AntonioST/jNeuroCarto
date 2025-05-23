@@ -31,12 +31,12 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.config.Repository;
-import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ProbeProviders;
+import io.ast.jneurocarto.core.cli.CartoConfig;
+import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;

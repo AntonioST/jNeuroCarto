@@ -10,7 +10,7 @@
         <version>0.0</version>
     </parent>
 
-    <artifactId>jNeuroCarto-chart</artifactId>
+    <artifactId>jNeuroCarto-web-chart</artifactId>
     <version>0.0</version>
 
     <dependencies>

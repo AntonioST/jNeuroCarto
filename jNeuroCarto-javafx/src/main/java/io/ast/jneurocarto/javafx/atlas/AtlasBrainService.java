@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.atlas.BrainGlobeConfig;
 import io.ast.jneurocarto.atlas.BrainGlobeDownloader;
 import io.ast.jneurocarto.atlas.cli.Main;
-import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.cli.CartoConfig;
 
 @NullMarked
 public final class AtlasBrainService {

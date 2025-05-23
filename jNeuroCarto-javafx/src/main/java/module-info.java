@@ -17,7 +17,6 @@ module io.ast.jneurocarto.javafx {
     requires com.fasterxml.jackson.databind;
 
     requires io.ast.jneurocarto.core;
-    requires io.ast.jneurocarto.config;
     requires io.ast.jneurocarto.atlas;
 
     exports io.ast.jneurocarto.javafx.app;

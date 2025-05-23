@@ -4,7 +4,7 @@ import javafx.stage.Stage;
 
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.config.cli.CartoConfig;
+import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.Application;
 import io.ast.jneurocarto.javafx.atlas.AtlasBrainService;
 import io.ast.jneurocarto.javafx.utils.IOAction;

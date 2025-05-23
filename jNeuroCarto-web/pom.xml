@@ -27,11 +27,6 @@
             <artifactId>jNeuroCarto-probe-npx</artifactId>
             <version>0.0</version>
         </dependency>
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-config</artifactId>
-            <version>0.0</version>
-        </dependency>
         <!--        <dependency>-->
         <!--            <groupId>io.ast.jneurocarto</groupId>-->
         <!--            <artifactId>jNeuroCarto-chart</artifactId>-->

@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.jspecify.annotations.NullMarked;
 
-import io.ast.jneurocarto.config.cli.CartoConfig;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.cli.CartoConfig;
 
 @NullMarked
 public interface ProbePluginProvider {

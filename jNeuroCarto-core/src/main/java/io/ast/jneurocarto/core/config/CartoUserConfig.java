@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.config;
+package io.ast.jneurocarto.core.config;
 
 import java.util.List;
 
