@@ -77,8 +77,8 @@ public class BlueprintToolkitTest {
     }
 
     private static String buildBlueprintComparingMessage(BlueprintToolkit<?> bp, int[] expect, int[] actual) {
-        var expIter = bp.toStringBlueprint(expect).lines().iterator();
-        var actIter = bp.toStringBlueprint(actual).lines().iterator();
+        var expIter = bp.toString(expect).lines().iterator();
+        var actIter = bp.toString(actual).lines().iterator();
         var expLen = 0;
         var actLen = 0;
         String expText;
@@ -198,7 +198,7 @@ public class BlueprintToolkitTest {
     @Test
     public void move() {
         var bp = fromShape(2, 3, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           2, 0,
           1, 2,
           0, 1,
@@ -470,7 +470,7 @@ public class BlueprintToolkitTest {
     @Test
     public void fill() {
         var bp = fromShape(1, 5, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           1, 1,
           0, 1,
           1, 1,
@@ -487,7 +487,7 @@ public class BlueprintToolkitTest {
           1, 1,
         }, bp.blueprint());
 
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 1,
           1, 1,
           1, 1,
@@ -504,7 +504,7 @@ public class BlueprintToolkitTest {
           1, 1,
         }, bp.blueprint());
 
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           0, 1,
           1, 1,
@@ -521,7 +521,7 @@ public class BlueprintToolkitTest {
           0, 0,
         }, bp.blueprint());
 
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           1, 1,
           1, 1,
@@ -542,7 +542,7 @@ public class BlueprintToolkitTest {
     @Test
     public void fillWithThreshold() {
         var bp = fromShape(1, 5, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           2, 2,
           2, 2,
           2, 0,
@@ -559,7 +559,7 @@ public class BlueprintToolkitTest {
           1, 1,
         }, bp.blueprint());
 
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           2, 2,
           2, 2,
           2, 0,
@@ -580,7 +580,7 @@ public class BlueprintToolkitTest {
     @Test
     public void extend() {
         var bp = fromShape(1, 5, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           0, 0,
           1, 1,
@@ -601,7 +601,7 @@ public class BlueprintToolkitTest {
     @Test
     public void extendWithValue() {
         var bp = fromShape(1, 5, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           0, 0,
           1, 1,
@@ -622,7 +622,7 @@ public class BlueprintToolkitTest {
     @Test
     public void reduce() {
         var bp = fromShape(1, 7, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           1, 1,
           1, 1,
@@ -643,7 +643,7 @@ public class BlueprintToolkitTest {
           0, 0,
         }, bp.blueprint());
 
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           2, 2,
           1, 1,
           1, 1,
@@ -668,7 +668,7 @@ public class BlueprintToolkitTest {
     @Test
     public void reduceWithValue() {
         var bp = fromShape(1, 7, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           1, 1,
           1, 1,
@@ -693,7 +693,7 @@ public class BlueprintToolkitTest {
     @Test
     public void reduceToNone() {
         var bp = fromShape(1, 4, 2);
-        bp.setBlueprint(new int[]{
+        bp.from(new int[]{
           0, 0,
           1, 1,
           1, 1,

@@ -228,10 +228,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         if (channelmap == null) return;
 
         log.debug("setBlueprint");
-        this.blueprint = new Blueprint<>(probe, channelmap)
-          .setBlueprint(blueprint)
-          .applyBlueprint()
-          .electrodes();
+        this.blueprint = new Blueprint<>(probe, channelmap, blueprint).electrodes();
 
         resetElectrodeState();
     }

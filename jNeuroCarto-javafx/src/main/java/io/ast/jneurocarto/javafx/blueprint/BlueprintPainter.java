@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.javafx.blueprint;
 
+import java.util.Set;
+
 /**
  * The blueprint painter, used as a communicating interface between
  * {@link BlueprintPlugin} and the {@link io.ast.jneurocarto.core.ProbeDescription ProbeDescription}.
@@ -12,6 +14,14 @@ package io.ast.jneurocarto.javafx.blueprint;
  * The subclass must have a no-arg, public constructor.
  */
 public interface BlueprintPainter<T> {
+
+    enum Feature {
+        conflict;
+    }
+
+    default Set<Feature> supportedFeatures() {
+        return Set.of();
+    }
 
     void plotBlueprint(BlueprintPaintingService<T> service);
 }

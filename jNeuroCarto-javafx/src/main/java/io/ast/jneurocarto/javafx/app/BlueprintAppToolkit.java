@@ -9,10 +9,9 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
-import io.ast.jneurocarto.core.blueprint.BlueprintToolkitWrapper;
 
 @NullMarked
-public class BlueprintAppToolkit<T> extends BlueprintToolkitWrapper<T> {
+public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     private final Application<T> application;
 
     public BlueprintAppToolkit(Application<T> application) {
@@ -23,24 +22,21 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkitWrapper<T> {
             blueprint = new Blueprint<>(probe);
         } else {
             blueprint = new Blueprint<>(probe, chmap);
-            blueprint.setBlueprint(Objects.requireNonNull(application.view.getBlueprint(), "null blueprint"));
+            blueprint.from(Objects.requireNonNull(application.view.getBlueprint(), "null blueprint"));
         }
         this(application, blueprint);
     }
 
     public BlueprintAppToolkit(Application<T> application, Blueprint<T> blueprint) {
-        this(application, new BlueprintToolkit<>(blueprint));
-    }
-
-    public BlueprintAppToolkit(Application<T> application, BlueprintToolkit<T> blueprint) {
         super(blueprint);
         this.application = application;
     }
 
+
     @Override
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public BlueprintAppToolkit<T> clone() {
-        return new BlueprintAppToolkit<>(application, toolkit.clone());
+        return new BlueprintAppToolkit<>(application, new Blueprint<>(blueprint));
     }
 
     /*=======================*
@@ -144,13 +140,17 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkitWrapper<T> {
     }
 
     public void setCaptureElectrodes(int[] index, CaptureMode mode) {
+        var view = application.view;
+        var electrodes = view.getBlueprint();
+        if (electrodes == null) return;
+
         switch (mode) {
         case replace -> {
-            application.view.clearCaptured();
-            application.view.setCaptured(pick(index));
+            view.clearCaptured();
+            view.setCaptured(pick(electrodes, index));
         }
-        case append -> application.view.setCaptured(pick(index));
-        case exclude -> application.view.unsetCaptured(pick(index));
+        case append -> view.setCaptured(pick(electrodes, index));
+        case exclude -> view.unsetCaptured(pick(electrodes, index));
         }
     }
 
@@ -164,23 +164,26 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkitWrapper<T> {
 
     public void setCategoryForCapturedElectrodes(int category) {
         application.view.setCategoryForCaptured(category);
-        if (isCurrentChannelmapUsedByApplication()) {
-            syncBlueprint();
-        }
+    }
+
+    public void syncViewBlueprint() {
+        var electrodes = application.view.getBlueprint();
+        if (electrodes == null) return;
+        from(electrodes);
+    }
+
+    public void applyViewBlueprint() {
+        var electrodes = application.view.getBlueprint();
+        if (electrodes == null) return;
+        apply(electrodes);
     }
 
     public void refreshElectrodeSelection() {
         application.refreshSelection();
-        if (isCurrentChannelmapUsedByApplication()) {
-            syncBlueprint();
-        }
     }
 
     public void refreshElectrodeSelection(String selector) {
         application.refreshSelection(selector);
-        if (isCurrentChannelmapUsedByApplication()) {
-            syncBlueprint();
-        }
     }
 
     /*=============*

@@ -66,8 +66,8 @@ public abstract class InvisibleView implements Plugin {
         return root;
     }
 
-    protected Node setupHeading(PluginSetupService service) {
-        return newInvisibleSwitch(name());
+    protected HBox setupHeading(PluginSetupService service) {
+        return new HBox(newInvisibleSwitch(name()));
     }
 
     protected abstract @Nullable Node setupContent(PluginSetupService service);

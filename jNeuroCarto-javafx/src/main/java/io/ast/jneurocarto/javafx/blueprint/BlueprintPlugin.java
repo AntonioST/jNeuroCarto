@@ -2,8 +2,12 @@ package io.ast.jneurocarto.javafx.blueprint;
 
 import java.lang.reflect.InvocationTargetException;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.Node;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -77,6 +81,16 @@ public class BlueprintPlugin extends InvisibleView {
      * properties *
      *============*/
 
+    public final BooleanProperty conflictProperty = new SimpleBooleanProperty();
+
+    public final boolean isConflict() {
+        return conflictProperty.get();
+    }
+
+    public final void setConflict(boolean value) {
+        conflictProperty.set(value);
+    }
+
     /*===========*
      * UI layout *
      *===========*/
@@ -91,6 +105,23 @@ public class BlueprintPlugin extends InvisibleView {
         if (painter == null) visible.set(false);
 
         return super.setup(service);
+    }
+
+    @Override
+    protected HBox setupHeading(PluginSetupService service) {
+        var layout = super.setupHeading(service);
+
+        var painter = this.painter;
+        if (painter != null) {
+            var features = painter.supportedFeatures();
+            if (features.contains(BlueprintPainter.Feature.conflict)) {
+                var conflictSwitch = new CheckBox("Conflict");
+                conflictSwitch.selectedProperty().bindBidirectional(conflictProperty);
+                layout.getChildren().add(conflictSwitch);
+            }
+        }
+
+        return layout;
     }
 
     @Override

@@ -10,23 +10,23 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 public class BlueprintPaintingService<T> {
 
     public final Blueprint<T> blueprint;
-    private final List<String> options;
+    private final List<BlueprintPainter.Feature> features;
 
-    BlueprintPaintingService(Blueprint<T> toolkit, List<String> options) {
+    BlueprintPaintingService(Blueprint<T> toolkit, List<BlueprintPainter.Feature> features) {
         this.blueprint = toolkit;
-        this.options = Collections.unmodifiableList(options);
+        this.features = Collections.unmodifiableList(features);
     }
 
     public T getChannelmap() {
         return blueprint.channelmap();
     }
 
-    public List<String> getOptions() {
-        return options;
+    public List<BlueprintPainter.Feature> getFeatures() {
+        return features;
     }
 
-    public boolean hasOptions(String option) {
-        return options.contains(option);
+    public boolean hasFeature(BlueprintPainter.Feature feature) {
+        return features.contains(feature);
     }
 
     /**

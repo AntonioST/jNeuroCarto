@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.probe_npx.javafx;
 
+import java.util.Set;
+
 import javafx.scene.paint.Color;
 
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
@@ -11,6 +13,11 @@ import static io.ast.jneurocarto.probe_npx.NpxProbeDescription.*;
 
 public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
     @Override
+    public Set<Feature> supportedFeatures() {
+        return Set.of(Feature.conflict);
+    }
+
+    @Override
     public void plotBlueprint(BlueprintPaintingService<ChannelMap> service) {
         var type = service.getChannelmap().type();
         var sc = (double) type.spacePerColumn();
@@ -20,7 +27,7 @@ public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
         service.setOffset(offset, 0);
         service.setCorner(sc / 2, sr / 2);
 
-        if (service.hasOptions("conflict")) {
+        if (service.hasFeature(Feature.conflict)) {
             plotConflictBlueprint(service);
         } else {
             plotDefaultBlueprint(service);

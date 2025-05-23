@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
 public final class ChannelMaps {
@@ -278,24 +279,12 @@ public final class ChannelMaps {
         }
     }
 
-    public static double[][] electrodeDensity(ChannelMap chmap) {
-        //XXX Unsupported Operation ChannelMaps.electrodeDensity
-        throw new UnsupportedOperationException();
-    }
-
-    public static double requestElectrode(List<ElectrodeDescription> blueprint) {
-        var s1 = Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_SET);
-        s1 += Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_FULL);
-        var s2 = Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_HALF);
-        var s4 = Blueprint.countCategory(blueprint, NpxProbeDescription.CATE_QUARTER);
-        return (double) s1 + (double) (s2) / 2 + (double) (s4) / 4;
-    }
-
     public static double requestElectrode(Blueprint<?> blueprint) {
-        var s1 = blueprint.countCategory(NpxProbeDescription.CATE_SET);
-        s1 += blueprint.countCategory(NpxProbeDescription.CATE_FULL);
-        var s2 = blueprint.countCategory(NpxProbeDescription.CATE_HALF);
-        var s4 = blueprint.countCategory(NpxProbeDescription.CATE_QUARTER);
+        var tool = new BlueprintToolkit<>(blueprint);
+        var s1 = tool.count(NpxProbeDescription.CATE_SET);
+        s1 += tool.count(NpxProbeDescription.CATE_FULL);
+        var s2 = tool.count(NpxProbeDescription.CATE_HALF);
+        var s4 = tool.count(NpxProbeDescription.CATE_QUARTER);
         return (double) s1 + (double) (s2) / 2 + (double) (s4) / 4;
     }
 
@@ -322,25 +311,6 @@ public final class ChannelMaps {
         }
     }
 
-    public static Efficiency channelEfficiency(ChannelMap chmap, List<ElectrodeDescription> blueprint) {
-        var request = requestElectrode(blueprint);
-        var total = chmap.nChannel();
-        var unused = total - chmap.size();
-        var channel = 0;
-        var excluded = 0;
-
-        var selected = new NpxProbeDescription().allChannels(chmap, blueprint);
-        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_SET);
-        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_FULL);
-        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_HALF);
-        channel += Blueprint.countCategory(selected, NpxProbeDescription.CATE_QUARTER);
-        excluded += Blueprint.countCategory(selected, NpxProbeDescription.CATE_EXCLUDED);
-
-        var effA = request == 0 ? 0 : Math.max((double) channel / request, 0);
-        var effC = effA == 0 ? 0 : Math.min(effA, 1 / effA);
-        return new Efficiency(effA, effC, excluded + unused, total);
-    }
-
     public static Efficiency channelEfficiency(Blueprint<ChannelMap> blueprint) {
         var chmap = Objects.requireNonNull(blueprint.channelmap(), "missing channelmap");
         var request = requestElectrode(blueprint);
@@ -349,12 +319,13 @@ public final class ChannelMaps {
         var channel = 0;
         var excluded = 0;
 
-        var selected = blueprint.indexBlueprint(chmap);
-        channel += blueprint.countCategory(NpxProbeDescription.CATE_SET, selected);
-        channel += blueprint.countCategory(NpxProbeDescription.CATE_FULL, selected);
-        channel += blueprint.countCategory(NpxProbeDescription.CATE_HALF, selected);
-        channel += blueprint.countCategory(NpxProbeDescription.CATE_QUARTER, selected);
-        excluded += blueprint.countCategory(NpxProbeDescription.CATE_EXCLUDED, selected);
+        var tool = new BlueprintToolkit<>(blueprint);
+        var selected = tool.index();
+        channel += tool.count(NpxProbeDescription.CATE_SET, selected);
+        channel += tool.count(NpxProbeDescription.CATE_FULL, selected);
+        channel += tool.count(NpxProbeDescription.CATE_HALF, selected);
+        channel += tool.count(NpxProbeDescription.CATE_QUARTER, selected);
+        excluded += tool.count(NpxProbeDescription.CATE_EXCLUDED, selected);
 
         var effA = request == 0 ? 0 : Math.max((double) channel / request, 0);
         var effC = effA == 0 ? 0 : Math.min(effA, 1 / effA);
@@ -397,12 +368,13 @@ public final class ChannelMaps {
 
         try (var scope = new AwaitAll<Result>(parallel)) {
             var desp = new NpxProbeDescription();
+            var bp = new Blueprint<>(desp, chmap, blueprint);
 
             for (int i = 0; i < sampleTimes; i++) {
                 scope.fork(() -> {
                     var newMap = selector.select(desp, chmap, blueprint);
                     if (desp.validateChannelmap(newMap)) {
-                        var efficiency = channelEfficiency(newMap, blueprint).efficiency();
+                        var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
                         return new Result(newMap, efficiency);
                     } else {
                         return new Result(null, 0);
@@ -410,7 +382,8 @@ public final class ChannelMaps {
                 });
             }
 
-            var ret = new Result(chmap, channelEfficiency(chmap, blueprint).efficiency());
+            bp.from(blueprint);
+            var ret = new Result(chmap, channelEfficiency(bp).efficiency());
             return scope.join().result().stream()
               .reduce(ret, Result::max)
               .result;
@@ -540,18 +513,19 @@ public final class ChannelMaps {
 
         try (var scope = new AwaitAll<Result>(parallel)) {
             var desp = new NpxProbeDescription();
-            var bp = new Blueprint<>(desp, chmap);
+            var bp = new Blueprint<>(desp, chmap, blueprint);
+            var tool = new BlueprintToolkit<>(bp);
 
             scope.fork(() -> {
                 var newMap = selector.select(desp, chmap, blueprint);
-                var index = bp.indexBlueprint(newMap);
+                var index = tool.index(newMap);
                 var complete = desp.validateChannelmap(newMap);
-                var efficiency = channelEfficiency(newMap, blueprint).efficiency();
+                var efficiency = channelEfficiency(bp).efficiency();
                 return new Result(index, complete, efficiency);
             });
 
             var results = scope.join().result();
-            var summation = new int[bp.size()];
+            var summation = new int[tool.length()];
             for (var result : results) {
                 result.sum(summation);
             }

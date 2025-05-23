@@ -10,7 +10,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -204,19 +203,18 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
     }
 
     @Override
-    protected Node setupHeading(PluginSetupService service) {
-        var heading = super.setupHeading(service);
+    protected HBox setupHeading(PluginSetupService service) {
+        var layout = super.setupHeading(service);
 
         var showImageSwitch = new CheckBox("Show image");
         showImageSwitch.selectedProperty().bindBidirectional(painter.visible);
         showImageSwitch.selectedProperty().addListener((_, _, _) -> updateSliceImage());
         visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
 
-        assert !(heading instanceof Parent);
-        var ret = new HBox(heading, showImageSwitch);
-        ret.setSpacing(10);
+        layout.getChildren().add(showImageSwitch);
+        layout.setSpacing(10);
 
-        return ret;
+        return layout;
     }
 
     @Override
