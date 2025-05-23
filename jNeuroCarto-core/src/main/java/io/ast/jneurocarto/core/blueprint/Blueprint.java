@@ -16,7 +16,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
 @NullMarked
-public class Blueprint<T> {
+public final class Blueprint<T> {
 
     final ProbeDescription<T> probe;
     final @Nullable T chmap;
@@ -209,6 +209,12 @@ public class Blueprint<T> {
         for (int i = 0, length = electrodes.size(); i < length; i++) {
             ret[i] = picker.test(electrodes.get(i));
         }
+        return ret;
+    }
+
+    public Blueprint<T> syncBlueprint() {
+        var ret = setBlueprint(electrodes);
+        modified = false;
         return ret;
     }
 

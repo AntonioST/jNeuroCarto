@@ -46,9 +46,9 @@ import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
 public class Application<T> {
 
     private static Application<?> INSTANCE = null;
-    private final CartoConfig config;
-    private final Repository repository;
-    private final ProbeDescription<T> probe;
+    final CartoConfig config;
+    final Repository repository;
+    final ProbeDescription<T> probe;
 
     private final Logger log = LoggerFactory.getLogger(Application.class);
 

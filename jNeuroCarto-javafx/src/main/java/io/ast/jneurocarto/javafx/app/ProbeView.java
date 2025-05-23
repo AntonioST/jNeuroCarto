@@ -406,6 +406,23 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         transferData(src, dst, set::contains);
     }
 
+    public void unsetCaptured(List<ElectrodeDescription> electrodes) {
+        var s = new HashSet<>(electrodes);
+        for (var state : this.electrodes.keySet()) {
+            unsetCaptured(state, s);
+        }
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(interaction::repaint);
+        }
+    }
+
+    private void unsetCaptured(String name, Set<ElectrodeDescription> set) {
+        var src = captured.get(name);
+        var dst = electrodes.get(name);
+        if (src == null || dst == null) throw new IllegalArgumentException();
+        transferData(src, dst, set::contains);
+    }
+
     public void clearCaptured() {
         getCaptured(true);
         if (!Platform.isFxApplicationThread()) {

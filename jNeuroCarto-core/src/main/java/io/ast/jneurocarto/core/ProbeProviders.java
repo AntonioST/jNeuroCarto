@@ -37,4 +37,14 @@ public final class ProbeProviders {
         }
         return null;
     }
+
+    public static <T> @Nullable ProbeDescription<T> getProbeDescription(Class<ProbeDescription<T>> probe) {
+        for (var provider : ServiceLoader.load(ProbeProvider.class)) {
+            var ret = provider.getProbeDescription();
+            if (probe.isInstance(ret)) {
+                return (ProbeDescription<T>) ret;
+            }
+        }
+        return null;
+    }
 }

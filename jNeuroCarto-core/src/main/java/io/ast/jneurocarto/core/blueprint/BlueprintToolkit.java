@@ -9,10 +9,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 import java.util.stream.Gatherer;
+import java.util.stream.IntStream;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
@@ -27,7 +29,7 @@ public class BlueprintToolkit<T> {
     /**
      * wrapped blueprint.
      */
-    private final Blueprint<T> blueprint;
+    protected final Blueprint<T> blueprint;
 
     /**
      * warp {@link BlueprintToolkit} onto {@code blueprint}.
@@ -38,19 +40,22 @@ public class BlueprintToolkit<T> {
         this.blueprint = blueprint;
     }
 
-    /**
-     * create a copied {@link BlueprintToolkit} from {@code blueprint}.
-     * The wrapped {@link Blueprint} will be cloned.
-     *
-     * @param blueprint
-     */
-    public BlueprintToolkit(BlueprintToolkit<T> blueprint) {
-        this(new Blueprint<>(blueprint.blueprint));
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
+    public BlueprintToolkit<T> clone() {
+        return new BlueprintToolkit<>(new Blueprint<>(blueprint));
     }
 
     /*========*
      * getter *
      *========*/
+
+    public ProbeDescription<T> probe() {
+        return blueprint.probe;
+    }
+
+    public @Nullable T channelmap() {
+        return blueprint.channelmap();
+    }
 
     public final int length() {
         return blueprint.shank.length;
@@ -135,26 +140,38 @@ public class BlueprintToolkit<T> {
         mergeBlueprint(blueprint.blueprint);
     }
 
+    public final boolean isDirty() {
+        return blueprint.modified;
+    }
+
     public final void markDirty() {
         blueprint.modified = true;
     }
 
-    public void printBlueprint() {
+    public final void syncBlueprint() {
+        blueprint.syncBlueprint();
+    }
+
+    public final void applyBlueprint() {
+        blueprint.applyBlueprint();
+    }
+
+    public final void printBlueprint() {
         printBlueprint(blueprint.blueprint);
     }
 
-    public String toStringBlueprint() {
+    public final String toStringBlueprint() {
         return toStringBlueprint(blueprint.blueprint);
     }
 
-    public void printBlueprint(int[] blueprint) {
+    public final void printBlueprint(int[] blueprint) {
         try {
             printBlueprint(blueprint, System.out);
         } catch (IOException e) {
         }
     }
 
-    public String toStringBlueprint(int[] blueprint) {
+    public final String toStringBlueprint(int[] blueprint) {
         var sb = new StringBuilder();
         try {
             printBlueprint(blueprint, sb);
@@ -223,6 +240,50 @@ public class BlueprintToolkit<T> {
 
     public int[] index(Predicate<ElectrodeDescription> picker) {
         return blueprint.indexBlueprint(picker);
+    }
+
+    public boolean[] mask(T chmap) {
+        return mask(blueprint.probe.allChannels(chmap));
+    }
+
+    public boolean[] mask(List<ElectrodeDescription> e) {
+        var ret = new boolean[length()];
+        for (int i = 0, length = length(); i < length; i++) {
+            var t = e.get(i);
+            var j = index(t.s(), t.x(), t.y());
+            if (j >= 0) ret[j] = true;
+        }
+        return ret;
+    }
+
+    public boolean[] mask(Predicate<ElectrodeDescription> e) {
+        return blueprint.maskBlueprint(e);
+    }
+
+    public boolean[] mask(int[] index) {
+        var ret = new boolean[length()];
+        for (int i = 0, length = length(); i < length; i++) {
+            var j = index[i];
+            if (j >= 0) ret[j] = true;
+        }
+        return ret;
+    }
+
+    public List<ElectrodeDescription> pick(int[] index) {
+        var e = blueprint.electrodes;
+        return Arrays.stream(index)
+          .filter(it -> it >= 0)
+          .mapToObj(e::get)
+          .toList();
+    }
+
+    public List<ElectrodeDescription> pick(boolean[] mask) {
+        if (length() != mask.length) throw new RuntimeException();
+        var e = blueprint.electrodes;
+        return IntStream.range(0, length())
+          .filter(it -> mask[it])
+          .mapToObj(e::get)
+          .toList();
     }
 
     /**
@@ -516,18 +577,6 @@ public class BlueprintToolkit<T> {
      * electrode surrounding *
      *=======================*/
 
-    /// get surrounding electrode index of the {@code electrode}.
-    ///
-    /// corner code:
-    /// ```text
-    /// 3 2 1
-    /// 4 8 0
-    /// 5 6 7
-    ///```
-    ///
-    /// @param electrode electrode index
-    /// @param diagonal
-    /// @return 8-length electrode index array. {@code -1} if no electrode.
     public int[] surrounding(int electrode, boolean diagonal) {
         var ret = new int[8];
         surrounding(electrode, diagonal, ret);
@@ -554,18 +603,6 @@ public class BlueprintToolkit<T> {
         }
     }
 
-    /// get electrode index at corner of the {@code electrode}.
-    ///
-    /// corner code:
-    /// ```text
-    /// 3 2 1
-    /// 4 8 0
-    /// 5 6 7
-    ///```
-    ///
-    /// @param electrode electrode index
-    /// @param c         corner code
-    /// @return electrode index
     public int surrounding(int electrode, int c) {
         var s = shank()[electrode];
         var x = posx()[electrode];
@@ -573,20 +610,6 @@ public class BlueprintToolkit<T> {
         return surrounding(s, x, y, c);
     }
 
-    /// get electrode index at corner of the electrode on (s, x, y).
-    ///
-    /// corner code:
-    /// ```text
-    /// 3 2 1
-    /// 4 8 0
-    /// 5 6 7
-    ///```
-    ///
-    /// @param s shank
-    /// @param x x position
-    /// @param y y position
-    /// @param c corner code
-    /// @return electrode index
     public int surrounding(int s, int x, int y, int c) {
         return switch (c % 8) {
             case 0 -> index(s, x + 1, y);
@@ -920,7 +943,7 @@ public class BlueprintToolkit<T> {
         return fill(blueprint, clustering, threshold);
     }
 
-    protected int[] fill(int[] blueprint, Clustering clustering, AreaThreshold threshold) {
+    public int[] fill(int[] blueprint, Clustering clustering, AreaThreshold threshold) {
         var shank = shank();
         var posx = posx();
         var posy = posy();
@@ -1135,7 +1158,7 @@ public class BlueprintToolkit<T> {
         return bp.blueprint;
     }
 
-    public static int[] loadNumpyBlueprint(Path file) throws IOException {
+    public int[] loadNumpyBlueprint(Path file) throws IOException {
         var result = Numpy.read(file, header -> switch (header.ndim()) {
             case 1 -> Numpy.ofInt();
             case 2 -> Numpy.ofD2Int(true);
@@ -1149,7 +1172,7 @@ public class BlueprintToolkit<T> {
         };
     }
 
-    public static void saveNumpyBlueprint(Path file, int[] blueprint) throws IOException {
+    public void saveNumpyBlueprint(Path file, int[] blueprint) throws IOException {
         Numpy.write(file, blueprint);
     }
 
@@ -1480,12 +1503,12 @@ public class BlueprintToolkit<T> {
         return interpolateNaN(a, k, m);
     }
 
-    public double[] interpolateNaN(double[] a, int k, ToDoubleFunction<double[]> f) {
+    public final double[] interpolateNaN(double[] a, int k, ToDoubleFunction<double[]> f) {
         if (k % 2 != 1) throw new IllegalArgumentException();
         return interpolateNaN(a, new double[k], f);
     }
 
-    public double[] interpolateNaN(double[] a, double[] k, ToDoubleFunction<double[]> f) {
+    public final double[] interpolateNaN(double[] a, double[] k, ToDoubleFunction<double[]> f) {
         return interpolateNaN(new double[a.length], a, k, f);
     }
 
@@ -1525,7 +1548,6 @@ public class BlueprintToolkit<T> {
         }
         return a;
     }
-
 
     private static ToDoubleFunction<double[][]> getInterpolateMethod(int kx, int ky, InterpolateNaNBuiltinMethod f) {
         return switch (f) {
@@ -1594,7 +1616,7 @@ public class BlueprintToolkit<T> {
         return interpolateNaN(a, kx, ky, m);
     }
 
-    public double[] interpolateNaN(double[] a, int kx, int ky, ToDoubleFunction<double[][]> f) {
+    public final double[] interpolateNaN(double[] a, int kx, int ky, ToDoubleFunction<double[][]> f) {
         if (kx % 2 != 1) throw new IllegalArgumentException();
         if (ky % 2 != 1) throw new IllegalArgumentException();
         var k = new double[kx][];
@@ -1604,7 +1626,7 @@ public class BlueprintToolkit<T> {
         return interpolateNaN(a, k, f);
     }
 
-    public double[] interpolateNaN(double[] a, double[][] k, ToDoubleFunction<double[][]> f) {
+    public final double[] interpolateNaN(double[] a, double[][] k, ToDoubleFunction<double[][]> f) {
         return interpolateNaN(new double[a.length], a, k, f);
     }
 
