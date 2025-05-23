@@ -1,6 +1,9 @@
 package io.ast.jneurocarto.javafx.blueprint;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Set;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -13,20 +16,24 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
+import io.ast.jneurocarto.javafx.view.ProbePlugin;
 
-public class BlueprintPlugin extends InvisibleView {
+public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object> {
 
     private final CartoConfig config;
     private final ProbeDescription<?> probe;
     private ProbeView<?> view;
     private InteractionXYPainter foreground;
-    private BlueprintPainter painter;
+    private BlueprintPainter<?> painter;
 
     private final Logger log = LoggerFactory.getLogger(BlueprintPlugin.class);
 
@@ -91,6 +98,12 @@ public class BlueprintPlugin extends InvisibleView {
         conflictProperty.set(value);
     }
 
+    public Set<BlueprintPainter.Feature> getFeatures() {
+        var ret = new EnumMap<BlueprintPainter.Feature, Boolean>(BlueprintPainter.Feature.class);
+        if (conflictProperty.get()) ret.put(BlueprintPainter.Feature.conflict, true);
+        return ret.keySet();
+    }
+
     /*===========*
      * UI layout *
      *===========*/
@@ -127,5 +140,46 @@ public class BlueprintPlugin extends InvisibleView {
     @Override
     protected @Nullable Node setupContent(PluginSetupService service) {
         return new Label("content");
+    }
+
+    /*===================*
+     * blueprint drawing *
+     *===================*/
+
+    private Object channelmap;
+    private List<ElectrodeDescription> electrodes;
+
+    @Override
+    public void onProbeUpdate(Object chmap, List<ElectrodeDescription> blueprint) {
+        channelmap = chmap;
+        electrodes = blueprint;
+        updateBlueprint();
+    }
+
+    private void updateBlueprint() {
+        if (!visible.get() || painter == null) return;
+
+        var blueprint = new Blueprint<>((ProbeDescription<Object>) probe, channelmap, electrodes);
+        var service = new BlueprintPaintingService<>(blueprint, getFeatures());
+        ((BlueprintPainter<Object>) painter).plotBlueprint(service);
+
+        foreground.retainSeries(service.categories());
+
+        var tool = new BlueprintToolkit<>(blueprint);
+        for (var legend : service.legends) {
+            var series = foreground.getOrNewSeries(legend.name());
+            series.fill(legend.color());
+
+            series.clearData();
+            for (var clustering : tool.getClusteringEdges(legend.category())) {
+                clustering = clustering.offset(service.x, service.y).setCorner(service.w, service.h);
+                clustering.edges().forEach(c -> series.addData(c.x(), c.y()));
+                var c = clustering.edges().get(0);
+                series.addData(c.x(), c.y());
+                series.addGap();
+            }
+        }
+
+        foreground.repaint();
     }
 }

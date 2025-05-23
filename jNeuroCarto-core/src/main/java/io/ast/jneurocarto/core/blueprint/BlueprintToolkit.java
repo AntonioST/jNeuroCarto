@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 import java.util.stream.Gatherer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVFormat;
@@ -112,8 +113,23 @@ public class BlueprintToolkit<T> {
         return pick(electrodes(), index);
     }
 
+    public final List<ElectrodeDescription> pick(BlueprintMask mask) {
+        return pick(electrodes(), mask);
+    }
+
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index) {
+        if (length() != electrodes.size()) throw new RuntimeException();
         return Arrays.stream(index)
+          .mapToObj(electrodes::get)
+          .toList();
+    }
+
+    public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, BlueprintMask mask) {
+        var length = length();
+        if (length != mask.length()) throw new RuntimeException();
+        if (length != electrodes.size()) throw new RuntimeException();
+        return IntStream.range(0, length)
+          .filter(mask)
           .mapToObj(electrodes::get)
           .toList();
     }
@@ -150,6 +166,10 @@ public class BlueprintToolkit<T> {
         from(blueprint.blueprint);
     }
 
+    public final void clear() {
+        blueprint.clear();
+    }
+
     public final void set(int category) {
         blueprint.set(category);
     }
@@ -166,8 +186,8 @@ public class BlueprintToolkit<T> {
         blueprint.set(category, index);
     }
 
-    public final void set(int category, boolean[] mask) {
-        blueprint.set(category, mask);
+    public final void set(int category, BlueprintMask mask) {
+        blueprint.set(category, mask.asBooleanMask());
     }
 
     public final void set(int category, Predicate<Electrode> pick) {
@@ -186,8 +206,8 @@ public class BlueprintToolkit<T> {
         blueprint.unset(index);
     }
 
-    public final void unset(boolean[] mask) {
-        blueprint.unset(mask);
+    public final void unset(BlueprintMask mask) {
+        blueprint.unset(mask.asBooleanMask());
     }
 
     public final void unset(Predicate<Electrode> pick) {
@@ -337,84 +357,67 @@ public class BlueprintToolkit<T> {
         return blueprint.stream().filter(picker).mapToInt(Electrode::i).toArray();
     }
 
-    public boolean[] mask(T chmap) {
+    public BlueprintMask mask() {
+        return mask(Objects.requireNonNull(blueprint.chmap, "missing probe"));
+    }
+
+    public BlueprintMask mask(T chmap) {
         return mask(blueprint.probe.allChannels(chmap));
     }
 
-    public boolean[] mask(List<ElectrodeDescription> e) {
-        var ret = new boolean[length()];
+    public BlueprintMask mask(List<ElectrodeDescription> e) {
+        var ret = new BlueprintMask(length());
         for (int i = 0, length = length(); i < length; i++) {
             var t = e.get(i);
             var j = index(t.s(), t.x(), t.y());
-            if (j >= 0) ret[j] = true;
+            if (j >= 0) ret.set(j);
         }
         return ret;
     }
 
-    public boolean[] mask(Predicate<Electrode> picker) {
-        var ret = new boolean[length()];
-        blueprint.stream().filter(picker).forEach(it -> ret[it.i()] = true);
+    public final BlueprintMask mask(Predicate<Electrode> picker) {
+        var ret = new BlueprintMask(length());
+        blueprint.stream().filter(picker).mapToInt(Electrode::i).forEach(ret::set);
         return ret;
     }
 
-    public boolean[] mask(int[] index) {
-        var ret = new boolean[length()];
+    public final BlueprintMask mask(int[] index) {
+        var ret = new BlueprintMask(length());
         for (int i = 0, length = length(); i < length; i++) {
             var j = index[i];
-            if (j >= 0) ret[j] = true;
+            if (j >= 0) ret.set(j);
         }
         return ret;
     }
 
-    public boolean[] mask(int category) {
+    public final BlueprintMask mask(int category) {
         return mask(blueprint.blueprint, category);
     }
 
-    public boolean[] mask(int[] blueprint, int category) {
-        if (length() != blueprint.length) throw new RuntimeException();
-        var ret = new boolean[blueprint.length];
-        for (int i = 0, length = ret.length; i < length; i++) {
-            ret[i] = blueprint[i] == category;
+    public final BlueprintMask mask(int[] blueprint, int category) {
+        var ret = new BlueprintMask(blueprint.length);
+        for (int i = 0, length = blueprint.length; i < length; i++) {
+            ret.set(i, blueprint[i] == category);
         }
         return ret;
     }
 
-    /**
-     * @param category       electrode category
-     * @param electrodeIndex electrode index array
-     * @return
-     */
-    public boolean[] mask(int category, int[] electrodeIndex) {
-        return mask(blueprint.blueprint, category, electrodeIndex);
+    public int[] invalid(int electrode) {
+        var electrodes = electrodes();
+        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrodes.get(electrode), electrodes);
+        return index(invalid);
     }
 
-    public boolean[] mask(int[] blueprint, int category, int[] electrodeIndex) {
-        if (length() != blueprint.length) throw new RuntimeException();
-        var ret = new boolean[blueprint.length];
-        for (int i : electrodeIndex) {
-            ret[i] = blueprint[i] == category;
-        }
-        return ret;
+    public int[] invalid(int[] index) {
+        var electrodes = electrodes();
+        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, pick(electrodes, index), electrodes);
+        return index(invalid);
     }
 
-    /**
-     * @param category      electrode category
-     * @param electrodeMask
-     * @return
-     */
-    public boolean[] mask(int category, boolean[] electrodeMask) {
-        return mask(blueprint.blueprint, category, electrodeMask);
-    }
-
-    public boolean[] mask(int[] blueprint, int category, boolean[] electrodeMask) {
-        int length = blueprint.length;
-        if (length != electrodeMask.length) throw new RuntimeException();
-
-        var ret = new boolean[length];
-        for (int i = 0; i < length; i++) {
-            ret[i] = electrodeMask[i] && blueprint[i] == category;
-        }
-        return ret;
+    public BlueprintMask invalid(BlueprintMask selected) {
+        var electrodes = electrodes();
+        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, pick(electrodes, selected), electrodes);
+        return mask(invalid);
     }
 
     /**
@@ -438,42 +441,35 @@ public class BlueprintToolkit<T> {
 
     /**
      * @param category
-     * @param electrodeIndex electrode index array
+     * @param index    electrode index array
      * @return
      */
-    public int count(int category, int[] electrodeIndex) {
-        return count(blueprint.blueprint, category, electrodeIndex);
+    public int count(int category, int[] index) {
+        return count(blueprint.blueprint, category, index);
     }
 
-    public int count(int[] blueprint, int category, int[] electrodeIndex) {
+    public int count(int[] blueprint, int category, int[] index) {
         if (length() != blueprint.length) throw new RuntimeException();
 
         var ret = 0;
-        for (int index : electrodeIndex) {
-            if (blueprint[index] == category) ret++;
+        for (int i : index) {
+            if (blueprint[i] == category) ret++;
         }
         return ret;
     }
 
     /**
-     * @param category      electrode category
-     * @param electrodeMask
+     * @param category electrode category
+     * @param mask
      * @return
      */
-    public int count(int category, boolean[] electrodeMask) {
-        return count(blueprint.blueprint, category, electrodeMask);
+    public int count(int category, BlueprintMask mask) {
+        return count(blueprint.blueprint, category, mask);
     }
 
-    public int count(int[] blueprint, int category, boolean[] electrodeMask) {
-        int length = blueprint.length;
-        if (length != blueprint.length) throw new RuntimeException();
-        if (length != electrodeMask.length) throw new RuntimeException();
-
-        var ret = 0;
-        for (int i = 0; i < length; i++) {
-            if (electrodeMask[i] && blueprint[i] == category) ret++;
-        }
-        return ret;
+    public int count(int[] blueprint, int category, BlueprintMask mask) {
+        if (blueprint.length != mask.length()) throw new RuntimeException();
+        return mask(blueprint, category).and(mask).count();
     }
 
 
@@ -612,8 +608,8 @@ public class BlueprintToolkit<T> {
      * @param step y movement
      * @param mask electrode mask array
      */
-    public final void move(int step, boolean[] mask) {
-        if (length() != mask.length) throw new IllegalArgumentException();
+    public final void move(int step, BlueprintMask mask) {
+        if (length() != mask.length()) throw new IllegalArgumentException();
         from(move(blueprint(), step, mask));
     }
 
@@ -623,17 +619,17 @@ public class BlueprintToolkit<T> {
      * @param mask      electrode mask array
      * @return moved result, a copied {@code blueprint}.
      */
-    public final int[] move(int[] blueprint, int step, boolean[] mask) {
+    public final int[] move(int[] blueprint, int step, BlueprintMask mask) {
         int length = length();
         if (length != blueprint.length) throw new RuntimeException();
-        if (length != mask.length) throw new RuntimeException();
+        if (length != mask.length()) throw new RuntimeException();
         if (step == 0) return blueprint.clone();
 
         var ret = new int[length];
         if (length() == 0) return ret;
 
         var x = ProbeDescription.CATE_UNSET;
-        return move(ret, blueprint, step, (i, cate) -> (cate != x && mask[i]) ? 1 : 0);
+        return move(ret, blueprint, step, (i, cate) -> (cate != x && mask.test(i)) ? 1 : 0);
     }
 
     private int[] move(int[] output, int[] blueprint, int step, int[] index) {

@@ -74,7 +74,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
         for (var series : captured.values()) {
             series.linewidth(2);
-            series.border(series.fill());
+            series.markerEdge(series.marker());
         }
     }
 
@@ -90,7 +90,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         };
 
         if (color != null) {
-            ret.fill(color);
+            ret.marker(color);
             if (code == ProbeDescription.STATE_DISABLED) {
                 ret.alpha(0.2);
                 ret.w(2);
@@ -102,7 +102,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
                 ret.z(10);
             }
         } else if (STATE_HIGHLIGHTED.equals(name)) {
-            ret.fill(COLOR_HIGHLIGHTED);
+            ret.marker(COLOR_HIGHLIGHTED);
             ret.w(8);
             ret.h(6);
             ret.linewidth(4);

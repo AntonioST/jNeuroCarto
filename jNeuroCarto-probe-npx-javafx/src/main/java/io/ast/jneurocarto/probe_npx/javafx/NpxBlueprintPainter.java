@@ -48,7 +48,20 @@ public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
     }
 
     private void setConflictBlueprint(BlueprintToolkit<ChannelMap> blueprint) {
-        //XXX Unsupported Operation NpxBlueprintPainter.conflictBlueprint
-        throw new UnsupportedOperationException();
+        var m0 = blueprint.mask(CATE_SET);
+        var m1 = blueprint.mask(CATE_FULL);
+        var m2 = blueprint.mask(CATE_HALF);
+        var m4 = blueprint.mask(CATE_QUARTER);
+
+        var i0 = blueprint.invalid(blueprint.mask().and(m0.or(m1)));
+        var r0 = m1.or(m2).or(m4);
+        var c0 = i0.and(r0);
+
+        var i1 = blueprint.invalid(m0.or(m1));
+        var r1 = m2.or(m4);
+        var c1 = i1.and(r1);
+
+        blueprint.set(CATE_UNSET);
+        blueprint.set(1, c0.or(c1));
     }
 }

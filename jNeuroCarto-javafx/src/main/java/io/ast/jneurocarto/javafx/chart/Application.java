@@ -58,7 +58,7 @@ public class Application {
 
         data = chart.getPlotting();
         series = data.addSeries("mouse");
-        series.fill(Color.RED);
+        series.marker(Color.RED);
         series.line(Color.RED);
         series.w(15);
         series.h(15);

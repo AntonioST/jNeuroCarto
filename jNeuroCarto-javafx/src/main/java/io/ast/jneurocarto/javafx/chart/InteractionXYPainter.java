@@ -39,6 +39,8 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      *==============*/
 
     public static class XY {
+        static final XY GAP = new XY(Double.NaN, Double.NaN, null);
+
         double x;
         double y;
         final @Nullable Object external;
@@ -77,6 +79,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
             this.y = y;
         }
 
+        public boolean isGap() {
+            return Double.isNaN(x) || Double.isNaN(y);
+        }
+
         public @Nullable Object external() {
             return external;
         }
@@ -89,9 +95,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         private double h = 1;
         private double lw = 1;
         private double alpha = 1;
-        private @Nullable Color border = null;
-        private @Nullable Color fill = null;
+        private @Nullable Color markerEdge = null;
+        private @Nullable Color marker = null;
         private @Nullable Color line = null;
+        private @Nullable Color fill = null;
         private boolean visible = true;
 
         private List<XY> data = new ArrayList<>();
@@ -151,23 +158,35 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         /**
          * {@return border color of markers}
          */
-        public @Nullable Color border() {
-            return border;
+        public @Nullable Color markerEdge() {
+            return markerEdge;
         }
 
-        public void border(@Nullable Color border) {
-            this.border = border;
+        public void markerEdge(@Nullable Color border) {
+            this.markerEdge = border;
         }
 
         /**
          * {@return fill color of markers}
          */
+        public @Nullable Color marker() {
+            return marker;
+        }
+
+        public void marker(@Nullable Color fill) {
+            this.marker = fill;
+        }
+
+        /**
+         * {@return fill color inside lines}
+         */
         public @Nullable Color fill() {
             return fill;
         }
 
-        public void fill(@Nullable Color fill) {
+        public XYSeries fill(@Nullable Color fill) {
             this.fill = fill;
+            return this;
         }
 
         /**
@@ -196,6 +215,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
         public void clearData() {
             data.clear();
+        }
+
+        public void addGap() {
+            data.add(XY.GAP);
         }
 
         public XY addData(double x, double y) {
@@ -327,33 +350,82 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
                 gc.setTransform(IDENTIFY);
                 gc.setGlobalAlpha(alpha);
                 gc.setLineWidth(lw);
-                if (line != null && length > 0) {
-                    gc.setStroke(line);
-                    gc.beginPath();
-                    gc.moveTo(p[0][offset], p[1][offset]);
-                    for (int i = 1; i < length; i++) {
-                        gc.lineTo(p[0][i + offset], p[1][i + offset]);
-                    }
-                    gc.stroke();
+                if ((line != null || fill != null) && length > 0) {
+                    paintLineAndFill(gc, p, offset, length);
                 }
-                if (fill != null) {
-                    var dx = w / 2;
-                    var dy = h / 2;
-                    gc.setFill(fill);
-                    for (int i = 0; i < length; i++) {
-                        gc.fillRect(p[0][i + offset] - dx, p[1][i + offset] - dy, w, h);
-                    }
-                }
-                if (border != null) {
-                    var dx = w / 2;
-                    var dy = h / 2;
-                    gc.setStroke(border);
-                    for (int i = 0; i < length; i++) {
-                        gc.strokeRect(p[0][i + offset] - dx, p[1][i + offset] - dy, w, h);
-                    }
-                }
+
+                paintMarkers(gc, p, offset, length);
             } finally {
                 gc.restore();
+            }
+        }
+
+        private void paintLineAndFill(GraphicsContext gc, double[][] p, int offset, int length) {
+            var counter = 0;
+
+            for (int i = 0; i < length; i++) {
+                var j = i + offset;
+
+                var x = p[0][j];
+                var y = p[1][j];
+                if (Double.isNaN(x) || Double.isNaN(y)) {
+                    counter = 0;
+
+                    if (fill != null) {
+                        gc.setFill(line);
+                        gc.fill();
+                    }
+                    if (line != null) {
+                        gc.setStroke(line);
+                        gc.stroke();
+                    }
+
+                } else if (counter == 0) {
+                    gc.beginPath();
+                    gc.moveTo(x, y);
+                    counter++;
+                } else {
+                    gc.lineTo(x, y);
+                    counter++;
+                }
+            }
+
+            if (counter > 1) {
+                if (fill != null) {
+                    gc.setFill(line);
+                    gc.fill();
+                }
+                if (line != null) {
+                    gc.setStroke(line);
+                    gc.stroke();
+                }
+            }
+        }
+
+        private void paintMarkers(GraphicsContext gc, double[][] p, int offset, int length) {
+            var dx = w / 2;
+            var dy = h / 2;
+
+            if (marker != null) {
+                gc.setFill(marker);
+                for (int i = 0; i < length; i++) {
+                    var x = p[0][i + offset];
+                    var y = p[1][i + offset];
+                    if (!Double.isNaN(x) && !Double.isNaN(y)) {
+                        gc.fillRect(x - dx, y - dy, w, h);
+                    }
+                }
+            }
+
+            if (markerEdge != null) {
+                gc.setStroke(markerEdge);
+                for (int i = 0; i < length; i++) {
+                    var x = p[0][i + offset];
+                    var y = p[1][i + offset];
+                    if (!Double.isNaN(x) && !Double.isNaN(y)) {
+                        gc.strokeRect(x - dx, y - dy, w, h);
+                    }
+                }
             }
         }
     }
@@ -414,6 +486,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
             }
         }
         return null;
+    }
+
+    public void retainSeries(Collection<String> name) {
+        data.removeIf(it -> !name.contains(it.name));
     }
 
     public void clearSeries() {
