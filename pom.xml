@@ -170,6 +170,15 @@
                 <version>${jackson.version}</version>
             </dependency>
 
+            <!-- CSV -->
+
+            <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-csv -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>1.14.0</version>
+            </dependency>
+
             <!-- Additional Spring Dependencies -->
 
             <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-json -->

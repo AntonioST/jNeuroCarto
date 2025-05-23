@@ -9,6 +9,8 @@ module io.ast.jneurocarto.core {
     requires static com.fasterxml.jackson.annotation;
     requires static com.fasterxml.jackson.databind;
 
+    requires static org.apache.commons.csv;
+
     requires org.slf4j;
 
     exports io.ast.jneurocarto.core;

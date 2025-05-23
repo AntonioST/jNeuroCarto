@@ -1,7 +1,7 @@
 package io.ast.jneurocarto.core.blueprint;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,7 +11,9 @@ import java.util.function.DoublePredicate;
 import java.util.function.IntBinaryOperator;
 import java.util.stream.Gatherer;
 
+import org.apache.commons.csv.CSVFormat;
 import org.jspecify.annotations.NullMarked;
+import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.numpy.Numpy;
@@ -1051,8 +1053,10 @@ public class BlueprintToolkit<T> {
                 return loadNumpyBlueprint(file);
             } catch (UnsupportedNumpyDataFormatException e) {
             }
-        } else if (suffix.equals(".csv") || suffix.equals(".tsv")) {
-            throw new UnsupportedEncodingException("TODO");
+        } else if (suffix.equals(".csv")) {
+            return loadCsvBlueprint(file, false);
+        } else if (suffix.equals(".tsv")) {
+            return loadCsvBlueprint(file, true);
         }
 
         var bp = new Blueprint<>(blueprint);
@@ -1072,5 +1076,56 @@ public class BlueprintToolkit<T> {
             case 2 -> ((int[][]) result.data())[4];
             default -> throw new RuntimeException("unknown result");
         };
+    }
+
+    private int[] loadCsvBlueprint(Path file, boolean tsv) throws IOException {
+        var format = CSVFormat.DEFAULT.builder()
+          .setCommentMarker('#')
+          .setIgnoreSurroundingSpaces(true)
+          .setIgnoreHeaderCase(true)
+          .setDelimiter(tsv ? '\t' : ',')
+          .get();
+
+        try (var reader = Files.newBufferedReader(file)) {
+            var parse = format.parse(reader);
+            var header = parse.getHeaderNames();
+            if (!checkCsvHeader(header)) throw new IOException("unknown header : " + header);
+
+            var ret = newBlueprint();
+            for (var record : parse) {
+                int s, x, y, c;
+                try {
+                    s = Integer.parseInt(record.get(header.get(0)));
+                    x = Integer.parseInt(record.get(header.get(1)));
+                    y = Integer.parseInt(record.get(header.get(2)));
+                    c = Integer.parseInt(record.get(header.get(3)));
+                } catch (NumberFormatException e) {
+                    var log = LoggerFactory.getLogger(getClass());
+                    var line = parse.getCurrentLineNumber();
+                    log.warn("bad numbers at line " + line, e);
+                    continue;
+                }
+
+                var i = index(s, x, y);
+                if (i >= 0) {
+                    ret[i] = c;
+                }
+            }
+
+            return ret;
+        }
+    }
+
+    private static boolean checkCsvHeader(List<String> header) {
+        if (header.size() != 4) return false;
+        var field = header.get(0);
+        if (!(field.equals("s") || field.equals("shank"))) {
+            return false;
+        }
+        field = header.get(1);
+        if (!field.equals("x")) return false;
+        field = header.get(2);
+        if (!field.equals("y")) return false;
+        return true;
     }
 }
