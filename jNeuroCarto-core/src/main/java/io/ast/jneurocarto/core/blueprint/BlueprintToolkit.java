@@ -7,14 +7,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.DoublePredicate;
-import java.util.function.IntBinaryOperator;
+import java.util.function.*;
 import java.util.stream.Gatherer;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.jspecify.annotations.NullMarked;
 
+import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.UnsupportedNumpyDataFormatException;
@@ -193,9 +193,9 @@ public class BlueprintToolkit<T> {
         }
     }
 
-    /*===========*
-     * utilities *
-     *===========*/
+    /*===========================*
+     * blueprint-like data array *
+     *===========================*/
 
     public int index(int s, int x, int y) {
         var shank = shank();
@@ -208,35 +208,73 @@ public class BlueprintToolkit<T> {
         return -1;
     }
 
+    public int[] index(T chmap) {
+        return index(blueprint.probe.allChannels(chmap));
+    }
+
+    public int[] index(List<ElectrodeDescription> e) {
+        var ret = new int[e.size()];
+        for (int i = 0, length = ret.length; i < length; i++) {
+            var t = e.get(i);
+            ret[i] = index(t.s(), t.x(), t.y());
+        }
+        return ret;
+    }
+
+    public int[] index(Predicate<ElectrodeDescription> picker) {
+        return blueprint.indexBlueprint(picker);
+    }
+
     /**
      * {@code a[i] = v}
      *
-     * @param a array
-     * @param i index
+     * @param a int array
+     * @param i {@code a} indexed array
      * @param v value
      * @return {@code a} itself.
      */
-    private int[] set(int[] a, int[] i, int v) {
+    public int[] set(int[] a, int[] i, int v) {
         for (int j : i) {
             a[j] = v;
         }
         return a;
     }
 
-    private int[] set(int[] a, int[] i, int offset, int length, int v) {
+    public int[] set(int[] a, int[] i, int[] v) {
+        if (i.length != v.length) throw new IllegalArgumentException();
+        for (int j = 0, length = i.length; j < length; j++) {
+            a[i[j]] = v[j];
+
+        }
+        return a;
+    }
+
+    /**
+     * {@code a[i[offset:offset+length]] = v}
+     *
+     * @param a      int array
+     * @param i      {@code a} indexed array
+     * @param offset
+     * @param length
+     * @param v      value
+     * @return {@code a} itself.
+     */
+    public int[] set(int[] a, int[] i, int offset, int length, int v) {
         for (int j = 0; j < length; j++) {
             a[i[j + offset]] = v;
         }
         return a;
     }
 
-    private int[] setIfUnset(int[] a, int[] i, int offset, int length, int v) {
+
+    public int[] setIfUnset(int[] a, int[] i, int offset, int length, int v) {
         for (int j = 0; j < length; j++) {
             var k = i[j + offset];
             if (a[k] == 0) a[k] = v;
         }
         return a;
     }
+
 
     /*============================*
      * category zone manipulation *
@@ -406,6 +444,37 @@ public class BlueprintToolkit<T> {
         }
 
         return output;
+    }
+
+    /**
+     * move electrodes index along y-axis.
+     *
+     * @param index electrode index.
+     * @param step  y movement
+     * @return moved electrode index. {@code -1} when it outside the probe.
+     */
+    public int[] moveIndex(int[] index, int step) {
+        if (index.length == 0) return index;
+        if (step == 0) {
+            return index;
+        }
+
+        var shank = shank();
+        var posx = posx();
+        var posy = posy();
+        var dy = dy();
+        var ret = new int[index.length];
+
+        for (int i = 0, length = index.length; i < length; i++) {
+            int j = index[i];
+
+            var s = shank[j];
+            var x = posx[j];
+            var y = (int) (posy[j] + step * dy);
+            ret[i] = index(s, x, y);
+        }
+
+        return ret;
     }
 
     /**
@@ -1180,4 +1249,411 @@ public class BlueprintToolkit<T> {
             }
         }
     }
+
+    /*==================================*
+     * blueprint-like data manipulation *
+     *==================================*/
+
+    /**
+     * extra value from {@code data} with given index.
+     * <br/>
+     * If index out of array boundary, {@link Double#NaN} is used.
+     *
+     * @param data
+     * @param index
+     * @return
+     */
+    public double[] get(double[] data, int[] index) {
+        var ret = new double[index.length];
+        for (int i = 0, length = index.length; i < length; i++) {
+            var j = index[i];
+            if (j >= 0 && j < length) {
+                ret[i] = data[j];
+            } else {
+                ret[i] = Double.NaN;
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * extra value from {@code data} with given channelmap electrodes.
+     * <br/>
+     * If index out of array boundary, {@link Double#NaN} is used.
+     *
+     * @param data
+     * @param chmap
+     * @return
+     */
+    public double[] get(double[] data, T chmap) {
+        return get(data, blueprint.probe.allChannels(chmap));
+    }
+
+    /**
+     * extra value from {@code data} with given electrodes.
+     * <br/>
+     * If index out of array boundary, {@link Double#NaN} is used.
+     *
+     * @param data
+     * @param e
+     * @return
+     */
+    public double[] get(double[] data, List<ElectrodeDescription> e) {
+        return e.stream()
+          .mapToInt(it -> index(it.s(), it.x(), it.y()))
+          .mapToDouble(i -> i < 0 ? Double.NaN : data[i])
+          .toArray();
+    }
+
+    /**
+     * {@code a[i] = v}
+     * <br/>
+     * If an index out of array boundary, it is ignored.
+     *
+     * @param a double array
+     * @param i {@code a} indexed array
+     * @param v value
+     * @return {@code a} itself.
+     */
+    public double[] set(double[] a, int[] i, double v) {
+        for (int j = 0, length = i.length; j < length; j++) {
+            var k = i[j];
+            if (k >= 0 && k < length) {
+                a[k] = v;
+            }
+        }
+        return a;
+    }
+
+    public double[] set(double[] a, T chmap, double v) {
+        return set(a, blueprint.probe.allChannels(chmap), v);
+    }
+
+    public double[] set(double[] a, List<ElectrodeDescription> e, double v) {
+        for (var k : e) {
+            var i = index(k.s(), k.x(), k.y());
+            if (i >= 0 && i < a.length) {
+                a[i] = v;
+            }
+        }
+        return a;
+    }
+
+    /**
+     * {@code a[i] = v[:]}
+     * <br/>
+     * If an index out of array boundary, it is ignored.
+     *
+     * @param a
+     * @param i
+     * @param v
+     * @return {@code a} itself
+     * @throws IllegalArgumentException the length of {@code i} and {@code v} does not agree.
+     */
+    public double[] set(double[] a, int[] i, double[] v) {
+        if (i.length != v.length) throw new IllegalArgumentException();
+        for (int j = 0, length = i.length; j < length; j++) {
+            var k = i[j];
+            if (k >= 0 && k < length) {
+                a[k] = v[j];
+            }
+        }
+        return a;
+    }
+
+    /**
+     * {@code a[i[offset:offset+length]] = v}
+     * <br/>
+     * If an index out of array boundary, it is ignored.
+     *
+     * @param a      double array
+     * @param i      {@code a} indexed array
+     * @param offset start index of {@code i}
+     * @param length
+     * @param v      value
+     * @return {@code a} itself.
+     * @throws IllegalArgumentException       when negative {@code length}
+     * @throws ArrayIndexOutOfBoundsException {@code offset} and {@code length} out of {@code i}'s bounds.
+     */
+    public double[] set(double[] a, int[] i, int offset, int length, double v) {
+        if (length < 0) throw new IllegalArgumentException();
+        var _ = i[offset];
+        var _ = i[offset + length - 1];
+
+        for (int j = 0; j < length; j++) {
+            var k = i[j + offset];
+            if (k >= 0 && k < length) {
+                a[k] = v;
+            }
+        }
+        return a;
+    }
+
+
+    /**
+     * {@code a[i[offset:offset+length]] = oper(a[i[offset:offset+length]])}
+     * <br/>
+     * If an index out of array boundary, it is ignored.
+     *
+     * @param a      double array
+     * @param i      {@code a} indexed array
+     * @param offset
+     * @param length
+     * @param oper   value operator
+     * @return {@code a} itself.
+     */
+    public double[] set(double[] a, int[] i, int offset, int length, DoubleUnaryOperator oper) {
+        if (length < 0) throw new IllegalArgumentException();
+        var _ = i[offset];
+        var _ = i[offset + length - 1];
+
+        for (int j = 0; j < length; j++) {
+            var k = i[j + offset];
+            if (k >= 0 && k < length) {
+                a[k] = oper.applyAsDouble(a[k]);
+            }
+        }
+        return a;
+    }
+
+    public enum InterpolateNaNBuiltinMethod {
+        zero, mean, median, min, max;
+
+    }
+
+    private static ToDoubleFunction<double[]> getInterpolateMethod(InterpolateNaNBuiltinMethod f) {
+        return switch (f) {
+            case zero -> _ -> 0;
+            case mean -> kernel -> {
+                double ret = 0;
+                int cnt = 0;
+                for (double v : kernel) {
+                    if (!Double.isNaN(v)) {
+                        ret += v;
+                        cnt++;
+                    }
+                }
+                return cnt == 0 ? Double.NaN : ret / cnt;
+            };
+            case median -> kernel -> {
+                Arrays.sort(kernel); // NaN are put at last.
+                var size = kernel.length;
+                while (size > 0 && Double.isNaN(kernel[size - 1])) {
+                    size--;
+                }
+                if (size == 0) return Double.NaN;
+                if (size == 1) return kernel[0];
+                if (size % 2 == 1) {
+                    return kernel[size / 2];
+                } else {
+                    var i = size / 2;
+                    return (kernel[i] + kernel[i - 1]) / 2;
+                }
+            };
+            case min -> kernel -> {
+                double ret = Double.MAX_VALUE;
+                int cnt = 0;
+                for (double v : kernel) {
+                    if (!Double.isNaN(v)) {
+                        ret = Math.min(ret, v);
+                        cnt++;
+                    }
+                }
+                return cnt == 0 ? Double.NaN : ret;
+            };
+            case max -> kernel -> {
+                double ret = Double.MIN_VALUE;
+                int cnt = 0;
+                for (double v : kernel) {
+                    if (!Double.isNaN(v)) {
+                        ret = Math.max(ret, v);
+                        cnt++;
+                    }
+                }
+                return cnt == 0 ? Double.NaN : ret;
+            };
+        };
+    }
+
+    public double[] interpolateNaN(double[] a, int k, InterpolateNaNBuiltinMethod f) {
+        var m = getInterpolateMethod(f);
+        return interpolateNaN(a, k, m);
+    }
+
+    public double[] interpolateNaN(double[] a, int k, ToDoubleFunction<double[]> f) {
+        if (k % 2 != 1) throw new IllegalArgumentException();
+        return interpolateNaN(a, new double[k], f);
+    }
+
+    public double[] interpolateNaN(double[] a, double[] k, ToDoubleFunction<double[]> f) {
+        return interpolateNaN(new double[a.length], a, k, f);
+    }
+
+    public double[] interpolateNaN(double[] o, double[] a, double[] k, ToDoubleFunction<double[]> f) {
+        if (k.length % 2 != 1) throw new IllegalArgumentException();
+
+        var shank = shank();
+        var posx = posx();
+        var posy = posy();
+        var dy = dy();
+
+        for (int i = 0, length = a.length; i < length; i++) {
+            if (Double.isNaN(a[i])) {
+                var s = shank[i];
+                var x = posx[i];
+                var y = posy[i];
+
+                for (int j = 0, kn = k.length; j < kn; j++) {
+                    var n = j - kn / 2;
+                    if (n == 0) {
+                        k[j] = Double.NaN;
+                    } else {
+                        var yy = (int) (y + dy * n);
+                        var jj = index(s, x, yy);
+                        if (jj >= 0) {
+                            k[j] = a[jj];
+                        } else {
+                            k[j] = Double.NaN;
+                        }
+                    }
+                }
+
+                o[i] = f.applyAsDouble(k);
+            } else {
+                o[i] = a[i];
+            }
+        }
+        return a;
+    }
+
+
+    private static ToDoubleFunction<double[][]> getInterpolateMethod(int kx, int ky, InterpolateNaNBuiltinMethod f) {
+        return switch (f) {
+            case zero -> _ -> 0;
+            case mean -> kernel -> {
+                double ret = 0;
+                int cnt = 0;
+                for (double[] vx : kernel) {
+                    for (var v : vx) {
+                        if (!Double.isNaN(v)) {
+                            ret += v;
+                            cnt++;
+                        }
+                    }
+                }
+                return cnt == 0 ? Double.NaN : ret / cnt;
+            };
+            case median -> new ToDoubleFunction<>() {
+                private final double[] tmp = new double[kx * ky];
+                private final ToDoubleFunction<double[]> func = getInterpolateMethod(InterpolateNaNBuiltinMethod.median);
+
+                @Override
+                public double applyAsDouble(double[][] kernel) {
+                    var p = 0;
+                    for (int i = 0; i < kx; i++) {
+                        for (int j = 0; j < ky; j++) {
+                            tmp[p++] = kernel[i][j];
+                        }
+                    }
+
+                    return func.applyAsDouble(tmp);
+                }
+            };
+            case min -> kernel -> {
+                double ret = Double.MAX_VALUE;
+                int cnt = 0;
+                for (double[] vv : kernel) {
+                    for (var v : vv) {
+                        if (!Double.isNaN(v)) {
+                            ret = Math.min(ret, v);
+                            cnt++;
+                        }
+                    }
+                }
+                return cnt == 0 ? Double.NaN : ret;
+            };
+            case max -> kernel -> {
+                double ret = Double.MIN_VALUE;
+                int cnt = 0;
+                for (double[] vv : kernel) {
+                    for (var v : vv) {
+                        if (!Double.isNaN(v)) {
+                            ret = Math.max(ret, v);
+                            cnt++;
+                        }
+                    }
+                }
+                return cnt == 0 ? Double.NaN : ret;
+            };
+        };
+    }
+
+
+    public double[] interpolateNaN(double[] a, int kx, int ky, InterpolateNaNBuiltinMethod f) {
+        var m = getInterpolateMethod(kx, ky, f);
+        return interpolateNaN(a, kx, ky, m);
+    }
+
+    public double[] interpolateNaN(double[] a, int kx, int ky, ToDoubleFunction<double[][]> f) {
+        if (kx % 2 != 1) throw new IllegalArgumentException();
+        if (ky % 2 != 1) throw new IllegalArgumentException();
+        var k = new double[kx][];
+        for (int i = 0; i < kx; i++) {
+            k[i] = new double[ky];
+        }
+        return interpolateNaN(a, k, f);
+    }
+
+    public double[] interpolateNaN(double[] a, double[][] k, ToDoubleFunction<double[][]> f) {
+        return interpolateNaN(new double[a.length], a, k, f);
+    }
+
+    public double[] interpolateNaN(double[] o, double[] a, double[][] k, ToDoubleFunction<double[][]> f) {
+        var kx = k.length;
+        if (kx % 2 != 1) throw new IllegalArgumentException();
+        var ky = k[0].length;
+        if (ky % 2 != 1) throw new IllegalArgumentException();
+        for (int i = 1; i < kx; i++) {
+            if (k[i].length != ky) throw new IllegalArgumentException();
+        }
+
+        var shank = shank();
+        var posx = posx();
+        var posy = posy();
+        var dx = dx();
+        var dy = dy();
+
+        for (int i = 0, length = a.length; i < length; i++) {
+            if (Double.isNaN(a[i])) {
+                var s = shank[i];
+                var x = posx[i];
+                var y = posy[i];
+
+                for (int jx = 0; jx < kx; jx++) {
+                    for (int jy = 0; jy < ky; jy++) {
+                        var nx = jx - kx / 2;
+                        var ny = jy - ky / 2;
+                        if (nx == 0 && ny == 0) {
+                            k[jx][jy] = Double.NaN;
+                        } else {
+                            var xx = (int) (x + dx * nx);
+                            var yy = (int) (y + dy * ny);
+                            var jj = index(s, xx, yy);
+                            if (jj >= 0) {
+                                k[jx][jy] = a[jj];
+                            } else {
+                                k[jx][jy] = Double.NaN;
+                            }
+                        }
+                    }
+                }
+
+                o[i] = f.applyAsDouble(k);
+            } else {
+                o[i] = a[i];
+            }
+        }
+        return a;
+    }
+
 }
