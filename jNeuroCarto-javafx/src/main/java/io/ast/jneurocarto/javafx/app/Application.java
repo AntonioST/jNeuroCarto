@@ -586,6 +586,7 @@ public class Application<T> {
      *=========*/
 
     final List<Plugin> plugins = new ArrayList<>();
+    final List<ProbePluginProvider> providers = new ArrayList<>();
 
     private void setupPlugins() {
         log.debug("setup plugins");
@@ -595,13 +596,27 @@ public class Application<T> {
         for (var provider : ServiceLoader.load(ProbePluginProvider.class)) {
             log.debug("found provider {}.", provider.getClass().getName());
 
-            for (var plugin : provider.setup(config, probe)) {
-                plugins.add(plugin);
+            List<ProbePlugin<?>> plugins;
+
+            try {
+                plugins = provider.setup(config, probe);
+                if (plugins == null) {
+                    continue;
+                }
+
+            } catch (ClassCastException e) {
+                continue;
+            }
+
+            providers.add(provider);
+
+            for (var plugin : plugins) {
+                this.plugins.add(plugin);
                 log.debug("add plugin : {}", plugin.getClass().getName());
 
-                service.bind(plugin);
+                service.bind(provider, plugin);
                 var node = plugin.setup(service);
-                service.bind(null);
+                service.unbind();
 
                 if (node != null) {
                     pluginLayout.getChildren().add(node);
@@ -662,9 +677,9 @@ public class Application<T> {
                 log.debug("add plugin {}", plugin.getClass().getName());
                 plugins.add(plugin);
 
-                service.bind(plugin);
+                service.bind(provider, plugin);
                 var node = plugin.setup(service);
-                service.bind(null);
+                service.unbind();
 
                 if (node != null) {
                     pluginLayout.getChildren().add(node);

@@ -141,6 +141,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
+        log.debug("setup");
+
         checkBrainAtlas();
 
         canvas = service.getProbeView();

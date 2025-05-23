@@ -637,22 +637,42 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private boolean repaintBlocker = false;
 
     public void addForegroundPlotting(PlottingJob job) {
-        LoggerFactory.getLogger(getClass()).debug("addForegroundPlotting {}", job.getClass().getSimpleName());
+        var display = job;
+        if (job instanceof WeakRefPlottingJob ref) {
+            display = ref.reference.get();
+            if (display == null) return;
+        }
+        LoggerFactory.getLogger(getClass()).debug("addForegroundPlotting {}", display.getClass().getSimpleName());
         foregroundJobs.add(job);
     }
 
     public boolean removeForegroundPlotting(PlottingJob job) {
-        LoggerFactory.getLogger(getClass()).debug("removeForegroundPlotting {}", job.getClass().getSimpleName());
+        var display = job;
+        if (job instanceof WeakRefPlottingJob ref) {
+            display = ref.reference.get();
+            if (display == null) return false;
+        }
+        LoggerFactory.getLogger(getClass()).debug("removeForegroundPlotting {}", display.getClass().getSimpleName());
         return foregroundJobs.remove(job);
     }
 
     public void addBackgroundPlotting(PlottingJob job) {
-        LoggerFactory.getLogger(getClass()).debug("addBackgroundPlotting {}", job.getClass().getSimpleName());
+        var display = job;
+        if (job instanceof WeakRefPlottingJob ref) {
+            display = ref.reference.get();
+            if (display == null) return;
+        }
+        LoggerFactory.getLogger(getClass()).debug("addBackgroundPlotting {}", display.getClass().getSimpleName());
         backgroundJobs.add(job);
     }
 
     public boolean removeBackgroundPlotting(PlottingJob job) {
-        LoggerFactory.getLogger(getClass()).debug("removeBackgroundPlotting {}", job.getClass().getSimpleName());
+        var display = job;
+        if (job instanceof WeakRefPlottingJob ref) {
+            display = ref.reference.get();
+            if (display == null) return false;
+        }
+        LoggerFactory.getLogger(getClass()).debug("removeBackgroundPlotting {}", display.getClass().getSimpleName());
         return backgroundJobs.remove(job);
     }
 

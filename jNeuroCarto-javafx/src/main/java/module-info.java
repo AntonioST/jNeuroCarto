@@ -1,4 +1,5 @@
 import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
+import io.ast.jneurocarto.javafx.blueprint.BlueprintPluginProvider;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
 
@@ -15,6 +16,7 @@ module io.ast.jneurocarto.javafx {
     requires com.fasterxml.jackson.annotation;
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
+    requires io.github.classgraph;
 
     requires io.ast.jneurocarto.core;
     requires io.ast.jneurocarto.atlas;
@@ -24,10 +26,11 @@ module io.ast.jneurocarto.javafx {
 
     exports io.ast.jneurocarto.javafx.utils;
     exports io.ast.jneurocarto.javafx.atlas;
+    exports io.ast.jneurocarto.javafx.blueprint;
 
     exports io.ast.jneurocarto.javafx.view;
     uses PluginProvider;
-    provides PluginProvider with AtlasPluginProvider;
+    provides PluginProvider with AtlasPluginProvider, BlueprintPluginProvider;
 
     uses ProbePluginProvider;
 

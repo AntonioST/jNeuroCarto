@@ -277,6 +277,18 @@ public final class Blueprint<T> {
         return this;
     }
 
+    public Blueprint<T> set(int category, int newCategory) {
+        if (category != newCategory) {
+            for (int i = 0, length = blueprint.length; i < length; i++) {
+                if (blueprint[i] == category) {
+                    modified = true;
+                    blueprint[i] = newCategory;
+                }
+            }
+        }
+        return this;
+    }
+
     /**
      * @param category   electrode category
      * @param electrodes
@@ -333,6 +345,10 @@ public final class Blueprint<T> {
 
         modified = true;
         return this;
+    }
+
+    public Blueprint<T> unset(int category) {
+        return set(category, ProbeDescription.CATE_UNSET);
     }
 
     public Blueprint<T> unset(List<ElectrodeDescription> electrodes) {

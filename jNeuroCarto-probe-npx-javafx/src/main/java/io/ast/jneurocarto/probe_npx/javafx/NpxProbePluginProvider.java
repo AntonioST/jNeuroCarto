@@ -20,7 +20,7 @@ public class NpxProbePluginProvider implements ProbePluginProvider {
             var density = new ElectrodeDensityPlugin();
             return List.of(ref, info, density);
         } else {
-            return List.of();
+            throw new ClassCastException();
         }
     }
 }

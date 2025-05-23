@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -12,28 +14,62 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.javafx.view.Plugin;
+import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
+import io.github.classgraph.ClassGraph;
 
 @NullMarked
 public final class PluginSetupService {
 
     private @Nullable Application<?> app;
+    private @Nullable List<Object> provider;
     private @Nullable Plugin plugin;
+    private List<PluginSetupService> subServices = new ArrayList<>();
 
     PluginSetupService(Application<?> app) {
         this.app = app;
     }
 
-    void bind(@Nullable Plugin plugin) {
+    void unbind() {
+        provider = null;
+        plugin = null;
+    }
+
+    void bind(PluginProvider provider, @Nullable Plugin plugin) {
+        this.provider = List.of(provider);
         this.plugin = plugin;
+    }
+
+    void bind(ProbePluginProvider provider, ProbePlugin<?> plugin) {
+        this.provider = List.of(provider);
+        this.plugin = plugin;
+    }
+
+    public Object getProvider() {
+        return Objects.requireNonNull(provider, "service for plugin setup is finished.");
     }
 
     void dispose() {
         app = null;
+        provider = null;
+        plugin = null;
+
+        for (var service : subServices) {
+            service.dispose();
+        }
     }
 
     private Application<?> checkApplication() {
         return Objects.requireNonNull(this.app, "service is finished.");
+    }
+
+    public PluginSetupService asProbePluginSetupService() {
+        var app = checkApplication();
+        var ret = new PluginSetupService(app);
+        ret.provider = new ArrayList<>(app.providers);
+        subServices.add(ret);
+        return ret;
     }
 
     public void addMenuInBar(Menu menu) {
@@ -81,5 +117,52 @@ public final class PluginSetupService {
     public void addBelowProbeView(Node node) {
         var app = checkApplication();
         app.viewLayout.getChildren().add(node);
+    }
+
+    public <A extends Annotation> List<Class<?>> scanAnnotation(Class<A> annotation) {
+        checkApplication();
+        var provider = this.provider;
+        if (provider == null) throw new RuntimeException("service for plugin setup is finished.");
+
+        var packages = provider.stream()
+          .map(it -> it.getClass().getPackage().getName())
+          .toArray(String[]::new);
+
+        var scan = new ClassGraph()
+//          .verbose()
+          .enableAnnotationInfo()
+          .acceptPackages(packages);
+
+        var ret = new ArrayList<Class<?>>();
+        try (var result = scan.scan()) {
+            for (var clazz : result.getClassesWithAllAnnotations(annotation)) {
+                ret.add(clazz.loadClass());
+            }
+        }
+        return ret;
+    }
+
+    public <T> List<Class<T>> scanInterface(Class<T> interface_) {
+        if (!interface_.isInterface()) throw new IllegalArgumentException();
+        checkApplication();
+        var provider = this.provider;
+        if (provider == null) throw new RuntimeException("service for plugin setup is finished.");
+
+        var packages = provider.stream()
+          .map(it -> it.getClass().getPackage().getName())
+          .toArray(String[]::new);
+
+        var scan = new ClassGraph()
+//          .verbose()
+          .enableClassInfo()
+          .acceptPackages(packages);
+
+        var ret = new ArrayList<Class<T>>();
+        try (var result = scan.scan()) {
+            for (var clazz : result.getClassesImplementing(interface_)) {
+                ret.add((Class<T>) clazz.loadClass());
+            }
+        }
+        return ret;
     }
 }
