@@ -12,12 +12,14 @@ import java.util.function.IntBinaryOperator;
 import java.util.stream.Gatherer;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.jspecify.annotations.NullMarked;
-import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.UnsupportedNumpyDataFormatException;
+
+import static java.nio.file.StandardOpenOption.*;
 
 @NullMarked
 public class BlueprintToolkit<T> {
@@ -1064,7 +1066,7 @@ public class BlueprintToolkit<T> {
         return bp.blueprint;
     }
 
-    private static int[] loadNumpyBlueprint(Path file) throws IOException {
+    public static int[] loadNumpyBlueprint(Path file) throws IOException {
         var result = Numpy.read(file, header -> switch (header.ndim()) {
             case 1 -> Numpy.ofInt();
             case 2 -> Numpy.ofD2Int(true);
@@ -1078,13 +1080,25 @@ public class BlueprintToolkit<T> {
         };
     }
 
+    public static void saveNumpyBlueprint(Path file, int[] blueprint) throws IOException {
+        Numpy.write(file, blueprint);
+    }
+
+    public int[] loadCsvBlueprint(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        var i = filename.lastIndexOf('.');
+        var suffix = filename.substring(i);
+        if (suffix.equals(".csv")) {
+            return loadCsvBlueprint(file, false);
+        } else if (suffix.equals(".tsv")) {
+            return loadCsvBlueprint(file, true);
+        } else {
+            throw new RuntimeException("unknown file format : " + filename);
+        }
+    }
+
     private int[] loadCsvBlueprint(Path file, boolean tsv) throws IOException {
-        var format = CSVFormat.DEFAULT.builder()
-          .setCommentMarker('#')
-          .setIgnoreSurroundingSpaces(true)
-          .setIgnoreHeaderCase(true)
-          .setDelimiter(tsv ? '\t' : ',')
-          .get();
+        var format = getCsvFormat(tsv).get();
 
         try (var reader = Files.newBufferedReader(file)) {
             var parse = format.parse(reader);
@@ -1100,10 +1114,8 @@ public class BlueprintToolkit<T> {
                     y = Integer.parseInt(record.get(header.get(2)));
                     c = Integer.parseInt(record.get(header.get(3)));
                 } catch (NumberFormatException e) {
-                    var log = LoggerFactory.getLogger(getClass());
                     var line = parse.getCurrentLineNumber();
-                    log.warn("bad numbers at line " + line, e);
-                    continue;
+                    throw new IOException("bad numbers at line " + line, e);
                 }
 
                 var i = index(s, x, y);
@@ -1114,6 +1126,14 @@ public class BlueprintToolkit<T> {
 
             return ret;
         }
+    }
+
+    private static CSVFormat.Builder getCsvFormat(boolean tsv) {
+        return CSVFormat.DEFAULT.builder()
+          .setCommentMarker('#')
+          .setIgnoreSurroundingSpaces(true)
+          .setIgnoreHeaderCase(true)
+          .setDelimiter(tsv ? '\t' : ',');
     }
 
     private static boolean checkCsvHeader(List<String> header) {
@@ -1127,5 +1147,37 @@ public class BlueprintToolkit<T> {
         field = header.get(2);
         if (!field.equals("y")) return false;
         return true;
+    }
+
+    public void saveCsvBlueprint(Path file, int[] blueprint) throws IOException {
+        var filename = file.getFileName().toString();
+        var i = filename.lastIndexOf('.');
+        var suffix = filename.substring(i);
+        if (suffix.equals(".csv")) {
+            saveCsvBlueprint(file, blueprint, false);
+        } else if (suffix.equals(".tsv")) {
+            saveCsvBlueprint(file, blueprint, true);
+        } else {
+            throw new RuntimeException("unknown file format : " + filename);
+        }
+    }
+
+    private void saveCsvBlueprint(Path file, int[] blueprint, boolean tsv) throws IOException {
+        if (length() != blueprint.length) throw new IllegalArgumentException();
+
+        var format = getCsvFormat(tsv)
+          .setHeader("s", "x", "y", "c")
+          .get();
+
+        try (var writer = Files.newBufferedWriter(file, CREATE, TRUNCATE_EXISTING, WRITE);
+             var printer = new CSVPrinter(writer, format)) {
+            var shank = shank();
+            var posx = posx();
+            var posy = posy();
+
+            for (int i = 0, length = blueprint.length; i < length; i++) {
+                printer.printRecord(shank[i], posx[i], posy[i], blueprint[i]);
+            }
+        }
     }
 }
