@@ -19,7 +19,7 @@ import static java.nio.file.StandardOpenOption.*;
 
 /// [Numpy format](https://numpy.org/devdocs/reference/generated/numpy.lib.format.html)
 ///
-/// ```
+/// ```h
 /// struct header{
 ///     u6 MAGIC;
 ///     u1 majorVersion;
@@ -30,7 +30,7 @@ import static java.nio.file.StandardOpenOption.*;
 ///```
 ///
 /// Example:
-/// ```
+/// ```text
 /// 00000000: 934e 554d 5059 0100 7600 7b27 6465 7363  .NUMPY..v.{'desc
 /// 00000010: 7227 3a20 273c 6938 272c 2027 666f 7274  r': '<i8', 'fort
 /// 00000020: 7261 6e5f 6f72 6465 7227 3a20 4661 6c73  ran_order': Fals
