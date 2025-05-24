@@ -2,6 +2,7 @@ package io.ast.jneurocarto.javafx.script;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -23,14 +24,55 @@ public final class BlueprintScriptHandles {
         throw new RuntimeException();
     }
 
-    public static List<BlueprintScriptHandle> lookupClass(MethodHandles.Lookup lookup, Class<?> clazz) {
+    public static List<BlueprintScriptCallable> lookupClass(MethodHandles.Lookup lookup, Class<?> clazz) {
+        if (BlueprintScriptProvider.class.isAssignableFrom(clazz)) {
+            return lookupBlueprintScriptProvider(lookup, (Class<BlueprintScriptProvider>) clazz);
+        } else {
+            return lookupPainClass(lookup, clazz);
+        }
+    }
+
+    private static List<BlueprintScriptCallable> lookupBlueprintScriptProvider(MethodHandles.Lookup lookup, Class<BlueprintScriptProvider> clazz) {
+        log.debug("lookup provider  {}", clazz.getSimpleName());
+        var modifiers = clazz.getModifiers();
+        if ((modifiers & Modifier.INTERFACE) != 0) {
+            log.warn("class {} is interface", clazz.getSimpleName());
+            return List.of();
+        }
+        if ((modifiers & Modifier.ABSTRACT) != 0) {
+            log.warn("class {} is abstract", clazz.getSimpleName());
+            return List.of();
+        }
+
+        BlueprintScriptProvider instance;
+
+        try {
+            instance = clazz.getConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            log.warn("lookupBlueprintScriptProvider", e);
+            return List.of();
+        }
+
+        return instance.getBlueprintScripts(lookup);
+    }
+
+    private static List<BlueprintScriptCallable> lookupPainClass(MethodHandles.Lookup lookup, Class<?> clazz) {
         log.debug("lookup class  {}", clazz.getSimpleName());
 
-        var ret = new ArrayList<BlueprintScriptHandle>();
+        Object instance;
+
+        try {
+            instance = clazz.getConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            log.warn("lookupPainClass", e);
+            instance = null;
+        }
+
+        var ret = new ArrayList<BlueprintScriptCallable>();
         for (var method : clazz.getMethods()) {
             var ann = method.getDeclaredAnnotation(BlueprintScript.class);
             if (ann != null) {
-                var h = lookupMethod(lookup, clazz, method);
+                var h = lookupMethod(lookup, clazz, method, instance);
                 if (h != null) {
                     ret.add(h);
                 }
@@ -39,7 +81,7 @@ public final class BlueprintScriptHandles {
         return ret;
     }
 
-    private static @Nullable BlueprintScriptHandle lookupMethod(MethodHandles.Lookup lookup, Class<?> clazz, Method method) {
+    private static @Nullable BlueprintScriptHandle lookupMethod(MethodHandles.Lookup lookup, Class<?> clazz, Method method, @Nullable Object instance) {
         log.debug("lookup method {}.{}", clazz.getSimpleName(), method.getName());
 
         var modifiers = method.getModifiers();
@@ -47,7 +89,7 @@ public final class BlueprintScriptHandles {
             log.warn("method {}.{} not public", clazz.getSimpleName(), method.getName());
             return null;
         }
-        if ((modifiers & Modifier.STATIC) == 0) {
+        if ((modifiers & Modifier.STATIC) == 0 && instance == null) {
             log.warn("method {}.{} not static", clazz.getSimpleName(), method.getName());
             return null;
         }
@@ -78,8 +120,8 @@ public final class BlueprintScriptHandles {
         var name = ann.value();
         if (name.isEmpty()) name = method.getName();
 
-        var ps = lookupParameter(method).toArray(BlueprintScriptHandle.ScriptParameter[]::new);
-        return new BlueprintScriptHandle(clazz, method, name, blueprint, ps, handle);
+        var ps = lookupParameter(method).toArray(BlueprintScriptCallable.ScriptParameter[]::new);
+        return new BlueprintScriptHandle(clazz, method, instance, name, blueprint, ps, handle);
     }
 
     private static @Nullable Class<?> checkMethodParameter(Parameter parameter) {
@@ -89,19 +131,19 @@ public final class BlueprintScriptHandles {
         return null;
     }
 
-    private static List<BlueprintScriptHandle.ScriptParameter> lookupParameter(Method method) {
-        var ret = new ArrayList<BlueprintScriptHandle.ScriptParameter>();
+    private static List<BlueprintScriptCallable.ScriptParameter> lookupParameter(Method method) {
+        var ret = new ArrayList<BlueprintScriptCallable.ScriptParameter>();
         Parameter[] parameters = method.getParameters();
         for (int i = 1, length = parameters.length; i < length; i++) {
             var parameter = parameters[i];
             var ann = parameter.getAnnotation(ScriptParameter.class);
             if (ann == null) {
-                ret.add(new BlueprintScriptHandle.ScriptParameter(parameter.getName(), parameter.getType(), null));
+                ret.add(new BlueprintScriptCallable.ScriptParameter(parameter.getName(), parameter.getType(), null));
             } else {
                 var name = ann.value();
                 var defaultValue = ann.defaultValue();
                 if (defaultValue == ScriptParameter.NO_DEFAULT) defaultValue = null;
-                ret.add(new BlueprintScriptHandle.ScriptParameter(name, parameter.getType(), defaultValue));
+                ret.add(new BlueprintScriptCallable.ScriptParameter(name, parameter.getType(), defaultValue));
             }
         }
         return ret;

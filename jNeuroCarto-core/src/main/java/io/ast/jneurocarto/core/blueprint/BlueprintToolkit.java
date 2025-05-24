@@ -96,7 +96,11 @@ public class BlueprintToolkit<T> {
      * blueprint array *
      *=================*/
 
-    public final int[] blueprint() {
+    public final Blueprint<T> blueprint() {
+        return blueprint;
+    }
+
+    public final int[] rawBlueprint() {
         return blueprint.blueprint;
     }
 
@@ -542,7 +546,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step) {
         if (step == 0 || length() == 0) return;
-        from(move(blueprint(), step));
+        from(move(rawBlueprint(), step));
     }
 
     /**
@@ -568,7 +572,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step, int category) {
         if (step == 0 || length() == 0) return;
-        from(move(blueprint(), step, category));
+        from(move(rawBlueprint(), step, category));
     }
 
     /**
@@ -594,7 +598,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step, int[] index) {
         if (step == 0 || length() == 0 || index.length == 0) return;
-        from(move(blueprint(), step, index));
+        from(move(rawBlueprint(), step, index));
     }
 
     /**
@@ -620,7 +624,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step, BlueprintMask mask) {
         if (length() != mask.length()) throw new IllegalArgumentException();
-        from(move(blueprint(), step, mask));
+        from(move(rawBlueprint(), step, mask));
     }
 
     /**
@@ -832,7 +836,7 @@ public class BlueprintToolkit<T> {
      * @return {@code E}-length int-array that the surrounding electrode shared same positive int value.
      */
     public final Clustering findClustering(boolean diagonal) {
-        return findClustering(blueprint(), diagonal);
+        return findClustering(rawBlueprint(), diagonal);
     }
 
     public Clustering findClustering(int[] blueprint, boolean diagonal) {
@@ -844,7 +848,7 @@ public class BlueprintToolkit<T> {
     }
 
     public final Clustering findClustering(int category, boolean diagonal) {
-        return findClustering(blueprint(), category, diagonal);
+        return findClustering(rawBlueprint(), category, diagonal);
     }
 
     public Clustering findClustering(int[] blueprint, int category, boolean diagonal) {
@@ -917,7 +921,7 @@ public class BlueprintToolkit<T> {
         var mode = clustering.modeGroup();
         if (mode.group() == 0) return List.of();
 
-        var src = blueprint();
+        var src = rawBlueprint();
         var shank = shank();
         var posx = posx();
         var posy = posy();
@@ -950,7 +954,7 @@ public class BlueprintToolkit<T> {
      *=================*/
 
     public final void fillClusteringEdges(List<ClusteringEdges> edges) {
-        var blueprint = blueprint();
+        var blueprint = rawBlueprint();
         for (var edge : edges) {
             fillClusteringEdges(blueprint, edge);
         }
@@ -985,7 +989,7 @@ public class BlueprintToolkit<T> {
     }
 
     public final void fillClusteringEdges(ClusteringEdges edge) {
-        fillClusteringEdges(blueprint(), edge);
+        fillClusteringEdges(rawBlueprint(), edge);
     }
 
     /**
@@ -1063,7 +1067,7 @@ public class BlueprintToolkit<T> {
      * fill all category zones as rectangle.
      */
     public final void fill() {
-        from(fill(blueprint(), AreaThreshold.ALL));
+        from(fill(rawBlueprint(), AreaThreshold.ALL));
     }
 
     /**
@@ -1072,7 +1076,7 @@ public class BlueprintToolkit<T> {
      * @param category
      */
     public final void fill(int category) {
-        from(fill(blueprint(), category, AreaThreshold.ALL));
+        from(fill(rawBlueprint(), category, AreaThreshold.ALL));
     }
 
     /**
@@ -1102,7 +1106,7 @@ public class BlueprintToolkit<T> {
      * @param threshold
      */
     public final void fill(AreaThreshold threshold) {
-        from(fill(blueprint(), threshold));
+        from(fill(rawBlueprint(), threshold));
     }
 
     /**
@@ -1112,7 +1116,7 @@ public class BlueprintToolkit<T> {
      * @param threshold
      */
     public final void fill(int category, AreaThreshold threshold) {
-        from(fill(blueprint(), category, threshold));
+        from(fill(rawBlueprint(), category, threshold));
     }
 
     /**
@@ -1165,11 +1169,11 @@ public class BlueprintToolkit<T> {
     }
 
     public final void extend(int category, int step) {
-        from(extend(blueprint(), category, step, category, AreaThreshold.ALL));
+        from(extend(rawBlueprint(), category, step, category, AreaThreshold.ALL));
     }
 
     public final void extend(int category, int step, int value) {
-        from(extend(blueprint(), category, step, value, AreaThreshold.ALL));
+        from(extend(rawBlueprint(), category, step, value, AreaThreshold.ALL));
     }
 
     /**
@@ -1194,11 +1198,11 @@ public class BlueprintToolkit<T> {
      * @return extended result, a copied {@code blueprint}.
      */
     public final void extend(int category, int step, AreaThreshold threshold) {
-        from(extend(blueprint(), category, step, category, threshold));
+        from(extend(rawBlueprint(), category, step, category, threshold));
     }
 
     public final void extend(int category, int step, int value, AreaThreshold threshold) {
-        from(extend(blueprint(), category, step, value, threshold));
+        from(extend(rawBlueprint(), category, step, value, threshold));
     }
 
     /**
@@ -1252,11 +1256,11 @@ public class BlueprintToolkit<T> {
     }
 
     public final void reduce(int category, int step) {
-        from(reduce(blueprint(), category, step, ProbeDescription.CATE_UNSET, AreaThreshold.ALL));
+        from(reduce(rawBlueprint(), category, step, ProbeDescription.CATE_UNSET, AreaThreshold.ALL));
     }
 
     public final void reduce(int category, int step, int value) {
-        from(reduce(blueprint(), category, step, value, AreaThreshold.ALL));
+        from(reduce(rawBlueprint(), category, step, value, AreaThreshold.ALL));
     }
 
     public final int[] reduce(int[] blueprint, int category, int step) {
@@ -1268,11 +1272,11 @@ public class BlueprintToolkit<T> {
     }
 
     public final void reduce(int category, int step, AreaThreshold threshold) {
-        from(reduce(blueprint(), category, step, ProbeDescription.CATE_UNSET, threshold));
+        from(reduce(rawBlueprint(), category, step, ProbeDescription.CATE_UNSET, threshold));
     }
 
     public final void reduce(int category, int step, int value, AreaThreshold threshold) {
-        from(reduce(blueprint(), category, step, value, threshold));
+        from(reduce(rawBlueprint(), category, step, value, threshold));
     }
 
     public final int[] reduce(int[] blueprint, int category, int step, AreaThreshold threshold) {

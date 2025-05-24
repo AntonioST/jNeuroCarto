@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import javafx.scene.Node;
 import javafx.scene.control.Menu;
@@ -18,6 +19,7 @@ import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
 import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
 
 @NullMarked
 public final class PluginSetupService {
@@ -120,6 +122,10 @@ public final class PluginSetupService {
     }
 
     public <A extends Annotation> List<Class<?>> scanAnnotation(Class<A> annotation) {
+        return scanAnnotation(annotation, _ -> true);
+    }
+
+    public <A extends Annotation> List<Class<?>> scanAnnotation(Class<A> annotation, Predicate<ClassInfo> filter) {
         checkApplication();
         var provider = this.provider;
         if (provider == null) throw new RuntimeException("service for plugin setup is finished.");
@@ -136,13 +142,19 @@ public final class PluginSetupService {
         var ret = new ArrayList<Class<?>>();
         try (var result = scan.scan()) {
             for (var clazz : result.getClassesWithAllAnnotations(annotation)) {
-                ret.add(clazz.loadClass());
+                if (filter.test(clazz)) {
+                    ret.add(clazz.loadClass());
+                }
             }
         }
         return ret;
     }
 
     public <T> List<Class<T>> scanInterface(Class<T> interface_) {
+        return scanInterface(interface_, _ -> true);
+    }
+
+    public <T> List<Class<T>> scanInterface(Class<T> interface_, Predicate<ClassInfo> filter) {
         if (!interface_.isInterface()) throw new IllegalArgumentException();
         checkApplication();
         var provider = this.provider;
@@ -160,7 +172,9 @@ public final class PluginSetupService {
         var ret = new ArrayList<Class<T>>();
         try (var result = scan.scan()) {
             for (var clazz : result.getClassesImplementing(interface_)) {
-                ret.add((Class<T>) clazz.loadClass());
+                if (filter.test(clazz)) {
+                    ret.add((Class<T>) clazz.loadClass());
+                }
             }
         }
         return ret;

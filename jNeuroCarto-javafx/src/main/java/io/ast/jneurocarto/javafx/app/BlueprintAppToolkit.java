@@ -90,7 +90,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public final <P> BlueprintAppToolkit<P> ensureProbe(Class<ProbeDescription<P>> probe) {
         if (!checkProbe(probe)) {
-            throw new RequestChannelmapTypeException(new RequestChannelmapType<P>(probe, null));
+            throw new RequestChannelmapTypeException(new RequestChannelmapType(probe, null));
         }
         return (BlueprintAppToolkit<P>) this;
     }
@@ -103,7 +103,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public final <P> BlueprintAppToolkit<P> ensureProbe(Class<ProbeDescription<P>> probe, @Nullable String code) {
         if (!checkProbe(probe, code)) {
-            throw new RequestChannelmapTypeException(new RequestChannelmapType<P>(probe, code));
+            throw new RequestChannelmapTypeException(new RequestChannelmapType(probe, code));
         }
         return (BlueprintAppToolkit<P>) this;
     }

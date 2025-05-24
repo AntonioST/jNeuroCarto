@@ -260,7 +260,7 @@ public class BlueprintToolkitTest {
           3, 4,
           0, 3,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
 
         bp.move(1);
         assertBlueprintEquals(bp, new int[]{
@@ -271,7 +271,7 @@ public class BlueprintToolkitTest {
           0, 0,
           3, 4,
           0, 3,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -528,7 +528,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           1, 1,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
 
         bp.from(new int[]{
           0, 1,
@@ -545,7 +545,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           1, 1,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
 
         bp.from(new int[]{
           0, 0,
@@ -562,7 +562,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
 
         bp.from(new int[]{
           0, 0,
@@ -579,7 +579,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -600,7 +600,7 @@ public class BlueprintToolkitTest {
           2, 2,
           0, 1,
           1, 1,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
 
         bp.from(new int[]{
           2, 2,
@@ -617,7 +617,7 @@ public class BlueprintToolkitTest {
           2, 0,
           1, 1,
           1, 1,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -638,7 +638,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -659,7 +659,7 @@ public class BlueprintToolkitTest {
           1, 1,
           2, 2,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -684,7 +684,7 @@ public class BlueprintToolkitTest {
           1, 1,
           0, 0,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
 
         bp.from(new int[]{
           2, 2,
@@ -705,7 +705,7 @@ public class BlueprintToolkitTest {
           1, 1,
           0, 0,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -730,7 +730,7 @@ public class BlueprintToolkitTest {
           1, 1,
           2, 2,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
     @Test
@@ -749,7 +749,7 @@ public class BlueprintToolkitTest {
           0, 0,
           0, 0,
           0, 0,
-        }, bp.blueprint());
+        }, bp.rawBlueprint());
     }
 
 }
