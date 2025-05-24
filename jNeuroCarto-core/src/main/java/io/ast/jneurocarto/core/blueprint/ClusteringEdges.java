@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.core.blueprint;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jspecify.annotations.NullMarked;
 
@@ -18,6 +19,14 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
     /// @param y      bottom left y position in um.
     /// @param corner corner code
     public record Corner(double x, double y, int corner) {
+    }
+
+    public double x0() {
+        return edges.stream().mapToDouble(Corner::x).min().orElse(Double.NaN);
+    }
+
+    public double y0() {
+        return edges.stream().mapToDouble(Corner::y).min().orElse(Double.NaN);
     }
 
     public double[] x() {
@@ -102,6 +111,21 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
 
     public ClusteringEdges offset(double x, double y) {
         var edges = this.edges.stream().map(it -> new Corner(it.x + x, it.y + y, it.corner)).toList();
+        return new ClusteringEdges(category, shank, edges);
+    }
+
+    public ClusteringEdges transform(double mxx, double mxy, double mtx,
+                                     double myx, double myy, double mty) {
+        var edges = this.edges.stream().map(it -> {
+            var x = it.x * mxx + it.y * mxy + mtx;
+            var y = it.x * myx + it.y * myy + mty;
+            return new Corner(x, y, it.corner);
+        }).toList();
+        return new ClusteringEdges(category, shank, edges);
+    }
+
+    public ClusteringEdges map(Function<Corner, Corner> mapper) {
+        var edges = this.edges.stream().map(mapper).toList();
         return new ClusteringEdges(category, shank, edges);
     }
 

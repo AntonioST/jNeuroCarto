@@ -3,11 +3,16 @@ package io.ast.jneurocarto.javafx.blueprint;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.DoubleBinaryOperator;
 
 import javafx.scene.paint.Color;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 
+@NullMarked
 public class BlueprintPaintingService<T> {
 
     record Legend(int category, String name, Color color) {
@@ -22,6 +27,9 @@ public class BlueprintPaintingService<T> {
     double y;
     double w;
     double h;
+
+    @Nullable
+    DoubleBinaryOperator transform;
 
 
     BlueprintPaintingService(Blueprint<T> toolkit, Set<BlueprintPainter.Feature> features) {
@@ -59,6 +67,15 @@ public class BlueprintPaintingService<T> {
     public void setOffset(double dx, double dy) {
         x = dx;
         y = dy;
+    }
+
+    /**
+     * scale value on x-axis based on each shank
+     *
+     * @param transform {@code (shank, x) -> x}
+     */
+    public void setXonShankTransform(DoubleBinaryOperator transform) {
+        this.transform = transform;
     }
 
     public List<String> categories() {

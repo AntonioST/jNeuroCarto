@@ -37,6 +37,7 @@ import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
+import io.ast.jneurocarto.javafx.app.dialog.ChartAxesDialog;
 import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;

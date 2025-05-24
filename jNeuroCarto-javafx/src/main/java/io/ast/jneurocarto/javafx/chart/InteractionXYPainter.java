@@ -86,6 +86,11 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         public @Nullable Object external() {
             return external;
         }
+
+        @Override
+        public String toString() {
+            return "XY{" + x + "," + y + '}';
+        }
     }
 
     public static class XYSeries {
@@ -372,7 +377,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
                     counter = 0;
 
                     if (fill != null) {
-                        gc.setFill(line);
+                        gc.setFill(fill);
                         gc.fill();
                     }
                     if (line != null) {

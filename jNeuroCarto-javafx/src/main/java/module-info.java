@@ -38,5 +38,7 @@ module io.ast.jneurocarto.javafx {
     exports io.ast.jneurocarto.javafx.cli to javafx.graphics;
     exports io.ast.jneurocarto.javafx.chart;
     opens io.ast.jneurocarto.javafx.chart to io.ast.jneurocarto.javafx.base;
+    exports io.ast.jneurocarto.javafx.app.dialog;
+    opens io.ast.jneurocarto.javafx.app.dialog to io.ast.jneurocarto.javafx.base;
 
 }

@@ -65,10 +65,14 @@ public final class Blueprint<T> {
     }
 
     public Blueprint(Blueprint<T> blueprint) {
-        this(blueprint, blueprint.chmap);
+        this(blueprint, Objects.requireNonNull(blueprint.chmap, "missing probe"));
     }
 
-    public Blueprint(Blueprint<T> blueprint, @Nullable T chmap) {
+    public Blueprint(Blueprint<T> blueprint, T chmap) {
+        if (!blueprint.sameChannelmapCode(chmap)) {
+            throw new RuntimeException("not the same channelmap code");
+        }
+
         probe = blueprint.probe;
         this.chmap = chmap;
         this.blueprint = new int[blueprint.blueprint.length];
@@ -292,11 +296,12 @@ public final class Blueprint<T> {
         return this;
     }
 
-    public boolean equals(int[] blueprint) {
+    public boolean same(int @Nullable [] blueprint) {
         return Arrays.equals(this.blueprint, blueprint);
     }
 
-    public boolean equals(List<ElectrodeDescription> electrodes) {
+    public boolean same(@Nullable List<ElectrodeDescription> electrodes) {
+        if (electrodes == null) return false;
         for (var e : electrodes) {
             var i = index(e.s(), e.x(), e.y()).orElse(-1);
             if (i < 0) return false;
@@ -305,11 +310,15 @@ public final class Blueprint<T> {
         return true;
     }
 
-    public boolean equals(Blueprint<T> blueprint) {
+    public boolean same(@Nullable Blueprint<T> blueprint) {
+        if (blueprint == null) return false;
         if (probe.getClass() != blueprint.probe.getClass()) return false;
-        if (chmap == null && blueprint.chmap == null) return true;
-        if (chmap == null || blueprint.chmap == null) return false;
-        if (!Objects.equals(probe.channelmapCode(chmap), probe.channelmapCode(blueprint.chmap))) return false;
+        if (!sameChannelmapCode(blueprint.chmap)) return false;
         return Arrays.equals(this.blueprint, blueprint.blueprint);
+    }
+
+    public boolean sameChannelmapCode(@Nullable Object chmap) {
+        return this.chmap != null && chmap != null
+               && Objects.equals(probe.channelmapCode(this.chmap), probe.channelmapCode(chmap));
     }
 }

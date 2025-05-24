@@ -196,6 +196,49 @@ public class BlueprintToolkitTest {
     }
 
     @Test
+    @Order(0)
+    public void blueprintToString() {
+        var bp = fromShape(1, 5, 2);
+        bp.from(new int[]{
+          1, 1,
+          2, 2,
+          0, 0,
+          4, 4,
+          5, 5,
+        });
+        assertEquals("""
+          1 1
+          2 2
+          0 0
+          4 4
+          5 5
+          """, bp.toString());
+
+        bp = fromShape(2, 5, 2);
+        bp.from(new int[]{
+          1, 1,
+          2, 2,
+          0, 0,
+          4, 4,
+          5, 5,
+          // ---
+          5, 5,
+          4, 4,
+          0, 0,
+          2, 2,
+          1, 1,
+        });
+
+        assertEquals("""
+          1 1|5 5
+          2 2|4 4
+          0 0|0 0
+          4 4|2 2
+          5 5|1 1
+          """, bp.toString());
+    }
+
+    @Test
     public void move() {
         var bp = fromShape(2, 3, 2);
         bp.from(new int[]{

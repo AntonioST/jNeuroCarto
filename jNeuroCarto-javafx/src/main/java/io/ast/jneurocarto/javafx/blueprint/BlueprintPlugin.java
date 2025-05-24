@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Set;
 
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -20,6 +22,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
@@ -88,6 +91,16 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
      * properties *
      *============*/
 
+    public final DoubleProperty alphaProperty = new SimpleDoubleProperty(0.5);
+
+    public final double getAlpha() {
+        return alphaProperty.get();
+    }
+
+    public final void setAlpha(double value) {
+        alphaProperty.set(value);
+    }
+
     public final BooleanProperty conflictProperty = new SimpleBooleanProperty();
 
     public final boolean isConflict() {
@@ -146,6 +159,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
      * blueprint drawing *
      *===================*/
 
+    private Blueprint<Object> blueprint;
     private Object channelmap;
     private List<ElectrodeDescription> electrodes;
 
@@ -153,13 +167,18 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
     public void onProbeUpdate(Object chmap, List<ElectrodeDescription> blueprint) {
         channelmap = chmap;
         electrodes = blueprint;
-        updateBlueprint();
+        if (this.blueprint == null || this.blueprint.sameChannelmapCode(chmap)) {
+            this.blueprint = new Blueprint<>((ProbeDescription<Object>) probe, channelmap, blueprint);
+        } else {
+            this.blueprint = new Blueprint<>(this.blueprint, chmap);
+            this.blueprint.from(blueprint);
+        }
+        updateBlueprint(this.blueprint);
     }
 
-    private void updateBlueprint() {
+    private void updateBlueprint(Blueprint<Object> blueprint) {
         if (!visible.get() || painter == null) return;
 
-        var blueprint = new Blueprint<>((ProbeDescription<Object>) probe, channelmap, electrodes);
         var service = new BlueprintPaintingService<>(blueprint, getFeatures());
         ((BlueprintPainter<Object>) painter).plotBlueprint(service);
 
@@ -168,12 +187,24 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         var tool = new BlueprintToolkit<>(blueprint);
         for (var legend : service.legends) {
             var series = foreground.getOrNewSeries(legend.name());
+            series.alpha(alphaProperty.get());
             series.fill(legend.color());
 
             series.clearData();
             for (var clustering : tool.getClusteringEdges(legend.category())) {
+                var transform = service.transform;
+                if (transform != null) {
+                    var shank = clustering.shank();
+                    clustering = clustering.map(corner -> {
+                        var x = transform.applyAsDouble(shank, corner.x());
+                        return new ClusteringEdges.Corner(x, corner.y(), corner.corner());
+                    });
+                }
+
                 clustering = clustering.offset(service.x, service.y).setCorner(service.w, service.h);
+
                 clustering.edges().forEach(c -> series.addData(c.x(), c.y()));
+
                 var c = clustering.edges().get(0);
                 series.addData(c.x(), c.y());
                 series.addGap();

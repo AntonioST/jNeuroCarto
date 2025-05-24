@@ -20,12 +20,17 @@ public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
     @Override
     public void plotBlueprint(BlueprintPaintingService<ChannelMap> service) {
         var type = service.getChannelmap().type();
+        var ss = (double) type.spacePerShank();
         var sc = (double) type.spacePerColumn();
         var sr = (double) type.spacePerRow();
-        var offset = sc + sc * type.nColumnPerShank();
+        var offset = sc * type.nColumnPerShank();
 
         service.setOffset(offset, 0);
-        service.setCorner(sc / 2, sr / 2);
+        service.setCorner(sc / 4, sr / 2);
+        service.setXonShankTransform((s, x) -> {
+            var x0 = ss * s;
+            return (x - x0) / 2 + x0 + sc / 4;
+        });
 
         if (service.hasFeature(Feature.conflict)) {
             plotConflictBlueprint(service);

@@ -3,10 +3,7 @@ package io.ast.jneurocarto.core.blueprint;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 import java.util.stream.Gatherer;
@@ -273,24 +270,38 @@ public class BlueprintToolkit<T> {
         var format = maxCate >= 10 ? "%2d" : "%d";
         var empty = maxCate >= 10 ? "  " : " ";
 
-        for (int si = 0, ns = shanks.length; si < ns; si++) {
-            int s = shanks[si];
-            if (si > 0) out.append("-".repeat(posx.length * 2 - 1)).append('\n');
-            for (int yi = 0, ny = posy.length; yi < ny; yi++) {
-                int y = posy[yi];
-                for (int xi = 0, nx = posx.length; xi < nx; xi++) {
+        for (int yi = 0, ny = posy.length; yi < ny; yi++) {
+            int y = posy[yi];
+            for (int si = 0, ns = shanks.length; si < ns; si++) {
+                int s = shanks[si];
+                if (si > 0) out.append('|');
+
+                var x0 = getX0OnShank(s);
+                if (x0.isEmpty()) continue;
+                var x0i = Arrays.binarySearch(posx, x0.getAsInt());
+                assert x0i >= 0;
+
+                for (int xi = x0i, nx = posx.length; xi < nx; xi++) {
                     int x = posx[xi];
                     int i = index(s, x, y);
-                    if (xi > 0) out.append(' ');
                     if (i >= 0) {
+                        if (xi - x0i > 0) out.append(' ');
                         out.append(format.formatted(blueprint[i]));
-                    } else {
-                        out.append(empty);
                     }
                 }
-                out.append('\n');
             }
+            out.append('\n');
         }
+    }
+
+    private OptionalInt getX0OnShank(int s) {
+        var shank = shank();
+        var posx = posx();
+
+        return IntStream.range(0, shank.length)
+          .filter(i -> shank[i] == s)
+          .map(i -> posx[i])
+          .min();
     }
 
     /*===========================*
@@ -797,15 +808,18 @@ public class BlueprintToolkit<T> {
     }
 
     public int surrounding(int s, int x, int y, int c) {
+        var dx = (int) dx();
+        var dy = (int) dy();
+        var d0 = 0;
         return switch (c % 8) {
-            case 0 -> index(s, x + 1, y);
-            case 1, -7 -> index(s, x + 1, y + 1);
-            case 2, -6 -> index(s, x + 0, y + 1);
-            case 3, -5 -> index(s, x - 1, y + 1);
-            case 4, -4 -> index(s, x - 1, y + 0);
-            case 5, -3 -> index(s, x - 1, y - 1);
-            case 6, -2 -> index(s, x + 0, y - 1);
-            case 7, -1 -> index(s, x + 1, y - 1);
+            case 0 -> index(s, x + dx, y + d0);
+            case 1, -7 -> index(s, x + dx, y + dy);
+            case 2, -6 -> index(s, x + d0, y + dy);
+            case 3, -5 -> index(s, x - dx, y + dy);
+            case 4, -4 -> index(s, x - dx, y + d0);
+            case 5, -3 -> index(s, x - dx, y - dy);
+            case 6, -2 -> index(s, x + d0, y - dy);
+            case 7, -1 -> index(s, x + dx, y - dy);
             default -> throw new IllegalArgumentException();
         };
     }
@@ -845,7 +859,7 @@ public class BlueprintToolkit<T> {
         int length = blueprint.length;
         if (length == 0) return Clustering.EMPTY;
 
-        var n = (int) Arrays.stream(blueprint)
+        var n = (int) IntStream.range(0, length)
           .filter(i -> tester.applyAsInt(i, blueprint[i]) > 0)
           .count();
 
