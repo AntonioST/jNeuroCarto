@@ -51,10 +51,20 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     private final Canvas top;
     private final Logger log = LoggerFactory.getLogger(InteractionXYChart.class);
 
-    private double resetX1;
-    private double resetX2;
-    private double resetY1;
-    private double resetY2;
+    public record AxesBounds(double xLower, double xUpper, double yLower, double yUpper) {
+        public AxesBounds(NumberAxis x, NumberAxis y) {
+            this(x.getLowerBound(), x.getUpperBound(), y.getLowerBound(), y.getUpperBound());
+        }
+
+        public void apply(NumberAxis x, NumberAxis y) {
+            x.setLowerBound(xLower);
+            x.setUpperBound(xUpper);
+            y.setLowerBound(yLower);
+            y.setUpperBound(yUpper);
+        }
+    }
+
+    private AxesBounds resetBounds;
 
     public InteractionXYChart(C chart) {
         this.chart = chart;
@@ -63,10 +73,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         yAxis = (NumberAxis) chart.getYAxis();
         xAxis.setAnimated(false);
         yAxis.setAnimated(false);
-        resetX1 = xAxis.getLowerBound();
-        resetX2 = xAxis.getUpperBound();
-        resetY1 = yAxis.getLowerBound();
-        resetY2 = yAxis.getUpperBound();
+        resetBounds = new AxesBounds(xAxis, yAxis);
 
         // https://openjfx.io/javadoc/24/javafx.graphics/javafx/scene/doc-files/cssref.html#xychart
         chartPlottingArea = (Region) chart.lookup(".chart-plot-background");
@@ -270,19 +277,13 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     private @Nullable MouseEvent mousePress;
     private @Nullable MouseEvent mouseMoving;
-    private double previousXL;
-    private double previousXU;
-    private double previousYL;
-    private double previousYU;
+    private @Nullable AxesBounds previous;
     private @Nullable Bounds previousArea;
 
     private void onMousePressed(MouseEvent e) {
         mousePress = e;
         if (e.getButton() == MouseButton.SECONDARY) {
-            previousXL = xAxis.getLowerBound();
-            previousXU = xAxis.getUpperBound();
-            previousYL = yAxis.getLowerBound();
-            previousYU = yAxis.getUpperBound();
+            previous = new AxesBounds(xAxis, yAxis);
             previousArea = getPlottingArea();
         }
     }
@@ -315,6 +316,7 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
         mousePress = null;
         mouseMoving = null;
+        previous = null;
         previousArea = null;
 
         if (start != null) {
@@ -414,13 +416,14 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         var dx = current.getX() - start.getX();
         var dy = current.getY() - start.getY();
 
-        var x1 = previousXL;
-        var x2 = previousXU;
+        assert previous != null;
+        var x1 = previous.xLower;
+        var x2 = previous.xUpper;
         dx = dx * (x2 - x1) / area.getWidth();
         setAxisBoundary(xAxis, x1 - dx, x2 - dx);
 
-        x1 = previousYL;
-        x2 = previousYU;
+        x1 = previous.yLower;
+        x2 = previous.yUpper;
         dy = -dy * (x2 - x1) / area.getHeight();
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
 
@@ -716,22 +719,11 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
      * plotting area transformation *
      *==============================*/
 
+
     private static final Affine IDENTIFY = new Affine();
 
-    public double getXAxisLowerBound() {
-        return xAxis.getLowerBound();
-    }
-
-    public double getXAxisUpperBound() {
-        return xAxis.getUpperBound();
-    }
-
-    public double getYAxisLowerBound() {
-        return yAxis.getLowerBound();
-    }
-
-    public double getYAxisUpperBound() {
-        return yAxis.getUpperBound();
+    public AxesBounds getAxesBounds() {
+        return new AxesBounds(xAxis, yAxis);
     }
 
     public Bounds getXAxisArea() {
@@ -1027,15 +1019,24 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         return new Point2D(nx, ny);
     }
 
+    public AxesBounds getResetAxesBoundaries() {
+        return resetBounds;
+    }
+
+    public void setResetAxesBoundaries(AxesBounds bounds) {
+        resetBounds = bounds;
+    }
+
     public void setResetAxesBoundaries(double x1, double x2, double y1, double y2) {
-        resetX1 = x1;
-        resetX2 = x2;
-        resetY1 = y1;
-        resetY2 = y2;
+        resetBounds = new AxesBounds(x1, x2, y1, y2);
     }
 
     public void resetAxesBoundaries() {
-        setAxesBoundaries(resetX1, resetX2, resetY1, resetY2);
+        setAxesBoundaries(resetBounds);
+    }
+
+    public void setAxesBoundaries(AxesBounds bounds) {
+        setAxesBoundaries(bounds.xLower, bounds.xUpper, bounds.yLower, bounds.yUpper);
     }
 
     public void setAxesBoundaries(double x1, double x2, double y1, double y2) {

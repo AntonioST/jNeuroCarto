@@ -38,7 +38,6 @@ import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
-import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
@@ -434,7 +433,7 @@ public class Application<T> {
         resetProbeViewAxesRatio.setOnAction(_ -> view.setAxesEqualRatio());
 
         var showChartAxesDialog = new MenuItem("Set chart axes");
-        resetProbeViewAxesRatio.setAccelerator(KeyCombination.keyCombination("Shortcut+Shift+E"));
+        showChartAxesDialog.setAccelerator(KeyCombination.keyCombination("Shortcut+Shift+E"));
         showChartAxesDialog.setOnAction(_ -> showChartAxesDialog());
 
         var clearLog = new MenuItem("Clear _log");
@@ -1173,46 +1172,7 @@ public class Application<T> {
     }
 
     private void showChartAxesDialog() {
-        var dialog = new Dialog<>();
-        dialog.setTitle("Set chart view axes");
-
-        var root = new GridPane(5, 5);
-
-        root.add(new Label("low"), 1, 0);
-        root.add(new Label("high"), 2, 0);
-        root.add(new Label("X"), 0, 1);
-        root.add(new Label("Y"), 0, 2);
-
-        var xl = new FormattedTextField.OfDoubleField(view.getXAxisLowerBound());
-        var xu = new FormattedTextField.OfDoubleField(view.getXAxisUpperBound());
-        var yl = new FormattedTextField.OfDoubleField(view.getYAxisLowerBound());
-        var yu = new FormattedTextField.OfDoubleField(view.getYAxisUpperBound());
-
-        root.add(xl, 1, 1);
-        root.add(xu, 2, 1);
-        root.add(yl, 1, 2);
-        root.add(yu, 2, 2);
-
-        dialog.getDialogPane().setContent(root);
-
-        var apply = new ButtonType("Apply", ButtonBar.ButtonData.APPLY);
-        var cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-        dialog.getDialogPane().getButtonTypes().addAll(cancel, apply);
-
-        dialog.setOnCloseRequest(e -> {
-            if (dialog.getResult() == apply) {
-                var x1 = xl.getDoubleValue();
-                var x2 = xu.getDoubleValue();
-                var y1 = yl.getDoubleValue();
-                var y2 = yu.getDoubleValue();
-                log.debug("set chart view axes to ({}, {}, {}, {})", x1, x2, y1, y2);
-                view.setAxesBoundaries(x1, x2, y1, y2);
-            } else {
-                log.debug("set chart view axes (canceled)");
-            }
-        });
-
-        dialog.show();
+        new ChartAxesDialog(view).show();
     }
 
 
