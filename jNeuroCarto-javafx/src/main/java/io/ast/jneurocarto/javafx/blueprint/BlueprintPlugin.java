@@ -9,10 +9,12 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.shape.Rectangle;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -33,16 +35,18 @@ import io.ast.jneurocarto.javafx.view.ProbePlugin;
 public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object> {
 
     private final CartoConfig config;
-    private final ProbeDescription<?> probe;
+    private final ProbeDescription<Object> probe;
     private ProbeView<?> view;
     private InteractionXYPainter foreground;
-    private BlueprintPainter<?> painter;
+    private BlueprintPainter<Object> painter;
+
+    private final BlueprintPaintingHandle<Object> handle = new BlueprintPaintingHandle<>();
 
     private final Logger log = LoggerFactory.getLogger(BlueprintPlugin.class);
 
     public BlueprintPlugin(CartoConfig config, ProbeDescription<?> probe) {
         this.config = config;
-        this.probe = probe;
+        this.probe = (ProbeDescription<Object>) probe;
     }
 
     @Override
@@ -59,7 +63,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
      * BlueprintPainter initialization *
      *=================================*/
 
-    private @Nullable BlueprintPainter checkBlueprintPainter(PluginSetupService service) {
+    private @Nullable BlueprintPainter<?> checkBlueprintPainter(PluginSetupService service) {
         var s = service.asProbePluginSetupService();
 
         var painters = s.scanInterface(BlueprintPainter.class);
@@ -78,7 +82,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         }
     }
 
-    private @Nullable BlueprintPainter newBlueprintPainter(Class<BlueprintPainter> clazz) {
+    private @Nullable BlueprintPainter<?> newBlueprintPainter(Class<BlueprintPainter> clazz) {
         try {
             return clazz.getConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
@@ -103,6 +107,10 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
     public final BooleanProperty conflictProperty = new SimpleBooleanProperty();
 
+    {
+        conflictProperty.addListener(listenOn(BlueprintPainter.Feature.conflict));
+    }
+
     public final boolean isConflict() {
         return conflictProperty.get();
     }
@@ -117,9 +125,22 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         return ret.keySet();
     }
 
+    private ChangeListener<Boolean> listenOn(BlueprintPainter.Feature feature) {
+        return (_, _, value) -> {
+            if (value) {
+                handle.setFeature(feature);
+            } else {
+                handle.unsetFeature(feature);
+            }
+            updateCategories();
+        };
+    }
+
     /*===========*
      * UI layout *
      *===========*/
+
+    private HBox legendLayout;
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
@@ -127,7 +148,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
         view = service.getProbeView();
         foreground = view.getForegroundPainter();
-        painter = checkBlueprintPainter(service);
+        painter = (BlueprintPainter<Object>) checkBlueprintPainter(service);
         if (painter == null) visible.set(false);
 
         return super.setup(service);
@@ -140,10 +161,15 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         var painter = this.painter;
         if (painter != null) {
             var features = painter.supportedFeatures();
-            if (features.contains(BlueprintPainter.Feature.conflict)) {
-                var conflictSwitch = new CheckBox("Conflict");
-                conflictSwitch.selectedProperty().bindBidirectional(conflictProperty);
-                layout.getChildren().add(conflictSwitch);
+            if (!features.isEmpty()) {
+                layout.setSpacing(5);
+                layout.getChildren().add(new Label("Features:"));
+
+                if (features.contains(BlueprintPainter.Feature.conflict)) {
+                    var conflictSwitch = new CheckBox("Conflict");
+                    conflictSwitch.selectedProperty().bindBidirectional(conflictProperty);
+                    layout.getChildren().add(conflictSwitch);
+                }
             }
         }
 
@@ -152,47 +178,77 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
     @Override
     protected @Nullable Node setupContent(PluginSetupService service) {
-        return new Label("content");
+        legendLayout = new HBox();
+        legendLayout.setSpacing(5);
+        updateCategories();
+        return legendLayout;
     }
 
-    /*===================*
-     * blueprint drawing *
-     *===================*/
+    private void updateLegends() {
+        var list = legendLayout.getChildren();
+        list.clear();
+        for (var legend : handle.legends) {
+            var block = new Rectangle(16, 16);
+            block.setFill(legend.color());
+
+            list.addAll(block, new Label(legend.name()));
+        }
+    }
+
+    /*==================*
+     * blueprint handle *
+     *==================*/
 
     private Blueprint<Object> blueprint;
-    private Object channelmap;
-    private List<ElectrodeDescription> electrodes;
+
+    private void updateCategories() {
+        handle.resetCategories();
+        if (painter == null) return;
+        painter.changeFeature(handle);
+        updateLegends();
+        updateBlueprint();
+    }
 
     @Override
     public void onProbeUpdate(Object chmap, List<ElectrodeDescription> blueprint) {
-        channelmap = chmap;
-        electrodes = blueprint;
+        var channelmapUpdated = false;
         if (this.blueprint == null || this.blueprint.sameChannelmapCode(chmap)) {
-            this.blueprint = new Blueprint<>((ProbeDescription<Object>) probe, channelmap, blueprint);
+            this.blueprint = new Blueprint<>(probe, chmap, blueprint);
+            channelmapUpdated = true;
         } else {
             this.blueprint = new Blueprint<>(this.blueprint, chmap);
             this.blueprint.from(blueprint);
         }
-        updateBlueprint(this.blueprint);
+
+        handle.setChannelmap(chmap);
+        if (painter != null && channelmapUpdated) {
+            painter.changeChannelmap(handle);
+        }
+
+        updateBlueprint();
     }
 
-    private void updateBlueprint(Blueprint<Object> blueprint) {
-        if (!visible.get() || painter == null) return;
+    private void updateBlueprint() {
+        var blueprint = this.blueprint;
+        if (!visible.get() || painter == null || blueprint == null) return;
 
-        var service = new BlueprintPaintingService<>(blueprint, getFeatures());
-        ((BlueprintPainter<Object>) painter).plotBlueprint(service);
+        var display = new Blueprint<>(blueprint);
+        display.from(blueprint);
 
-        foreground.retainSeries(service.categories());
+        handle.setBlueprint(display);
+        painter.plotBlueprint(handle);
 
-        var tool = new BlueprintToolkit<>(blueprint);
-        for (var legend : service.legends) {
+        foreground.retainSeries(handle.categories());
+
+        var tool = new BlueprintToolkit<>(display);
+        for (var legend : handle.legends) {
             var series = foreground.getOrNewSeries(legend.name());
             series.alpha(alphaProperty.get());
             series.fill(legend.color());
 
             series.clearData();
             for (var clustering : tool.getClusteringEdges(legend.category())) {
-                var transform = service.transform;
+                var transform = handle.transform;
                 if (transform != null) {
                     var shank = clustering.shank();
                     clustering = clustering.map(corner -> {
@@ -201,7 +257,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
                     });
                 }
 
-                clustering = clustering.offset(service.x, service.y).setCorner(service.w, service.h);
+                clustering = clustering.offset(handle.x, handle.y).setCorner(handle.w, handle.h);
 
                 clustering.edges().forEach(c -> series.addData(c.x(), c.y()));
 

@@ -1,8 +1,6 @@
 package io.ast.jneurocarto.javafx.blueprint;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.DoubleBinaryOperator;
 
 import javafx.scene.paint.Color;
@@ -13,13 +11,14 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 
 @NullMarked
-public class BlueprintPaintingService<T> {
+public class BlueprintPaintingHandle<T> {
 
     record Legend(int category, String name, Color color) {
     }
 
-    public final Blueprint<T> blueprint;
-    private final Set<BlueprintPainter.Feature> features;
+    private @Nullable T channelmap;
+    private @Nullable Blueprint<T> blueprint;
+    private final Map<BlueprintPainter.Feature, Boolean> features = new EnumMap<>(BlueprintPainter.Feature.class);
 
     final List<Legend> legends = new ArrayList<>();
 
@@ -32,21 +31,40 @@ public class BlueprintPaintingService<T> {
     DoubleBinaryOperator transform;
 
 
-    BlueprintPaintingService(Blueprint<T> toolkit, Set<BlueprintPainter.Feature> features) {
-        this.blueprint = toolkit;
-        this.features = features;
+    BlueprintPaintingHandle() {
     }
 
-    public T getChannelmap() {
-        return blueprint.channelmap();
+    public T channelmap() {
+        return Objects.requireNonNull(channelmap);
+    }
+
+    void setChannelmap(T channelmap) {
+        this.channelmap = channelmap;
     }
 
     public Set<BlueprintPainter.Feature> getFeatures() {
-        return features;
+        return Collections.unmodifiableSet(features.keySet());
     }
 
     public boolean hasFeature(BlueprintPainter.Feature feature) {
-        return features.contains(feature);
+        return features.getOrDefault(feature, false);
+    }
+
+    void setFeature(BlueprintPainter.Feature feature) {
+        features.put(feature, true);
+    }
+
+    void unsetFeature(BlueprintPainter.Feature feature) {
+        features.put(feature, false);
+    }
+
+    public Blueprint<T> blueprint() {
+        return Objects.requireNonNull(blueprint);
+    }
+
+    void setBlueprint(Blueprint<T> blueprint) {
+        channelmap = blueprint.channelmap();
+        this.blueprint = blueprint;
     }
 
     /**
@@ -82,9 +100,11 @@ public class BlueprintPaintingService<T> {
         return legends.stream().map(Legend::name).toList();
     }
 
+    void resetCategories() {
+        legends.clear();
+    }
+
     public void addCategory(int category, String name, Color color) {
         legends.add(new Legend(category, name, color));
     }
-
-
 }

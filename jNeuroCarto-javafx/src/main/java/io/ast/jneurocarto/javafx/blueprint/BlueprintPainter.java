@@ -23,5 +23,9 @@ public interface BlueprintPainter<T> {
         return Set.of();
     }
 
-    void plotBlueprint(BlueprintPaintingService<T> service);
+    void changeFeature(BlueprintPaintingHandle<T> service);
+
+    void changeChannelmap(BlueprintPaintingHandle<T> service);
+
+    void plotBlueprint(BlueprintPaintingHandle<T> service);
 }

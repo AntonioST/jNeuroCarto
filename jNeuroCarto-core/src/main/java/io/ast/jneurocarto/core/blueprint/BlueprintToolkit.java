@@ -376,11 +376,10 @@ public class BlueprintToolkit<T> {
         return mask(blueprint.probe.allChannels(chmap));
     }
 
-    public BlueprintMask mask(List<ElectrodeDescription> e) {
+    public BlueprintMask mask(List<ElectrodeDescription> electrodes) {
         var ret = new BlueprintMask(length());
-        for (int i = 0, length = length(); i < length; i++) {
-            var t = e.get(i);
-            var j = index(t.s(), t.x(), t.y());
+        for (var e : electrodes) {
+            var j = index(e.s(), e.x(), e.y());
             if (j >= 0) ret.set(j);
         }
         return ret;

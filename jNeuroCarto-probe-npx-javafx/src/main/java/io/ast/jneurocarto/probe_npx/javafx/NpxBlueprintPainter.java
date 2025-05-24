@@ -6,50 +6,61 @@ import javafx.scene.paint.Color;
 
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.blueprint.BlueprintPainter;
-import io.ast.jneurocarto.javafx.blueprint.BlueprintPaintingService;
+import io.ast.jneurocarto.javafx.blueprint.BlueprintPaintingHandle;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 
 import static io.ast.jneurocarto.probe_npx.NpxProbeDescription.*;
 
 public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
+
     @Override
     public Set<Feature> supportedFeatures() {
         return Set.of(Feature.conflict);
     }
 
     @Override
-    public void plotBlueprint(BlueprintPaintingService<ChannelMap> service) {
-        var type = service.getChannelmap().type();
+    public void changeFeature(BlueprintPaintingHandle<ChannelMap> handle) {
+        if (handle.hasFeature(Feature.conflict)) {
+            handle.addCategory(1, "conflict", Color.RED);
+        } else {
+            handle.addCategory(CATE_FULL, "full-", Color.GREEN);
+            handle.addCategory(CATE_HALF, "half-", Color.ORANGE);
+            handle.addCategory(CATE_QUARTER, "quarter-", Color.BLUE);
+            handle.addCategory(CATE_EXCLUDED, "excluded", Color.PINK);
+        }
+    }
+
+    @Override
+    public void changeChannelmap(BlueprintPaintingHandle<ChannelMap> handle) {
+        var type = handle.channelmap().type();
         var ss = (double) type.spacePerShank();
         var sc = (double) type.spacePerColumn();
         var sr = (double) type.spacePerRow();
         var offset = sc * type.nColumnPerShank();
 
-        service.setOffset(offset, 0);
-        service.setCorner(sc / 4, sr / 2);
-        service.setXonShankTransform((s, x) -> {
+        handle.setOffset(offset, 0);
+        handle.setCorner(sc / 4, sr / 2);
+        handle.setXonShankTransform((s, x) -> {
             var x0 = ss * s;
             return (x - x0) / 2 + x0 + sc / 4;
         });
+    }
 
-        if (service.hasFeature(Feature.conflict)) {
-            plotConflictBlueprint(service);
+    @Override
+    public void plotBlueprint(BlueprintPaintingHandle<ChannelMap> handle) {
+        if (handle.hasFeature(Feature.conflict)) {
+            plotConflictBlueprint(handle);
         } else {
-            plotDefaultBlueprint(service);
+            plotDefaultBlueprint(handle);
         }
     }
 
-    private void plotConflictBlueprint(BlueprintPaintingService<ChannelMap> service) {
-        setConflictBlueprint(new BlueprintToolkit<>(service.blueprint));
-        service.addCategory(1, "conflict", Color.RED);
+    private void plotConflictBlueprint(BlueprintPaintingHandle<ChannelMap> handle) {
+        setConflictBlueprint(new BlueprintToolkit<>(handle.blueprint()));
     }
 
-    private void plotDefaultBlueprint(BlueprintPaintingService<ChannelMap> service) {
-        service.blueprint.set(CATE_SET, CATE_FULL);
-        service.addCategory(CATE_FULL, "full-", Color.GREEN);
-        service.addCategory(CATE_HALF, "half-", Color.ORANGE);
-        service.addCategory(CATE_QUARTER, "quarter-", Color.BLUE);
-        service.addCategory(CATE_EXCLUDED, "excluded", Color.PINK);
+    private void plotDefaultBlueprint(BlueprintPaintingHandle<ChannelMap> handle) {
+        handle.blueprint().set(CATE_SET, CATE_FULL);
     }
 
     private void setConflictBlueprint(BlueprintToolkit<ChannelMap> blueprint) {
