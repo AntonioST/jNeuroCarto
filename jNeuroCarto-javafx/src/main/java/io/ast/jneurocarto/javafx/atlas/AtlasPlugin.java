@@ -265,14 +265,24 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private void setupMenuItems(PluginSetupService service) {
+        // edit
         var setCoordinate = new MenuItem("Set atlas brain coordinate");
         setCoordinate.setOnAction(_ -> LogMessageService.printMessage("TODO"));
         service.addMenuInEdit(List.of(setCoordinate));
 
+        // view
         var setImageAlpha = new MenuItem("Set atlas image alpha");
         setImageAlpha.setOnAction(_ -> showSetImageAlphaDialog());
-        service.addMenuInView(List.of(setImageAlpha));
 
+        var showCoorInfo = new CheckMenuItem("Show cursor coordinate");
+        showCoorInfo.selectedProperty().bindBidirectional(labelMouseInformation.visibleProperty());
+
+        var showStructInfo = new CheckMenuItem("Show structure information");
+        showStructInfo.selectedProperty().bindBidirectional(labelStructure.visibleProperty());
+
+        service.addMenuInView(List.of(setImageAlpha, showCoorInfo, showStructInfo));
+
+        // help
         var about = new MenuItem("About - " + name());
         about.setOnAction(e -> LogMessageService.printMessage("""
           Atlas Brain - %s
@@ -292,10 +302,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         labelStructure = new Label("");
 
-        var layout = new VBox(
-          new HBox(coorInformation, labelMouseInformation),
-          labelStructure
-        );
+        var infoLayout = new HBox(coorInformation, labelMouseInformation);
+        coorInformation.visibleProperty().bind(labelMouseInformation.visibleProperty());
+        infoLayout.visibleProperty().bind(labelMouseInformation.visibleProperty());
+        infoLayout.managedProperty().bind(labelMouseInformation.visibleProperty());
+
+        var layout = new VBox(infoLayout, labelStructure);
+        labelStructure.managedProperty().bind(labelStructure.visibleProperty());
 
         service.addBelowProbeView(layout);
 
