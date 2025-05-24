@@ -471,31 +471,33 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
      * state save/load *
      *=================*/
 
-    public static class ProbeViewState {
-        @JsonProperty(value = "x_axis", index = 0, required = true)
-        public List<Double> x;
+    public record ProbeViewState(
+      @JsonProperty(value = "x_axis", index = 0, required = true) double[] x,
+      @JsonProperty(value = "y_axis", index = 1, required = true) double[] y
+    ) {
+        public ProbeViewState(double x1, double x2, double y1, double y2) {
+            this(new double[]{x1, x2}, new double[]{y1, y2});
+        }
 
-        @JsonProperty(value = "y_axis", index = 1, required = true)
-        public List<Double> y;
+        public ProbeViewState(AxesBounds bounds) {
+            this(new double[]{bounds.xLower(), bounds.xUpper()},
+              new double[]{bounds.yLower(), bounds.yUpper()});
+        }
     }
 
     class ProbeViewStateListener implements StateView<ProbeViewState> {
 
         @Override
         public ProbeViewState getState() {
-            var state = new ProbeViewState();
-            var bounds = getAxesBounds();
-            state.x = List.of(bounds.xLower(), bounds.xUpper());
-            state.y = List.of(bounds.yLower(), bounds.yUpper());
-            return state;
+            return new ProbeViewState(getAxesBounds());
         }
 
         @Override
         public void restoreState(@Nullable ProbeViewState state) {
             if (state == null) return;
             var bounds = new AxesBounds(
-              state.x.get(0), state.x.get(1),
-              state.y.get(0), state.y.get(1)
+              state.x[0], state.x[1],
+              state.y[0], state.y[1]
             );
             setAxesBoundaries(bounds);
         }

@@ -1,18 +1,16 @@
 package io.ast.jneurocarto.javafx.atlas;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
+public record CoordinateLabel(
+  @JsonProperty(index = 0) String text,
+  @JsonProperty(value = "pos", index = 1) double[] position,
+  @JsonProperty(value = "ref", index = 2) int reference,
+  @JsonProperty(index = 3) String color
+) {
 
-public class CoordinateLabel {
+    public CoordinateLabel(String text, double x, double y, int reference, String color) {
+        this(text, new double[]{x, y}, reference, color);
+    }
 
-    public String text;
-
-    @JsonAlias("pos")
-    public List<Double> position;
-
-    @JsonAlias("ref")
-    public int reference;
-
-    public String color;
 }
