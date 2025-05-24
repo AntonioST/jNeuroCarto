@@ -71,6 +71,10 @@ public class BrainAtlas {
         return root;
     }
 
+    public String name() {
+        return meta.name;
+    }
+
     public String version() {
         return meta.version;
     }

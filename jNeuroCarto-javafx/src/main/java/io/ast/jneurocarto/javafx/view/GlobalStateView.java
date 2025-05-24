@@ -1,4 +1,4 @@
 package io.ast.jneurocarto.javafx.view;
 
-public interface GlobalStateView extends StateView {
+public interface GlobalStateView<S> extends StateView<S> {
 }

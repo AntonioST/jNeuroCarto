@@ -1,7 +1,9 @@
 package io.ast.jneurocarto.javafx.atlas;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
@@ -29,9 +31,10 @@ import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.Plugin;
+import io.ast.jneurocarto.javafx.view.StateView;
 
 @NullMarked
-public class AtlasPlugin extends InvisibleView implements Plugin {
+public class AtlasPlugin extends InvisibleView implements Plugin, StateView<AtlasBrainViewState> {
 
     private final CartoConfig config;
     private BrainGlobeDownloader.DownloadResult download;
@@ -71,7 +74,66 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         projection.set(value);
     }
 
+    /*=================*
+     * state load/save *
+     *=================*/
 
+    private List<String> regions = new ArrayList<>();
+    private List<CoordinateLabel> labels = new ArrayList<>();
+
+    @Override
+    public @Nullable AtlasBrainViewState getState() {
+        if (brain == null || image == null) return null;
+        log.debug("save");
+
+        var state = new AtlasBrainViewState();
+        state.name = brain.name();
+        state.projection = projection.get();
+        state.plane = image.plane();
+        state.offsetWidth = image.dw();
+        state.offsetHeight = image.dh();
+        state.imagePosX = painter.x();
+        state.imagePosY = painter.y();
+        state.imageScaleX = painter.sx();
+        state.imageScaleY = painter.sy();
+        state.imageRoration = painter.r();
+        state.regions.addAll(regions);
+        state.labels.addAll(labels);
+        return state;
+    }
+
+    @Override
+    public void restoreState(@Nullable AtlasBrainViewState state) {
+        if (state == null) return;
+        if (brain == null) return;
+
+        log.debug("restore");
+        if (state.name == null) {
+            log.info("restore with null atlas name. skip.");
+            return;
+        } else if (!Objects.equals(brain.name(), state.name)) {
+            log.info("restore with {} atlas name. skip.", state.name);
+            return;
+        }
+
+        setProjection(state.projection);
+
+        assert images != null;
+        setPlaneIndex(state.plane);
+        setOffsetWidthHeight(state.offsetWidth, state.offsetHeight);
+
+        labels.clear();
+        labels.addAll(state.labels); // TODO transform
+
+        painter.x(state.imagePosX);
+        painter.y(state.imagePosY);
+        painter.sx(state.imageScaleX);
+        painter.sy(state.imageScaleY);
+        painter.r(state.imageRoration);
+
+        regions.clear();
+        regions.addAll(state.regions);
+    }
 
     /*===========================*
      * BrainAtlas initialization *
@@ -118,6 +180,27 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
         });
         IOAction.measure(log, "pre load annotation", brain::annotation);
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
+    }
+
+    public void setPlane(double plane) {
+        sliderPlane.setValue(plane / 1000);
+    }
+
+    private void setPlaneIndex(int plane) {
+        assert images != null;
+        sliderPlane.setValue(plane * images.resolution()[0] / 1000);
+    }
+
+    public void setOffsetWidthHeight(double dw, double dh) {
+        sliderOffsetWidth.setValue(dw);
+        sliderOffsetHeight.setValue(dh);
+    }
+
+    private void setOffsetWidthHeightIndex(int dw, int dh) {
+        assert images != null;
+        var res = images.resolution()[0];
+        sliderOffsetWidth.setValue(dw * res);
+        sliderOffsetHeight.setValue(dh * res);
     }
 
     /*===========*
@@ -355,7 +438,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin {
 
         label.setText(text);
     }
-
 
 
     /*==============*

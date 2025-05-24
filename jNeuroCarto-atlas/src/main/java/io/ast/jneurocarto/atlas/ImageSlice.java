@@ -189,8 +189,9 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     }
 
     public ImageSlice withOffset(double dw, double dh) {
-        var iw = (int) (dw / stack.resolution()[1]);
-        var ih = (int) (dh / stack.resolution()[2]);
+        var res = stack.resolution()[0];
+        var iw = (int) (dw / res);
+        var ih = (int) (dh / res);
         return new ImageSlice(plane, ax, ay, iw, ih, stack);
     }
 
@@ -213,8 +214,8 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     public ImageSlice withRotate(int rx, int ry) {
         var dw = -width() * Math.tan(ry) / 2;
         var dh = height() * Math.tan(rx) / 2;
-        var r = resolution();
-        return new ImageSlice(plane, ax, ay, (int) (dw / r[1]), (int) (dh / r[2]), stack);
+        var res = resolution()[0];
+        return new ImageSlice(plane, ax, ay, (int) (dw / res), (int) (dh / res), stack);
     }
 
     public BufferedImage image() {
