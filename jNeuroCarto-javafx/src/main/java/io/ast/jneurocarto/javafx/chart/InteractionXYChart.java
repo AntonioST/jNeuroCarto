@@ -1046,15 +1046,17 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
     }
 
     public static void setAxisBoundary(NumberAxis axis, double x1, double x2) {
-        axis.setLowerBound(x1);
-        axis.setUpperBound(x2);
-
         var px = Math.log10(x2 - x1);
         if (px - (int) px < 1e-3) --px;
 
-
         var ux = Math.pow(10, (int) px);
         if ((x2 - x1) / ux < 4) ux = Math.pow(10, (int) px - 1);
+
+        x1 = Math.round(x1 / ux * 100) * ux / 100;
+        x2 = Math.round(x2 / ux * 100) * ux / 100;
+
+        axis.setLowerBound(x1);
+        axis.setUpperBound(x2);
         axis.setTickUnit(ux);
     }
 
