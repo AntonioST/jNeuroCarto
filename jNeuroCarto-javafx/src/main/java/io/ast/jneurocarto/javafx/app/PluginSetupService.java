@@ -125,7 +125,7 @@ public final class PluginSetupService {
         if (provider == null) throw new RuntimeException("service for plugin setup is finished.");
 
         var packages = provider.stream()
-          .map(it -> it.getClass().getPackage().getName())
+          .map(it -> it.getClass().getPackageName())
           .toArray(String[]::new);
 
         var scan = new ClassGraph()
@@ -149,7 +149,7 @@ public final class PluginSetupService {
         if (provider == null) throw new RuntimeException("service for plugin setup is finished.");
 
         var packages = provider.stream()
-          .map(it -> it.getClass().getPackage().getName())
+          .map(it -> it.getClass().getPackageName())
           .toArray(String[]::new);
 
         var scan = new ClassGraph()

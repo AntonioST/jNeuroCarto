@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.javafx.app;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.javafx.view.GlobalStateView;
@@ -8,12 +9,13 @@ import io.ast.jneurocarto.javafx.view.StateView;
 
 public final class PluginStateService {
 
+    private static final Logger log = LoggerFactory.getLogger(PluginStateService.class);
+
     private PluginStateService() {
         throw new RuntimeException();
     }
 
     public static <S> @Nullable S loadState(StateView<S> plugin) {
-        var log = LoggerFactory.getLogger(PluginStateService.class);
         log.debug("loadState({})", plugin.getClass().getSimpleName());
 
         var application = Application.getInstance();
@@ -27,7 +29,6 @@ public final class PluginStateService {
     }
 
     public static <S> void saveState(StateView<S> plugin, S state) {
-        var log = LoggerFactory.getLogger(PluginStateService.class);
         log.debug("saveState({})", plugin.getClass().getSimpleName());
 
         var application = Application.getInstance();
@@ -41,7 +42,6 @@ public final class PluginStateService {
     }
 
     public static void retrieveAllStates() {
-        var log = LoggerFactory.getLogger(PluginStateService.class);
         log.debug("retrieveAllStates");
 
         var application = Application.getInstance();
@@ -54,7 +54,6 @@ public final class PluginStateService {
     }
 
     public static void saveAllStates() {
-        var log = LoggerFactory.getLogger(PluginStateService.class);
         log.debug("saveAllStates");
 
         var application = Application.getInstance();

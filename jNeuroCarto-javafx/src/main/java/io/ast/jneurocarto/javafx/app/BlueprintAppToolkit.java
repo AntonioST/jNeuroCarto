@@ -117,6 +117,11 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return new BlueprintAppToolkit<>(application);
     }
 
+    public BlueprintAppToolkit<T> setChannelmap(T channelmap) {
+        application.clearProbe(channelmap);
+        return new BlueprintAppToolkit<>(application);
+    }
+
     public boolean isCurrentChannelmapUsedByApplication() {
         var chmap = channelmap();
         if (chmap == null) return false;

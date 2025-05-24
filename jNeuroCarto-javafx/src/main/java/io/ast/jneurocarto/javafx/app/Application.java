@@ -642,6 +642,7 @@ public class Application<T> {
             extra.add("neurocarto.views.view_efficient:ElectrodeEfficiencyData");
             extra.add("blueprint");
             extra.add("atlas");
+            extra.add("script");
         } else {
             extra.addAll(rc.views);
         }
@@ -1123,9 +1124,21 @@ public class Application<T> {
     }
 
     public void clearProbe(String code) {
-        log.debug("clearProbe for : {}", code);
+        log.debug("clearProbe for code {}", code);
 
         var chmap = probe.newChannelmap(code);
+        clearProbe(chmap);
+    }
+
+    public void clearProbe(T chmap) {
+        var code = probe.channelmapCode(chmap);
+        if (code == null) {
+            log.warn("clearProbe for chmap {} (rejected)", code.getClass().getSimpleName());
+            return;
+        }
+
+        log.debug("clearProbe for chmap {}", code);
+
         view.setChannelmap(chmap);
         view.resetBlueprint();
         view.fitAxesBoundaries();
