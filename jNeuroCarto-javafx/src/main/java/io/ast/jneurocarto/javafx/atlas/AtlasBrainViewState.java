@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRootName;
 
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 
+@JsonRootName("AtlasBrainView")
 public class AtlasBrainViewState {
     @JsonProperty(value = "atlas_brain", index = 0, required = true)
     public String name;
@@ -39,11 +41,14 @@ public class AtlasBrainViewState {
     public double imageRoration;
 
     @JsonProperty(value = "image_alpha", index = 10, defaultValue = "1")
-    public double imageAlpha;
+    public double imageAlpha = 1;
 
-    @JsonProperty(index = 11, defaultValue = "[]")
-    public List<String> regions = new ArrayList<>();
+    @JsonProperty(value = "show_image", index = 11, defaultValue = "true")
+    public boolean showImage = true;
 
     @JsonProperty(index = 12, defaultValue = "[]")
+    public List<String> regions = new ArrayList<>();
+
+    @JsonProperty(index = 13, defaultValue = "[]")
     public List<CoordinateLabel> labels = new ArrayList<>();
 }

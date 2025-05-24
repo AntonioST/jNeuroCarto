@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRootName;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
@@ -471,6 +472,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
      * state save/load *
      *=================*/
 
+    @JsonRootName("ProbeView")
     public record ProbeViewState(
       @JsonProperty(value = "x_axis", index = 0, required = true) double[] x,
       @JsonProperty(value = "y_axis", index = 1, required = true) double[] y
@@ -489,17 +491,24 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
         @Override
         public ProbeViewState getState() {
+            log.debug("save");
             return new ProbeViewState(getAxesBounds());
         }
 
         @Override
         public void restoreState(@Nullable ProbeViewState state) {
             if (state == null) return;
-            var bounds = new AxesBounds(
-              state.x[0], state.x[1],
-              state.y[0], state.y[1]
-            );
-            setAxesBoundaries(bounds);
+
+            log.debug("restore");
+            try {
+                var bounds = new AxesBounds(
+                  state.x[0], state.x[1],
+                  state.y[0], state.y[1]
+                );
+                setAxesBoundaries(bounds);
+            } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+                log.warn("restore from bad config.json", e);
+            }
         }
     }
 

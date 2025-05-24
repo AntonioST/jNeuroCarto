@@ -102,6 +102,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         state.imageScaleY = painter.sy();
         state.imageRoration = painter.r();
         state.imageAlpha = painter.getImageAlpha();
+        state.showImage = painter.isVisible();
         state.regions.addAll(regions);
         state.labels.addAll(labels);
         return state;
@@ -139,6 +140,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         painter.sy(state.imageScaleY);
         painter.r(state.imageRoration);
         painter.setImageAlpha(state.imageAlpha);
+        painter.setVisible(state.showImage);
         canvas.repaintBackground();
 
         regions.clear();
@@ -614,8 +616,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         alpha.setShowTickLabels(true);
         alpha.setShowTickMarks(true);
         alpha.setMajorTickUnit(0.2);
+        alpha.setMinorTickCount(1);
+        alpha.setSnapToTicks(true);
         alpha.valueProperty().addListener((_, _, v) -> {
-            painter.setImageAlpha(v.doubleValue());
+            painter.setImageAlpha((double) Math.round(v.doubleValue() * 10) / 10);
             canvas.repaintBackground();
         });
 
