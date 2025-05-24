@@ -39,7 +39,6 @@ import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.dialog.ChartAxesDialog;
 import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
-import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
@@ -591,11 +590,17 @@ public class Application<T> {
      * plugins *
      *=========*/
 
-    final List<Plugin> plugins = new ArrayList<>();
+    final List<Object> plugins = new ArrayList<>();
     final List<ProbePluginProvider> providers = new ArrayList<>();
 
     private void setupPlugins() {
         log.debug("setup plugins");
+
+        {
+            var plugin = view.new ProbeViewStateListener();
+            log.debug("add ProbeViewStateListener");
+            plugins.add(plugin);
+        }
 
         var service = new PluginSetupService(this);
 
@@ -739,6 +744,9 @@ public class Application<T> {
         } catch (IOException ex) {
             printMessage("fail to load view config file.");
             log.warn("loadPluginViewConfig", ex);
+        } finally {
+            log.debug("retrieveAllStates");
+            PluginStateService.retrieveAllStates();
         }
 
         fireProbeUpdate(channelmap, blueprint);
@@ -800,6 +808,9 @@ public class Application<T> {
                 log.warn("saveBlueprint", e);
             }
         }
+
+        log.debug("saveAllStates");
+        PluginStateService.saveAllStates();
 
         try {
             savePluginViewConfig(channelmapFile);
@@ -864,6 +875,7 @@ public class Application<T> {
                 chooser.setInitialFileName("New" + suffix);
             } else {
                 var filename = repository.getChannelmapName(probe, channelmapFile.getFileName().toString());
+                System.out.println("filename = " + filename);
                 chooser.setInitialFileName(filename);
             }
         }
@@ -1048,16 +1060,10 @@ public class Application<T> {
 
         log.debug("loadPluginViewConfig {}", viewConfigFile.getFileName());
         repository.loadViewConfigFile(probe, viewConfigFile, true);
-
-        log.debug("retrieveAllStates");
-        PluginStateService.retrieveAllStates();
     }
 
     public void savePluginViewConfig(Path channelmapFile) throws IOException {
         var viewConfigFile = repository.getViewConfigFile(probe, channelmapFile);
-
-        log.debug("saveAllStates");
-        PluginStateService.saveAllStates();
 
         log.debug("savePluginViewConfig {}", viewConfigFile.getFileName());
         repository.saveViewConfigFile(probe, viewConfigFile);

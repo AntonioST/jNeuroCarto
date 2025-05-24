@@ -62,6 +62,7 @@ public abstract class InvisibleView implements Plugin {
           heading,
           paddedContent
         );
+        root.setSpacing(5);
 
         return root;
     }

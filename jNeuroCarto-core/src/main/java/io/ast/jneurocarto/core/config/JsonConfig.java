@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @NullMarked
@@ -25,6 +26,7 @@ public class JsonConfig {
 
     public JsonConfig() {
         maps = new HashMap<>();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
     }
 
     private JsonConfig(Map<String, JsonNode> maps) {

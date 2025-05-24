@@ -3,42 +3,47 @@ package io.ast.jneurocarto.javafx.atlas;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 
 public class AtlasBrainViewState {
-    @JsonAlias("atlas_brain")
+    @JsonProperty(value = "atlas_brain", index = 0, required = true)
     public String name;
 
-    @JsonAlias("brain_slice")
+    @JsonProperty(value = "brain_slice", index = 1, defaultValue = "coronal")
     public ImageSliceStack.Projection projection = ImageSliceStack.Projection.coronal;
 
-    @JsonAlias("slice_plane")
+    @JsonProperty(value = "slice_plane", index = 2, defaultValue = "0")
     public int plane;
 
-    @JsonAlias("slice_rot_w")
+    @JsonProperty(value = "slice_rot_w", index = 3, defaultValue = "0")
     public int offsetWidth;
 
-    @JsonAlias("slice_rot_h")
+    @JsonProperty(value = "slice_rot_h", index = 4, defaultValue = "0")
     public int offsetHeight;
 
-    @JsonAlias("image_dx")
+    @JsonProperty(value = "image_dx", index = 5, defaultValue = "0")
     public double imagePosX;
 
-    @JsonAlias("image_dy")
+    @JsonProperty(value = "image_dy", index = 6, defaultValue = "0")
     public double imagePosY;
 
-    @JsonAlias("image_sx")
+    @JsonProperty(value = "image_sx", index = 7, defaultValue = "0")
     public double imageScaleX;
 
-    @JsonAlias("image_sy")
+    @JsonProperty(value = "image_sy", index = 8, defaultValue = "0")
     public double imageScaleY;
 
-    @JsonAlias("image_rt")
+    @JsonProperty(value = "image_rt", index = 9, defaultValue = "0")
     public double imageRoration;
 
+    @JsonProperty(value = "image_alpha", index = 10, defaultValue = "1")
+    public double imageAlpha;
+
+    @JsonProperty(index = 11, defaultValue = "[]")
     public List<String> regions = new ArrayList<>();
 
+    @JsonProperty(index = 12, defaultValue = "[]")
     public List<CoordinateLabel> labels = new ArrayList<>();
 }

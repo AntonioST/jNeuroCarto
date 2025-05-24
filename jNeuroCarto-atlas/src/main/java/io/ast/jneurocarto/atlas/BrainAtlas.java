@@ -26,6 +26,7 @@ public class BrainAtlas {
     public static final String MESHES_DIRNAME = "meshes";
 
     private final Path root;
+    private final String name;
     private final BrainAtlasMeta meta;
     private final Structures structures;
     private final AnatomicalSpace space;
@@ -34,6 +35,10 @@ public class BrainAtlas {
     public BrainAtlas(Path root) throws IOException {
         this.root = root;
         log = LoggerFactory.getLogger(BrainAtlas.class);
+
+        var filename = root.getFileName().toString();
+        var i = filename.indexOf("_v");
+        name = filename.substring(0, i);
 
         Path p;
         meta = BrainAtlasMeta.load(p = root.resolve(METADATA_FILENAME));
@@ -72,7 +77,7 @@ public class BrainAtlas {
     }
 
     public String name() {
-        return meta.name;
+        return name;
     }
 
     public String version() {

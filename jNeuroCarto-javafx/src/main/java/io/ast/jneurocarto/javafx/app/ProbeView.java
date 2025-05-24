@@ -13,6 +13,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
@@ -20,6 +21,7 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.view.StateView;
 
 @NullMarked
 public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
@@ -462,6 +464,40 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         highlighted.clearData();
         if (!Platform.isFxApplicationThread()) {
             Platform.runLater(interaction::repaint);
+        }
+    }
+
+    /*=================*
+     * state save/load *
+     *=================*/
+
+    public static class ProbeViewState {
+        @JsonProperty(value = "x_axis", index = 0, required = true)
+        public List<Double> x;
+
+        @JsonProperty(value = "y_axis", index = 1, required = true)
+        public List<Double> y;
+    }
+
+    class ProbeViewStateListener implements StateView<ProbeViewState> {
+
+        @Override
+        public ProbeViewState getState() {
+            var state = new ProbeViewState();
+            var bounds = getAxesBounds();
+            state.x = List.of(bounds.xLower(), bounds.xUpper());
+            state.y = List.of(bounds.yLower(), bounds.yUpper());
+            return state;
+        }
+
+        @Override
+        public void restoreState(@Nullable ProbeViewState state) {
+            if (state == null) return;
+            var bounds = new AxesBounds(
+              state.x.get(0), state.x.get(1),
+              state.y.get(0), state.y.get(1)
+            );
+            setAxesBoundaries(bounds);
         }
     }
 

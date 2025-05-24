@@ -83,7 +83,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     @Override
     public @Nullable AtlasBrainViewState getState() {
-        if (brain == null || image == null) return null;
+        if (brain == null || image == null) {
+            log.debug("save nothing");
+            return null;
+        }
+
         log.debug("save");
 
         var state = new AtlasBrainViewState();
@@ -97,6 +101,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         state.imageScaleX = painter.sx();
         state.imageScaleY = painter.sy();
         state.imageRoration = painter.r();
+        state.imageAlpha = painter.getImageAlpha();
         state.regions.addAll(regions);
         state.labels.addAll(labels);
         return state;
@@ -104,10 +109,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     @Override
     public void restoreState(@Nullable AtlasBrainViewState state) {
-        if (state == null) return;
-        if (brain == null) return;
+        if (state == null || brain == null) {
+            log.debug("restore nothing");
+            return;
+        }
 
         log.debug("restore");
+
         if (state.name == null) {
             log.info("restore with null atlas name. skip.");
             return;
@@ -130,6 +138,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         painter.sx(state.imageScaleX);
         painter.sy(state.imageScaleY);
         painter.r(state.imageRoration);
+        painter.setImageAlpha(state.imageAlpha);
+        canvas.repaintBackground();
 
         regions.clear();
         regions.addAll(state.regions);
@@ -233,6 +243,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         painter.flipUD(true);
         painter.flipLR(true);
         painter.invertRotation(false);
+        painter.setImageAlpha(0.5);
         canvas.addBackgroundPlotting(painter);
 
         var ret = super.setup(service);
@@ -255,6 +266,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var setCoordinate = new MenuItem("Set atlas brain coordinate");
         setCoordinate.setOnAction(_ -> LogMessageService.printMessage("TODO"));
         service.addMenuInEdit(List.of(setCoordinate));
+
+        var setImageAlpha = new MenuItem("Set atlas image alpha");
+        setImageAlpha.setOnAction(_ -> showSetImageAlphaDialog());
+        service.addMenuInView(List.of(setImageAlpha));
 
         var about = new MenuItem("About - " + name());
         about.setOnAction(e -> LogMessageService.printMessage("""
@@ -583,6 +598,45 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             var finalText = text;
             Platform.runLater(() -> labelStructure.setText(finalText));
         });
+    }
+
+    /*=========*
+     * dialogs *
+     *=========*/
+
+    private void showSetImageAlphaDialog() {
+        var dialog = new Dialog<>();
+        dialog.setTitle("Set Atlas brain image alpha value");
+
+        var oldAlpha = painter.getImageAlpha();
+
+        var alpha = new Slider(0, 1, oldAlpha);
+        alpha.setShowTickLabels(true);
+        alpha.setShowTickMarks(true);
+        alpha.setMajorTickUnit(0.2);
+        alpha.valueProperty().addListener((_, _, v) -> {
+            painter.setImageAlpha(v.doubleValue());
+            canvas.repaintBackground();
+        });
+
+        var layout = new VBox(new Label("Alpha"), alpha);
+        layout.setSpacing(5);
+
+        dialog.getDialogPane().setContent(layout);
+
+        var okay = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        var cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(cancel, okay);
+
+        dialog.setOnCloseRequest(_ -> {
+            var result = dialog.getResult();
+            if (result != okay) {
+                painter.setImageAlpha(oldAlpha);
+            }
+            canvas.repaintBackground();
+        });
+
+        dialog.show();
     }
 
 }

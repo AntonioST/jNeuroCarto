@@ -231,8 +231,9 @@ public class Repository {
         if (suffix.isEmpty()) {
             return name;
         }
-        if (!name.equals(suffix.get(0))) {
-            name += suffix.get(0);
+        var ext = suffix.get(0);
+        if (!name.endsWith(ext)) {
+            name += ext;
         }
 
         return name;
