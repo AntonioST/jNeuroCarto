@@ -718,6 +718,22 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     private static final Affine IDENTIFY = new Affine();
 
+    public double getXAxisLowerBound() {
+        return xAxis.getLowerBound();
+    }
+
+    public double getXAxisUpperBound() {
+        return xAxis.getUpperBound();
+    }
+
+    public double getYAxisLowerBound() {
+        return yAxis.getLowerBound();
+    }
+
+    public double getYAxisUpperBound() {
+        return yAxis.getUpperBound();
+    }
+
     public Bounds getXAxisArea() {
         return top.sceneToLocal(xAxis.localToScene(xAxis.getBoundsInLocal()));
     }
