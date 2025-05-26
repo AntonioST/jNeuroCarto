@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.javafx.script;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -46,29 +47,32 @@ public class TokenizeTest {
     }
 
     @Test
-    public void purePyList() {
+    public void purePyEmptyList() {
         assertEquals(
           PyValue.EMPTY_LIST,
           new Tokenize("[]").parseValue()
         );
+    }
+
+    @Test
+    public void purePyListWithWrongSyntax() {
         assertThrows(IllegalArgumentException.class, () -> {
             new Tokenize("[,]").parseValue();
         });
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Tokenize("[,,]").parseValue();
+        });
+    }
+
+    @Test
+    public void purePyList() {
         assertEquals(
           new PyValue.PyList(new PyValue.PyInt(123)),
           new Tokenize("[123]").parseValue()
         );
         assertEquals(
-          new PyValue.PyList(new PyValue.PyInt(123)),
-          new Tokenize("[123,]").parseValue()
-        );
-        assertEquals(
           new PyValue.PyList(new PyValue.PyInt(123), new PyValue.PyInt(321)),
           new Tokenize("[123, 321]").parseValue()
-        );
-        assertEquals(
-          new PyValue.PyList(new PyValue.PyInt(123), new PyValue.PyInt(321)),
-          new Tokenize("[123, 321,]").parseValue()
         );
         assertEquals(
           new PyValue.PyList(new PyValue.PyInt(123), new PyValue.PyStr("321")),
@@ -77,26 +81,49 @@ public class TokenizeTest {
     }
 
     @Test
-    public void purePyTuple() {
+    public void purePyListWithTailingComma() {
+        assertEquals(
+          new PyValue.PyList(new PyValue.PyInt(123)),
+          new Tokenize("[123,]").parseValue()
+        );
+        assertEquals(
+          new PyValue.PyList(new PyValue.PyInt(123), new PyValue.PyInt(321)),
+          new Tokenize("[123, 321,]").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyEmptyTuple() {
         assertEquals(
           PyValue.EMPTY_TUPLE,
           new Tokenize("()").parseValue()
         );
+    }
+
+    @Test
+    public void purePyTupleWithWrongSyntax() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Tokenize("(,)").parseValue();
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            new Tokenize("(,,)").parseValue();
+        });
+    }
+
+
+    @Test
+    public void purePyTupleButWithSingleElement() {
         assertEquals(
           new PyValue.PyInt(123),
           new Tokenize("(123)").parseValue()
         );
-        assertEquals(
-          new PyValue.PyTuple1(new PyValue.PyInt(123)),
-          new Tokenize("(123,)").parseValue()
-        );
+    }
+
+    @Test
+    public void purePyTuple() {
         assertEquals(
           new PyValue.PyTuple2(new PyValue.PyInt(123), new PyValue.PyInt(321)),
           new Tokenize("(123, 321)").parseValue()
-        );
-        assertEquals(
-          new PyValue.PyTuple2(new PyValue.PyInt(123), new PyValue.PyInt(321)),
-          new Tokenize("(123, 321,)").parseValue()
         );
         assertEquals(
           new PyValue.PyTuple2(new PyValue.PyInt(123), new PyValue.PyStr("321")),
@@ -114,25 +141,54 @@ public class TokenizeTest {
         );
     }
 
+
     @Test
-    public void purePyDict() {
+    public void purePyTupleWithTailingComma() {
+        assertEquals(
+          new PyValue.PyTuple1(new PyValue.PyInt(123)),
+          new Tokenize("(123,)").parseValue()
+        );
+        assertEquals(
+          new PyValue.PyTuple2(new PyValue.PyInt(123), new PyValue.PyInt(321)),
+          new Tokenize("(123, 321,)").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyEmptyDict() {
         assertEquals(
           PyValue.EMPTY_DICT,
           new Tokenize("{}").parseValue()
         );
+    }
+
+    @Test
+    public void purePyDict() {
         assertEquals(
           new PyValue.PyDict(List.of("1"), List.of(new PyValue.PyInt(1))),
           new Tokenize("{1:1}").parseValue()
         );
-        assertEquals(
-          new PyValue.PyDict(List.of("1"), List.of(new PyValue.PyInt(1))),
-          new Tokenize("{1:1,}").parseValue()
-        );
+    }
+
+    @Test
+    public void purePyDictAsSet() {
         assertEquals(
           new PyValue.PyDict(List.of("1", "2"),
             List.of(PyValue.None, PyValue.None)),
           new Tokenize("{1,2}").parseValue()
         );
+    }
+
+    @Test
+    public void purePyDictWithTailComma() {
+        assertEquals(
+          new PyValue.PyDict(List.of("1"), List.of(new PyValue.PyInt(1))),
+          new Tokenize("{1:1,}").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyDictWithDuplicateKey() {
         assertThrows(RuntimeException.class, () -> {
             new Tokenize("{1,1}").parseValue();
         });
@@ -156,6 +212,30 @@ public class TokenizeTest {
         assertEquals(
           new PyValue.PyStr("[()]"),
           new Tokenize("'[()]'").parseValue()
+        );
+    }
+
+    @Test
+    public void parseLine() {
+        assertEquals(
+          List.of(new PyValue.PyInt(1), new PyValue.PyInt(2), new PyValue.PyInt(3)),
+          new Tokenize("1,2,3").parse().tokens
+        );
+    }
+
+    @Test
+    public void parseLineWithNullValue() {
+        assertEquals(
+          Arrays.asList(new PyValue.PyInt(1), null, new PyValue.PyInt(3)),
+          new Tokenize("1,,3").parse().tokens
+        );
+        assertEquals(
+          Arrays.asList(null, null, null),
+          new Tokenize(",, ").parse().tokens
+        );
+        assertEquals(
+          Arrays.asList(null, null, null),
+          new Tokenize(",,").parse().tokens
         );
     }
 }

@@ -5,17 +5,39 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
 public class Tokenize {
 
     public final String line;
-    public List<PyValue> tokens;
+    public List<@Nullable PyValue> tokens;
 
     public Tokenize(String line) {
         this.line = line;
     }
 
     public Tokenize parse() {
-        tokens = parsePyIterable(0, line.length()).elements();
+        var elements = new ArrayList<PyValue>();
+        var x = line.length();
+        var s = nextNonSpaceChar(0, x);
+        while (s < x) {
+            // "..., text , ..."
+            //       s  t e    x
+            // "..., text "
+            //       s  t e=x
+            int e = nextToken(s, x);
+            int t = prevNonSpaceChar(s, e - 1) + 1;
+            if (s == t) {
+                elements.add(null);
+            } else {
+                elements.add(parseValue(s, t));
+            }
+            s = nextNonSpaceChar(e + 1, x);
+            if (e < x && s == x) { // tailing comma
+                elements.add(null);
+            }
+        }
+        tokens = elements;
         return this;
     }
 
@@ -40,7 +62,7 @@ public class Tokenize {
         while (i < x && Character.isSpaceChar(line.charAt(i))) {
             i++;
         }
-        return i;
+        return Math.min(i, x);
     }
 
     int prevNonSpaceChar(int i, int j) {
