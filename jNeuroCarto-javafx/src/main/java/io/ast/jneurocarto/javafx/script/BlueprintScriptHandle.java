@@ -1,42 +1,27 @@
 package io.ast.jneurocarto.javafx.script;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ProbeDescription;
-import io.ast.jneurocarto.core.blueprint.Blueprint;
-import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.app.RequestChannelmapType;
 
 @NullMarked
-public class BlueprintScriptHandle implements BlueprintScriptCallable {
-
+public sealed abstract class BlueprintScriptHandle implements BlueprintScriptCallable
+  permits BlueprintScriptMethodHandle, BlueprintScriptClassHandle {
     public final Class<?> declaredClass;
-    public final Method declaredMethod;
     public final String name;
     public final String description;
-    private final Class<?> blueprint;
     public final Parameter[] parameters;
-    private final MethodHandle handle;
 
     public BlueprintScriptHandle(Class<?> declaredClass,
-                                 Method declaredMethod,
                                  String name,
                                  String description,
-                                 Class<?> blueprint,
-                                 Parameter[] parameters,
-                                 MethodHandle handle) {
+                                 Parameter[] parameters) {
         this.declaredClass = declaredClass;
-        this.declaredMethod = declaredMethod;
         this.name = name;
         this.description = description;
-        this.blueprint = blueprint;
         this.parameters = parameters;
-        this.handle = handle;
     }
 
     @Override
@@ -54,22 +39,20 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
         return parameters;
     }
 
-    @Override
-    public @Nullable RequestChannelmapType requestChannelmap() {
+    public @Nullable RequestChannelmapType requestChannelmap(@Nullable CheckProbe primary) {
         String family = "";
         Class<? extends ProbeDescription> probe = ProbeDescription.class;
         String code = "";
         boolean create = false;
 
-        var check = declaredMethod.getAnnotation(CheckProbe.class);
-        if (check != null) {
-            family = check.value();
-            probe = check.probe();
-            code = check.code();
-            create = check.create();
+        if (primary != null) {
+            family = primary.value();
+            probe = primary.probe();
+            code = primary.code();
+            create = primary.create();
         }
 
-        check = declaredClass.getAnnotation(CheckProbe.class);
+        var check = declaredClass.getAnnotation(CheckProbe.class);
         if (check != null) {
             if (family.isEmpty()) family = check.value();
             if (probe == ProbeDescription.class) probe = check.probe();
@@ -89,21 +72,4 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
     }
 
 
-    @Override
-    public void invoke(BlueprintAppToolkit<?> toolkit, Object... arguments) throws Throwable {
-        MethodHandle h = handle;
-
-        if (blueprint == Blueprint.class) {
-            h = MethodHandles.insertArguments(h, 0, toolkit.blueprint());
-        } else {
-            h = MethodHandles.insertArguments(h, 0, toolkit);
-        }
-
-        var last = parameters[parameters.length - 1];
-        if (last.isVarArg()) {
-            h = h.asVarargsCollector(last.type().arrayType());
-        }
-
-        h.invokeWithArguments(arguments);
-    }
 }

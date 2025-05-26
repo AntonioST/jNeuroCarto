@@ -77,6 +77,8 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     }
 
     private boolean filterBlueprintScript(ClassInfo info) {
+        if (info.isInnerClass()) return false;
+
         var ann = info.getAnnotationInfo(BlueprintScript.class);
         String name;
         if (ann == null) {
@@ -130,7 +132,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     }
 
     private void initBlueprintScript(BlueprintScriptCallable callable) {
-        if (callable instanceof BlueprintScriptHandle handle) {
+        if (callable instanceof BlueprintScriptMethodHandle handle) {
             log.debug("init {} = {}.{}", handle.name, handle.declaredClass.getSimpleName(), handle.declaredMethod.getName());
         } else {
             log.debug("init {}", callable.name());

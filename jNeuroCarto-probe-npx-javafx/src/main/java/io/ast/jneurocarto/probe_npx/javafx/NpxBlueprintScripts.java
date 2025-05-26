@@ -3,7 +3,9 @@ package io.ast.jneurocarto.probe_npx.javafx;
 import java.util.Arrays;
 import java.util.function.Function;
 
+import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
 import io.ast.jneurocarto.javafx.script.CheckProbe;
@@ -244,37 +246,56 @@ public final class NpxBlueprintScripts {
       Move blueprint between shanks.
       """)
     @CheckProbe(code = "NP24", create = false)
-    public void exchangeShanks(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank",
-        description = """
+    public static class ExchangeShanks implements Runnable {
+
+        private final static BlueprintMask[] MASK;
+
+        static {
+            var desp = new NpxProbeDescription();
+            var chmap = new ChannelMap(NpxProbeType.NP24);
+            var bp = new BlueprintToolkit<>(new Blueprint<>(desp, chmap));
+            MASK = new BlueprintMask[]{
+              bp.mask(e -> e.s() == 0),
+              bp.mask(e -> e.s() == 1),
+              bp.mask(e -> e.s() == 2),
+              bp.mask(e -> e.s() == 3),
+            };
+        }
+
+        @ScriptParameter(value = "shank", description = """
           For N shank probe, it is an N-length list.
           For example, ``[3, 2, 1, 0]`` gives a reverse-shank-ordered blueprint.
-          """) int[] shank,
-      @ScriptParameter(value = "update", defaultValue = "False",
-        description = "update channelmap to follow the blueprint change.") boolean update) {
-        if (shank.length != 4) {
-            throw new RuntimeException("not a 4-length list");
+          """)
+        public int[] shank;
+
+        @ScriptParameter(value = "update", defaultValue = "False",
+          description = "update channelmap to follow the blueprint change.")
+        public boolean update;
+
+        private final BlueprintAppToolkit<ChannelMap> bp;
+
+        public ExchangeShanks(BlueprintAppToolkit<ChannelMap> bp) {
+            this.bp = bp;
         }
 
-        var mask = new BlueprintMask[]{
-          bp.mask(e -> e.s() == 0),
-          bp.mask(e -> e.s() == 1),
-          bp.mask(e -> e.s() == 2),
-          bp.mask(e -> e.s() == 3),
-        };
+        @Override
+        public void run() {
+            if (shank.length != 4) {
+                throw new RuntimeException("not a 4-length list");
+            }
 
-        var bq = bp.clone();
-        bq.clear();
+            var bq = bp.clone();
+            bq.clear();
 
-        for (int i = 0; i < 4; i++) {
-            bq.from(mask[i], bp, mask[shank[i]]);
-        }
+            for (int i = 0; i < 4; i++) {
+                bq.from(MASK[i], bp, MASK[shank[i]]);
+            }
 
-        bq.applyViewBlueprint();
+            bq.applyViewBlueprint();
 
-        if (update) {
-            bq.refreshElectrodeSelection();
+            if (update) {
+                bq.refreshElectrodeSelection();
+            }
         }
     }
 }
