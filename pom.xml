@@ -16,6 +16,7 @@
         <module>jNeuroCarto-probe-npx-javafx</module>
         <module>jNeuroCarto-atlas</module>
         <module>jNeuroCarto-javafx</module>
+        <module>jNeuroCarto-kotlin</module>
         <module>jNeuroCarto-web-chart</module>
         <module>jNeuroCarto-web</module>
     </modules>
@@ -25,11 +26,12 @@
         <maven.compiler.target>24</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.14</slf4j.version>
-        <logback.version>1.5.18</logback.version>
         <javafx.version>24.0.1</javafx.version>
         <picocli.version>4.7.7</picocli.version>
-        <vaadin.version>24.7.3</vaadin.version>
         <jackson.version>2.18.3</jackson.version>
+        <kotlin.version>2.1.21</kotlin.version>
+        <vaadin.version>24.7.3</vaadin.version>
+        <logback.version>1.5.18</logback.version>
         <spring-boot.version>3.4.5</spring-boot.version>
         <junit.version>5.12.2</junit.version>
     </properties>
@@ -179,6 +181,14 @@
                 <version>1.14.0</version>
             </dependency>
 
+            <!-- Kotlin -->
+
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-stdlib</artifactId>
+                <version>${kotlin.version}</version>
+            </dependency>
+
             <!-- Additional Spring Dependencies -->
 
             <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-json -->
@@ -311,6 +321,11 @@
                             <argument>--enable-preview</argument>
                         </arguments>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>kotlin-maven-plugin</artifactId>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <version>${kotlin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

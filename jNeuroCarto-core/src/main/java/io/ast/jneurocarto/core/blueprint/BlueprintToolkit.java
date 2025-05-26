@@ -1135,7 +1135,7 @@ public class BlueprintToolkit<T> {
 
         @Override
         public boolean test(double value) {
-            return lower <= value && value < upper;
+            return lower <= value && value <= upper;
         }
     }
 
@@ -1373,6 +1373,7 @@ public class BlueprintToolkit<T> {
         return reduce(blueprint, category, step, value, AreaThreshold.ALL);
     }
 
+
     public final void reduce(int category, int step, AreaThreshold threshold) {
         from(reduce(ref(), category, step, ProbeDescription.CATE_UNSET, threshold));
     }
@@ -1380,6 +1381,7 @@ public class BlueprintToolkit<T> {
     public final void reduce(int category, int step, int value, AreaThreshold threshold) {
         from(reduce(ref(), category, step, value, threshold));
     }
+
 
     public final int[] reduce(int[] blueprint, int category, int step, AreaThreshold threshold) {
         return reduce(blueprint, category, step, ProbeDescription.CATE_UNSET, threshold);
@@ -1394,6 +1396,7 @@ public class BlueprintToolkit<T> {
 
         return reduce(ret, blueprint, category, step, value, threshold);
     }
+
 
     /**
      * reduce category zones.
@@ -1433,6 +1436,34 @@ public class BlueprintToolkit<T> {
                 output[j] = value;
             }
         }
+
+        return output;
+    }
+
+    public final void reduce(int category, AreaThreshold threshold) {
+        from(reduce(ref(), category, threshold));
+    }
+
+    public final int[] reduce(int[] blueprint, int category, AreaThreshold threshold) {
+        int length = length();
+        if (length != blueprint.length) throw new RuntimeException();
+
+        var ret = blueprint.clone();
+        if (length == 0) return ret;
+
+        return reduce(ret, blueprint, category, threshold);
+    }
+
+    protected int[] reduce(int[] output, int[] blueprint, int category, AreaThreshold threshold) {
+        var clustering = findClustering(blueprint, category, true);
+        for (var group : clustering.groups()) {
+            if (!threshold.test(clustering.groupCount(group))) {
+                clustering.removeGroup(group);
+            }
+        }
+
+        var index = clustering.indexGroup();
+        set(output, index, ProbeDescription.CATE_UNSET);
 
         return output;
     }

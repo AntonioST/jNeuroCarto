@@ -1,8 +1,10 @@
 package io.ast.jneurocarto.javafx.script;
 
+import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -470,6 +472,20 @@ public final class BlueprintScriptHandles {
                 case PyValue.PySymbol(String ret) -> ret;
                 case PyValue.PyNone _ -> null;
                 case null, default -> throwCCE(rawString, "String");
+            };
+        } else if (target == File.class) {
+            return switch (value) {
+                case PyValue.PyStr(String ret) -> new File(ret);
+                case PyValue.PySymbol(String ret) -> new File(ret);
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "File");
+            };
+        } else if (target == Path.class) {
+            return switch (value) {
+                case PyValue.PyStr(String ret) -> Path.of(ret);
+                case PyValue.PySymbol(String ret) -> Path.of(ret);
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "Path");
             };
         } else if (target.isEnum()) {
             return switch (value) {
