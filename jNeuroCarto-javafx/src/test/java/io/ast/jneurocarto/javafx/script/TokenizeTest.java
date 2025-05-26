@@ -1,6 +1,5 @@
 package io.ast.jneurocarto.javafx.script;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -217,8 +216,10 @@ public class TokenizeTest {
 
     @Test
     public void parseLine() {
-        assertEquals(
-          List.of(new PyValue.PyInt(1), new PyValue.PyInt(2), new PyValue.PyInt(3)),
+        assertEquals(List.of(
+            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
+            new PyValue.PyIndexParameter(1, new PyValue.PyInt(2)),
+            new PyValue.PyIndexParameter(2, new PyValue.PyInt(3))),
           new Tokenize("1,2,3").parse().tokens
         );
     }
@@ -226,16 +227,52 @@ public class TokenizeTest {
     @Test
     public void parseLineWithNullValue() {
         assertEquals(
-          Arrays.asList(new PyValue.PyInt(1), null, new PyValue.PyInt(3)),
+          List.of(
+            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
+            new PyValue.PyIndexParameter(1, null),
+            new PyValue.PyIndexParameter(2, new PyValue.PyInt(3))),
           new Tokenize("1,,3").parse().tokens
         );
         assertEquals(
-          Arrays.asList(null, null, null),
+          List.of(
+            new PyValue.PyIndexParameter(0, null),
+            new PyValue.PyIndexParameter(1, null),
+            new PyValue.PyIndexParameter(2, null)),
           new Tokenize(",, ").parse().tokens
         );
         assertEquals(
-          Arrays.asList(null, null, null),
+          List.of(
+            new PyValue.PyIndexParameter(0, null),
+            new PyValue.PyIndexParameter(1, null),
+            new PyValue.PyIndexParameter(2, null)),
           new Tokenize(",,").parse().tokens
+        );
+    }
+
+    @Test
+    public void parseLineWithName() {
+        assertEquals(List.of(
+            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
+            new PyValue.PyNamedParameter("a", new PyValue.PyInt(2)),
+            new PyValue.PyNamedParameter("b", new PyValue.PyInt(3))),
+          new Tokenize("1,a=2,b=3").parse().tokens
+        );
+    }
+
+    @Test
+    public void parseLineWithNameAndNullValue() {
+        assertEquals(List.of(
+            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
+            new PyValue.PyNamedParameter("a", null),
+            new PyValue.PyNamedParameter("b", new PyValue.PyInt(3))),
+          new Tokenize("1,a=,b=3").parse().tokens
+        );
+
+        assertEquals(List.of(
+            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
+            new PyValue.PyNamedParameter("a", new PyValue.PyInt(2)),
+            new PyValue.PyNamedParameter("b", null)),
+          new Tokenize("1,a=2,b=").parse().tokens
         );
     }
 }

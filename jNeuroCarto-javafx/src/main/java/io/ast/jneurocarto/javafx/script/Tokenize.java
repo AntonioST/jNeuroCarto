@@ -5,19 +5,21 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+@NullMarked
 public class Tokenize {
 
     public final String line;
-    public List<@Nullable PyValue> tokens;
+    public @Nullable List<PyValue.PyParameter> tokens;
 
     public Tokenize(String line) {
         this.line = line;
     }
 
     public Tokenize parse() {
-        var elements = new ArrayList<PyValue>();
+        var elements = new ArrayList<PyValue.PyParameter>();
         var x = line.length();
         var s = nextNonSpaceChar(0, x);
         while (s < x) {
@@ -28,13 +30,13 @@ public class Tokenize {
             int e = nextToken(s, x);
             int t = prevNonSpaceChar(s, e - 1) + 1;
             if (s == t) {
-                elements.add(null);
+                elements.add(new PyValue.PyIndexParameter(elements.size(), null));
             } else {
-                elements.add(parseValue(s, t));
+                elements.add(parsePair(s, t, elements.size()));
             }
             s = nextNonSpaceChar(e + 1, x);
             if (e < x && s == x) { // tailing comma
-                elements.add(null);
+                elements.add(new PyValue.PyIndexParameter(elements.size(), null));
             }
         }
         tokens = elements;
@@ -50,7 +52,7 @@ public class Tokenize {
         return tokens.get(i);
     }
 
-    public Stream<PyValue> stream() {
+    public Stream<PyValue.PyParameter> stream() {
         return tokens == null ? Stream.of() : tokens.stream();
     }
 
@@ -240,15 +242,15 @@ public class Tokenize {
     }
 
     private void parseDictEntry(int i, int x, List<String> keys, List<PyValue> values) {
-        int k1 = nextNonSpaceChar(i, x);
-        int d = nextTokenUntil(k1, ':', x);
+        i = nextNonSpaceChar(i, x);
+        int d = nextTokenUntil(i, ':', x);
         if (d < 0) {
-            int k2 = prevNonSpaceChar(k1, x - 1) + 1;
-            keys.add(line.substring(k1, k2));
+            int k = prevNonSpaceChar(i, x - 1) + 1;
+            keys.add(line.substring(i, k));
             values.add(PyValue.None);
         } else {
-            int k2 = prevNonSpaceChar(k1, d - 1) + 1;
-            keys.add(line.substring(k1, k2));
+            int k = prevNonSpaceChar(i, d - 1) + 1;
+            keys.add(line.substring(i, k));
             d = nextNonSpaceChar(d + 1, x);
             values.add(parseValue(d, x));
         }
@@ -264,6 +266,21 @@ public class Tokenize {
         if (t != '\'' && t != '"') throwIAE("not a python str", i, x);
         if (line.charAt(x - 1) != t) throwIAE("not a python str", i, x);
         return new PyValue.PyStr(line.substring(i + 1, x - 1));
+    }
+
+    private PyValue.PyParameter parsePair(int i, int x, int p) {
+        i = nextNonSpaceChar(i, x);
+        int d = nextTokenUntil(i, '=', x);
+        if (d < 0) {
+            var v = parseValue(i, x);
+            return new PyValue.PyIndexParameter(p, v);
+        } else {
+            int k = prevNonSpaceChar(i, d - 1) + 1;
+            var n = line.substring(i, k);
+            d = nextNonSpaceChar(d + 1, x);
+            var v = d == x ? null : parseValue(d, x);
+            return new PyValue.PyNamedParameter(n, v);
+        }
     }
 
     private void throwIAE(String message, int i, int x) {

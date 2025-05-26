@@ -177,5 +177,14 @@ public sealed interface PyValue {
         }
     }
 
+    sealed interface PyParameter extends PyValue {
+    }
+
+    record PyIndexParameter(int index, @Nullable PyValue value) implements PyParameter {
+    }
+
+    record PyNamedParameter(String name, @Nullable PyValue value) implements PyParameter {
+    }
+
 
 }
