@@ -6,6 +6,7 @@ import java.util.function.Function;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
 import io.ast.jneurocarto.javafx.script.CheckProbe;
+import io.ast.jneurocarto.javafx.script.PyValue;
 import io.ast.jneurocarto.javafx.script.ScriptParameter;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
@@ -42,41 +43,54 @@ public final class NpxBlueprintScripts {
 
     public sealed interface ShankOrSelect {
         record OneShank(int shank) implements ShankOrSelect {
-            OneShank(String s) {
-                this(Integer.parseInt(s));
+            public OneShank {
+                if (shank < 0 || shank >= 4) {
+                    throw new IllegalArgumentException();
+                }
             }
         }
 
         record TwoShank(int s1, int s2) implements ShankOrSelect {
-            TwoShank(String s1, String s2) {
-                this(Integer.parseInt(s1), Integer.parseInt(s2));
+            public TwoShank {
+                if (s1 < 0 || s1 >= 4) {
+                    throw new IllegalArgumentException();
+                }
+                if (s2 < 0 || s2 >= 4) {
+                    throw new IllegalArgumentException();
+                }
+                if (s1 == s2) {
+                    throw new IllegalArgumentException();
+                }
             }
         }
 
         record AllShank() implements ShankOrSelect {
         }
 
-        record Select() implements ShankOrSelect, Function<String, ShankOrSelect> {
+        record Select() implements ShankOrSelect, Function<PyValue, ShankOrSelect> {
             @Override
-            public ShankOrSelect apply(String s) {
-                switch (s) {
-                case "selected":
-                    return this;
-                case "None":
-                case "all":
-                    return new AllShank();
+            public ShankOrSelect apply(PyValue s) {
+                if (s instanceof PyValue.PyList list) {
+                    s = list.asTuple();
                 }
 
-                try {
-                    s = s.replaceAll("^\\[|]$", "");
-                    if (s.contains(",")) {
-                        var p = s.split(",", 2);
-                        return new TwoShank(p[0].strip(), p[1].strip());
-                    } else {
-                        return new OneShank(s);
+                switch (s) {
+                case PyValue.PyNone _:
+                    return new AllShank();
+                case PyValue.PyStr(String content):
+                    switch (content) {
+                    case "selected":
+                        return this;
+                    case "all":
+                        return new AllShank();
                     }
-                } catch (NumberFormatException e) {
-                    throw new RuntimeException("not a int value : " + s, e);
+                    throw new RuntimeException();
+                case PyValue.PyTuple1(PyValue.PyInt(int shank)):
+                    return new OneShank(shank);
+                case PyValue.PyTuple2(PyValue.PyInt(int s1), PyValue.PyInt(int s2)):
+                    return new TwoShank(s1, s2);
+                default:
+                    throw new RuntimeException();
                 }
             }
         }

@@ -20,13 +20,13 @@ public @interface ScriptParameter {
 
     String description() default "";
 
-    class Identify implements Function<String, String> {
+    class Identify implements Function<PyValue, PyValue> {
         @Override
-        public String apply(String s) {
-            return s;
+        public PyValue apply(PyValue v) {
+            return v;
         }
     }
 
-    Class<? extends Function<String, ?>> converter() default Identify.class;
+    Class<? extends Function<PyValue, ?>> converter() default Identify.class;
 
 }

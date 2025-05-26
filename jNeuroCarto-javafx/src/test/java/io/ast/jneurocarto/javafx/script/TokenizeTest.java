@@ -146,4 +146,16 @@ public class TokenizeTest {
           new Tokenize("{a: [(123,)]}").parseValue()
         );
     }
+
+    @Test
+    public void structureInStr() {
+        assertEquals(
+          new PyValue.PyStr("[]"),
+          new Tokenize("'[]'").parseValue()
+        );
+        assertEquals(
+          new PyValue.PyStr("[()]"),
+          new Tokenize("'[()]'").parseValue()
+        );
+    }
 }
