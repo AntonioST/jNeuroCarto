@@ -4,7 +4,10 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -21,6 +24,10 @@ public final class BlueprintScriptHandles {
     private BlueprintScriptHandles() {
         throw new RuntimeException();
     }
+
+    /*========*
+     * lookup *
+     *========*/
 
     public static List<BlueprintScriptCallable> lookupClass(MethodHandles.Lookup lookup, Class<?> clazz) {
         if (BlueprintScriptProvider.class.isAssignableFrom(clazz)) {
@@ -88,6 +95,10 @@ public final class BlueprintScriptHandles {
         }
         return ret;
     }
+
+    /*===============*
+     * lookup method *
+     *===============*/
 
     private static @Nullable BlueprintScriptMethodHandle lookupMethod(MethodHandles.Lookup lookup, Class<?> clazz, Method method, @Nullable Object instance) {
         log.debug("lookup method {}.{}", clazz.getSimpleName(), method.getName());
@@ -171,6 +182,10 @@ public final class BlueprintScriptHandles {
         }
         return ret;
     }
+
+    /*====================*
+     * lookup inner class *
+     *====================*/
 
     private static @Nullable BlueprintScriptClassHandle lookupInnerClass(MethodHandles.Lookup lookup, Class<?> clazz, Class<?> inner) {
         log.debug("lookup inner class {}.{}", clazz.getSimpleName(), inner.getSimpleName());
@@ -296,5 +311,195 @@ public final class BlueprintScriptHandles {
         var converter = ann.converter();
 
         return new BlueprintScriptCallable.Parameter(name, type, typeDesp, defv, desp, converter, isVarArg);
+    }
+
+    /*======*
+     * text *
+     *======*/
+
+    public static String getScriptSignature(BlueprintScriptCallable callable) {
+        var name = callable.name();
+        var para = Arrays.stream(callable.parameters())
+          .map(BlueprintScriptCallable.Parameter::name)
+          .collect(Collectors.joining(", ", "(", ")"));
+        return name + para;
+    }
+
+    public static String buildScriptDocument(BlueprintScriptCallable callable) {
+        var doc = callable.description();
+        var para = Arrays.stream(callable.parameters())
+          .map(it -> {
+              var name = it.name();
+              var type = it.typeDesp();
+              var defv = it.defaultValue();
+              if (defv != null) {
+                  type = type + "=" + defv;
+              }
+              var desp = it.description();
+              return name + " : (" + type + ") " + desp;
+          }).collect(Collectors.joining("\n"));
+
+        return doc + "\n" + para;
+    }
+
+    /*=================*
+     * parse arguments *
+     *=================*/
+
+    public static Object[] pairScriptArguments(BlueprintScriptCallable callable, Tokenize tokens) {
+        assert tokens.tokens != null;
+        assert tokens.values != null;
+
+        var parameters = callable.parameters();
+        var ret = new ArrayList<Object>(parameters.length);
+        var defv = new Object();
+        for (int i = 0, length = parameters.length; i < length; i++) {
+            ret.add(defv);
+        }
+
+        for (int i = 0, size = tokens.size(); i < size; i++) {
+            var token = tokens.tokens.get(i);
+            var argument = tokens.values.get(i);
+
+            if (argument instanceof PyValue.PyIndexParameter(var index, var value)) {
+                if (index >= parameters.length) {
+                    var last = parameters[parameters.length - 1];
+                    if (last.isVarArg()) {
+                        ret.add(castScriptArgument(last, token, value));
+                    } else {
+                        throw new RuntimeException("too many arguments given.");
+                    }
+                } else {
+                    ret.set(index, castScriptArgument(parameters[index], token, value));
+                }
+            } else if (argument instanceof PyValue.PyNamedParameter(var name, var value)) {
+                var j = indexOfParameter(parameters, name);
+                if (j < 0) {
+                    throw new RuntimeException("unresolved parameter name : " + name);
+                }
+                if (ret.get(j) != defv) {
+                    throw new RuntimeException("duplicated parameter : " + name);
+                }
+
+                var last = parameters[j];
+                if (last.isVarArg()) {
+                    ret.add(castScriptArgument(last, token, value));
+                } else {
+                    ret.set(j, castScriptArgument(last, token, value));
+                }
+
+            } else {
+                throw new RuntimeException();
+            }
+        }
+
+        for (int i = 0, length = ret.size(); i < length; i++) {
+            if (ret.get(i) == defv) {
+                var parameter = parameters[Math.min(i, parameters.length - 1)];
+                if (parameter.defaultValue() == null) {
+                    throw new RuntimeException("parameter " + parameter.name() + "is required");
+                } else {
+                    ret.set(i, castScriptArgument(parameter, (String) null, new Tokenize(parameter.defaultValue()).parseValue()));
+                }
+            }
+        }
+
+        return ret.toArray(Object[]::new);
+    }
+
+
+    private static int indexOfParameter(BlueprintScriptCallable.Parameter[] parameters, String name) {
+        for (int i = 0, length = parameters.length; i < length; i++) {
+            if (parameters[i].name().equals(name)) return i;
+        }
+        return -1;
+    }
+
+    public static @Nullable Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
+                                                      @Nullable String rawString,
+                                                      PyValue value) {
+        var converter = parameter.converter();
+        if (converter == ScriptParameter.RawString.class) {
+            return rawString;
+        } else if (converter != ScriptParameter.AutoCasting.class) {
+            return castScriptArgument(parameter, converter, value);
+        }
+
+        var target = parameter.type();
+        if (target == boolean.class || target == Boolean.class) {
+            return switch (value) {
+                case PyValue.PyBool(var ret) -> ret;
+                case PyValue.PyInt ret -> ret.asBool().value();
+                case PyValue.PyIterable ret -> ret.asBool().value();
+                case PyValue.PyDict ret -> ret.asBool().value();
+                case PyValue.PyStr ret -> ret.asBool().value();
+                case PyValue.PyNone _ -> false;
+                case null, default -> throwCCE(rawString, "bool");
+            };
+        } else if (target == int.class || target == Integer.class) {
+            return switch (value) {
+                case PyValue.PyInt(var ret) -> ret;
+                case PyValue.PyNone _ when target == Integer.class -> null;
+                case null, default -> throwCCE(rawString, "int");
+            };
+        } else if (target == double.class || target == Double.class) {
+            return switch (value) {
+                case PyValue.PyInt(var ret) -> (double) ret;
+                case PyValue.PyFloat(double ret) -> ret;
+                case PyValue.PyNone _ when target == Double.class -> null;
+                case null, default -> throwCCE(rawString, "double");
+            };
+        } else if (target == int[].class) {
+            return switch (value) {
+                case PyValue.PyList list -> list.toIntArray();
+                case PyValue.PyTuple tuple -> tuple.toIntArray();
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "int[]");
+            };
+        } else if (target == double[].class) {
+            return switch (value) {
+                case PyValue.PyList list -> list.toDoubleArray();
+                case PyValue.PyTuple tuple -> tuple.toDoubleArray();
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "double[]");
+            };
+        } else if (target == String.class) {
+            return switch (value) {
+                case PyValue.PyInt _, PyValue.PyFloat _ -> rawString;
+                case PyValue.PyStr(String ret) -> ret;
+                case PyValue.PySymbol(String ret) -> ret;
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "String");
+            };
+        } else if (target.isEnum()) {
+            return switch (value) {
+                case PyValue.PyInt(int ret) -> target.getEnumConstants()[ret];
+                case PyValue.PyStr(String ret) -> Enum.valueOf((Class<Enum>) target, ret);
+                case PyValue.PySymbol(String ret) -> Enum.valueOf((Class<Enum>) target, ret);
+                case null, default -> throwCCE(rawString, target.getSimpleName());
+            };
+        } else if (target == PyValue.class) {
+            return value;
+        } else if (PyValue.class.isAssignableFrom(value.getClass())) {
+            throwCCE(rawString, target.getSimpleName() + ", use PyValue or java primitive type instead");
+        }
+
+        return throwCCE(rawString, target.getSimpleName());
+    }
+
+    public static Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
+                                            Class<? extends Function<PyValue, ?>> converter,
+                                            PyValue value) {
+        Function<PyValue, ?> function;
+        try {
+            function = converter.getConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException("create converter for parameter " + parameter.name(), e);
+        }
+        return function.apply(value);
+    }
+
+    private static Object throwCCE(@Nullable String rawString, String target) {
+        throw new ClassCastException("cannot cast '" + rawString + "' to " + target + ".");
     }
 }
