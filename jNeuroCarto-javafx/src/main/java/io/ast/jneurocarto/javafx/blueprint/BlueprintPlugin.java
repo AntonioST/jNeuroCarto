@@ -51,12 +51,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
     @Override
     public String name() {
-        return "blueprint";
-    }
-
-    @Override
-    public String description() {
-        return "show blueprint";
+        return "Blueprint";
     }
 
     /*=================================*

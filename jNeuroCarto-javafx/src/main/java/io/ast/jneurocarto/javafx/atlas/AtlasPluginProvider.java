@@ -19,6 +19,11 @@ public class AtlasPluginProvider implements PluginProvider {
     }
 
     @Override
+    public String description() {
+        return "showing brain atlas in background";
+    }
+
+    @Override
     public AtlasPlugin setup(CartoConfig config, ProbeDescription<?> desp) {
         return new AtlasPlugin(config);
     }

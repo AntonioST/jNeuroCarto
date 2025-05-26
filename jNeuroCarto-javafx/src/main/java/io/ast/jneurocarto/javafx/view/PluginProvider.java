@@ -14,5 +14,9 @@ public interface PluginProvider {
         return List.of();
     }
 
+    default String description() {
+        return getClass().getSimpleName();
+    }
+
     Plugin setup(CartoConfig config, ProbeDescription<?> desp);
 }

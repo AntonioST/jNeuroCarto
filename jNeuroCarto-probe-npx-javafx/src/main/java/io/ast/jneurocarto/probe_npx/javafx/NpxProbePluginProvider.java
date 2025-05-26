@@ -12,6 +12,12 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 
 @NullMarked
 public class NpxProbePluginProvider implements ProbePluginProvider {
+
+    @Override
+    public String description() {
+        return "Neuropixels probe related plugins";
+    }
+
     @Override
     public List<ProbePlugin<?>> setup(CartoConfig config, ProbeDescription<?> desp) {
         if (desp instanceof NpxProbeDescription probe) {

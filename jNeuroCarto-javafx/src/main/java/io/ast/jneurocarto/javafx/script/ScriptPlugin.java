@@ -49,12 +49,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     @Override
     public String name() {
-        return "script";
-    }
-
-    @Override
-    public String description() {
-        return "run blueprint script";
+        return "Script";
     }
 
     /*=================================*

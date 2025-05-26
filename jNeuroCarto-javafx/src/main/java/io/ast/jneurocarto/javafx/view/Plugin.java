@@ -12,10 +12,6 @@ public interface Plugin {
         return getClass().getSimpleName();
     }
 
-    default String description() {
-        return name();
-    }
-
     @Nullable
     Node setup(PluginSetupService service);
 }

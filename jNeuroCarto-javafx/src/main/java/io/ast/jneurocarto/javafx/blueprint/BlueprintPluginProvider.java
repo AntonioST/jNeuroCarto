@@ -19,6 +19,11 @@ public class BlueprintPluginProvider implements PluginProvider {
     }
 
     @Override
+    public String description() {
+        return "show blueprint";
+    }
+
+    @Override
     public BlueprintPlugin setup(CartoConfig config, ProbeDescription<?> desp) {
         return new BlueprintPlugin(config, desp);
     }

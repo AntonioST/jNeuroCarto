@@ -55,11 +55,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return "Brain Atlas";
     }
 
-    @Override
-    public String description() {
-        return "showing brain atlas in background";
-    }
-
     /*============*
      * properties *
      *============*/

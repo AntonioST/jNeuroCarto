@@ -11,6 +11,10 @@ import io.ast.jneurocarto.core.cli.CartoConfig;
 @NullMarked
 public interface ProbePluginProvider {
 
+    default String description() {
+        return getClass().getSimpleName();
+    }
+
     /**
      * @param config
      * @param desp
