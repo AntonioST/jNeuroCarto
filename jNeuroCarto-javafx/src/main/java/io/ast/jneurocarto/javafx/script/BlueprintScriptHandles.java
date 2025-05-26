@@ -123,7 +123,7 @@ public final class BlueprintScriptHandles {
 
         var description = ann.description();
 
-        var ps = lookupParameter(method).toArray(BlueprintScriptCallable.ScriptParameter[]::new);
+        var ps = lookupParameter(method).toArray(BlueprintScriptCallable.Parameter[]::new);
 
         if (instance != null && !is_static) {
             handle = handle.bindTo(instance);
@@ -139,15 +139,22 @@ public final class BlueprintScriptHandles {
         return null;
     }
 
-    private static List<BlueprintScriptCallable.ScriptParameter> lookupParameter(Method method) {
-        var ret = new ArrayList<BlueprintScriptCallable.ScriptParameter>();
+    private static List<BlueprintScriptCallable.Parameter> lookupParameter(Method method) {
+        var ret = new ArrayList<BlueprintScriptCallable.Parameter>();
         Parameter[] parameters = method.getParameters();
         for (int i = 1, length = parameters.length; i < length; i++) {
             var parameter = parameters[i];
             var ann = parameter.getAnnotation(ScriptParameter.class);
+
             Class<?> type = parameter.getType();
+            var isvararg = parameter.isVarArgs();
+            if (isvararg) type = type.getComponentType();
+
             if (ann == null) {
-                ret.add(new BlueprintScriptCallable.ScriptParameter(parameter.getName(), type, type.getSimpleName(), null, null));
+                var name = parameter.getName();
+                var desp = type.getSimpleName();
+                var converter = ScriptParameter.AutoCasting.class;
+                ret.add(new BlueprintScriptCallable.Parameter(name, type, desp, null, null, converter, isvararg));
             } else {
                 var name = ann.value();
                 var typeDesp = ann.type();
@@ -155,7 +162,8 @@ public final class BlueprintScriptHandles {
                 var defv = ann.defaultValue();
                 if (defv == ScriptParameter.NO_DEFAULT) defv = null;
                 var desp = ann.description();
-                ret.add(new BlueprintScriptCallable.ScriptParameter(name, type, typeDesp, defv, desp));
+                var converter = ann.converter();
+                ret.add(new BlueprintScriptCallable.Parameter(name, type, typeDesp, defv, desp, converter, isvararg));
             }
         }
         return ret;

@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.javafx.script;
 
+import java.util.function.Function;
+
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
@@ -7,12 +9,14 @@ import io.ast.jneurocarto.javafx.app.RequestChannelmapType;
 
 public interface BlueprintScriptCallable {
 
-    record ScriptParameter(
+    record Parameter(
       String name,
       Class<?> type,
       String typeDesp,
       @Nullable String defaultValue,
-      @Nullable String description
+      @Nullable String description,
+      Class<? extends Function<PyValue, ?>> converter,
+      boolean isVarArg
     ) {
     }
 
@@ -20,7 +24,7 @@ public interface BlueprintScriptCallable {
 
     String description();
 
-    ScriptParameter[] parameters();
+    Parameter[] parameters();
 
     default @Nullable RequestChannelmapType requestChannelmap() {
         return null;

@@ -20,13 +20,20 @@ public @interface ScriptParameter {
 
     String description() default "";
 
-    class Identify implements Function<PyValue, PyValue> {
+    class RawString implements Function<PyValue, String> {
         @Override
-        public PyValue apply(PyValue v) {
-            return v;
+        public String apply(PyValue v) {
+            throw new UnsupportedOperationException();
         }
     }
 
-    Class<? extends Function<PyValue, ?>> converter() default Identify.class;
+    class AutoCasting implements Function<PyValue, PyValue> {
+        @Override
+        public PyValue apply(PyValue v) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    Class<? extends Function<PyValue, ?>> converter() default AutoCasting.class;
 
 }

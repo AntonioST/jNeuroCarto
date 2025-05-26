@@ -2,6 +2,8 @@ package io.ast.jneurocarto.javafx.script;
 
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -15,12 +17,24 @@ public sealed interface PyValue {
     PyDict EMPTY_DICT = new PyDict(List.of(), List.of());
 
     record PyNone() implements PyValue {
+        @Override
+        public String toString() {
+            return "None";
+        }
     }
 
     record PyInt(int value) implements PyValue {
+        @Override
+        public String toString() {
+            return "int(" + value + ")";
+        }
     }
 
     record PyFloat(double value) implements PyValue {
+        @Override
+        public String toString() {
+            return "float(" + value + ")";
+        }
     }
 
     sealed interface PyIterable extends PyValue {
@@ -77,6 +91,10 @@ public sealed interface PyValue {
             }
             return ret;
         }
+
+        default String toStringIter() {
+            return elements().stream().map(PyValue::toString).collect(Collectors.joining(", "));
+        }
     }
 
     sealed interface PyTuple extends PyIterable {
@@ -88,12 +106,22 @@ public sealed interface PyValue {
         default PyList asList() {
             return new PyList(elements());
         }
+
+        @Override
+        default String toStringIter() {
+            return "(" + PyIterable.super.toStringIter() + ")";
+        }
     }
 
     record PyTuple0() implements PyTuple {
         @Override
         public List<PyValue> elements() {
             return List.of();
+        }
+
+        @Override
+        public String toString() {
+            return "()";
         }
     }
 
@@ -102,12 +130,22 @@ public sealed interface PyValue {
         public List<PyValue> elements() {
             return List.of(value);
         }
+
+        @Override
+        public String toString() {
+            return "(" + value + ",)";
+        }
     }
 
     record PyTuple2(PyValue first, PyValue second) implements PyTuple {
         @Override
         public List<PyValue> elements() {
             return List.of(first, second);
+        }
+
+        @Override
+        public String toString() {
+            return PyTuple.super.toStringIter();
         }
     }
 
@@ -116,9 +154,18 @@ public sealed interface PyValue {
         public List<PyValue> elements() {
             return List.of(first, second, third);
         }
+
+        @Override
+        public String toString() {
+            return PyTuple.super.toStringIter();
+        }
     }
 
     record PyTupleN(List<PyValue> elements) implements PyTuple {
+        @Override
+        public String toString() {
+            return PyTuple.super.toStringIter();
+        }
     }
 
     record PyList(List<PyValue> elements) implements PyIterable {
@@ -139,6 +186,11 @@ public sealed interface PyValue {
                 case 3 -> new PyTuple3(elements.get(0), elements.get(1), elements.get(2));
                 default -> new PyTupleN(elements);
             };
+        }
+
+        @Override
+        public String toString() {
+            return "[" + PyIterable.super.toStringIter() + "]";
         }
     }
 
@@ -169,11 +221,39 @@ public sealed interface PyValue {
             return elements.get(i);
         }
 
+        @Override
+        public String toString() {
+            return IntStream.range(0, keys.size()).mapToObj(i -> {
+                var k = keys.get(i);
+                var v = elements.get(i);
+                return k + ": " + v;
+            }).collect(Collectors.joining(", ", "{", "}"));
+        }
+    }
+
+    record PySymbol(String symbol) implements PyValue {
+        public int length() {
+            return symbol.length();
+        }
+
+        public PyStr asStr() {
+            return new PyStr(symbol);
+        }
+
+        @Override
+        public String toString() {
+            return "symbol(" + symbol + ")";
+        }
     }
 
     record PyStr(String string) implements PyValue {
         public int length() {
             return string.length();
+        }
+
+        @Override
+        public String toString() {
+            return "'" + string + "'";
         }
     }
 

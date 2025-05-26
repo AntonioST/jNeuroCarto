@@ -12,14 +12,16 @@ import org.jspecify.annotations.Nullable;
 public class Tokenize {
 
     public final String line;
-    public @Nullable List<PyValue.PyParameter> tokens;
+    public @Nullable List<String> tokens;
+    public @Nullable List<PyValue.PyParameter> values;
 
     public Tokenize(String line) {
         this.line = line;
     }
 
     public Tokenize parse() {
-        var elements = new ArrayList<PyValue.PyParameter>();
+        var tokens = new ArrayList<String>();
+        var values = new ArrayList<PyValue.PyParameter>();
         var x = line.length();
         var s = nextNonSpaceChar(0, x);
         while (s < x) {
@@ -30,30 +32,56 @@ public class Tokenize {
             int e = nextToken(s, x);
             int t = prevNonSpaceChar(s, e - 1) + 1;
             if (s == t) {
-                elements.add(new PyValue.PyIndexParameter(elements.size(), null));
+                tokens.add("");
+                values.add(new PyValue.PyIndexParameter(values.size(), null));
             } else {
-                elements.add(parsePair(s, t, elements.size()));
+                parsePair(s, t, tokens, values);
             }
             s = nextNonSpaceChar(e + 1, x);
             if (e < x && s == x) { // tailing comma
-                elements.add(new PyValue.PyIndexParameter(elements.size(), null));
+                tokens.add("");
+                values.add(new PyValue.PyIndexParameter(values.size(), null));
             }
         }
-        tokens = elements;
+        this.tokens = tokens;
+        this.values = values;
         return this;
     }
 
+    private void parsePair(int i, int x, List<String> tokens, List<PyValue.PyParameter> values) {
+        i = nextNonSpaceChar(i, x);
+        int d = nextTokenUntil(i, '=', x);
+        if (d < 0) {
+            var p = values.size();
+            var v = parseValue(i, x);
+            tokens.add(line.substring(i, x));
+            values.add(new PyValue.PyIndexParameter(p, v));
+        } else {
+            int k = prevNonSpaceChar(i, d - 1) + 1;
+            var n = line.substring(i, k);
+            d = nextNonSpaceChar(d + 1, x);
+            if (d == x) {
+                tokens.add("");
+                values.add(new PyValue.PyNamedParameter(n, null));
+            } else {
+                var v = parseValue(d, x);
+                tokens.add(line.substring(d, x));
+                values.add(new PyValue.PyNamedParameter(n, v));
+            }
+        }
+    }
+
     public int size() {
-        return tokens == null ? 0 : tokens.size();
+        return values == null ? 0 : values.size();
     }
 
     public PyValue get(int i) {
-        if (tokens == null) throw new IndexOutOfBoundsException();
-        return tokens.get(i);
+        if (values == null) throw new IndexOutOfBoundsException();
+        return values.get(i);
     }
 
     public Stream<PyValue.PyParameter> stream() {
-        return tokens == null ? Stream.of() : tokens.stream();
+        return values == null ? Stream.of() : values.stream();
     }
 
     public <T> List<T> map(Function<PyValue, T> mapper) {
@@ -161,7 +189,7 @@ public class Tokenize {
             return new PyValue.PyFloat(Double.parseDouble(content));
         } catch (NumberFormatException e) {
         }
-        return new PyValue.PyStr(content);
+        return new PyValue.PySymbol(content);
     }
 
     public PyValue parseTuple() {
@@ -268,20 +296,6 @@ public class Tokenize {
         return new PyValue.PyStr(line.substring(i + 1, x - 1));
     }
 
-    private PyValue.PyParameter parsePair(int i, int x, int p) {
-        i = nextNonSpaceChar(i, x);
-        int d = nextTokenUntil(i, '=', x);
-        if (d < 0) {
-            var v = parseValue(i, x);
-            return new PyValue.PyIndexParameter(p, v);
-        } else {
-            int k = prevNonSpaceChar(i, d - 1) + 1;
-            var n = line.substring(i, k);
-            d = nextNonSpaceChar(d + 1, x);
-            var v = d == x ? null : parseValue(d, x);
-            return new PyValue.PyNamedParameter(n, v);
-        }
-    }
 
     private void throwIAE(String message, int i, int x) {
         throw new IllegalArgumentException(message + " : " + line.substring(i, x));

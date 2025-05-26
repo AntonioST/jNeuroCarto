@@ -43,6 +43,18 @@ public class TokenizeTest {
           new PyValue.PyStr("123"),
           new Tokenize("'123'").parseValue()
         );
+        assertEquals(
+          new PyValue.PyStr("a"),
+          new Tokenize("'a'").parseValue()
+        );
+    }
+
+    @Test
+    public void purePySymbol() {
+        assertEquals(
+          new PyValue.PySymbol("a"),
+          new Tokenize("a").parseValue()
+        );
     }
 
     @Test
@@ -220,7 +232,7 @@ public class TokenizeTest {
             new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
             new PyValue.PyIndexParameter(1, new PyValue.PyInt(2)),
             new PyValue.PyIndexParameter(2, new PyValue.PyInt(3))),
-          new Tokenize("1,2,3").parse().tokens
+          new Tokenize("1,2,3").parse().values
         );
     }
 
@@ -231,21 +243,21 @@ public class TokenizeTest {
             new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
             new PyValue.PyIndexParameter(1, null),
             new PyValue.PyIndexParameter(2, new PyValue.PyInt(3))),
-          new Tokenize("1,,3").parse().tokens
+          new Tokenize("1,,3").parse().values
         );
         assertEquals(
           List.of(
             new PyValue.PyIndexParameter(0, null),
             new PyValue.PyIndexParameter(1, null),
             new PyValue.PyIndexParameter(2, null)),
-          new Tokenize(",, ").parse().tokens
+          new Tokenize(",, ").parse().values
         );
         assertEquals(
           List.of(
             new PyValue.PyIndexParameter(0, null),
             new PyValue.PyIndexParameter(1, null),
             new PyValue.PyIndexParameter(2, null)),
-          new Tokenize(",,").parse().tokens
+          new Tokenize(",,").parse().values
         );
     }
 
@@ -255,7 +267,7 @@ public class TokenizeTest {
             new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
             new PyValue.PyNamedParameter("a", new PyValue.PyInt(2)),
             new PyValue.PyNamedParameter("b", new PyValue.PyInt(3))),
-          new Tokenize("1,a=2,b=3").parse().tokens
+          new Tokenize("1,a=2,b=3").parse().values
         );
     }
 
@@ -265,14 +277,14 @@ public class TokenizeTest {
             new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
             new PyValue.PyNamedParameter("a", null),
             new PyValue.PyNamedParameter("b", new PyValue.PyInt(3))),
-          new Tokenize("1,a=,b=3").parse().tokens
+          new Tokenize("1,a=,b=3").parse().values
         );
 
         assertEquals(List.of(
             new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
             new PyValue.PyNamedParameter("a", new PyValue.PyInt(2)),
             new PyValue.PyNamedParameter("b", null)),
-          new Tokenize("1,a=2,b=").parse().tokens
+          new Tokenize("1,a=2,b=").parse().values
         );
     }
 }

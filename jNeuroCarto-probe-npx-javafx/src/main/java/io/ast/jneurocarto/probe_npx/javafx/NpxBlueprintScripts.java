@@ -72,6 +72,8 @@ public final class NpxBlueprintScripts {
             public ShankOrSelect apply(PyValue s) {
                 if (s instanceof PyValue.PyList list) {
                     s = list.asTuple();
+                } else if (s instanceof PyValue.PySymbol symbol) {
+                    s = symbol.asStr();
                 }
 
                 switch (s) {

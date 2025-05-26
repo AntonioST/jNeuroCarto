@@ -1,7 +1,9 @@
 package io.ast.jneurocarto.javafx.script;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javafx.event.ActionEvent;
@@ -23,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
-import io.ast.jneurocarto.javafx.app.Application;
-import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
-import io.ast.jneurocarto.javafx.app.PluginSetupService;
-import io.ast.jneurocarto.javafx.app.ProbeView;
+import io.ast.jneurocarto.javafx.app.*;
 import io.ast.jneurocarto.javafx.view.GlobalStateView;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.github.classgraph.AnnotationClassRef;
@@ -64,6 +63,12 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     private void initBlueprintScripts(PluginSetupService service) {
         var lookup = MethodHandles.publicLookup();
+
+        if (config.debug) {
+            for (var handle : BlueprintScriptHandles.lookupClass(lookup, DebugScript.class)) {
+                initBlueprintScript(handle);
+            }
+        }
 
         service = service.asProbePluginSetupService();
         for (var clazz : service.scanAnnotation(BlueprintScript.class, this::filterBlueprintScript)) {
@@ -135,9 +140,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
         functions.add(callable);
     }
-
-
-
 
     /*============*
      * properties *
@@ -269,7 +271,12 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         var input = line.getText();
         if (input == null) input = "";
 
-        evalScript(script, input);
+        try {
+            evalScript(script, input);
+        } catch (Exception ex) {
+            LogMessageService.printMessage(ex.getMessage());
+            log.warn("evalScript", ex);
+        }
     }
 
     private void onScriptReset(ActionEvent e) {
@@ -288,6 +295,8 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         items.addAll(functions.stream().map(BlueprintScriptCallable::name).toList());
         if (current != null && !current.isEmpty() && getScript(current) != null) {
             script.setValue(current);
+        } else if (config.debug && getScript("echo") != null) {
+            script.setValue("echo");
         }
     }
 
@@ -305,7 +314,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     private String getScriptSignature(BlueprintScriptCallable callable) {
         var name = callable.name();
         var para = Arrays.stream(callable.parameters())
-          .map(BlueprintScriptCallable.ScriptParameter::name)
+          .map(BlueprintScriptCallable.Parameter::name)
           .collect(Collectors.joining(", ", "(", ")"));
         return name + para;
     }
@@ -338,12 +347,167 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     private void evalScript(BlueprintScriptCallable callable, String line) {
         log.debug("run script {} with \"{}\"", callable.name(), line);
         var token = new Tokenize(line).parse();
+
         if (log.isDebugEnabled()) {
             var content = token.stream()
               .map(PyValue::toString)
               .collect(Collectors.joining(", "));
             log.debug("token {}", content);
         }
+
+        var arguments = pairScriptArguments(callable, token);
+
+        try {
+            callable.invoke(newToolkit(), arguments);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
+    private Object[] pairScriptArguments(BlueprintScriptCallable callable, Tokenize tokens) {
+        assert tokens.tokens != null;
+        assert tokens.values != null;
+
+        var parameters = callable.parameters();
+        var ret = new ArrayList<Object>(parameters.length);
+        var defv = new Object();
+        for (int i = 0, length = parameters.length; i < length; i++) {
+            ret.add(defv);
+        }
+
+        for (int i = 0, size = tokens.size(); i < size; i++) {
+            var token = tokens.tokens.get(i);
+            var argument = tokens.values.get(i);
+
+            if (argument instanceof PyValue.PyIndexParameter(var index, var value)) {
+                if (index >= parameters.length) {
+                    var last = parameters[parameters.length - 1];
+                    if (last.isVarArg()) {
+                        ret.add(castScriptArgument(last, token, value));
+                    } else {
+                        throw new RuntimeException("too many arguments given.");
+                    }
+                } else {
+                    ret.set(index, castScriptArgument(parameters[index], token, value));
+                }
+            } else if (argument instanceof PyValue.PyNamedParameter(var name, var value)) {
+                var j = indexOfParameter(parameters, name);
+                if (j < 0) {
+                    throw new RuntimeException("unresolved parameter name : " + name);
+                }
+                if (ret.get(j) != defv) {
+                    throw new RuntimeException("duplicated parameter : " + name);
+                }
+
+                var last = parameters[j];
+                if (last.isVarArg()) {
+                    ret.add(castScriptArgument(last, token, value));
+                } else {
+                    ret.set(j, castScriptArgument(last, token, value));
+                }
+
+            } else {
+                throw new RuntimeException();
+            }
+        }
+
+        for (int i = 0, length = ret.size(); i < length; i++) {
+            if (ret.get(i) == defv) {
+                var parameter = parameters[Math.min(i, parameters.length - 1)];
+                if (parameter.defaultValue() == null) {
+                    ret.set(i, null);
+                } else {
+                    ret.set(i, castScriptArgument(parameter, (String) null, new Tokenize(parameter.defaultValue()).parseValue()));
+                }
+            }
+        }
+
+        return ret.toArray(Object[]::new);
+    }
+
+    private int indexOfParameter(BlueprintScriptCallable.Parameter[] parameters, String name) {
+        for (int i = 0, length = parameters.length; i < length; i++) {
+            if (parameters[i].name().equals(name)) return i;
+        }
+        return -1;
+    }
+
+    private @Nullable Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
+                                                @Nullable String rawString,
+                                                PyValue value) {
+        var converter = parameter.converter();
+        if (converter == ScriptParameter.RawString.class) {
+            return rawString;
+        } else if (converter != ScriptParameter.AutoCasting.class) {
+            return castScriptArgument(parameter, converter, value);
+        }
+
+        var target = parameter.type();
+        if (target == int.class || target == Integer.class) {
+            return switch (value) {
+                case PyValue.PyInt(var ret) -> ret;
+                case PyValue.PyNone _ when target == Integer.class -> null;
+                case null, default -> throwCCE(rawString, "int");
+            };
+        } else if (target == double.class || target == Double.class) {
+            return switch (value) {
+                case PyValue.PyInt(var ret) -> (double) ret;
+                case PyValue.PyFloat(double ret) -> ret;
+                case PyValue.PyNone _ when target == Double.class -> null;
+                case null, default -> throwCCE(rawString, "double");
+            };
+        } else if (target == int[].class) {
+            return switch (value) {
+                case PyValue.PyList list -> list.toIntArray();
+                case PyValue.PyTuple tuple -> tuple.toIntArray();
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "int[]");
+            };
+        } else if (target == double[].class) {
+            return switch (value) {
+                case PyValue.PyList list -> list.toDoubleArray();
+                case PyValue.PyTuple tuple -> tuple.toDoubleArray();
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "double[]");
+            };
+        } else if (target == String.class) {
+            return switch (value) {
+                case PyValue.PyInt _, PyValue.PyFloat _ -> rawString;
+                case PyValue.PyStr(String ret) -> ret;
+                case PyValue.PySymbol(String ret) -> ret;
+                case PyValue.PyNone _ -> null;
+                case null, default -> throwCCE(rawString, "String");
+            };
+        } else if (target.isEnum()) {
+            return switch (value) {
+                case PyValue.PyInt(int ret) -> target.getEnumConstants()[ret];
+                case PyValue.PyStr(String ret) -> Enum.valueOf((Class<Enum>) target, ret);
+                case PyValue.PySymbol(String ret) -> Enum.valueOf((Class<Enum>) target, ret);
+                case null, default -> throwCCE(rawString, target.getSimpleName());
+            };
+        } else if (target == PyValue.class) {
+            return value;
+        } else if (PyValue.class.isAssignableFrom(value.getClass())) {
+            throwCCE(rawString, target.getSimpleName() + ", use PyValue or java primitive type instead");
+        }
+
+        return throwCCE(rawString, target.getSimpleName());
+    }
+
+    private static Object throwCCE(@Nullable String rawString, String target) {
+        throw new ClassCastException("cannot cast '" + rawString + "' to " + target + ".");
+    }
+
+    private Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
+                                      Class<? extends Function<PyValue, ?>> converter,
+                                      PyValue value) {
+        Function<PyValue, ?> function;
+        try {
+            function = converter.getConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException("create converter for parameter " + parameter.name(), e);
+        }
+        return function.apply(value);
+    }
 }

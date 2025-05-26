@@ -20,7 +20,7 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
     public final String name;
     public final String description;
     private final Class<?> blueprint;
-    public final ScriptParameter[] parameters;
+    public final Parameter[] parameters;
     private final MethodHandle handle;
 
     public BlueprintScriptHandle(Class<?> declaredClass,
@@ -28,7 +28,7 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
                                  String name,
                                  String description,
                                  Class<?> blueprint,
-                                 ScriptParameter[] parameters,
+                                 Parameter[] parameters,
                                  MethodHandle handle) {
         this.declaredClass = declaredClass;
         this.declaredMethod = declaredMethod;
@@ -50,7 +50,7 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
     }
 
     @Override
-    public ScriptParameter[] parameters() {
+    public Parameter[] parameters() {
         return parameters;
     }
 
@@ -91,12 +91,19 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
 
     @Override
     public void invoke(BlueprintAppToolkit<?> toolkit, Object... arguments) throws Throwable {
-        MethodHandle h;
+        MethodHandle h = handle;
+
         if (blueprint == Blueprint.class) {
-            h = MethodHandles.insertArguments(handle, 0, toolkit.blueprint());
+            h = MethodHandles.insertArguments(h, 0, toolkit.blueprint());
         } else {
-            h = MethodHandles.insertArguments(handle, 0, toolkit);
+            h = MethodHandles.insertArguments(h, 0, toolkit);
         }
-        h.invokeExact(arguments);
+
+        var last = parameters[parameters.length - 1];
+        if (last.isVarArg()) {
+            h = h.asVarargsCollector(last.type().arrayType());
+        }
+
+        h.invokeWithArguments(arguments);
     }
 }
