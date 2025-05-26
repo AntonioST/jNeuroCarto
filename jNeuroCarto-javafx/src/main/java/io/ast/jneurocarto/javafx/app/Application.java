@@ -1149,7 +1149,7 @@ public class Application<T> {
         fireProbeUpdate();
     }
 
-    private void fireProbeUpdate() {
+    public void fireProbeUpdate() {
         var channelmap = view.getChannelmap();
         if (channelmap == null) return;
 

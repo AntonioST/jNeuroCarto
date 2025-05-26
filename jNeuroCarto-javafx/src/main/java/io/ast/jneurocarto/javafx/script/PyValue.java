@@ -12,6 +12,8 @@ import org.jspecify.annotations.Nullable;
 public sealed interface PyValue {
 
     PyNone None = new PyNone();
+    PyBool True = new PyBool(true);
+    PyBool False = new PyBool(false);
     PyList EMPTY_LIST = new PyList(List.of());
     PyTuple0 EMPTY_TUPLE = new PyTuple0();
     PyDict EMPTY_DICT = new PyDict(List.of(), List.of());
@@ -23,7 +25,18 @@ public sealed interface PyValue {
         }
     }
 
+    record PyBool(boolean value) implements PyValue {
+        @Override
+        public String toString() {
+            return "bool(" + value + ")";
+        }
+    }
+
     record PyInt(int value) implements PyValue {
+        public PyBool asBool() {
+            return value == 0 ? PyValue.False : PyValue.True;
+        }
+
         @Override
         public String toString() {
             return "int(" + value + ")";
@@ -48,6 +61,10 @@ public sealed interface PyValue {
 
         default PyValue get(int i) {
             return elements().get(i);
+        }
+
+        default PyBool asBool() {
+            return size() == 0 ? PyValue.False : PyValue.True;
         }
 
         default int[] toIntArray() {
@@ -221,6 +238,10 @@ public sealed interface PyValue {
             return elements.get(i);
         }
 
+        public PyBool asBool() {
+            return size() == 0 ? PyValue.False : PyValue.True;
+        }
+
         @Override
         public String toString() {
             return IntStream.range(0, keys.size()).mapToObj(i -> {
@@ -251,6 +272,10 @@ public sealed interface PyValue {
             return string.length();
         }
 
+        public PyBool asBool() {
+            return length() == 0 ? PyValue.False : PyValue.True;
+        }
+
         @Override
         public String toString() {
             return "'" + string + "'";
@@ -261,9 +286,17 @@ public sealed interface PyValue {
     }
 
     record PyIndexParameter(int index, @Nullable PyValue value) implements PyParameter {
+        @Override
+        public String toString() {
+            return index + "=" + value;
+        }
     }
 
     record PyNamedParameter(String name, @Nullable PyValue value) implements PyParameter {
+        @Override
+        public String toString() {
+            return name + "=" + value;
+        }
     }
 
 

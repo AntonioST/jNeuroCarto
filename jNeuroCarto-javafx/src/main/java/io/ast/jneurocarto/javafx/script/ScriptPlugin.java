@@ -188,6 +188,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         script.valueProperty().addListener((_, old, value) -> onScriptSelection(old, value));
 
         line = new TextField();
+        line.setFont(Font.font("monospace"));
 
         run = new Button("Run");
         run.setOnAction(this::onScriptRun);
@@ -324,7 +325,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
               var name = it.name();
               var type = it.typeDesp();
               var defv = it.defaultValue();
-              if (defv != ScriptParameter.NO_DEFAULT) {
+              if (defv != null) {
                   type = type + "=" + defv;
               }
               var desp = it.description();
@@ -412,7 +413,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             if (ret.get(i) == defv) {
                 var parameter = parameters[Math.min(i, parameters.length - 1)];
                 if (parameter.defaultValue() == null) {
-                    ret.set(i, null);
+                    throw new RuntimeException("parameter " + parameter.name() + "is required");
                 } else {
                     ret.set(i, castScriptArgument(parameter, (String) null, new Tokenize(parameter.defaultValue()).parseValue()));
                 }
@@ -440,7 +441,17 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         }
 
         var target = parameter.type();
-        if (target == int.class || target == Integer.class) {
+        if (target == boolean.class || target == Boolean.class) {
+            return switch (value) {
+                case PyValue.PyBool(var ret) -> ret;
+                case PyValue.PyInt ret -> ret.asBool().value();
+                case PyValue.PyIterable ret -> ret.asBool().value();
+                case PyValue.PyDict ret -> ret.asBool().value();
+                case PyValue.PyStr ret -> ret.asBool().value();
+                case PyValue.PyNone _ -> false;
+                case null, default -> throwCCE(rawString, "bool");
+            };
+        } else if (target == int.class || target == Integer.class) {
             return switch (value) {
                 case PyValue.PyInt(var ret) -> ret;
                 case PyValue.PyNone _ when target == Integer.class -> null;

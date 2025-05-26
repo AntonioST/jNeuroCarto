@@ -100,11 +100,16 @@ public class BlueprintToolkit<T> {
         return blueprint;
     }
 
-    public final int[] rawBlueprint() {
+    /**
+     * reference to the raw blueprint int array.
+     *
+     * @return blueprint int array.
+     */
+    protected final int[] ref() {
         return blueprint.blueprint;
     }
 
-    public final int[] newBlueprint() {
+    public final int[] empty() {
         var ret = new int[length()];
         Arrays.fill(ret, ProbeDescription.CATE_UNSET);
         return ret;
@@ -147,10 +152,21 @@ public class BlueprintToolkit<T> {
           .toList();
     }
 
+    /**
+     * copy categories value from {@code electrode}.
+     *
+     * @param electrode
+     */
     public final void from(List<ElectrodeDescription> electrode) {
         from(blueprint.blueprint, electrode);
     }
 
+    /**
+     * copy categories value from {@code electrode} into {@code blueprint}.
+     *
+     * @param blueprint
+     * @param electrode
+     */
     public final void from(int[] blueprint, List<ElectrodeDescription> electrode) {
         if (length() != blueprint.length) throw new RuntimeException();
         for (var e : electrode) {
@@ -161,6 +177,11 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    /**
+     * copy value from {@code blueprint}.
+     *
+     * @param blueprint
+     */
     public final void from(int[] blueprint) {
         var dst = this.blueprint.blueprint;
         if (blueprint.length != dst.length) throw new RuntimeException();
@@ -169,14 +190,73 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    public final void from(int[] blueprint, BlueprintMask mask) {
+        var dst = this.blueprint.blueprint;
+        if (dst.length != blueprint.length) throw new RuntimeException();
+        if (dst.length != mask.length()) throw new RuntimeException();
+        if (dst != blueprint) {
+            for (int i = mask.nextSetBit(0); i >= 0; i = mask.nextSetBit(i + 1)) {
+                dst[i] = blueprint[i];
+            }
+        }
+    }
+
+    public final void from(BlueprintMask writeMask, int[] blueprint, BlueprintMask readMask) {
+        var dst = this.blueprint.blueprint;
+        if (dst.length != blueprint.length) throw new RuntimeException();
+        if (dst.length != writeMask.length()) throw new RuntimeException();
+        if (dst.length != readMask.length()) throw new RuntimeException();
+        if (writeMask.count() != readMask.count()) throw new RuntimeException();
+
+        if (dst != blueprint) {
+            int i = writeMask.nextSetBit(0);
+            int j = readMask.nextSetBit(0);
+            while (i >= 0) {
+                dst[i] = blueprint[j];
+                i = writeMask.nextSetBit(i + 1);
+                j = readMask.nextSetBit(j + 1);
+            }
+        }
+    }
+
+    /**
+     * copy blueprint array from {@code blueprint}.
+     *
+     * @param blueprint
+     */
     public final void from(Blueprint<T> blueprint) {
         if (blueprint != this.blueprint) {
             from(blueprint.blueprint);
         }
     }
 
+    public final void from(Blueprint<T> blueprint, BlueprintMask mask) {
+        if (blueprint != this.blueprint) {
+            from(blueprint.blueprint, mask);
+        }
+    }
+
+    public final void from(BlueprintMask writeMask, Blueprint<T> blueprint, BlueprintMask readMask) {
+        if (blueprint != this.blueprint) {
+            from(writeMask, blueprint.blueprint, readMask);
+        }
+    }
+
+    /**
+     * copy blueprint array from {@code blueprint}.
+     *
+     * @param blueprint
+     */
     public final void from(BlueprintToolkit<T> blueprint) {
         from(blueprint.blueprint);
+    }
+
+    public final void from(BlueprintToolkit<T> blueprint, BlueprintMask mask) {
+        from(blueprint.blueprint, mask);
+    }
+
+    public final void from(BlueprintMask writeMask, BlueprintToolkit<T> blueprint, BlueprintMask readMask) {
+        from(writeMask, blueprint.blueprint, readMask);
     }
 
     public final void clear() {
@@ -381,7 +461,13 @@ public class BlueprintToolkit<T> {
     }
 
     public int[] index(Predicate<Electrode> picker) {
-        return blueprint.stream().filter(picker).mapToInt(Electrode::i).toArray();
+        return filter(picker).mapToInt(Electrode::i).toArray();
+    }
+
+    public BlueprintMask mask(boolean value) {
+        var mask = new BlueprintMask(length());
+        if (value) mask = mask.not();
+        return mask;
     }
 
     public BlueprintMask mask() {
@@ -403,7 +489,7 @@ public class BlueprintToolkit<T> {
 
     public final BlueprintMask mask(Predicate<Electrode> picker) {
         var ret = new BlueprintMask(length());
-        blueprint.stream().filter(picker).mapToInt(Electrode::i).forEach(ret::set);
+        filter(picker).mapToInt(Electrode::i).forEach(ret::set);
         return ret;
     }
 
@@ -426,6 +512,10 @@ public class BlueprintToolkit<T> {
             ret.set(i, blueprint[i] == category);
         }
         return ret;
+    }
+
+    public final Stream<Electrode> filter(Predicate<Electrode> filter) {
+        return blueprint.stream().filter(filter);
     }
 
     public int[] invalid(int electrode) {
@@ -558,7 +648,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step) {
         if (step == 0 || length() == 0) return;
-        from(move(rawBlueprint(), step));
+        from(move(ref(), step));
     }
 
     /**
@@ -584,7 +674,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step, int category) {
         if (step == 0 || length() == 0) return;
-        from(move(rawBlueprint(), step, category));
+        from(move(ref(), step, category));
     }
 
     /**
@@ -610,7 +700,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step, int[] index) {
         if (step == 0 || length() == 0 || index.length == 0) return;
-        from(move(rawBlueprint(), step, index));
+        from(move(ref(), step, index));
     }
 
     /**
@@ -636,7 +726,7 @@ public class BlueprintToolkit<T> {
      */
     public final void move(int step, BlueprintMask mask) {
         if (length() != mask.length()) throw new IllegalArgumentException();
-        from(move(rawBlueprint(), step, mask));
+        from(move(ref(), step, mask));
     }
 
     /**
@@ -848,7 +938,7 @@ public class BlueprintToolkit<T> {
      * @return {@code E}-length int-array that the surrounding electrode shared same positive int value.
      */
     public final Clustering findClustering(boolean diagonal) {
-        return findClustering(rawBlueprint(), diagonal);
+        return findClustering(ref(), diagonal);
     }
 
     public Clustering findClustering(int[] blueprint, boolean diagonal) {
@@ -860,7 +950,7 @@ public class BlueprintToolkit<T> {
     }
 
     public final Clustering findClustering(int category, boolean diagonal) {
-        return findClustering(rawBlueprint(), category, diagonal);
+        return findClustering(ref(), category, diagonal);
     }
 
     public Clustering findClustering(int[] blueprint, int category, boolean diagonal) {
@@ -933,7 +1023,7 @@ public class BlueprintToolkit<T> {
         var mode = clustering.modeGroup();
         if (mode.group() == 0) return List.of();
 
-        var src = rawBlueprint();
+        var src = ref();
         var shank = shank();
         var posx = posx();
         var posy = posy();
@@ -966,7 +1056,7 @@ public class BlueprintToolkit<T> {
      *=================*/
 
     public final void fillClusteringEdges(List<ClusteringEdges> edges) {
-        var blueprint = rawBlueprint();
+        var blueprint = ref();
         for (var edge : edges) {
             fillClusteringEdges(blueprint, edge);
         }
@@ -1001,7 +1091,7 @@ public class BlueprintToolkit<T> {
     }
 
     public final void fillClusteringEdges(ClusteringEdges edge) {
-        fillClusteringEdges(rawBlueprint(), edge);
+        fillClusteringEdges(ref(), edge);
     }
 
     /**
@@ -1079,7 +1169,7 @@ public class BlueprintToolkit<T> {
      * fill all category zones as rectangle.
      */
     public final void fill() {
-        from(fill(rawBlueprint(), AreaThreshold.ALL));
+        from(fill(ref(), AreaThreshold.ALL));
     }
 
     /**
@@ -1088,7 +1178,7 @@ public class BlueprintToolkit<T> {
      * @param category
      */
     public final void fill(int category) {
-        from(fill(rawBlueprint(), category, AreaThreshold.ALL));
+        from(fill(ref(), category, AreaThreshold.ALL));
     }
 
     /**
@@ -1118,7 +1208,7 @@ public class BlueprintToolkit<T> {
      * @param threshold
      */
     public final void fill(AreaThreshold threshold) {
-        from(fill(rawBlueprint(), threshold));
+        from(fill(ref(), threshold));
     }
 
     /**
@@ -1128,7 +1218,7 @@ public class BlueprintToolkit<T> {
      * @param threshold
      */
     public final void fill(int category, AreaThreshold threshold) {
-        from(fill(rawBlueprint(), category, threshold));
+        from(fill(ref(), category, threshold));
     }
 
     /**
@@ -1181,11 +1271,11 @@ public class BlueprintToolkit<T> {
     }
 
     public final void extend(int category, int step) {
-        from(extend(rawBlueprint(), category, step, category, AreaThreshold.ALL));
+        from(extend(ref(), category, step, category, AreaThreshold.ALL));
     }
 
     public final void extend(int category, int step, int value) {
-        from(extend(rawBlueprint(), category, step, value, AreaThreshold.ALL));
+        from(extend(ref(), category, step, value, AreaThreshold.ALL));
     }
 
     /**
@@ -1210,11 +1300,11 @@ public class BlueprintToolkit<T> {
      * @return extended result, a copied {@code blueprint}.
      */
     public final void extend(int category, int step, AreaThreshold threshold) {
-        from(extend(rawBlueprint(), category, step, category, threshold));
+        from(extend(ref(), category, step, category, threshold));
     }
 
     public final void extend(int category, int step, int value, AreaThreshold threshold) {
-        from(extend(rawBlueprint(), category, step, value, threshold));
+        from(extend(ref(), category, step, value, threshold));
     }
 
     /**
@@ -1268,11 +1358,11 @@ public class BlueprintToolkit<T> {
     }
 
     public final void reduce(int category, int step) {
-        from(reduce(rawBlueprint(), category, step, ProbeDescription.CATE_UNSET, AreaThreshold.ALL));
+        from(reduce(ref(), category, step, ProbeDescription.CATE_UNSET, AreaThreshold.ALL));
     }
 
     public final void reduce(int category, int step, int value) {
-        from(reduce(rawBlueprint(), category, step, value, AreaThreshold.ALL));
+        from(reduce(ref(), category, step, value, AreaThreshold.ALL));
     }
 
     public final int[] reduce(int[] blueprint, int category, int step) {
@@ -1284,11 +1374,11 @@ public class BlueprintToolkit<T> {
     }
 
     public final void reduce(int category, int step, AreaThreshold threshold) {
-        from(reduce(rawBlueprint(), category, step, ProbeDescription.CATE_UNSET, threshold));
+        from(reduce(ref(), category, step, ProbeDescription.CATE_UNSET, threshold));
     }
 
     public final void reduce(int category, int step, int value, AreaThreshold threshold) {
-        from(reduce(rawBlueprint(), category, step, value, threshold));
+        from(reduce(ref(), category, step, value, threshold));
     }
 
     public final int[] reduce(int[] blueprint, int category, int step, AreaThreshold threshold) {
@@ -1410,7 +1500,7 @@ public class BlueprintToolkit<T> {
             var header = parse.getHeaderNames();
             if (!checkCsvHeader(header)) throw new IOException("unknown header : " + header);
 
-            var ret = newBlueprint();
+            var ret = empty();
             for (var record : parse) {
                 int s, x, y, c;
                 try {

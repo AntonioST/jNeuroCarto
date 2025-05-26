@@ -163,6 +163,10 @@ public class Tokenize {
         if (!(i <= x)) throw new IllegalArgumentException("not a python value");
         if (isMatch(i, x, "") || isMatch(i, x, "None")) {
             return PyValue.None;
+        } else if (isMatch(i, x, "True")) {
+            return PyValue.True;
+        } else if (isMatch(i, x, "False")) {
+            return PyValue.False;
         }
 
         switch (line.charAt(i)) {

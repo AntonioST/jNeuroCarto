@@ -3,6 +3,7 @@ package io.ast.jneurocarto.probe_npx.javafx;
 import java.util.Arrays;
 import java.util.function.Function;
 
+import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
 import io.ast.jneurocarto.javafx.script.CheckProbe;
@@ -204,5 +205,76 @@ public final class NpxBlueprintScripts {
         bp.setChannelmap(ChannelMaps.npx24OneEightDensity(row));
     }
 
+    private BlueprintMask maskForShank(BlueprintAppToolkit<ChannelMap> bp, PyValue shank) {
+        if (shank instanceof PyValue.PyNone) {
+            return bp.mask(true);
+        } else if (shank instanceof PyValue.PyList list) {
+            var s = list.toIntArray();
+            Arrays.sort(s);
+            return bp.mask(e -> Arrays.binarySearch(s, e.s()) >= 0);
+        } else {
+            throw new ClassCastException("cannot cast " + shank + " into int[]");
+        }
+    }
 
+    @BlueprintScript(value = "move_blueprint", description = """
+      Move blueprint upward or downward.
+      """)
+    @CheckProbe(code = "NP24", create = false)
+    public void moveShanks(
+      BlueprintAppToolkit<ChannelMap> bp,
+      @ScriptParameter(value = "y",
+        description = "um") double y,
+      @ScriptParameter(value = "shank", type = "list[int]", defaultValue = "None",
+        description = "only particular shanks.") PyValue shank,
+      @ScriptParameter(value = "update", defaultValue = "False",
+        description = "update channelmap to follow the blueprint change.") boolean update) {
+
+        var r = (int) (y / NpxProbeType.NP24.spacePerRow());
+        var x = maskForShank(bp, shank);
+        bp.move(r, x);
+        bp.applyViewBlueprint();
+
+        if (update) {
+            bp.refreshElectrodeSelection();
+        }
+    }
+
+    @BlueprintScript(value = "exchange_shank", description = """
+      Move blueprint between shanks.
+      """)
+    @CheckProbe(code = "NP24", create = false)
+    public void exchangeShanks(
+      BlueprintAppToolkit<ChannelMap> bp,
+      @ScriptParameter(value = "shank",
+        description = """
+          For N shank probe, it is an N-length list.
+          For example, ``[3, 2, 1, 0]`` gives a reverse-shank-ordered blueprint.
+          """) int[] shank,
+      @ScriptParameter(value = "update", defaultValue = "False",
+        description = "update channelmap to follow the blueprint change.") boolean update) {
+        if (shank.length != 4) {
+            throw new RuntimeException("not a 4-length list");
+        }
+
+        var mask = new BlueprintMask[]{
+          bp.mask(e -> e.s() == 0),
+          bp.mask(e -> e.s() == 1),
+          bp.mask(e -> e.s() == 2),
+          bp.mask(e -> e.s() == 3),
+        };
+
+        var bq = bp.clone();
+        bq.clear();
+
+        for (int i = 0; i < 4; i++) {
+            bq.from(mask[i], bp, mask[shank[i]]);
+        }
+
+        bq.applyViewBlueprint();
+
+        if (update) {
+            bq.refreshElectrodeSelection();
+        }
+    }
 }

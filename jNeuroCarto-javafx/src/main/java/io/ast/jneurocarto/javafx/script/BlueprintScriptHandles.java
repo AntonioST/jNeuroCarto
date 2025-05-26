@@ -154,15 +154,27 @@ public final class BlueprintScriptHandles {
                 var name = parameter.getName();
                 var desp = type.getSimpleName();
                 var converter = ScriptParameter.AutoCasting.class;
+
                 ret.add(new BlueprintScriptCallable.Parameter(name, type, desp, null, null, converter, isvararg));
             } else {
                 var name = ann.value();
+
                 var typeDesp = ann.type();
-                if (typeDesp.isEmpty()) typeDesp = type.getSimpleName();
+                if (typeDesp.isEmpty()) {
+                    if (type.isArray()) {
+                        var t = type.getComponentType();
+                        typeDesp = "list[" + t.getSimpleName() + "]";
+                    } else {
+                        typeDesp = type.getSimpleName();
+                    }
+                }
+
                 var defv = ann.defaultValue();
-                if (defv == ScriptParameter.NO_DEFAULT) defv = null;
+                if (ScriptParameter.NO_DEFAULT.equals(defv)) defv = null;
+
                 var desp = ann.description();
                 var converter = ann.converter();
+
                 ret.add(new BlueprintScriptCallable.Parameter(name, type, typeDesp, defv, desp, converter, isvararg));
             }
         }

@@ -208,6 +208,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         var electrodes = application.view.getBlueprint();
         if (electrodes == null) return;
         apply(electrodes);
+        application.fireProbeUpdate();
     }
 
     public void refreshElectrodeSelection() {
@@ -216,6 +217,10 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public void refreshElectrodeSelection(String selector) {
         application.refreshSelection(selector);
+    }
+
+    public void repaintViewBlueprint() {
+        application.view.repaint();
     }
 
     /*=============*
