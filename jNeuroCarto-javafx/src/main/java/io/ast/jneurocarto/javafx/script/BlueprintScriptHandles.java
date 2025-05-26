@@ -89,7 +89,8 @@ public final class BlueprintScriptHandles {
             log.warn("method {}.{} not public", clazz.getSimpleName(), method.getName());
             return null;
         }
-        if ((modifiers & Modifier.STATIC) == 0 && instance == null) {
+        var is_static = (modifiers & Modifier.STATIC) != 0;
+        if (!is_static && instance == null) {
             log.warn("method {}.{} not static", clazz.getSimpleName(), method.getName());
             return null;
         }
@@ -120,8 +121,15 @@ public final class BlueprintScriptHandles {
         var name = ann.value();
         if (name.isEmpty()) name = method.getName();
 
+        var description = ann.description();
+
         var ps = lookupParameter(method).toArray(BlueprintScriptCallable.ScriptParameter[]::new);
-        return new BlueprintScriptHandle(clazz, method, instance, name, blueprint, ps, handle);
+
+        if (instance != null && !is_static) {
+            handle = handle.bindTo(instance);
+        }
+
+        return new BlueprintScriptHandle(clazz, method, name, description, blueprint, ps, handle);
     }
 
     private static @Nullable Class<?> checkMethodParameter(Parameter parameter) {

@@ -1,6 +1,8 @@
 package io.ast.jneurocarto.javafx.script;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
 
 import javafx.scene.Node;
 
@@ -20,6 +22,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     private final CartoConfig config;
     private final ProbeDescription<Object> probe;
+    private final List<BlueprintScriptCallable> functinos = new ArrayList<>();
 
     private final Logger log = LoggerFactory.getLogger(ScriptPlugin.class);
 
@@ -154,4 +157,8 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     /*==============*
      * event handle *
      *==============*/
+
+    /*=================*
+     * script invoking *
+     *=================*/
 }

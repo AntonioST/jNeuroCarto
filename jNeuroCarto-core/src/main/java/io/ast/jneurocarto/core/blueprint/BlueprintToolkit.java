@@ -114,6 +114,10 @@ public class BlueprintToolkit<T> {
         return pick(electrodes(), index);
     }
 
+    public final List<ElectrodeDescription> pick(int[] index, int offset, int length) {
+        return pick(electrodes(), index, offset, length);
+    }
+
     public final List<ElectrodeDescription> pick(BlueprintMask mask) {
         return pick(electrodes(), mask);
     }
@@ -121,6 +125,14 @@ public class BlueprintToolkit<T> {
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index) {
         if (length() != electrodes.size()) throw new RuntimeException();
         return Arrays.stream(index)
+          .mapToObj(electrodes::get)
+          .toList();
+    }
+
+    public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index, int offset, int length) {
+        if (length() != electrodes.size()) throw new RuntimeException();
+        return IntStream.range(0, length)
+          .map(i -> index[i + offset])
           .mapToObj(electrodes::get)
           .toList();
     }

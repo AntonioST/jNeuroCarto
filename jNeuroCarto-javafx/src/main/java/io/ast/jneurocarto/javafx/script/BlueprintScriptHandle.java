@@ -17,23 +17,23 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
 
     public final Class<?> declaredClass;
     public final Method declaredMethod;
-    private final @Nullable Object instance;
     public final String name;
+    public final String description;
     private final Class<?> blueprint;
     public final ScriptParameter[] parameters;
     private final MethodHandle handle;
 
-    public BlueprintScriptHandle(Class<?> declared,
-                                 Method method,
-                                 @Nullable Object instance,
+    public BlueprintScriptHandle(Class<?> declaredClass,
+                                 Method declaredMethod,
                                  String name,
+                                 String description,
                                  Class<?> blueprint,
                                  ScriptParameter[] parameters,
                                  MethodHandle handle) {
-        this.declaredClass = declared;
-        this.declaredMethod = method;
-        this.instance = instance;
+        this.declaredClass = declaredClass;
+        this.declaredMethod = declaredMethod;
         this.name = name;
+        this.description = description;
         this.blueprint = blueprint;
         this.parameters = parameters;
         this.handle = handle;
@@ -42,6 +42,11 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public String description() {
+        return description;
     }
 
     @Override

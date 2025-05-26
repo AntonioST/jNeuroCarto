@@ -12,6 +12,8 @@ public interface BlueprintScriptCallable {
 
     String name();
 
+    String description();
+
     ScriptParameter[] paramaters();
 
     default @Nullable RequestChannelmapType requestChannelmap() {

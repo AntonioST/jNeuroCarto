@@ -128,6 +128,32 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return application.view.getChannelmap() == chmap;
     }
 
+    public void addElectrode(int[] index) {
+        addElectrode(index, 0, index.length);
+    }
+
+    public void addElectrode(int[] index, int offset, int length) {
+        var probe = probe();
+        var chmap = channelmap();
+        if (chmap == null) throw new RuntimeException();
+        for (var e : pick(index, offset, length)) {
+            probe.addElectrode(chmap, e);
+        }
+    }
+
+    public void removeElectrode(int[] index) {
+        removeElectrode(index, 0, index.length);
+    }
+
+    public void removeElectrode(int[] index, int offset, int length) {
+        var probe = probe();
+        var chmap = channelmap();
+        if (chmap == null) throw new RuntimeException();
+        for (var e : pick(index, offset, length)) {
+            probe.removeElectrode(chmap, e);
+        }
+    }
+
     /*============*
      * electrodes *
      *============*/

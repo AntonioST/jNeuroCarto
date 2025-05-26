@@ -8,4 +8,6 @@ import java.lang.annotation.*;
 public @interface BlueprintScript {
 
     String value() default "";
+
+    String description() default "";
 }

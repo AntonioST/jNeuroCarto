@@ -1,5 +1,8 @@
 package io.ast.jneurocarto.probe_npx.javafx;
 
+import java.util.Arrays;
+import java.util.function.Function;
+
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
 import io.ast.jneurocarto.javafx.script.CheckProbe;
@@ -7,26 +10,181 @@ import io.ast.jneurocarto.javafx.script.ScriptParameter;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
+import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 @BlueprintScript()
 @CheckProbe(probe = NpxProbeDescription.class)
 public final class NpxBlueprintScripts {
 
-    @BlueprintScript("npx24_single_shank")
+    @BlueprintScript(value = "npx24_single_shank", description = """
+      Make a block channelmap for 4-shank Neuropixels probe.
+      """)
     @CheckProbe(code = "NP24")
     public void newNpx24Singleshank(
       BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", defaultValue = "0") int shank,
-      @ScriptParameter(value = "row", defaultValue = "0") double row) {
+      @ScriptParameter(value = "shank", defaultValue = "0",
+        description = "on which shank") int shank,
+      @ScriptParameter(value = "row", defaultValue = "0",
+        description = "start row in um.") double row) {
         bp.setChannelmap(ChannelMaps.npx24SingleShank(shank, row));
     }
 
-    @BlueprintScript("npx24_stripe")
+    @BlueprintScript(value = "npx24_stripe", description = """
+      Make a block channelmap for 4-shank Neuropixels probe.
+      """)
     @CheckProbe(code = "NP24")
     public void npx24Stripe(
       BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "row", defaultValue = "0") double row) {
+      @ScriptParameter(value = "row", defaultValue = "0",
+        description = "start row in um.") double row) {
         bp.setChannelmap(ChannelMaps.npx24Stripe(row));
+    }
+
+    public sealed interface ShankOrSelect {
+        record OneShank(int shank) implements ShankOrSelect {
+            OneShank(String s) {
+                this(Integer.parseInt(s));
+            }
+        }
+
+        record TwoShank(int s1, int s2) implements ShankOrSelect {
+            TwoShank(String s1, String s2) {
+                this(Integer.parseInt(s1), Integer.parseInt(s2));
+            }
+        }
+
+        record AllShank() implements ShankOrSelect {
+        }
+
+        record Select() implements ShankOrSelect, Function<String, ShankOrSelect> {
+            @Override
+            public ShankOrSelect apply(String s) {
+                switch (s) {
+                case "selected":
+                    return this;
+                case "None":
+                case "all":
+                    return new AllShank();
+                }
+
+                try {
+                    if (s.contains(",")) {
+                        var p = s.split(",", 2);
+                        return new TwoShank(p[0].strip(), p[1].strip());
+                    } else {
+                        return new OneShank(s);
+                    }
+                } catch (NumberFormatException e) {
+                    throw new RuntimeException("not a int value : " + s, e);
+                }
+            }
+        }
+    }
+
+
+    @BlueprintScript(value = "npx24_half_density", description = """
+      Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *half* density.
+      """)
+    @CheckProbe(code = "NP24")
+    public void npx24HalfDensity(
+      BlueprintAppToolkit<ChannelMap> bp,
+      @ScriptParameter(value = "shank", defaultValue = "0",
+        converter = ShankOrSelect.Select.class,
+        description = "on which shank/s. Use 'select' for selected electrodes.") ShankOrSelect shank,
+      @ScriptParameter(value = "row", defaultValue = "0",
+        description = "start row in um.") double row) {
+
+        switch (shank) {
+        case ShankOrSelect.Select _ -> npx24HalfDensity(bp, row);
+        case ShankOrSelect.OneShank(var s) -> bp.setChannelmap(ChannelMaps.npx24HalfDensity(s, row));
+        case ShankOrSelect.TwoShank(var s1, var s2) -> bp.setChannelmap(ChannelMaps.npx24HalfDensity(s1, s2, row));
+        case ShankOrSelect.AllShank _ -> throw new RuntimeException("need at most two shanks");
+        }
+    }
+
+    private void npx24HalfDensity(BlueprintAppToolkit<ChannelMap> bp, double row) {
+        var index = bp.getAllCaptureElectrodes();
+        var z = index.length;
+        if (z < 4) {
+            bp.printLogMessage("need more electrodes");
+            return;
+        }
+
+        var r = (int) (row / NpxProbeType.NP24.spacePerRow());
+        if (r % 2 == 0) {
+            z = keepIndexForModule(index, r, 0, 3);
+        } else {
+            z = keepIndexForModule(index, r, 1, 2);
+        }
+
+        Arrays.sort(index);
+        bp.addElectrode(index, 0, z);
+        bp.clearCaptureElectrodes();
+    }
+
+    private static int keepIndexForModule(int[] index, int mod, int m1, int m2) {
+        var ret = index.length;
+        for (int i = 0, length = ret; i < length; i++) {
+            var m = index[i] % mod;
+            if (!(m == m1 || m == m2)) {
+                index[i] = Integer.MAX_VALUE;
+                ret--;
+            }
+        }
+        return ret;
+    }
+
+    @BlueprintScript(value = "npx24_quarter_density", description = """
+      Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *quarter* density.
+      """)
+    @CheckProbe(code = "NP24")
+    public void npx24QuarterDensity(
+      BlueprintAppToolkit<ChannelMap> bp,
+      @ScriptParameter(value = "shank", defaultValue = "0",
+        converter = ShankOrSelect.Select.class,
+        description = "on which shank/s. Use 'select' for selected electrodes. Use ``all`` for four shanks.") ShankOrSelect shank,
+      @ScriptParameter(value = "row", defaultValue = "0",
+        description = "start row in um.") double row) {
+
+        switch (shank) {
+        case ShankOrSelect.Select _ -> npx24QuarterDensity(bp, row);
+        case ShankOrSelect.OneShank(var s) -> bp.setChannelmap(ChannelMaps.npx24QuarterDensity(s, row));
+        case ShankOrSelect.TwoShank(var s1, var s2) -> bp.setChannelmap(ChannelMaps.npx24QuarterDensity(s1, s2, row));
+        case ShankOrSelect.AllShank _ -> bp.setChannelmap(ChannelMaps.npx24QuarterDensity(row));
+        }
+    }
+
+    private void npx24QuarterDensity(BlueprintAppToolkit<ChannelMap> bp, double row) {
+        var index = bp.getAllCaptureElectrodes();
+        var z = index.length;
+        if (z < 8) {
+            bp.printLogMessage("need more electrodes");
+            return;
+        }
+
+        var r = (int) (row / NpxProbeType.NP24.spacePerRow());
+        z = switch (r % 4) {
+            case 0 -> keepIndexForModule(index, 8, 0, 5);
+            case 1 -> keepIndexForModule(index, 8, 1, 4);
+            case 2 -> keepIndexForModule(index, 8, 2, 7);
+            case 3 -> keepIndexForModule(index, 8, 3, 6);
+            default -> throw new RuntimeException("unreachable");
+        };
+
+        Arrays.sort(index);
+        bp.addElectrode(index, 0, z);
+        bp.clearCaptureElectrodes();
+    }
+
+    @BlueprintScript(value = "npx24_one_eighth_density", description = """
+      Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *one-eighth* density.
+      """)
+    @CheckProbe(code = "NP24")
+    public void npx24OneEightDensity(
+      BlueprintAppToolkit<ChannelMap> bp,
+      @ScriptParameter(value = "row", defaultValue = "0",
+        description = "start row in um.") double row) {
+        bp.setChannelmap(ChannelMaps.npx24OneEightDensity(row));
     }
 
 
