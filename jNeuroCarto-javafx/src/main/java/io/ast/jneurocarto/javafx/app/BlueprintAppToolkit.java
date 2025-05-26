@@ -117,6 +117,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return new BlueprintAppToolkit<>(application);
     }
 
+
     public BlueprintAppToolkit<T> setChannelmap(T channelmap) {
         application.clearProbe(channelmap);
         return new BlueprintAppToolkit<>(application);

@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
@@ -67,8 +68,10 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
         service = service.asProbePluginSetupService();
         for (var clazz : service.scanAnnotation(BlueprintScript.class, this::filterBlueprintScript)) {
-            for (var handle : BlueprintScriptHandles.lookupClass(lookup, clazz)) {
-                initBlueprintScript(handle);
+            var coll = new ArrayList<>(BlueprintScriptHandles.lookupClass(lookup, clazz));
+            coll.sort(Comparator.comparing(BlueprintScriptCallable::name));
+            for (var callable : coll) {
+                initBlueprintScript(callable);
             }
         }
     }
@@ -331,11 +334,15 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         return doc + "\n" + para;
     }
 
-    private @Nullable BlueprintAppToolkit<Object> newToolkit() {
+    private BlueprintAppToolkit<Object> newToolkit() {
         var chmap = view.getChannelmap();
-        if (chmap == null) return null;
-        var electrodes = view.getBlueprint();
-        var blueprint = new Blueprint<>(probe, chmap, electrodes);
+        Blueprint<Object> blueprint;
+        if (chmap == null) {
+            blueprint = new Blueprint<>(probe);
+        } else {
+            var electrodes = view.getBlueprint();
+            blueprint = new Blueprint<>(probe, chmap, electrodes);
+        }
         return new BlueprintAppToolkit<>(application, blueprint);
     }
 
@@ -347,18 +354,12 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             var content = token.stream()
               .map(PyValue::toString)
               .collect(Collectors.joining(", "));
-            log.debug("token {}", content);
+            log.debug("token [{}]", content);
         }
 
-        var arguments = pairScriptArguments(callable, token);
-
-        try {
-            callable.invoke(newToolkit(), arguments);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-
+        invokeScript(callable, pairScriptArguments(callable, token));
     }
+
 
     private Object[] pairScriptArguments(BlueprintScriptCallable callable, Tokenize tokens) {
         assert tokens.tokens != null;
@@ -505,4 +506,76 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         }
         return function.apply(value);
     }
+
+    private void invokeScript(BlueprintScriptCallable callable, Object[] arguments) {
+        var request = callable.requestChannelmap();
+        if (request != null) {
+            log.debug("check {} {}", callable.name(), request);
+            if (!checkScriptRequest(request)) {
+                return;
+            }
+        }
+
+        if (log.isDebugEnabled()) {
+            var parameters = callable.parameters();
+            var message = IntStream.range(0, arguments.length).mapToObj(i -> {
+                var p = i < parameters.length ? parameters[i] : null;
+                var a = Objects.toString(arguments[i]);
+                if (p == null) {
+                    return a;
+                } else {
+                    return p.name() + "=" + a;
+                }
+            }).collect(Collectors.joining(", "));
+            log.debug("invoke script {} with [{}]", callable.name(), message);
+        }
+
+        try {
+            var toolkit = newToolkit();
+            callable.invoke(toolkit, arguments);
+            return;
+        } catch (RequestChannelmapTypeException e) {
+            log.debug("fail. check {} {}", callable.name(), e.request);
+            if (!checkScriptRequest(e.request)) {
+                throw e;
+            }
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            log.debug("reinvoke {}", callable.name());
+            var toolkit = newToolkit();
+            callable.invoke(toolkit, arguments);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean checkScriptRequest(RequestChannelmapType request) {
+        if (!request.probe().isInstance(probe)) {
+            LogMessageService.printMessage("probe mis-matched.");
+            return false;
+        }
+
+        var code = request.code();
+        var channelmap = view.getChannelmap();
+        if (channelmap == null) {
+            if (code != null && request.create()) {
+                log.debug("create probe {}", request);
+                application.clearProbe(code);
+                return true;
+            } else {
+                return false;
+            }
+
+        } else if (code != null && !Objects.equals(probe.channelmapCode(channelmap), code)) {
+            LogMessageService.printMessage("probe mis-matched.");
+            return false;
+        }
+        return true;
+    }
+
 }

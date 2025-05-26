@@ -10,4 +10,13 @@ public record RequestChannelmapType(Class<? extends ProbeDescription> probe, @Nu
     public RequestChannelmapType(Class<? extends ProbeDescription> probe, @Nullable String code) {
         this(probe, code, true);
     }
+
+    public RequestChannelmapType alwaysCreate() {
+        return new RequestChannelmapType(probe, code, true);
+    }
+
+    @Override
+    public String toString() {
+        return "RequestChannelmapType[" + probe.getSimpleName() + (code == null ? "" : ":" + code) + "]";
+    }
 }

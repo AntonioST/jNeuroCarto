@@ -14,6 +14,6 @@ public class RequestChannelmapTypeException extends RuntimeException {
             message = "request probe " + request.code() + " from " + request.probe().getSimpleName();
         }
         super(message);
-        this.request = request;
+        this.request = request.alwaysCreate();
     }
 }

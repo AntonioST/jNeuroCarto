@@ -207,14 +207,7 @@ public class Application<T> {
         stage.sizeToScene();
 
         if (config.file != null) {
-            // TODO does not work
-            Platform.runLater(() -> {
-                try {
-                    loadChannelmap(config.file);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            Platform.runLater(() -> onLoadChannelmap(config.file));
         }
     }
 
@@ -722,6 +715,8 @@ public class Application<T> {
     }
 
     private void onLoadChannelmap(Path channelmapFile) {
+        channelmapFile = channelmapFile.toAbsolutePath().normalize();
+
         T channelmap;
         try {
             channelmap = loadChannelmap(channelmapFile);
@@ -783,6 +778,8 @@ public class Application<T> {
     }
 
     private void onSaveChannelmap(Path channelmapFile, T channelmap) {
+        channelmapFile = channelmapFile.toAbsolutePath().normalize();
+
         if (!probe.validateChannelmap(channelmap)) {
             printMessage("incomplete channelmap");
 
