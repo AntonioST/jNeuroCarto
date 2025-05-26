@@ -50,7 +50,7 @@ public class BlueprintScriptHandle implements BlueprintScriptCallable {
     }
 
     @Override
-    public ScriptParameter[] paramaters() {
+    public ScriptParameter[] parameters() {
         return parameters;
     }
 

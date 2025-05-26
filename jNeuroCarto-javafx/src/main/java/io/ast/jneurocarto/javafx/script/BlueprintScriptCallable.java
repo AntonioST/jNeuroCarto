@@ -7,14 +7,20 @@ import io.ast.jneurocarto.javafx.app.RequestChannelmapType;
 
 public interface BlueprintScriptCallable {
 
-    record ScriptParameter(String name, Class<?> type, @Nullable String defaultValue) {
+    record ScriptParameter(
+      String name,
+      Class<?> type,
+      String typeDesp,
+      @Nullable String defaultValue,
+      @Nullable String description
+    ) {
     }
 
     String name();
 
     String description();
 
-    ScriptParameter[] paramaters();
+    ScriptParameter[] parameters();
 
     default @Nullable RequestChannelmapType requestChannelmap() {
         return null;

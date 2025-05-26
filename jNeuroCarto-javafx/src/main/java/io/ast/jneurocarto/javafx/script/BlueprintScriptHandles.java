@@ -145,13 +145,17 @@ public final class BlueprintScriptHandles {
         for (int i = 1, length = parameters.length; i < length; i++) {
             var parameter = parameters[i];
             var ann = parameter.getAnnotation(ScriptParameter.class);
+            Class<?> type = parameter.getType();
             if (ann == null) {
-                ret.add(new BlueprintScriptCallable.ScriptParameter(parameter.getName(), parameter.getType(), null));
+                ret.add(new BlueprintScriptCallable.ScriptParameter(parameter.getName(), type, type.getSimpleName(), null, null));
             } else {
                 var name = ann.value();
-                var defaultValue = ann.defaultValue();
-                if (defaultValue == ScriptParameter.NO_DEFAULT) defaultValue = null;
-                ret.add(new BlueprintScriptCallable.ScriptParameter(name, parameter.getType(), defaultValue));
+                var typeDesp = ann.type();
+                if (typeDesp.isEmpty()) typeDesp = type.getSimpleName();
+                var defv = ann.defaultValue();
+                if (defv == ScriptParameter.NO_DEFAULT) defv = null;
+                var desp = ann.description();
+                ret.add(new BlueprintScriptCallable.ScriptParameter(name, type, typeDesp, defv, desp));
             }
         }
         return ret;

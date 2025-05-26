@@ -12,6 +12,8 @@ public @interface ScriptParameter {
 
     String value();
 
+    String type() default "";
+
     String NO_DEFAULT = "--NO_DEFAULT--";
 
     String defaultValue() default NO_DEFAULT;

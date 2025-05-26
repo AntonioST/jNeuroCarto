@@ -68,6 +68,7 @@ public final class NpxBlueprintScripts {
                 }
 
                 try {
+                    s = s.replaceAll("^\\[|]$", "");
                     if (s.contains(",")) {
                         var p = s.split(",", 2);
                         return new TwoShank(p[0].strip(), p[1].strip());
@@ -88,7 +89,7 @@ public final class NpxBlueprintScripts {
     @CheckProbe(code = "NP24")
     public void npx24HalfDensity(
       BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", defaultValue = "0",
+      @ScriptParameter(value = "shank", type = "int|[int,int]|'selected'", defaultValue = "selected",
         converter = ShankOrSelect.Select.class,
         description = "on which shank/s. Use 'select' for selected electrodes.") ShankOrSelect shank,
       @ScriptParameter(value = "row", defaultValue = "0",
@@ -140,7 +141,7 @@ public final class NpxBlueprintScripts {
     @CheckProbe(code = "NP24")
     public void npx24QuarterDensity(
       BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", defaultValue = "0",
+      @ScriptParameter(value = "shank", type = "int|[int,int]|'selected'|'None'", defaultValue = "None",
         converter = ShankOrSelect.Select.class,
         description = "on which shank/s. Use 'select' for selected electrodes. Use ``all`` for four shanks.") ShankOrSelect shank,
       @ScriptParameter(value = "row", defaultValue = "0",

@@ -7,7 +7,6 @@ import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 import org.jspecify.annotations.Nullable;
@@ -54,15 +53,12 @@ public abstract class InvisibleView implements Plugin {
         bindInvisibleNode(content);
         setupMenuViewItem(service, name());
 
-        var paddedContent = new HBox(content);
-        HBox.setHgrow(content, Priority.ALWAYS);
-        paddedContent.setPadding(new Insets(0, 0, 0, 15));
-
         var root = new VBox(
           heading,
-          paddedContent
+          content
         );
         root.setSpacing(5);
+        VBox.setMargin(content, new Insets(0, 0, 0, 15));
 
         return root;
     }
