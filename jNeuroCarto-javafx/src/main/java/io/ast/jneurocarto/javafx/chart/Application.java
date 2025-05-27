@@ -58,10 +58,14 @@ public class Application {
 
         data = chart.getPlotting();
         series = data.addSeries("mouse");
-        series.marker(Color.RED);
-        series.line(Color.RED);
+//        series.marker(Color.RED);
+//        series.line(Color.RED);
+        series.marker(Color.TRANSPARENT);
+        series.line(Color.TRANSPARENT);
         series.w(15);
         series.h(15);
+        series.normalize(Normalize.N01);
+        series.colormap("jet");
 
         var root = new VBox(chart);
         return root;
@@ -73,12 +77,8 @@ public class Application {
             if (e.getClickCount() >= 2) {
                 chart.resetAxesBoundaries();
             } else {
-                var gc = chart.getForegroundChartGraphicsContext(true);
-                gc.setStroke(Color.GREEN);
-                gc.strokeRect(0, 0, 100, 100);
-
                 var p = chart.getChartTransformFromScene(e.getSceneX(), e.getSceneY());
-                series.addData(p);
+                series.addData(p, Math.random());
                 data.repaint();
             }
         }

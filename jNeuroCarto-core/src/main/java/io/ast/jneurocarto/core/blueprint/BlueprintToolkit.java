@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
-import java.util.stream.Gatherer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -1139,32 +1138,6 @@ public class BlueprintToolkit<T> {
         }
     }
 
-    private record MinMaxInt(int min, int max) {
-        MinMaxInt(int value) {
-            this(value, value);
-        }
-
-        MinMaxInt consume(MinMaxInt other) {
-            return new MinMaxInt(Math.min(min, other.min), Math.max(max, other.max));
-        }
-
-        static Gatherer<Integer, ?, MinMaxInt> minmax() {
-            return Gatherer.ofSequential(
-              () -> new MinMaxInt[1],
-              Gatherer.Integrator.ofGreedy((state, element, _) -> {
-                  var minmax = new MinMaxInt(element);
-                  if (state[0] == null) {
-                      state[0] = minmax;
-                  } else {
-                      state[0] = state[0].consume(minmax);
-                  }
-                  return true;
-              }),
-              (state, downstream) -> downstream.push(state[0])
-            );
-        }
-    }
-
     /**
      * fill all category zones as rectangle.
      */
@@ -1260,10 +1233,10 @@ public class BlueprintToolkit<T> {
                 var y = Arrays.stream(index).map(i -> posy[i]).boxed().gather(MinMaxInt.minmax()).findFirst().get();
 
                 fillClusteringEdges(blueprint, new ClusteringEdges(c, s, List.of(
-                  new ClusteringEdges.Corner(x.max, y.max, 1),
-                  new ClusteringEdges.Corner(x.min, y.max, 3),
-                  new ClusteringEdges.Corner(x.min, y.min, 5),
-                  new ClusteringEdges.Corner(x.max, y.min, 7)
+                  new ClusteringEdges.Corner(x.max(), y.max(), 1),
+                  new ClusteringEdges.Corner(x.min(), y.max(), 3),
+                  new ClusteringEdges.Corner(x.min(), y.min(), 5),
+                  new ClusteringEdges.Corner(x.max(), y.min(), 7)
                 )));
             }
         }

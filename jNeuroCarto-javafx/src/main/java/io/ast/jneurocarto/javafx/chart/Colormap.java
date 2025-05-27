@@ -36,6 +36,10 @@ public class Colormap {
         return get(Normalize.N01, t);
     }
 
+    public LinearGradient get(double x1, double y1, double x2, double y2, double t1, double t2) {
+        return get(x1, y1, x2, y2, Normalize.N01, t1, t2);
+    }
+
     public Color get(Normalize normalize, double t) {
         var t1 = normalize.applyAsDouble(t);
         var size = stops.size();
@@ -48,5 +52,11 @@ public class Colormap {
             }
         }
         return stops.get(size - 1).getColor();
+    }
+
+    public LinearGradient get(double x1, double y1, double x2, double y2, Normalize normalize, double t1, double t2) {
+        var c1 = get(normalize, t1);
+        var c2 = get(normalize, t2);
+        return new LinearGradient(x1, y1, x2, y2, false, CycleMethod.NO_CYCLE, new Stop(0, c1), new Stop(1, c2));
     }
 }

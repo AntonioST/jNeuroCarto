@@ -17,6 +17,8 @@ import javafx.scene.transform.Affine;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.core.blueprint.MinMax;
+
 @NullMarked
 public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
@@ -39,27 +41,45 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      *==============*/
 
     public static class XY {
-        static final XY GAP = new XY(Double.NaN, Double.NaN, null);
+        static final XY GAP = new XY(Double.NaN, Double.NaN, 0.0, null);
 
         double x;
         double y;
+        double v;
         final @Nullable Object external;
 
         public XY(Point2D p) {
-            this(p.getX(), p.getY(), null);
+            this(p.getX(), p.getY(), 0, null);
+        }
+
+        public XY(Point2D p, double v) {
+            this(p.getX(), p.getY(), v, null);
         }
 
         public XY(double x, double y) {
-            this(x, y, null);
+            this(x, y, 0, null);
+        }
+
+        public XY(double x, double y, double v) {
+            this(x, y, v, null);
         }
 
         public XY(Point2D p, @Nullable Object external) {
-            this(p.getX(), p.getY(), external);
+            this(p.getX(), p.getY(), 0, external);
+        }
+
+        public XY(Point2D p, double v, @Nullable Object external) {
+            this(p.getX(), p.getY(), v, external);
         }
 
         public XY(double x, double y, @Nullable Object external) {
+            this(x, y, 0, external);
+        }
+
+        public XY(double x, double y, double v, @Nullable Object external) {
             this.x = x;
             this.y = y;
+            this.v = v;
             this.external = external;
         }
 
@@ -77,6 +97,14 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
         public void y(double y) {
             this.y = y;
+        }
+
+        public double v() {
+            return v;
+        }
+
+        public void v(double v) {
+            this.v = v;
         }
 
         public boolean isGap() {
@@ -104,6 +132,8 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         private @Nullable Color marker = null;
         private @Nullable Color line = null;
         private @Nullable Color fill = null;
+        private @Nullable Colormap colormap = null;
+        private @Nullable Normalize normalize = null;
         private boolean visible = true;
 
         private List<XY> data = new ArrayList<>();
@@ -206,6 +236,53 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
             return this;
         }
 
+        public @Nullable Colormap colormap() {
+            return colormap;
+        }
+
+        public void colormap(String colormap) {
+            colormap(Colormap.of(colormap));
+        }
+
+        /**
+         * set colormap.
+         * <br/>
+         * It is used when {@link #marker()} or {@link #line()} set to {@link Color#TRANSPARENT}.
+         *
+         * @param colormap
+         */
+        public void colormap(Colormap colormap) {
+            this.colormap = colormap;
+        }
+
+        public @Nullable Normalize normalize() {
+            return normalize;
+        }
+
+        public void normalize(double lower, double upper) {
+            normalize(new Normalize(lower, upper));
+        }
+
+        public void normalize(Normalize normalize) {
+            this.normalize = normalize;
+        }
+
+        public Normalize renormalize() {
+            if (data.size() < 2) {
+                normalize = Normalize.N01;
+            } else {
+                var result = data.stream()
+                  .mapToDouble(XY::v)
+                  .boxed()
+                  .gather(MinMax.minmax())
+                  .findFirst()
+                  .get();
+
+                normalize = new Normalize(result);
+            }
+            return normalize;
+        }
+
         public boolean isVisible() {
             return visible;
         }
@@ -227,13 +304,21 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         }
 
         public XY addData(double x, double y) {
-            var ret = new XY(x, y);
+            return addData(x, y, 0.0);
+        }
+
+        public XY addData(double x, double y, double v) {
+            var ret = new XY(x, y, v);
             data.add(ret);
             return ret;
         }
 
         public XY addData(Point2D p) {
-            var ret = new XY(p);
+            return addData(p, 0.0);
+        }
+
+        public XY addData(Point2D p, double v) {
+            var ret = new XY(p, v);
             data.add(ret);
             return ret;
         }
@@ -310,9 +395,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
             var data = this.data;
             var length = data.size();
-            var p = new double[2][];
+            var p = new double[3][];
             p[0] = new double[length];
             p[1] = new double[length];
+            p[2] = new double[length];
 
             transform(gc.getTransform(), p);
             paint(gc, p, 0, length);
@@ -327,6 +413,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
                 var q = aff.transform(xy.x, xy.y);
                 p[0][i] = q.getX();
                 p[1][i] = q.getY();
+                p[2][i] = xy.v;
             }
 
             return length;
@@ -335,15 +422,17 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         public void paint(GraphicsContext gc, XY[] xy) {
             if (!visible) return;
 
-            var p = new double[2][];
+            var p = new double[3][];
             p[0] = new double[xy.length];
             p[1] = new double[xy.length];
+            p[2] = new double[xy.length];
 
             var aff = gc.getTransform();
             for (int i = 0, length = xy.length; i < length; i++) {
                 var q = aff.transform(xy[i].x, xy[i].y);
                 p[0][i] = q.getX();
                 p[1][i] = q.getY();
+                p[2][i] = xy[i].v;
             }
 
             paint(gc, p, 0, xy.length);
@@ -356,10 +445,18 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
                 gc.setGlobalAlpha(alpha);
                 gc.setLineWidth(lw);
                 if ((line != null || fill != null) && length > 0) {
-                    paintLineAndFill(gc, p, offset, length);
+                    if (normalize != null && colormap != null && line == Color.TRANSPARENT) {
+                        paintLineAndFill(gc, p, offset, length, colormap, normalize);
+                    } else {
+                        paintLineAndFill(gc, p, offset, length);
+                    }
                 }
 
-                paintMarkers(gc, p, offset, length);
+                if (normalize != null && colormap != null && marker == Color.TRANSPARENT) {
+                    paintMarkers(gc, p, offset, length, colormap, normalize);
+                } else {
+                    paintMarkers(gc, p, offset, length);
+                }
             } finally {
                 gc.restore();
             }
@@ -407,6 +504,55 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
             }
         }
 
+        private void paintLineAndFill(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap, Normalize norm) {
+            if (fill != null) {
+                gc.setFill(fill);
+
+                var counter = 0;
+
+                for (int i = 0; i < length; i++) {
+                    var j = i + offset;
+
+                    var x = p[0][j];
+                    var y = p[1][j];
+                    if (Double.isNaN(x) || Double.isNaN(y)) {
+                        counter = 0;
+                        gc.fill();
+                    } else if (counter == 0) {
+                        gc.beginPath();
+                        gc.moveTo(x, y);
+                        counter++;
+                    } else {
+                        gc.lineTo(x, y);
+                        counter++;
+                    }
+                }
+
+                if (counter > 1) {
+                    gc.fill();
+                }
+            }
+
+            if (line != null) {
+                var x1 = p[0][offset];
+                var y1 = p[1][offset];
+                var v1 = p[2][offset];
+
+                for (int i = 1; i < length; i++) {
+                    var x2 = p[0][i + offset];
+                    var y2 = p[1][i + offset];
+                    var v2 = p[2][i + offset];
+                    if (!Double.isNaN(x1 + y1 + x2 + y2 + v1 + v2)) {
+                        gc.setStroke(cmap.get(x1, y1, x2, y2, norm, v1, v2));
+                        gc.strokeLine(x1, y1, x2, y2);
+                    }
+                    x1 = x2;
+                    y1 = y2;
+                    v1 = v2;
+                }
+            }
+        }
+
         private void paintMarkers(GraphicsContext gc, double[][] p, int offset, int length) {
             var dx = w / 2;
             var dy = h / 2;
@@ -417,6 +563,34 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
                     var x = p[0][i + offset];
                     var y = p[1][i + offset];
                     if (!Double.isNaN(x) && !Double.isNaN(y)) {
+                        gc.fillRect(x - dx, y - dy, w, h);
+                    }
+                }
+            }
+
+            if (markerEdge != null) {
+                gc.setStroke(markerEdge);
+                for (int i = 0; i < length; i++) {
+                    var x = p[0][i + offset];
+                    var y = p[1][i + offset];
+                    if (!Double.isNaN(x) && !Double.isNaN(y)) {
+                        gc.strokeRect(x - dx, y - dy, w, h);
+                    }
+                }
+            }
+        }
+
+        private void paintMarkers(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap, Normalize norm) {
+            var dx = w / 2;
+            var dy = h / 2;
+
+            if (marker != null) {
+                for (int i = 0; i < length; i++) {
+                    var x = p[0][i + offset];
+                    var y = p[1][i + offset];
+                    var v = p[2][i + offset];
+                    if (!Double.isNaN(x) && !Double.isNaN(y)) {
+                        gc.setFill(cmap.get(norm, v));
                         gc.fillRect(x - dx, y - dy, w, h);
                     }
                 }
@@ -547,9 +721,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     private double[][] getTransformedCache(int length) {
         double[][] ret;
         if (transformedCache == null || (ret = transformedCache.get()) == null || ret[0].length < length) {
-            ret = new double[2][];
+            ret = new double[3][];
             ret[0] = new double[length];
             ret[1] = new double[length];
+            ret[2] = new double[length];
             transformedCache = new SoftReference<>(ret);
         }
         return ret;

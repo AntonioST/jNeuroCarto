@@ -26,6 +26,10 @@ public final class ColormapPlt {
     private static final Logger log = LoggerFactory.getLogger(ColormapPlt.class);
     static final Map<String, Colormap> COLORMAPS = new HashMap<>();
 
+    static {
+        loadMatplotlibColorMapsPyFile();
+    }
+
     private ColormapPlt() {
         throw new RuntimeException();
     }
