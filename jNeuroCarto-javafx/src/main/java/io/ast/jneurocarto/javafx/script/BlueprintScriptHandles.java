@@ -71,7 +71,7 @@ public final class BlueprintScriptHandles {
         try {
             instance = clazz.getConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            log.warn("lookupPainClass", e);
+            log.debug("class {} no no-arg constructor", clazz.getSimpleName());
             instance = null;
         }
 

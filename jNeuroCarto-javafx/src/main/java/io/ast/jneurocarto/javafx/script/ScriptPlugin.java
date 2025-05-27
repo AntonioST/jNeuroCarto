@@ -185,6 +185,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     protected @Nullable Node setupContent(PluginSetupService service) {
 
         script = new ChoiceBox<>();
+        script.setMaxWidth(100);
         script.valueProperty().addListener((_, old, value) -> onScriptSelection(old, value));
 
         line = new TextField();

@@ -7,4 +7,7 @@ module io.ast.jneurocarto.script {
     requires io.ast.jneurocarto.core;
     requires io.ast.jneurocarto.probe_npx;
     requires io.ast.jneurocarto.javafx;
+
+    exports io.ast.jneurocarto.script;
+    exports io.ast.jneurocarto.probe_npx.javafx.script;
 }

@@ -1,14 +1,15 @@
 @file:BlueprintScript()
 
-package io.ast.jneurocarto.script
+package io.ast.jneurocarto.probe_npx.javafx.script
 
+import java.nio.file.Path
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit
 import io.ast.jneurocarto.javafx.script.BlueprintScript
 import io.ast.jneurocarto.javafx.script.CheckProbe
 import io.ast.jneurocarto.javafx.script.ScriptParameter
 import io.ast.jneurocarto.probe_npx.ChannelMap
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription
-import java.nio.file.Path
+import io.ast.jneurocarto.script.*
 
 @BlueprintScript(
     value = "blueprint_simple_init_script_from_activity_data_with_a_threshold",

@@ -6,12 +6,12 @@ import io.ast.jneurocarto.core.blueprint.BlueprintMask
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit.AreaThreshold
 
-operator fun BlueprintToolkit<*>.set(mask: BooleanArray, cate: Int) {
-    this.set(cate, BlueprintMask(mask))
+operator fun BlueprintToolkit<*>.set(mask: BlueprintMask, cate: Int) {
+    this.set(cate, mask)
 }
 
-operator fun BlueprintToolkit<*>.set(mask: BooleanArray, cate: IntArray) {
-    this.from(cate, BlueprintMask(mask))
+operator fun BlueprintToolkit<*>.set(mask: BlueprintMask, cate: IntArray) {
+    this.from(cate, mask)
 }
 
 fun BlueprintToolkit<*>.fill(category: Int, threshold: IntRange) {
