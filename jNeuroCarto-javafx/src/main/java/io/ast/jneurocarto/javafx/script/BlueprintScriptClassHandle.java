@@ -36,7 +36,9 @@ public final class BlueprintScriptClassHandle extends BlueprintScriptHandle {
 
     @Override
     public @Nullable RequestChannelmapType requestChannelmap() {
-        return requestChannelmap(declaredInner.getAnnotation(CheckProbe.class));
+        var c1 = declaredClass.getAnnotation(CheckProbe.class);
+        var c2 = declaredInner.getAnnotation(CheckProbe.class);
+        return RequestChannelmapType.of(c1, c2);
     }
 
     @Override

@@ -38,10 +38,8 @@ import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.dialog.ChartAxesDialog;
-import io.ast.jneurocarto.javafx.atlas.AtlasPluginProvider;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
-import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
 
 public class Application<T> {
 
@@ -195,6 +193,8 @@ public class Application<T> {
     public void start(Stage stage) {
         this.stage = stage;
         log.debug("start");
+
+        repository.loadUserConfigs(true);
 
         stage.setTitle("jNeuroCarto - " + config.probeFamily);
         stage.setScene(scene());
@@ -584,7 +584,7 @@ public class Application<T> {
      *=========*/
 
     final List<Object> plugins = new ArrayList<>();
-    final List<ProbePluginProvider> providers = new ArrayList<>();
+    final List<PluginProvider> providers = new ArrayList<>();
 
     private void setupPlugins() {
         log.debug("setup plugins");
@@ -596,104 +596,69 @@ public class Application<T> {
         }
 
         var service = new PluginSetupService(this);
+        var found = new ArrayList<PluginSetupService.PluginInfo>();
 
-        // probe plugins setup
-        for (var provider : ServiceLoader.load(ProbePluginProvider.class)) {
+        // load plugin providers
+        for (var provider : ServiceLoader.load(PluginProvider.class)) {
             log.debug("found provider {}.", provider.getClass().getName());
 
-            List<ProbePlugin<?>> plugins;
+            var provides = new ArrayList<>(service.getProvidePlugins(provider, probe));
+            if (!provides.isEmpty()) {
+                providers.add(provider);
 
-            try {
-                plugins = provider.setup(config, probe);
-                if (plugins == null) {
-                    continue;
+                var iter = provides.iterator();
+                while (iter.hasNext()) {
+                    var provide = iter.next();
+
+                    // add unnamed plugin, which is un-removable.
+                    if (provide.name().length == 0) {
+                        iter.remove();
+                        setupPlugin(service, provide);
+                    }
                 }
 
-            } catch (ClassCastException e) {
-                continue;
-            }
-
-            providers.add(provider);
-
-            for (var plugin : plugins) {
-                this.plugins.add(plugin);
-                log.debug("add plugin : {}", plugin.getClass().getName());
-
-                service.bind(provider, plugin);
-                var node = plugin.setup(service);
-                service.unbind();
-
-                if (node != null) {
-                    pluginLayout.getChildren().add(node);
-                }
+                found.addAll(provides);
             }
         }
 
         var extra = new ArrayList<String>();
         var rc = repository.getUserConfig();
         if (rc.views == null) {
-            extra.add("neurocarto.views.data_density:ElectrodeDensityDataView");
-            extra.add("neurocarto.views.view_efficient:ElectrodeEfficiencyData");
+            log.debug("use default plugin list");
+            extra.add("probe_npx.*");
             extra.add("blueprint");
             extra.add("atlas");
-            extra.add("script");
         } else {
+            log.debug("use user preferred plugin list {}", rc.views);
             extra.addAll(rc.views);
         }
         extra.addAll(config.extraViewList);
 
-        // plugin filtering
-        var foundPlugins = new HashMap<String, PluginProvider>();
-        for (var provider : ServiceLoader.load(PluginProvider.class)) {
-            // always put provider class name
-            var providerName = provider.getClass().getName();
-            foundPlugins.put(providerName, provider);
-
-            // and plugin name
-            if (providerName.endsWith("Provider")) {
-                foundPlugins.put(providerName.replaceFirst("Provider$", ""), provider);
-            }
-
-            var nameList = provider.name();
-            if (nameList.isEmpty()) {
-                log.debug("found provider {}.", providerName);
-            } else {
-                log.debug("found provider {} provides {}", providerName, nameList);
-                for (var name : nameList) {
-                    var old = foundPlugins.putIfAbsent(name, provider);
-                    if (old != null) {
-                        log.warn("{} conflict with : {}", name, old.getClass().getName());
-                    }
-                }
+        for (var rule : extra) {
+            for (var provide : service.filterPluginByNameRule(found, rule)) {
+                setupPlugin(service, provide);
             }
         }
+    }
 
-        // plugin setup
-        for (int i = 0; i < extra.size(); i++) {
-            var name = extra.get(i);
-            var provider = foundPlugins.get(name);
-            if (provider != null) {
-                extra.remove(i--);
+    private void setupPlugin(PluginSetupService service, PluginSetupService.PluginInfo provide) {
+        if (!provide.provider().filterPlugin(service, provide.plugin())) {
+            log.debug("plugin rejected : {}", provide.plugin().getName());
+        } else {
+            try {
+                log.debug("add plugin : {}", provide.plugin().getName());
+                var plugin = service.loadPlugin(provide);
 
-                log.debug("use plugin {}", name);
-                if (provider instanceof AtlasPluginProvider && (config.atlasName == null || config.atlasName.isEmpty())) {
-                    log.debug("empty atlas brain name, skip");
-                    continue;
+                service.bind(plugin);
+                var node = plugin.setup(service);
+                this.plugins.add(plugin);
+                if (node != null) {
+                    pluginLayout.getChildren().add(node);
                 }
-
-                var plugin = provider.setup(config, probe);
-                if (plugin != null) {
-                    log.debug("add plugin {}", plugin.getClass().getName());
-                    plugins.add(plugin);
-
-                    service.bind(provider, plugin);
-                    var node = plugin.setup(service);
-                    service.unbind();
-
-                    if (node != null) {
-                        pluginLayout.getChildren().add(node);
-                    }
-                }
+            } catch (Throwable e) {
+                log.warn("setup", e);
+            } finally {
+                service.unbind();
             }
         }
     }
@@ -1182,6 +1147,11 @@ public class Application<T> {
      *=================*/
 
     private void checkBeforeClosing(Event e) {
+        try {
+            repository.saveUserConfigs();
+        } catch (IOException ex) {
+            log.warn("saveUserConfigs", ex);
+        }
         stage.close();
     }
 

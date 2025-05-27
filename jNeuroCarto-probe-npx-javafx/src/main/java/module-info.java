@@ -1,4 +1,4 @@
-import io.ast.jneurocarto.javafx.view.ProbePluginProvider;
+import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.probe_npx.javafx.NpxProbePluginProvider;
 
 module io.ast.jneurocarto.probe_npx.javafx {
@@ -17,5 +17,5 @@ module io.ast.jneurocarto.probe_npx.javafx {
 
     exports io.ast.jneurocarto.probe_npx.javafx;
 
-    provides ProbePluginProvider with NpxProbePluginProvider;
+    provides PluginProvider with NpxProbePluginProvider;
 }

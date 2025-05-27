@@ -49,7 +49,7 @@ public class JsonConfig {
     }
 
     public void save(Path file) throws IOException {
-        Files.createDirectories(file.getParent());
+        Files.createDirectories(file.toAbsolutePath().getParent());
         mapper.writeValue(file.toFile(), maps);
     }
 

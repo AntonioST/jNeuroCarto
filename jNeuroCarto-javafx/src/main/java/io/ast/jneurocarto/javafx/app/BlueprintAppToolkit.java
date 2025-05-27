@@ -77,46 +77,44 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public final <P> boolean checkProbe(Class<ProbeDescription<P>> probe) {
-        return checkProbe(probe, null);
+        return checkProbe(new RequestChannelmapType(probe, null));
     }
 
     public final boolean checkProbe(String probe, @Nullable String code) {
-        ProbeDescription<T> found = (ProbeDescription<T>) ProbeDescription.getProbeDescription(probe);
-        if (found == null) throw new RuntimeException("probe " + probe + " not found.");
-        return checkProbe((Class<ProbeDescription<T>>) found.getClass(), code);
+        var request = RequestChannelmapType.of(probe, code);
+        if (request == null) throw new RuntimeException("probe " + probe + " not found.");
+        return checkProbe(request);
     }
 
     public final <P> boolean checkProbe(Class<ProbeDescription<P>> probe, @Nullable String code) {
-        var used = probe();
-        if (!probe.isInstance(used)) return false;
-        if (code == null) return true;
-        var chmap = channelmap();
-        if (chmap == null) return false;
-        return Objects.equals(used.channelmapCode(chmap), code);
+        return checkProbe(new RequestChannelmapType(probe, code));
+    }
+
+    public final <P> boolean checkProbe(RequestChannelmapType request) {
+        return request.checkChannelmap(probe(), channelmap());
     }
 
     public final void ensureProbe(String probe) {
-        ProbeDescription<T> found = (ProbeDescription<T>) ProbeDescription.getProbeDescription(probe);
-        if (found == null) throw new RuntimeException("probe " + probe + " not found.");
-        ensureProbe((Class<ProbeDescription<T>>) found.getClass());
+        ensureProbe(probe, null);
     }
 
     public final <P> BlueprintAppToolkit<P> ensureProbe(Class<ProbeDescription<P>> probe) {
-        if (!checkProbe(probe)) {
-            throw new RequestChannelmapTypeException(new RequestChannelmapType(probe, null));
-        }
-        return (BlueprintAppToolkit<P>) this;
+        return ensureProbe(new RequestChannelmapType(probe, null));
     }
 
     public final void ensureProbe(String probe, @Nullable String code) {
-        ProbeDescription<T> found = (ProbeDescription<T>) ProbeDescription.getProbeDescription(probe);
-        if (found == null) throw new RuntimeException("probe " + probe + " not found.");
-        ensureProbe((Class<ProbeDescription<T>>) found.getClass(), code);
+        var request = RequestChannelmapType.of(probe, code);
+        if (request == null) throw new RuntimeException("probe " + probe + " not found.");
+        ensureProbe(request);
     }
 
     public final <P> BlueprintAppToolkit<P> ensureProbe(Class<ProbeDescription<P>> probe, @Nullable String code) {
-        if (!checkProbe(probe, code)) {
-            throw new RequestChannelmapTypeException(new RequestChannelmapType(probe, code));
+        return ensureProbe(new RequestChannelmapType(probe, code));
+    }
+
+    public final <P> BlueprintAppToolkit<P> ensureProbe(RequestChannelmapType request) {
+        if (!checkProbe(request)) {
+            throw new RequestChannelmapTypeException(request);
         }
         return (BlueprintAppToolkit<P>) this;
     }

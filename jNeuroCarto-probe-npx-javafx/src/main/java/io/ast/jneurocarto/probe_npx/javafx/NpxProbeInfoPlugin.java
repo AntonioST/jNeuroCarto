@@ -10,13 +10,13 @@ import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
-import io.ast.jneurocarto.javafx.view.ProbeInfoPlugin;
+import io.ast.jneurocarto.javafx.view.AbstractProbeInfoPlugin;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 import io.ast.jneurocarto.probe_npx.ChannelMaps;
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 
 @NullMarked
-public class NpxProbeInfoPlugin extends ProbeInfoPlugin<ChannelMap> {
+public class NpxProbeInfoPlugin extends AbstractProbeInfoPlugin<ChannelMap> {
 
     public NpxProbeInfoPlugin() {
     }

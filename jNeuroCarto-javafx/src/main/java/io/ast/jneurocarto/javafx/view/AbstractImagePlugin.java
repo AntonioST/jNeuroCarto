@@ -106,6 +106,7 @@ public abstract class AbstractImagePlugin extends InvisibleView {
 
         var layout = new HBox(open, dataFileField, draw, clear);
         HBox.setHgrow(dataFileField, Priority.ALWAYS);
+        layout.setSpacing(5);
 
         return layout;
     }

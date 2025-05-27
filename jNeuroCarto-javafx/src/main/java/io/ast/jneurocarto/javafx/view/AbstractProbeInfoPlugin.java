@@ -17,7 +17,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 
 @NullMarked
-public abstract class ProbeInfoPlugin<T> extends InvisibleView implements ProbePlugin<T> {
+public abstract class AbstractProbeInfoPlugin<T> extends InvisibleView implements ProbePlugin<T> {
 
     @Override
     public String name() {
