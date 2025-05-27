@@ -1,9 +1,7 @@
 package io.ast.jneurocarto.javafx.blueprint;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -29,6 +27,7 @@ import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.XYPath;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 
@@ -39,6 +38,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
     private ProbeView<?> view;
     private InteractionXYPainter foreground;
     private BlueprintPainter<Object> painter;
+    private Map<String, XYPath> categories = new HashMap<>();
 
     private final BlueprintPaintingHandle<Object> handle = new BlueprintPaintingHandle<>();
 
@@ -233,15 +233,17 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         handle.setBlueprint(display);
         painter.plotBlueprint(handle);
 
-        foreground.retainSeries(handle.categories());
+        foreground.clearGraphics();
 
         var tool = new BlueprintToolkit<>(display);
         for (var legend : handle.legends) {
-            var series = foreground.getOrNewSeries(legend.name());
-            series.alpha(alphaProperty.get());
-            series.fill(legend.color());
+            var path = categories.computeIfAbsent(legend.name(), _ -> new XYPath());
+            foreground.addGraphics(path);
 
-            series.clearData();
+            path.alpha(alphaProperty.get());
+            path.fill(legend.color());
+
+            path.clearData();
             for (var clustering : tool.getClusteringEdges(legend.category())) {
                 var transform = handle.transform;
                 if (transform != null) {
@@ -254,11 +256,11 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
                 clustering = clustering.offset(handle.x, handle.y).setCorner(handle.w, handle.h);
 
-                clustering.edges().forEach(c -> series.addData(c.x(), c.y()));
+                clustering.edges().forEach(c -> path.addData(c.x(), c.y()));
 
                 var c = clustering.edges().get(0);
-                series.addData(c.x(), c.y());
-                series.addGap();
+                path.addData(c.x(), c.y());
+                path.addGap();
             }
         }
 

@@ -1,0 +1,244 @@
+package io.ast.jneurocarto.javafx.chart;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
+import java.util.stream.Stream;
+
+import javafx.geometry.Point2D;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.transform.Affine;
+
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.core.blueprint.MinMax;
+
+/**
+ * a {@link XYGraphics} that take {@link XY} as its internal data points.
+ */
+@NullMarked
+public abstract class XYSeries implements XYGraphics {
+
+    protected double z = 0;
+    protected double alpha = 1;
+    protected @Nullable Colormap colormap = null;
+    protected @Nullable Normalize normalize = null;
+    protected boolean visible = true;
+    protected List<XY> data = new ArrayList<>();
+    protected @Nullable ToDoubleFunction<@Nullable Object> value = null;
+
+    @Override
+    public int size() {
+        return data.size();
+    }
+
+    @Override
+    public double z() {
+        return z;
+    }
+
+    public void z(double z) {
+        this.z = z;
+    }
+
+    public double alpha() {
+        return alpha;
+    }
+
+    public void alpha(double alpha) {
+        this.alpha = alpha;
+    }
+
+    public @Nullable Colormap colormap() {
+        return colormap;
+    }
+
+    public void colormap(String colormap) {
+        colormap(Colormap.of(colormap));
+    }
+
+    /**
+     * set colormap.
+     *
+     * @param colormap
+     */
+    public void colormap(Colormap colormap) {
+        this.colormap = colormap;
+    }
+
+    public @Nullable Normalize normalize() {
+        return normalize;
+    }
+
+    public void normalize(double lower, double upper) {
+        normalize(new Normalize(lower, upper));
+    }
+
+    public void normalize(Normalize normalize) {
+        this.normalize = normalize;
+    }
+
+    public Normalize renormalize() {
+        if (data.size() < 2) {
+            normalize = Normalize.N01;
+        } else {
+            var result = data.stream()
+              .mapToDouble(XY::v)
+              .boxed()
+              .gather(MinMax.minmax())
+              .findFirst()
+              .get();
+
+            normalize = new Normalize(result);
+        }
+        return normalize;
+    }
+
+    @Override
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
+    }
+
+    public @Nullable ToDoubleFunction<@Nullable Object> value() {
+        return value;
+    }
+
+    public void value(@Nullable ToDoubleFunction<@Nullable Object> forth) {
+        this.value = forth;
+    }
+
+    public Stream<XY> data() {
+        return data.stream();
+    }
+
+    public void clearData() {
+        data.clear();
+    }
+
+    public void addGap() {
+        data.add(XY.GAP);
+    }
+
+    public XY addData(double x, double y) {
+        return addData(x, y, 0.0);
+    }
+
+    public XY addData(double x, double y, double v) {
+        var ret = new XY(x, y, v);
+        data.add(ret);
+        return ret;
+    }
+
+    public XY addData(Point2D p) {
+        return addData(p, 0.0);
+    }
+
+    public XY addData(Point2D p, double v) {
+        var ret = new XY(p, v);
+        data.add(ret);
+        return ret;
+    }
+
+    public void addData(XY data) {
+        this.data.add(data);
+    }
+
+    public void addData(List<XY> data) {
+        this.data.addAll(data);
+    }
+
+    public void addData(Stream<XY> data) {
+        data.forEach(this.data::add);
+    }
+
+    public void copyData(XYSeries other) {
+        other.data.addAll(data);
+    }
+
+    public void copyData(XYSeries other, Predicate<XY> tester) {
+        for (XY xy : data) {
+            if (tester.test(xy)) {
+                other.addData(xy);
+            }
+        }
+    }
+
+    public void transferData(XYSeries other) {
+        other.data.addAll(data);
+        data.clear();
+    }
+
+    public void transferData(XYSeries other, Predicate<XY> tester) {
+        var iter = data.iterator();
+        while (iter.hasNext()) {
+            var xy = iter.next();
+            if (tester.test(xy)) {
+                other.addData(xy);
+                iter.remove();
+            }
+        }
+    }
+
+    public XY removeData(int index) {
+        return data.remove(index);
+    }
+
+    public List<XY> removeData(int index, int length) {
+        var ret = new ArrayList<XY>(length);
+        var iter = data.listIterator(index);
+        for (int i = 0; i < length; i++) {
+            ret.add(iter.next());
+            iter.remove();
+        }
+        return ret;
+    }
+
+    public List<XY> removeData(Predicate<XY> tester) {
+        var ret = new ArrayList<XY>(size());
+        var iter = data.iterator();
+        while (iter.hasNext()) {
+            var xy = iter.next();
+            if (tester.test(xy)) {
+                ret.add(xy);
+                iter.remove();
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p/>
+     * Only use 3 columns, which put transformed {@link XY#x()}, transformed {@link XY#y()},
+     * and {@link XY#v()}, respectively.
+     * <p/>
+     * If {@link #value()} is set, then 4-th column is used.
+     *
+     * @param aff {@link GraphicsContext}'s affine transformation.
+     * @param p   {@code double[4][row]} array that store the transformed data.
+     * @return number of row used.
+     */
+    @Override
+    public int transform(Affine aff, double[][] p) {
+        var data = this.data;
+        var value = this.value;
+        var length = data.size();
+
+        for (int i = 0; i < length; i++) {
+            var xy = data.get(i);
+            var q = aff.transform(xy.x, xy.y);
+            p[0][i] = q.getX();
+            p[1][i] = q.getY();
+            p[2][i] = xy.v;
+            p[3][i] = value == null ? 0 : value.applyAsDouble(xy.external);
+        }
+
+        return length;
+    }
+}

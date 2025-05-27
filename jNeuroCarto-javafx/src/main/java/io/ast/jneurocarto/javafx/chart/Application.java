@@ -30,8 +30,8 @@ public class Application {
 
     private Stage stage;
     private InteractionXYChart<ScatterChart<Number, Number>> chart;
-    private InteractionXYPainter data;
-    private InteractionXYPainter.XYSeries series;
+    private InteractionXYPainter painter;
+    private XYPath path;
 
     public void start(Stage stage) {
         this.stage = stage;
@@ -56,16 +56,13 @@ public class Application {
         chart.setMinHeight(800);
         chart.addEventHandler(MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
 
-        data = chart.getPlotting();
-        series = data.addSeries("mouse");
-//        series.marker(Color.RED);
-//        series.line(Color.RED);
-        series.marker(Color.TRANSPARENT);
-        series.line(Color.TRANSPARENT);
-        series.w(15);
-        series.h(15);
-        series.normalize(Normalize.N01);
-        series.colormap("jet");
+        painter = chart.getPlotting();
+        path = new XYPath();
+        painter.addGraphics(path);
+
+        path.line(Color.TRANSPARENT);
+        path.normalize(Normalize.N01);
+        path.colormap("jet");
 
         var root = new VBox(chart);
         return root;
@@ -78,8 +75,8 @@ public class Application {
                 chart.resetAxesBoundaries();
             } else {
                 var p = chart.getChartTransformFromScene(e.getSceneX(), e.getSceneY());
-                series.addData(p, Math.random());
-                data.repaint();
+                path.addData(p, Math.random());
+                painter.repaint();
             }
         }
     }

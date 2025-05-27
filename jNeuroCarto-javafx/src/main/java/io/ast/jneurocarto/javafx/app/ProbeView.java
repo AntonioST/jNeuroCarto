@@ -20,8 +20,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.*;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 @NullMarked
@@ -36,9 +35,9 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     private final CartoConfig config;
     private final ProbeDescription<T> probe;
     private final InteractionXYPainter interaction;
-    private final Map<String, InteractionXYPainter.XYSeries> electrodes = new HashMap<>();
-    private final Map<String, InteractionXYPainter.XYSeries> captured = new HashMap<>();
-    private InteractionXYPainter.XYSeries highlighted;
+    private final Map<String, XYMarker> electrodes = new HashMap<>();
+    private final Map<String, XYMarker> captured = new HashMap<>();
+    private XYMarker highlighted;
 
     private @Nullable T channelmap;
     private @Nullable List<ElectrodeDescription> blueprint;
@@ -65,24 +64,20 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
 //        getStylesheets().add(getClass().getResource("/style-sheet/probe-view.css").toExternalForm());
 
-        probe.allStates().values().stream()
-          .map(this::newSeries)
-          .forEach(it -> electrodes.put(it.name(), it));
-
-        probe.allStates().values().stream()
-          .map(this::newSeries)
-          .forEach(it -> captured.put(it.name(), it));
-
-        highlighted = newSeries(STATE_HIGHLIGHTED);
-
-        for (var series : captured.values()) {
-            series.linewidth(2);
-            series.markerEdge(series.marker());
+        for (var name : probe.allStates().values()) {
+            newMarkerData(name, electrodes);
         }
+        for (var name : probe.allStates().values()) {
+            var m = newMarkerData(name, captured);
+            m.edgewidth(2);
+            m.edge(m.fill());
+        }
+
+        highlighted = newMarkerData(STATE_HIGHLIGHTED, null);
     }
 
-    private InteractionXYPainter.XYSeries newSeries(String name) {
-        var ret = new InteractionXYPainter.XYSeries(name);
+    private XYMarker newMarkerData(String name, @Nullable Map<String, XYMarker> collect) {
+        var ret = new XYMarker();
 
         var code = probe.stateOf(name).orElse(-1);
         var color = switch (code) {
@@ -93,7 +88,7 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         };
 
         if (color != null) {
-            ret.marker(color);
+            ret.fill(color);
             if (code == ProbeDescription.STATE_DISABLED) {
                 ret.alpha(0.2);
                 ret.w(2);
@@ -105,25 +100,27 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
                 ret.z(10);
             }
         } else if (STATE_HIGHLIGHTED.equals(name)) {
-            ret.marker(COLOR_HIGHLIGHTED);
+            ret.fill(COLOR_HIGHLIGHTED);
             ret.w(8);
             ret.h(6);
-            ret.linewidth(4);
+            ret.edgewidth(4);
             ret.z(5);
         }
 
-        interaction.addSeries(ret);
+        interaction.addGraphics(ret);
+        if (collect != null) collect.put(name, ret);
+
         return ret;
     }
 
-    private void setSeries(InteractionXYPainter.XYSeries series, Stream<ElectrodeDescription> electrodes) {
+    private void setSeries(XYSeries series, Stream<ElectrodeDescription> electrodes) {
         series.clearData();
-        series.addData(electrodes.map(it -> new InteractionXYPainter.XY(it.x(), it.y(), it)));
+        series.addData(electrodes.map(it -> new XY(it.x(), it.y(), it)));
     }
 
 
-    private static List<ElectrodeDescription> transferData(InteractionXYPainter.XYSeries src,
-                                                           InteractionXYPainter.@Nullable XYSeries dst) {
+    private static List<ElectrodeDescription> transferData(XYSeries src,
+                                                           @Nullable XYSeries dst) {
         var ret = src.data().map(it -> (ElectrodeDescription) it.external()).toList();
         if (dst != null) {
             src.transferData(dst);
@@ -131,8 +128,8 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         return ret;
     }
 
-    private static List<ElectrodeDescription> transferData(InteractionXYPainter.XYSeries src,
-                                                           InteractionXYPainter.XYSeries dst,
+    private static List<ElectrodeDescription> transferData(XYSeries src,
+                                                           XYSeries dst,
                                                            Predicate<ElectrodeDescription> tester) {
         var ret = new ArrayList<ElectrodeDescription>(src.size());
         src.transferData(dst, it -> {
@@ -147,8 +144,8 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
         return ret;
     }
 
-    private static List<ElectrodeDescription> copyData(InteractionXYPainter.XYSeries src,
-                                                       InteractionXYPainter.XYSeries dst,
+    private static List<ElectrodeDescription> copyData(XYSeries src,
+                                                       XYSeries dst,
                                                        Predicate<ElectrodeDescription> tester) {
         var ret = new ArrayList<ElectrodeDescription>(src.size());
         src.copyData(dst, it -> {
@@ -280,11 +277,11 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
 
         if (blueprint != null) {
             log.debug("updateElectrode");
-            for (var series : electrodes.values()) {
-                var code = probe.stateOf(series.name).orElse(-1);
+            for (var entry : electrodes.entrySet()) {
+                var code = probe.stateOf(entry.getKey()).orElse(-1);
 
                 var set = blueprint.stream().filter(it -> it.state() == code);
-                setSeries(series, set);
+                setSeries(entry.getValue(), set);
             }
 
         } else {
