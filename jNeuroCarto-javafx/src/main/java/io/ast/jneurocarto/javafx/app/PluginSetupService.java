@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javafx.scene.Node;
 import javafx.scene.control.Menu;
@@ -168,6 +169,14 @@ public final class PluginSetupService {
         if (rule.endsWith(".*")) {
             var name = rule.substring(0, rule.length() - 1);
             tester = it -> it.startsWith(name);
+        } else if (rule.contains("*!")) {
+            var i = rule.indexOf("*!");
+            var name = rule.substring(0, i);
+            var exclude = Arrays.stream(rule.substring(i + 2).split(","))
+              .map(it -> name + it)
+              .collect(Collectors.toSet());
+
+            tester = it -> it.startsWith(name) && !exclude.contains(it);
         } else {
             tester = it -> it.equals(rule);
         }
@@ -215,8 +224,8 @@ public final class PluginSetupService {
                 os[i] = app.repository;
             } else if (t == ProbeDescription.class) {
                 os[i] = app.probe;
-            } else if (t == ProbeView.class) {
-                os[i] = app.view;
+//            } else if (t == ProbeView.class) {
+//                os[i] = app.view;
             } else if (ProbeDescription.class.isAssignableFrom(t)) {
                 var d = app.probe;
                 if (t.isInstance(d)) {

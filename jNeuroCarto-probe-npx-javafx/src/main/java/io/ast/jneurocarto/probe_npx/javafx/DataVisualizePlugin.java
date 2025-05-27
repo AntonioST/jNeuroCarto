@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
-import io.ast.jneurocarto.core.cli.CartoConfig;
+import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
@@ -37,8 +37,8 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
     private final Logger log = LoggerFactory.getLogger(DataVisualizePlugin.class);
 
-    public DataVisualizePlugin(CartoConfig config) {
-        super(config);
+    public DataVisualizePlugin(Repository repository) {
+        super(repository);
     }
 
     @Override

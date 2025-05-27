@@ -31,16 +31,17 @@ import io.github.classgraph.ClassInfo;
 
 public class ScriptPlugin extends InvisibleView implements GlobalStateView<ScriptConfig> {
 
+    private final Application<Object> application;
     private final CartoConfig config;
     private final ProbeDescription<Object> probe;
     private final List<BlueprintScriptCallable> functions = new ArrayList<>();
-    private Application<Object> application;
     private ProbeView<Object> view;
 
     private final Logger log = LoggerFactory.getLogger(ScriptPlugin.class);
 
 
-    public ScriptPlugin(CartoConfig config, ProbeDescription<?> probe) {
+    public ScriptPlugin(Application<Object> application, CartoConfig config, ProbeDescription<?> probe) {
+        this.application = application;
         this.config = config;
         this.probe = (ProbeDescription<Object>) probe;
     }
@@ -63,7 +64,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             }
         }
 
-        service = service.asProbePluginSetupService();
         for (var clazz : service.scanAnnotation(BlueprintScript.class, this::filterBlueprintScript)) {
             var coll = new ArrayList<>(BlueprintScriptHandles.lookupClass(lookup, clazz));
             coll.sort(Comparator.comparing(BlueprintScriptCallable::name));
@@ -169,7 +169,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        application = (Application<Object>) Application.getInstance();
         view = (ProbeView<Object>) service.getProbeView();
 
         initBlueprintScripts(service);

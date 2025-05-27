@@ -23,7 +23,6 @@ import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
-import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
@@ -33,7 +32,6 @@ import io.ast.jneurocarto.javafx.view.ProbePlugin;
 
 public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object> {
 
-    private final CartoConfig config;
     private final ProbeDescription<Object> probe;
     private ProbeView<?> view;
     private InteractionXYPainter foreground;
@@ -44,8 +42,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
     private final Logger log = LoggerFactory.getLogger(BlueprintPlugin.class);
 
-    public BlueprintPlugin(CartoConfig config, ProbeDescription<?> probe) {
-        this.config = config;
+    public BlueprintPlugin(ProbeDescription<?> probe) {
         this.probe = (ProbeDescription<Object>) probe;
     }
 
@@ -59,9 +56,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
      *=================================*/
 
     private @Nullable BlueprintPainter<?> checkBlueprintPainter(PluginSetupService service) {
-        var s = service.asProbePluginSetupService();
-
-        var painters = s.scanInterface(BlueprintPainter.class);
+        var painters = service.scanInterface(BlueprintPainter.class);
         if (painters.isEmpty()) {
             log.info("BlueprintPainter not found");
             visible.setValue(false);

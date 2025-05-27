@@ -22,7 +22,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
@@ -30,14 +29,13 @@ import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 
 public abstract class AbstractImagePlugin extends InvisibleView {
 
-    protected final CartoConfig config;
-    protected Repository repository;
+    protected final Repository repository;
     protected ProbeView<?> canvas;
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
-    public AbstractImagePlugin(CartoConfig config) {
-        this.config = config;
+    public AbstractImagePlugin(Repository repository) {
+        this.repository = repository;
     }
 
     /*============*
@@ -70,7 +68,6 @@ public abstract class AbstractImagePlugin extends InvisibleView {
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        repository = service.getRepository();
         canvas = service.getProbeView();
 
         return super.setup(service);

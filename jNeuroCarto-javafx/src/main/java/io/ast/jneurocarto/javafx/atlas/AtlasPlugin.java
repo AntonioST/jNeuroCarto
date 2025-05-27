@@ -36,7 +36,6 @@ import io.ast.jneurocarto.javafx.view.StateView;
 @NullMarked
 public class AtlasPlugin extends InvisibleView implements Plugin, StateView<AtlasBrainViewState> {
 
-    private final CartoConfig config;
     private BrainGlobeDownloader.DownloadResult download;
     private @Nullable BrainAtlas brain;
     private @Nullable ImageVolume volume;
@@ -46,7 +45,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private final Logger log = LoggerFactory.getLogger(AtlasPlugin.class);
 
     public AtlasPlugin(CartoConfig config) {
-        this.config = config;
         download = AtlasBrainService.loadAtlas(config);
     }
 

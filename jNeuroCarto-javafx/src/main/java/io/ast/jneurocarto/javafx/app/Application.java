@@ -625,7 +625,7 @@ public class Application<T> {
         var rc = repository.getUserConfig();
         if (rc.views == null) {
             log.debug("use default plugin list");
-            extra.add("probe_npx.*");
+            extra.add("probe_npx.*!data");
             extra.add("blueprint");
             extra.add("atlas");
         } else {
