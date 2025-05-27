@@ -19,19 +19,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * read {@code k3d/colormaps/matplotlib_color_maps.py}
+ * read {@code matplotlib_color_maps.py}
  */
-public final class ColormapK3d {
+public final class ColormapPlt {
 
-    private static final Logger log = LoggerFactory.getLogger(ColormapK3d.class);
+    private static final Logger log = LoggerFactory.getLogger(ColormapPlt.class);
     static final Map<String, Colormap> COLORMAPS = new HashMap<>();
 
-    private ColormapK3d() {
+    private ColormapPlt() {
         throw new RuntimeException();
     }
 
     public static void loadMatplotlibColorMapsPyFile() {
-        try (var stream = ColormapK3d.class.getClassLoader().getResourceAsStream("matplotlib_color_maps.py")) {
+        try (var stream = ColormapPlt.class.getClassLoader().getResourceAsStream("matplotlib_color_maps.py")) {
             log.debug("open resource matplotlib_color_maps.py");
             loadMatplotlibColorMapsPyFile(stream);
         } catch (IOException e) {
@@ -67,8 +67,10 @@ public final class ColormapK3d {
             } else if (isTripleQuote || line.startsWith("#")) {
             } else if (isInBracket && line.startsWith("]")) {
                 isInBracket = false;
+
+                var colormap = new Colormap(currentStop);
                 for (var name : currentName) {
-                    COLORMAPS.put(name, new Colormap(currentStop));
+                    COLORMAPS.put(name, colormap);
                 }
                 currentName.clear();
                 currentStop.clear();
@@ -98,7 +100,7 @@ public final class ColormapK3d {
         } else {
             loadMatplotlibColorMapsPyFile(Path.of(args[0]));
         }
-        var line = COLORMAPS.keySet().stream().collect(Collectors.joining(", "));
+        var line = COLORMAPS.keySet().stream().sorted().collect(Collectors.joining(", "));
         System.out.println(line);
     }
 }
