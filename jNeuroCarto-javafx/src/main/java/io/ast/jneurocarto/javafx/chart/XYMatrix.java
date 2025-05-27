@@ -20,6 +20,10 @@ public class XYMatrix extends XYSeries {
     private double dw;
     private double dh;
 
+    private int numberOfData;
+    private @Nullable MinMaxInt xr;
+    private @Nullable MinMaxInt yr;
+
     public double x() {
         return x;
     }
@@ -55,13 +59,19 @@ public class XYMatrix extends XYSeries {
     @Override
     public int transform(Affine aff, double[][] p) {
         var data = this.data;
-        var value = this.value;
         var length = data.size();
+        if (length == 0) return 0;
 
-        var xr = minmax(XY::x);
-        if (xr == null) return 0;
+        if (length != numberOfData) {
+            numberOfData = length;
+            xr = minmax(XY::x);
+            if (xr == null) return 0;
 
-        var yr = minmax(XY::y);
+            yr = minmax(XY::y);
+            assert yr != null;
+        }
+
+        assert xr != null;
         assert yr != null;
 
         var x0 = xr.min();
@@ -69,20 +79,31 @@ public class XYMatrix extends XYSeries {
         int nx = xr.range() + 1;
         int ny = yr.range() + 1;
 
-        for (int i = 0; i < length; i++) {
-            var xy = data.get(i);
-            var x = this.x + w * ((int) xy.x - x0) / nx;
-            var y = this.y + h * ((int) xy.y - y0) / ny;
-            var q = aff.transform(x, y);
-            p[0][i] = q.getX();
-            p[1][i] = q.getY();
-            p[2][i] = xy.v;
-            p[3][i] = value == null ? 0 : value.applyAsDouble(xy.external);
+        {
+            var q = aff.deltaTransform(w, h);
+            dw = q.getX() / nx;
+            dh = q.getY() / ny;
         }
 
-        var q = aff.deltaTransform(w, h);
-        dw = q.getX() / nx;
-        dh = q.getY() / ny;
+        var dx = dw >= 0 ? 0 : dw;
+        var dy = dh >= 0 ? 0 : dh;
+
+        for (int i = 0; i < length; i++) {
+            var xy = data.get(i);
+            if (Double.isNaN(xy.x) || Double.isNaN(xy.y)) {
+                length--;
+                i--;
+                continue;
+            }
+
+            var px = x + w * ((int) xy.x - x0) / nx;
+            var py = y + h * ((int) xy.y - y0) / ny;
+            var q = aff.transform(px, py);
+
+            p[0][i] = q.getX() + dx;
+            p[1][i] = q.getY() + dy;
+            p[2][i] = xy.v;
+        }
 
         return length;
     }
@@ -97,35 +118,31 @@ public class XYMatrix extends XYSeries {
 
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
-        if (colormap == null || normalize == null) return;
+        if (colormap == null) return;
+
+        var norm = normalize;
+        if (norm == null) norm = renormalize();
 
         gc.save();
         try {
             gc.setTransform(InteractionXYPainter.IDENTIFY);
             gc.setGlobalAlpha(alpha);
-            paintMatrix(gc, p, offset, length);
+            paintMatrix(gc, p, offset, length, colormap, norm);
         } finally {
             gc.restore();
         }
     }
 
-    private void paintMatrix(GraphicsContext gc, double[][] p, int offset, int length) {
-        assert colormap != null;
-        assert normalize != null;
-
-        var dx = dw / 2;
-        var dy = dh / 2;
-        var cmap = colormap;
-        var norm = normalize;
+    private void paintMatrix(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap, Normalize norm) {
+        var dw = Math.abs(this.dw) + 1; // 1 for gaps
+        var dh = Math.abs(this.dh) + 1;
 
         for (int i = 0; i < length; i++) {
             var x = p[0][i + offset];
             var y = p[1][i + offset];
             var v = p[2][i + offset];
-            if (!Double.isNaN(x) && !Double.isNaN(y)) {
-                gc.setFill(cmap.get(norm, v));
-                gc.fillRect(x - dx, y - dy, dw, dh);
-            }
+            gc.setFill(cmap.get(norm, v));
+            gc.fillRect(x, y, dw, dh);
         }
     }
 }

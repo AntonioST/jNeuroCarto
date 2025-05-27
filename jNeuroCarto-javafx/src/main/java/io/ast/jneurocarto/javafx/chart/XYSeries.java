@@ -3,7 +3,6 @@ package io.ast.jneurocarto.javafx.chart;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
 
 import javafx.geometry.Point2D;
@@ -27,7 +26,6 @@ public abstract class XYSeries implements XYGraphics {
     protected @Nullable Normalize normalize = null;
     protected boolean visible = true;
     protected List<XY> data = new ArrayList<>();
-    protected @Nullable ToDoubleFunction<@Nullable Object> value = null;
 
     @Override
     public int size() {
@@ -82,7 +80,7 @@ public abstract class XYSeries implements XYGraphics {
 
     public Normalize renormalize() {
         if (data.size() < 2) {
-            normalize = Normalize.N01;
+            return Normalize.N01;
         } else {
             var result = data.stream()
               .mapToDouble(XY::v)
@@ -91,9 +89,8 @@ public abstract class XYSeries implements XYGraphics {
               .findFirst()
               .get();
 
-            normalize = new Normalize(result);
+            return new Normalize(result);
         }
-        return normalize;
     }
 
     @Override
@@ -103,14 +100,6 @@ public abstract class XYSeries implements XYGraphics {
 
     public void setVisible(boolean visible) {
         this.visible = visible;
-    }
-
-    public @Nullable ToDoubleFunction<@Nullable Object> value() {
-        return value;
-    }
-
-    public void value(@Nullable ToDoubleFunction<@Nullable Object> forth) {
-        this.value = forth;
     }
 
     public Stream<XY> data() {
@@ -218,7 +207,6 @@ public abstract class XYSeries implements XYGraphics {
      * Only use 3 columns, which put transformed {@link XY#x()}, transformed {@link XY#y()},
      * and {@link XY#v()}, respectively.
      * <p/>
-     * If {@link #value()} is set, then 4-th column is used.
      *
      * @param aff {@link GraphicsContext}'s affine transformation.
      * @param p   {@code double[4][row]} array that store the transformed data.
@@ -227,7 +215,6 @@ public abstract class XYSeries implements XYGraphics {
     @Override
     public int transform(Affine aff, double[][] p) {
         var data = this.data;
-        var value = this.value;
         var length = data.size();
 
         for (int i = 0; i < length; i++) {
@@ -236,7 +223,6 @@ public abstract class XYSeries implements XYGraphics {
             p[0][i] = q.getX();
             p[1][i] = q.getY();
             p[2][i] = xy.v;
-            p[3][i] = value == null ? 0 : value.applyAsDouble(xy.external);
         }
 
         return length;
