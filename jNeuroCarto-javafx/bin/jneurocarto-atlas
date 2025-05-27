@@ -25,7 +25,6 @@ $M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1-linux.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
 ../jNeuroCarto-core/target/classes
-../jNeuroCarto-config/target/classes
 ../jNeuroCarto-atlas/target/classes
 target/classes
 EOF

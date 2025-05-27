@@ -11,6 +11,10 @@ public record MinMax(double min, double max) {
         return new MinMax(Math.min(min, other.min), Math.max(max, other.max));
     }
 
+    public double range() {
+        return max - min;
+    }
+
     /**
      * {@snippet lang = "java":
      * import java.util.stream.DoubleStream;

@@ -8,7 +8,11 @@ import picocli.CommandLine;
 @CommandLine.Command(
   name = "chart",
   usageHelpAutoWidth = true,
-  description = "show interaction xy chart"
+  description = "show interaction xy chart",
+  subcommands = {
+    ClickLines.class,
+    Colorbar.class
+  }
 )
 public class Chart implements Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
@@ -28,14 +32,19 @@ public class Chart implements Runnable {
 
     @Override
     public void run() {
-        new Application();
+    }
+
+    public void launch(Application app) {
+        App.INSTANCE = app;
         javafx.application.Application.launch(App.class);
     }
 
     public static class App extends javafx.application.Application {
+        static Application INSTANCE = null;
+
         @Override
         public void start(Stage primaryStage) throws Exception {
-            Application.getInstance().start(primaryStage);
+            INSTANCE.start(primaryStage);
         }
     }
 }

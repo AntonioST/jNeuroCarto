@@ -26,10 +26,7 @@ $M/io/github/classgraph/classgraph/4.8.179/classgraph-4.8.179.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
 ../jNeuroCarto-core/target/classes
-../jNeuroCarto-probe-npx/target/classes
-../jNeuroCarto-probe-npx-javafx/target/classes
 ../jNeuroCarto-atlas/target/classes
-../jNeuroCarto-kotlin/target/classes
 target/classes
 EOF
 
@@ -38,5 +35,5 @@ archlinux-java-run --min 24 -- \
     --enable-native-access=javafx.graphics \
     -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
     -p $(echo $CP | tr ' ' ':') \
-    -m io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Main \
+    -m io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Chart \
     "$@"

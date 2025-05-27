@@ -11,6 +11,10 @@ public record MinMaxInt(int min, int max) {
         return new MinMaxInt(Math.min(min, other.min), Math.max(max, other.max));
     }
 
+    public int range() {
+        return max - min;
+    }
+
     /**
      * {@snippet lang = "java":
      * import java.util.stream.IntStream;
