@@ -169,6 +169,8 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
+        log.debug("setup");
+
         view = (ProbeView<Object>) service.getProbeView();
 
         initBlueprintScripts(service);

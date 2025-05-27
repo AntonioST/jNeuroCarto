@@ -145,6 +145,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      *===========================*/
 
     private void checkBrainAtlas() {
+        log.debug("checkBrainAtlas");
+
         if (!download.hasError() || download.isDownloaded()) {
             try {
                 brain = download.get();
@@ -228,6 +230,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
+        log.debug("setup");
         checkBrainAtlas();
 
         canvas = service.getProbeView();

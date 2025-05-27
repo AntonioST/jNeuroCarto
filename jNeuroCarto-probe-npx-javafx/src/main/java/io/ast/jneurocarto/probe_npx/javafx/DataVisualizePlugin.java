@@ -67,6 +67,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
+        log.debug("setup");
         var ret = super.setup(service);
 
         foreground = canvas.getForegroundPainter();

@@ -46,7 +46,8 @@ public abstract class InvisibleView implements Plugin {
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        LoggerFactory.getLogger(getClass()).debug("setup");
+        var log = LoggerFactory.getLogger(getClass());
+        log.debug("setup (InvisibleView)");
 
         var heading = setupHeading(service);
 

@@ -14,6 +14,8 @@ import javafx.util.StringConverter;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
@@ -27,6 +29,7 @@ public class ProbeReferencePlugin implements ProbePlugin<ChannelMap> {
 
     private final NpxProbeDescription probe;
     private @Nullable ChannelMap chmap;
+    private final Logger log = LoggerFactory.getLogger(ProbeReferencePlugin.class);
 
     public ProbeReferencePlugin(NpxProbeDescription probe) {
         this.probe = probe;
@@ -77,6 +80,7 @@ public class ProbeReferencePlugin implements ProbePlugin<ChannelMap> {
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
+        log.debug("setup");
 
         references = new ChoiceBox<>();
         references.setConverter(new RefIntoToString());

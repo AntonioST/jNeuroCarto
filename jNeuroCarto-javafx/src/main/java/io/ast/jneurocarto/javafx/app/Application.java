@@ -642,21 +642,29 @@ public class Application<T> {
     }
 
     private void setupPlugin(PluginSetupService service, PluginSetupService.PluginInfo provide) {
-        if (!provide.provider().filterPlugin(service, provide.plugin())) {
-            log.debug("plugin rejected : {}", provide.plugin().getName());
+        var cls = provide.plugin();
+
+        if (!provide.provider().filterPlugin(service, cls)) {
+            log.debug("plugin rejected : {}", cls.getName());
         } else {
             try {
-                log.debug("add plugin : {}", provide.plugin().getName());
+                log.debug("add plugin : {}", cls.getName());
                 var plugin = service.loadPlugin(provide);
+                this.plugins.add(plugin);
 
                 service.bind(plugin);
+
+                log.debug("setup plugin {}", cls.getSimpleName());
+                var start = System.currentTimeMillis();
                 var node = plugin.setup(service);
-                this.plugins.add(plugin);
+                var cost = System.currentTimeMillis() - start;
+                log.debug("setup plugin {}, cost {} ms", cls.getSimpleName(), cost);
+
                 if (node != null) {
                     pluginLayout.getChildren().add(node);
                 }
             } catch (Throwable e) {
-                log.warn("setup", e);
+                log.warn("setup fail", e);
             } finally {
                 service.unbind();
             }
