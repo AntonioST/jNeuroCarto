@@ -69,6 +69,20 @@ public class PropertyField {
         }
         // @end
         // @end
+
+        // @start region="public StringProperty"
+        // @highlight region regex="[Ss]tring"
+        public final StringProperty stringProperty = new SimpleStringProperty();
+
+        public final @Nullable String getString() {
+            return stringProperty.get();
+        }
+
+        public final void setString(@Nullable String value) {
+            stringProperty.set(value);
+        }
+        // @end
+        // @end
     }
 
     private static class Example2<TYPE> {

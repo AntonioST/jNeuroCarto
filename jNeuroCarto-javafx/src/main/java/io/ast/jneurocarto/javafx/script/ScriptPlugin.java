@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ProbeDescription;
-import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.*;
 import io.ast.jneurocarto.javafx.view.GlobalStateView;
@@ -170,7 +169,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup");
         application = (Application<Object>) Application.getInstance();
         view = (ProbeView<Object>) service.getProbeView();
 
@@ -281,9 +279,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     private void onScriptReset(ActionEvent e) {
         log.debug("reset blueprint");
-        var tool = newToolkit();
-        if (tool == null) return;
-
+        var tool = BlueprintAppToolkit.newToolkit();
         tool.clear();
         tool.apply(view.getBlueprint());
     }
@@ -309,18 +305,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             if (function.name().equals(name)) return function;
         }
         return null;
-    }
-
-    private BlueprintAppToolkit<Object> newToolkit() {
-        var chmap = view.getChannelmap();
-        Blueprint<Object> blueprint;
-        if (chmap == null) {
-            blueprint = new Blueprint<>(probe);
-        } else {
-            var electrodes = view.getBlueprint();
-            blueprint = new Blueprint<>(probe, chmap, electrodes);
-        }
-        return new BlueprintAppToolkit<>(application, blueprint);
     }
 
     private void evalScript(BlueprintScriptCallable callable, String line) {
@@ -361,7 +345,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         }
 
         try {
-            var toolkit = newToolkit();
+            var toolkit = BlueprintAppToolkit.newToolkit();
             callable.invoke(toolkit, arguments);
             return;
         } catch (RequestChannelmapTypeException e) {
@@ -375,7 +359,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
         try {
             log.debug("reinvoke {}", callable.name());
-            var toolkit = newToolkit();
+            var toolkit = BlueprintAppToolkit.newToolkit();
             callable.invoke(toolkit, arguments);
         } catch (RuntimeException e) {
             throw e;

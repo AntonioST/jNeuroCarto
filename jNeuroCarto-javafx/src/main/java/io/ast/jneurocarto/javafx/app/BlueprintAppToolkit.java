@@ -14,7 +14,7 @@ import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     private final Application<T> application;
 
-    public BlueprintAppToolkit(Application<T> application) {
+    private BlueprintAppToolkit(Application<T> application) {
         var probe = application.probe;
         var chmap = application.view.getChannelmap();
         Blueprint<T> blueprint;
@@ -27,7 +27,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         this(application, blueprint);
     }
 
-    public BlueprintAppToolkit(Application<T> application, Blueprint<T> blueprint) {
+    private BlueprintAppToolkit(Application<T> application, Blueprint<T> blueprint) {
         super(blueprint);
         this.application = application;
     }
@@ -37,6 +37,19 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public BlueprintAppToolkit<T> clone() {
         return new BlueprintAppToolkit<>(application, new Blueprint<>(blueprint));
+    }
+
+    public static <T> BlueprintAppToolkit<T> newToolkit() {
+        var app = (Application<T>) Application.getInstance();
+        var chmap = app.view.getChannelmap();
+        Blueprint<T> blueprint;
+        if (chmap == null) {
+            blueprint = new Blueprint<>(app.probe);
+        } else {
+            var electrodes = app.view.getBlueprint();
+            blueprint = new Blueprint<>(app.probe, chmap, electrodes);
+        }
+        return new BlueprintAppToolkit<>(app, blueprint);
     }
 
     /*=======================*

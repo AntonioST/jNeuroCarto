@@ -59,6 +59,10 @@ public final class Numpy {
             super(valueType, valeSize);
         }
 
+        D1Array(char valueType, int valueSize, String acceptValueTypes) {
+            super(valueType, valueSize, acceptValueTypes);
+        }
+
         final int checkShape(NumpyHeader header) {
             var shape = header.shape();
 
@@ -91,6 +95,11 @@ public final class Numpy {
 
         D2Array(char valueType, int valeSize, boolean columnFirst) {
             super(valueType, valeSize);
+            this.columnFirst = columnFirst;
+        }
+
+        D2Array(char valueType, int valueSize, String acceptValueTypes, boolean columnFirst) {
+            super(valueType, valueSize, acceptValueTypes);
             this.columnFirst = columnFirst;
         }
 
@@ -153,6 +162,10 @@ public final class Numpy {
             super(valueType, valeSize);
         }
 
+        D3Array(char valueType, int valueSize, String acceptValueTypes) {
+            super(valueType, valueSize, acceptValueTypes);
+        }
+
         final void checkShape(NumpyHeader header) {
             var shape = header.shape();
             if (shape.length != 3) throw new RuntimeException("not an 3-d array : " + Arrays.toString(shape));
@@ -189,6 +202,10 @@ public final class Numpy {
 
         FlattenArray(char valueType, int valeSize) {
             super(valueType, valeSize);
+        }
+
+        FlattenArray(char valueType, int valueSize, String acceptValueTypes) {
+            super(valueType, valueSize, acceptValueTypes);
         }
 
         final void checkShape(NumpyHeader header) {
@@ -551,7 +568,7 @@ public final class Numpy {
 
     private static final class OfDouble extends D1Array<double[]> {
         private OfDouble() {
-            super('f', 8);
+            super('f', 8, "if");
         }
 
         @Override
@@ -568,7 +585,13 @@ public final class Numpy {
         public boolean read(double[] ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < ret.length) {
-                ret[p] = readDouble(buffer);
+                double v;
+                if (valueType == 'f') {
+                    v = readDouble(buffer);
+                } else {
+                    v = readInt(buffer);
+                }
+                ret[p] = v;
                 return true;
             } else {
                 return false;
@@ -597,7 +620,7 @@ public final class Numpy {
 
     private static final class OfD2Double extends D2Array<double[][]> {
         private OfD2Double() {
-            super('f', 8, false);
+            super('f', 8, "if", false);
         }
 
         private OfD2Double(boolean columnFirst) {
@@ -627,7 +650,13 @@ public final class Numpy {
         @Override
         public boolean read(double[][] ret, long pos, ByteBuffer buffer) {
             if (index(pos)) {
-                ret[index1][index2] = readDouble(buffer);
+                double v;
+                if (valueType == 'f') {
+                    v = readDouble(buffer);
+                } else {
+                    v = readInt(buffer);
+                }
+                ret[index1][index2] = v;
                 return true;
             } else {
                 return false;
@@ -651,7 +680,7 @@ public final class Numpy {
 
     private static final class OfD3Double extends D3Array<double[][][]> {
         private OfD3Double() {
-            super('f', 8);
+            super('f', 8, "if");
         }
 
         @Override
@@ -689,7 +718,13 @@ public final class Numpy {
         @Override
         public boolean read(double[][][] ret, long pos, ByteBuffer buffer) {
             if (index(pos)) {
-                ret[p][r][c] = readDouble(buffer);
+                double v;
+                if (valueType == 'f') {
+                    v = readDouble(buffer);
+                } else {
+                    v = readInt(buffer);
+                }
+                ret[p][r][c] = v;
                 return true;
             }
             return false;
@@ -715,7 +750,7 @@ public final class Numpy {
 
     private static final class OfFlattenDouble extends FlattenArray<FlattenDoubleArray> {
         private OfFlattenDouble() {
-            super('f', 8);
+            super('f', 8, "if");
         }
 
         @Override
@@ -733,7 +768,13 @@ public final class Numpy {
         protected boolean read(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
-                ret.array[p] = readDouble(buffer);
+                double v;
+                if (valueType == 'f') {
+                    v = readDouble(buffer);
+                } else {
+                    v = readInt(buffer);
+                }
+                ret.array[p] = v;
                 return true;
             }
             return false;

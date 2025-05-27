@@ -1454,15 +1454,32 @@ public class BlueprintToolkit<T> {
                 return loadNumpyBlueprint(file);
             } catch (UnsupportedNumpyDataFormatException e) {
             }
-        } else if (suffix.equals(".csv")) {
-            return loadCsvBlueprint(file, false);
-        } else if (suffix.equals(".tsv")) {
-            return loadCsvBlueprint(file, true);
+        } else if (suffix.equals(".csv") || suffix.equals(".tsv")) {
+            return loadCsvBlueprint(file);
         }
 
         var bp = new Blueprint<>(blueprint);
         bp.load(file);
         return bp.blueprint;
+    }
+
+    /**
+     * @param file
+     * @return
+     * @throws IOException
+     * @throws UnsupportedNumpyDataFormatException
+     */
+    public double[] loadBlueprintData(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        var i = filename.lastIndexOf('.');
+        var suffix = filename.substring(i);
+        if (suffix.equals(".npy")) {
+            return loadNumpyBlueprintData(file);
+        } else if (suffix.equals(".csv") || suffix.equals(".tsv")) {
+            return loadCsvBlueprintData(file);
+        } else {
+            throw new RuntimeException("unknown data format " + suffix);
+        }
     }
 
     public int[] loadNumpyBlueprint(Path file) throws IOException {
@@ -1483,20 +1500,63 @@ public class BlueprintToolkit<T> {
         Numpy.write(file, blueprint);
     }
 
+    public double[] loadNumpyBlueprintData(Path file) throws IOException {
+        var result = Numpy.read(file, header -> switch (header.ndim()) {
+            case 1 -> Numpy.ofDouble();
+            case 2 -> Numpy.ofD2Double(true);
+            default -> throw new UnsupportedNumpyDataFormatException(header, "unknown shape");
+        });
+
+        return switch (result.ndim()) {
+            case 1 -> (double[]) result.data();
+            case 2 -> ((double[][]) result.data())[4];
+            default -> throw new RuntimeException("unknown result");
+        };
+    }
+
     public int[] loadCsvBlueprint(Path file) throws IOException {
         var filename = file.getFileName().toString();
         var i = filename.lastIndexOf('.');
         var suffix = filename.substring(i);
+
+        boolean tsv;
         if (suffix.equals(".csv")) {
-            return loadCsvBlueprint(file, false);
+            tsv = false;
         } else if (suffix.equals(".tsv")) {
-            return loadCsvBlueprint(file, true);
+            tsv = true;
         } else {
             throw new RuntimeException("unknown file format : " + filename);
         }
+
+        var ret = empty();
+        loadCsvBlueprint(file, tsv, (j, s) -> {
+            ret[j] = Integer.parseInt(s);
+        });
+        return ret;
     }
 
-    private int[] loadCsvBlueprint(Path file, boolean tsv) throws IOException {
+    public double[] loadCsvBlueprintData(Path file) throws IOException {
+        var filename = file.getFileName().toString();
+        var i = filename.lastIndexOf('.');
+        var suffix = filename.substring(i);
+
+        boolean tsv;
+        if (suffix.equals(".csv")) {
+            tsv = false;
+        } else if (suffix.equals(".tsv")) {
+            tsv = true;
+        } else {
+            throw new RuntimeException("unknown file format : " + filename);
+        }
+
+        var ret = new double[length()];
+        loadCsvBlueprint(file, tsv, (j, s) -> {
+            ret[j] = Double.parseDouble(s);
+        });
+        return ret;
+    }
+
+    private void loadCsvBlueprint(Path file, boolean tsv, BiConsumer<Integer, String> consumer) throws IOException {
         var format = getCsvFormat(tsv).get();
 
         try (var reader = Files.newBufferedReader(file)) {
@@ -1504,26 +1564,24 @@ public class BlueprintToolkit<T> {
             var header = parse.getHeaderNames();
             if (!checkCsvHeader(header)) throw new IOException("unknown header : " + header);
 
-            var ret = empty();
             for (var record : parse) {
-                int s, x, y, c;
+                int s, x, y;
                 try {
                     s = Integer.parseInt(record.get(header.get(0)));
                     x = Integer.parseInt(record.get(header.get(1)));
                     y = Integer.parseInt(record.get(header.get(2)));
-                    c = Integer.parseInt(record.get(header.get(3)));
+
+                    var i = index(s, x, y);
+                    if (i >= 0) {
+                        consumer.accept(i, record.get(header.get(3)));
+                    }
                 } catch (NumberFormatException e) {
                     var line = parse.getCurrentLineNumber();
                     throw new IOException("bad numbers at line " + line, e);
                 }
 
-                var i = index(s, x, y);
-                if (i >= 0) {
-                    ret[i] = c;
-                }
-            }
 
-            return ret;
+            }
         }
     }
 
@@ -1584,6 +1642,33 @@ public class BlueprintToolkit<T> {
      * blueprint-like data manipulation *
      *==================================*/
 
+    public record ElectrodeData(Electrode e, double v) {
+        public int i() {
+            return e.i();
+        }
+
+        public int s() {
+            return e.s();
+        }
+
+        public int x() {
+            return e.x();
+        }
+
+        public int y() {
+            return e.y();
+        }
+
+        public int c() {
+            return e.c();
+        }
+    }
+
+    public Stream<ElectrodeData> stream(double[] data) {
+        if (length() != data.length) throw new RuntimeException();
+        return stream().map(e -> new ElectrodeData(e, data[e.i()]));
+    }
+
     /**
      * extra value from {@code data} with given index.
      * <br/>
@@ -1635,6 +1720,21 @@ public class BlueprintToolkit<T> {
           .toArray();
     }
 
+    public double[] get(double[] data, BlueprintMask mask) {
+        if (data.length != mask.length()) throw new RuntimeException();
+        var ret = new double[mask.count()];
+        for (int i = mask.nextSetBit(0), j = 0; i >= 0; i = mask.nextSetBit(i + 1), j++) {
+            ret[j] = data[i];
+        }
+        return ret;
+    }
+
+    public double[] get(double[] data, Predicate<Electrode> pick) {
+        return stream().filter(pick)
+          .mapToDouble(e -> data[e.i()])
+          .toArray();
+    }
+
     /**
      * {@code a[i] = v}
      * <br/>
@@ -1668,6 +1768,7 @@ public class BlueprintToolkit<T> {
         }
         return a;
     }
+
 
     /**
      * {@code a[i] = v[:]}
@@ -1715,6 +1816,39 @@ public class BlueprintToolkit<T> {
             if (k >= 0 && k < length) {
                 a[k] = v;
             }
+        }
+        return a;
+    }
+
+
+    public double[] set(double[] a, BlueprintMask mask, double v) {
+        if (a.length != mask.length()) throw new RuntimeException();
+        for (int i = mask.nextSetBit(0); i >= 0; i = mask.nextSetBit(i + 1)) {
+            a[i] = v;
+        }
+        return a;
+    }
+
+    public double[] set(double[] a, BlueprintMask mask, double[] v) {
+        if (a.length != mask.length()) throw new RuntimeException();
+        if (v.length != mask.count()) throw new RuntimeException();
+        for (int i = mask.nextSetBit(0), j = 0; i >= 0; i = mask.nextSetBit(i + 1), j++) {
+            a[i] = v[j];
+        }
+        return a;
+    }
+
+    public double[] set(double[] a, BlueprintMask writeMask, double[] v, BlueprintMask readMask) {
+        if (a.length != writeMask.length()) throw new RuntimeException();
+        if (v.length != readMask.length()) throw new RuntimeException();
+        if (writeMask.count() != readMask.count()) throw new RuntimeException();
+
+        int i = writeMask.nextSetBit(0);
+        int j = readMask.nextSetBit(0);
+        while (i >= 0) {
+            a[i] = v[j];
+            i = writeMask.nextSetBit(i + 1);
+            j = writeMask.nextSetBit(j + 1);
         }
         return a;
     }

@@ -139,8 +139,6 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup");
-
         view = service.getProbeView();
         foreground = view.getForegroundPainter();
         painter = (BlueprintPainter<Object>) checkBlueprintPainter(service);

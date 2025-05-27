@@ -9,6 +9,7 @@ public abstract class ValueArray<T> {
 
     protected char valueType = '\0';
     protected int valueSize = 0;
+    protected String acceptValueTypes;
 
     protected ValueArray() {
     }
@@ -18,13 +19,21 @@ public abstract class ValueArray<T> {
         this.valueSize = valueSize;
     }
 
+    protected ValueArray(char valueType, int valueSize, String acceptValueTypes) {
+        this(valueType, valueSize);
+        this.acceptValueTypes = acceptValueTypes;
+    }
+
     protected final void checkValue(NumpyHeader header) {
         var descr = header.descr();
         var valueType = descr.charAt(1);
         valueSize = Integer.parseInt(descr.substring(2));
-        if (valueType != this.valueType) {
+        if (acceptValueTypes == null && valueType != this.valueType) {
             throw new UnsupportedNumpyDataFormatException(header, "not an " + this.valueType + " array, but : " + descr);
+        } else if (acceptValueTypes != null && acceptValueTypes.indexOf(valueType) < 0) {
+            throw new UnsupportedNumpyDataFormatException(header, "not any of " + acceptValueTypes + " array, but : " + descr);
         }
+        this.valueType = valueType;
         if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8) {
             throw new UnsupportedNumpyDataFormatException(header, "not an " + this.valueType + " array, but : " + descr);
         }

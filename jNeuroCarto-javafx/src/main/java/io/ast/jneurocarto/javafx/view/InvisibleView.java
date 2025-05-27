@@ -10,6 +10,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 
@@ -45,6 +46,8 @@ public abstract class InvisibleView implements Plugin {
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
+        LoggerFactory.getLogger(getClass()).debug("setup");
+
         var heading = setupHeading(service);
 
         var content = setupContent(service);

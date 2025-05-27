@@ -186,5 +186,35 @@ public class NumpyTest {
         assertArrayEquals(data, back);
     }
 
+    @Test
+    public void writeIntReadDoubleArray() throws IOException {
+        var data = new int[5][];
+        for (int i = 0; i < 5; i++) {
+            data[i] = new int[12];
+            for (int j = 0; j < 12; j++) {
+                data[i][j] = (int) (Math.random() * 120);
+            }
+        }
+
+        byte[] arr;
+
+        try (var out = new ByteArrayOutputStream()) {
+            Numpy.write(out, data);
+            out.close();
+            arr = out.toByteArray();
+        }
+
+        double[][] back;
+        try (var in = new ByteArrayInputStream(arr)) {
+            back = Numpy.read(in, Numpy.ofD2Double());
+        }
+
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 12; j++) {
+                if (data[i][j] - back[i][j] > 1e-5) fail();
+            }
+        }
+    }
+
 
 }

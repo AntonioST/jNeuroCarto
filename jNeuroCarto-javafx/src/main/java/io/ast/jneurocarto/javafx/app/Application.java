@@ -597,6 +597,7 @@ public class Application<T> {
 
         var service = new PluginSetupService(this);
 
+        // probe plugins setup
         for (var provider : ServiceLoader.load(ProbePluginProvider.class)) {
             log.debug("found provider {}.", provider.getClass().getName());
 
@@ -641,6 +642,7 @@ public class Application<T> {
         }
         extra.addAll(config.extraViewList);
 
+        // plugin filtering
         var foundPlugins = new HashMap<String, PluginProvider>();
         for (var provider : ServiceLoader.load(PluginProvider.class)) {
             // always put provider class name
@@ -666,6 +668,7 @@ public class Application<T> {
             }
         }
 
+        // plugin setup
         for (int i = 0; i < extra.size(); i++) {
             var name = extra.get(i);
             var provider = foundPlugins.get(name);
@@ -679,15 +682,17 @@ public class Application<T> {
                 }
 
                 var plugin = provider.setup(config, probe);
-                log.debug("add plugin {}", plugin.getClass().getName());
-                plugins.add(plugin);
+                if (plugin != null) {
+                    log.debug("add plugin {}", plugin.getClass().getName());
+                    plugins.add(plugin);
 
-                service.bind(provider, plugin);
-                var node = plugin.setup(service);
-                service.unbind();
+                    service.bind(provider, plugin);
+                    var node = plugin.setup(service);
+                    service.unbind();
 
-                if (node != null) {
-                    pluginLayout.getChildren().add(node);
+                    if (node != null) {
+                        pluginLayout.getChildren().add(node);
+                    }
                 }
             }
         }

@@ -14,6 +14,9 @@ import javafx.scene.control.MenuItem;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.cli.CartoConfig;
+import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
@@ -64,6 +67,21 @@ public final class PluginSetupService {
 
     private Application<?> checkApplication() {
         return Objects.requireNonNull(this.app, "service is finished.");
+    }
+
+    public CartoConfig getCartoConfig() {
+        var app = checkApplication();
+        return app.config;
+    }
+
+    public Repository getRepository() {
+        var app = checkApplication();
+        return app.repository;
+    }
+
+    public ProbeDescription<?> getProbeDescription() {
+        var app = checkApplication();
+        return app.probe;
     }
 
     public PluginSetupService asProbePluginSetupService() {

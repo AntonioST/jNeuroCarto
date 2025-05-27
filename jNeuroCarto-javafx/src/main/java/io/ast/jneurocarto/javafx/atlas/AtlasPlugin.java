@@ -230,8 +230,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup");
-
         checkBrainAtlas();
 
         canvas = service.getProbeView();
@@ -508,7 +506,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         var p = new Point2D(e.getX(), e.getY()); // canvas
         p = canvas.getChartTransform(p); // chart <- canvas
-        p = painter.getSliceTransform().transform(p); // slice <- chart
+        p = painter.getImageTransform().transform(p); // slice <- chart
         var coor = image.pullBack(image.planeAt(p)); // coor <- slice
         var text = String.format("=(%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
 
