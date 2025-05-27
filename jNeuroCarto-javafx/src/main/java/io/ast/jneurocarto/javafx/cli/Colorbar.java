@@ -54,9 +54,11 @@ public class Colorbar implements Application.ApplicationContent, Runnable {
         colorbar.w(100);
         colorbar.h(10);
 
+        var data = new double[n + 1];
         for (int i = 0; i < n + 1; i++) {
-            colorbar.addData(i, 0, i);
+            data[i] = i;
         }
+        colorbar.addData(data);
 
         painter.repaint();
     }

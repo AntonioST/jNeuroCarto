@@ -6,7 +6,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class XY {
+public final class XY {
     static final XY GAP = new XY(Double.NaN, Double.NaN, 0.0, null);
 
     double x;

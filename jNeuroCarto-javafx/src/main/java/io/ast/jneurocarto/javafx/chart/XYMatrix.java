@@ -4,6 +4,7 @@ import java.util.function.ToDoubleFunction;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.transform.Affine;
+import javafx.scene.transform.NonInvertibleTransformException;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -17,8 +18,6 @@ public class XYMatrix extends XYSeries {
     protected double y = 0;
     protected double w = 1;
     protected double h = 1;
-    private double dw;
-    private double dh;
 
     private int numberOfData;
     private @Nullable MinMaxInt xr;
@@ -56,13 +55,61 @@ public class XYMatrix extends XYSeries {
         this.h = h;
     }
 
+    public void addData(double[] data) {
+        addData(data, 1);
+    }
+
+    public void addData(double[] data, int row) {
+        addData(data, row, true);
+    }
+
+    /**
+     * @param data a 2d-flatten double array.
+     * @param row  number of row
+     * @param flip flip y direction. If {@code true}, the first row has largest y pos.
+     */
+    public void addData(double[] data, int row, boolean flip) {
+        if (row <= 0) throw new IllegalArgumentException();
+
+        int column = (int) (Math.ceil((double) data.length / row));
+        for (int r = 0; r < row; r++) {
+            var y = flip ? row - r - 1 : r;
+
+            for (int c = 0; c < column; c++) {
+                var i = r * column + c;
+                if (i < data.length) {
+                    var v = data[i];
+                    if (!Double.isNaN(v)) {
+                        var x = c;
+
+                        addData(x, y, v);
+                    }
+                }
+            }
+        }
+    }
+
+    public void addData(double[][] data, boolean flip) {
+        for (int r = 0, nr = data.length; r < nr; r++) {
+            var y = flip ? nr - r - 1 : r;
+
+            var row = data[r];
+            for (int c = 0, nc = row.length; c < nc; c++) {
+                var v = row[c];
+                if (!Double.isNaN(v)) {
+                    var x = c;
+                    addData(x, y, v);
+                }
+            }
+        }
+    }
+
     @Override
     public int transform(Affine aff, double[][] p) {
         var data = this.data;
         var length = data.size();
-        if (length == 0) return 0;
 
-        if (length != numberOfData) {
+        if (length > 0 && length != numberOfData) {
             numberOfData = length;
             xr = minmax(XY::x);
             if (xr == null) return 0;
@@ -71,41 +118,7 @@ public class XYMatrix extends XYSeries {
             assert yr != null;
         }
 
-        assert xr != null;
-        assert yr != null;
-
-        var x0 = xr.min();
-        var y0 = yr.min();
-        int nx = xr.range() + 1;
-        int ny = yr.range() + 1;
-
-        {
-            var q = aff.deltaTransform(w, h);
-            dw = q.getX() / nx;
-            dh = q.getY() / ny;
-        }
-
-        var dx = dw >= 0 ? 0 : dw;
-        var dy = dh >= 0 ? 0 : dh;
-
-        for (int i = 0; i < length; i++) {
-            var xy = data.get(i);
-            if (Double.isNaN(xy.x) || Double.isNaN(xy.y)) {
-                length--;
-                i--;
-                continue;
-            }
-
-            var px = x + w * ((int) xy.x - x0) / nx;
-            var py = y + h * ((int) xy.y - y0) / ny;
-            var q = aff.transform(px, py);
-
-            p[0][i] = q.getX() + dx;
-            p[1][i] = q.getY() + dy;
-            p[2][i] = xy.v;
-        }
-
-        return length;
+        return 0;
     }
 
     private @Nullable MinMaxInt minmax(ToDoubleFunction<XY> f) {
@@ -120,29 +133,48 @@ public class XYMatrix extends XYSeries {
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
         if (colormap == null) return;
 
+        var cmap = colormap;
         var norm = normalize;
         if (norm == null) norm = renormalize();
 
+        assert xr != null;
+        assert yr != null;
+
+        var x0 = xr.min();
+        var y0 = yr.min();
+        int nx = xr.range() + 1;
+        int ny = yr.range() + 1;
+
+        var dw = w / nx;
+        var dh = h / ny;
+
+        try {
+            // fix 1px gaps
+            var q = gc.getTransform().inverseDeltaTransform(1, 1);
+            dw += q.getX();
+            dh += q.getY();
+        } catch (NonInvertibleTransformException e) {
+            throw new RuntimeException(e);
+        }
+
         gc.save();
         try {
-            gc.setTransform(InteractionXYPainter.IDENTIFY);
             gc.setGlobalAlpha(alpha);
-            paintMatrix(gc, p, offset, length, colormap, norm);
+
+            for (var xy : data) {
+                if (Double.isNaN(xy.x) || Double.isNaN(xy.y)) {
+                    continue;
+                }
+
+                var px = x + w * ((int) xy.x - x0) / nx;
+                var py = y + h * ((int) xy.y - y0) / ny;
+
+                gc.setFill(cmap.get(norm, xy.v));
+                gc.fillRect(px, py, dw, dh);
+            }
+
         } finally {
             gc.restore();
-        }
-    }
-
-    private void paintMatrix(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap, Normalize norm) {
-        var dw = Math.abs(this.dw) + 1; // 1 for gaps
-        var dh = Math.abs(this.dh) + 1;
-
-        for (int i = 0; i < length; i++) {
-            var x = p[0][i + offset];
-            var y = p[1][i + offset];
-            var v = p[2][i + offset];
-            gc.setFill(cmap.get(norm, v));
-            gc.fillRect(x, y, dw, dh);
         }
     }
 }
