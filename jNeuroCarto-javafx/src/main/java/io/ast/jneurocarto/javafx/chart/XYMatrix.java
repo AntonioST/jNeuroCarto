@@ -154,10 +154,9 @@ public class XYMatrix extends XYSeries {
             dw += q.getX();
             dh += q.getY();
         } catch (NonInvertibleTransformException e) {
-            throw new RuntimeException(e);
         }
 
-        gc.save();
+        var oldAlpha = gc.getGlobalAlpha();
         try {
             gc.setGlobalAlpha(alpha);
 
@@ -174,7 +173,7 @@ public class XYMatrix extends XYSeries {
             }
 
         } finally {
-            gc.restore();
+            gc.setGlobalAlpha(oldAlpha);
         }
     }
 }
