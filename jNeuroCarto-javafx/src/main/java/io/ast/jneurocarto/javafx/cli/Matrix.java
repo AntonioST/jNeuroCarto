@@ -11,7 +11,10 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.NumpyHeader;
-import io.ast.jneurocarto.javafx.chart.*;
+import io.ast.jneurocarto.javafx.chart.Application;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.Normalize;
+import io.ast.jneurocarto.javafx.chart.XYMatrix;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -209,33 +212,27 @@ public class Matrix implements Application.ApplicationContent, Runnable {
      * Application *
      *=============*/
 
-    private InteractionXYChart chart;
-    private InteractionXYPainter painter;
-    private XYMatrix[] matrix;
-
     @Override
     public void setup(InteractionXYChart chart) {
         log.debug("setup");
 
-        this.chart = chart;
-        painter = chart.getPlotting();
+        var painter = chart.getPlotting();
 
-        matrix = new XYMatrix[length[0]];
+        var matrix = new XYMatrix[length[0]];
         for (int s = 0; s < length[0]; s++) {
-            var m = new XYMatrix();
-            matrix[s] = m;
-            painter.addGraphics(m);
+            var builder = painter.imshow()
+              .colormap(colormap)
+              .extent(s * space[0], 0, length[2], space[2], length[1], space[1]);
 
-            m.alpha(1);
-            m.colormap(colormap);
-            m.extent(s * space[0], 0, length[2], space[2], length[1], space[1]);
+            var m = builder.graphics();
+            matrix[s] = m;
             log.debug("matric x={}, y={}, w={}, h={}, nx={}, ny={}", m.x(), m.y(), m.w(), m.h(), m.nx(), m.ny());
 
             for (int r = 0; r < length[1]; r++) {
                 for (int c = 0; c < length[2]; c++) {
                     var v = data(s, r, c);
                     if (!Double.isNaN(v)) {
-                        m.addData(c, r, v);
+                        builder.addData(c, r, v);
                     }
                 }
             }
@@ -245,9 +242,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
             var norm = XYMatrix.renormalize(matrix, new Normalize(0, 0));
             log.debug("norm = {}", norm);
         } else {
-            for (var m : matrix) {
-                m.normalize(normalize);
-            }
+            XYMatrix.normalize(matrix, normalize);
         }
 
         var x1 = space[0] * length[0];

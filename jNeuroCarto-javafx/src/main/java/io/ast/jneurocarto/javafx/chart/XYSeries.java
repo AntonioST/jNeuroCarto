@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.javafx.chart;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -92,6 +93,44 @@ public abstract class XYSeries implements XYGraphics {
             return new Normalize(result);
         }
     }
+
+    public static Normalize renormalize(XYSeries[] graphics) {
+        if (graphics.length == 0) throw new RuntimeException();
+        if (graphics.length == 1) return graphics[0].renormalize();
+
+        var norm = Arrays.stream(graphics)
+          .map(XYSeries::renormalize)
+          .gather(Normalize.union())
+          .findFirst().get();
+
+        for (var matrix : graphics) {
+            matrix.normalize(norm);
+        }
+        return norm;
+    }
+
+    public static Normalize normalize(XYSeries[] graphics, Normalize norm) {
+        for (var g : graphics) {
+            g.normalize(norm);
+        }
+        return norm;
+    }
+
+    public static Normalize renormalize(XYSeries[] graphics, Normalize init) {
+        if (graphics.length == 0) return init;
+
+        var stream = Arrays.stream(graphics).map(XYSeries::renormalize);
+
+        var norm = Stream.concat(Stream.of(init), stream)
+          .gather(Normalize.union())
+          .findFirst().get();
+
+        for (var matrix : graphics) {
+            matrix.normalize(norm);
+        }
+        return norm;
+    }
+
 
     @Override
     public boolean isVisible() {
@@ -262,6 +301,11 @@ public abstract class XYSeries implements XYGraphics {
             return (B) this;
         }
 
+        public B normalize() {
+            graphics.renormalize();
+            return (B) this;
+        }
+
         public B normalize(double lower, double upper) {
             graphics.normalize(lower, upper);
             return (B) this;
@@ -276,5 +320,7 @@ public abstract class XYSeries implements XYGraphics {
             graphics.setVisible(visible);
             return (B) this;
         }
+
+
     }
 }

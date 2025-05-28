@@ -1,8 +1,6 @@
 package io.ast.jneurocarto.javafx.chart;
 
-import java.util.Arrays;
 import java.util.function.ToDoubleFunction;
-import java.util.stream.Stream;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -183,36 +181,6 @@ public class XYMatrix extends XYSeries {
           .boxed()
           .gather(MinMaxInt.intMinmax())
           .findFirst().orElse(null);
-    }
-
-    public static Normalize renormalize(XYMatrix[] matrices) {
-        if (matrices.length == 0) throw new RuntimeException();
-        if (matrices.length == 1) return matrices[0].renormalize();
-
-        var norm = Arrays.stream(matrices)
-          .map(XYSeries::renormalize)
-          .gather(Normalize.union())
-          .findFirst().get();
-
-        for (var matrix : matrices) {
-            matrix.normalize(norm);
-        }
-        return norm;
-    }
-
-    public static Normalize renormalize(XYMatrix[] matrices, Normalize init) {
-        if (matrices.length == 0) return init;
-
-        var stream = Arrays.stream(matrices).map(XYSeries::renormalize);
-
-        var norm = Stream.concat(Stream.of(init), stream)
-          .gather(Normalize.union())
-          .findFirst().get();
-
-        for (var matrix : matrices) {
-            matrix.normalize(norm);
-        }
-        return norm;
     }
 
     @Override

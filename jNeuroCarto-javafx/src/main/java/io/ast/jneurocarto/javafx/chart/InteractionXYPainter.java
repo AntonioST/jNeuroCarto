@@ -169,6 +169,12 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         return ret.builder();
     }
 
+    public XYMatrix.Builder imshow() {
+        var ret = new XYMatrix();
+        addGraphics(ret);
+        return ret.builder();
+    }
+
     public XYMatrix.Builder imshow(double[][] mat) {
         return imshow(mat, false);
     }
