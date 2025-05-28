@@ -237,7 +237,7 @@ public class XYMatrix extends XYSeries {
             gc.setGlobalAlpha(alpha);
 
             for (var xy : data) {
-                if (Double.isNaN(xy.x) || Double.isNaN(xy.y)) {
+                if (Double.isNaN(xy.x + xy.y + xy.v)) {
                     continue;
                 }
 

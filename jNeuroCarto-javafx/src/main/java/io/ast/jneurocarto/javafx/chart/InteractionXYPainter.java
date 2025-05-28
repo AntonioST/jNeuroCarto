@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.transform.Affine;
@@ -28,6 +30,20 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         this.canvas = canvas;
         this.layer = layer;
         gc = canvas.getGraphicsContext2D();
+    }
+
+    /*============*
+     * properties *
+     *============*/
+
+    public final BooleanProperty visible = new SimpleBooleanProperty(true);
+
+    public boolean isVisible() {
+        return visible.get();
+    }
+
+    public void setVisible(boolean value) {
+        visible.set(value);
     }
 
     /*========*
@@ -70,6 +86,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     public void repaint() {
         if (layer == 0) {
             clear();
+            if (graphics.isEmpty() || !isVisible()) return;
             gc.setTransform(chart.getCanvasTransform());
             draw(gc);
         } else if (layer > 0) {
@@ -88,7 +105,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
     @Override
     public void draw(GraphicsContext gc) {
-        if (graphics.isEmpty()) return;
+        if (graphics.isEmpty() || !isVisible()) return;
 
         var length = graphics.stream().mapToInt(XYGraphics::points).max().orElse(0);
         var p = getTransformedCache(length);
@@ -138,7 +155,6 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     }
 
     /**
-     *
      * @param v
      * @param orientation
      * @return

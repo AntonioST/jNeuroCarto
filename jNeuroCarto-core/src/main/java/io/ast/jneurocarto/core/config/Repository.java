@@ -187,7 +187,7 @@ public class Repository {
         if (ret == null) {
             ret = Path.of(".");
         }
-        return ret;
+        return ret.toAbsolutePath();
     }
 
     public void changeResourceRoot(Path root) throws IOException {

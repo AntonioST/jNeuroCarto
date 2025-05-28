@@ -97,9 +97,9 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
     @Override
     protected @Nullable Node setupContent(PluginSetupService service) {
         canvas = service.getProbeView();
-        visible.addListener((_, _, _) -> canvas.repaintForeground());
-
         painter = canvas.getForegroundPainter();
+        painter.visible.bindBidirectional(visible);
+        painter.visible.addListener((_, _, e) -> painter.repaint());
 
         return null;
     }

@@ -11,4 +11,7 @@ public class DataVisualizeState {
 
     @JsonProperty(value = "colormap", index = 1)
     public String colormap;
+
+    @JsonProperty(value = "interpolation", index = 2)
+    public int interpolation = 1;
 }

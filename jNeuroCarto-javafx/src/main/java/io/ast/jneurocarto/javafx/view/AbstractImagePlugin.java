@@ -66,7 +66,7 @@ public abstract class AbstractImagePlugin extends InvisibleView {
         if (value == null) {
             fileProperty.set(null);
         } else {
-            fileProperty.set(Path.of(value));
+            fileProperty.set(repository.getCurrentResourceRoot().relativize(Path.of(value)));
         }
     }
 
@@ -120,7 +120,8 @@ public abstract class AbstractImagePlugin extends InvisibleView {
     private class FileValidator extends StringConverter<Path> {
         @Override
         public String toString(Path path) {
-            return path == null ? "" : path.toString();
+            if (path == null) return "";
+            return repository.getCurrentResourceRoot().relativize(path.toAbsolutePath()).toString();
         }
 
         @Override

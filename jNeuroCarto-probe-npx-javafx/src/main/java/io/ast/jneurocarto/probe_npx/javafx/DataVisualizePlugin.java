@@ -2,9 +2,10 @@ package io.ast.jneurocarto.probe_npx.javafx;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.List;
 
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
@@ -16,9 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
+import io.ast.jneurocarto.javafx.chart.Colormap;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYMatrix;
 import io.ast.jneurocarto.javafx.view.AbstractImagePlugin;
@@ -53,12 +56,23 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
     public final StringProperty colormapProperty = new SimpleStringProperty("plasma");
 
-    public final String getString() {
+    public final String getColormap() {
         return colormapProperty.get();
     }
 
-    public final void setString(String colormap) {
+    public final void setColormap(String colormap) {
         colormapProperty.set(colormap);
+    }
+
+    private final IntegerProperty interpolateProperty = new SimpleIntegerProperty(1);
+
+    public final int getInterpolate() {
+        return interpolateProperty.get();
+    }
+
+    public final void setInterpolate(int value) {
+        if (value % 2 != 1) throw new IllegalArgumentException();
+        interpolateProperty.set(value);
     }
 
     /*=================*
@@ -72,6 +86,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         var state = new DataVisualizeState();
         state.filePath = file == null ? null : file.toAbsolutePath().toString();
         state.colormap = colormapProperty.get();
+        state.interpolation = interpolateProperty.get();
 
         return state;
     }
@@ -83,6 +98,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         setFile(state.filePath);
         var colormap = state.colormap;
         if (colormap != null) colormapProperty.set(colormap);
+        setInterpolate(state.interpolation);
     }
 
     /*===========*
@@ -98,14 +114,17 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         colormapProperty.addListener((_, _, cmap) -> {
             var matrix = this.matrix;
             if (matrix != null) {
+                var cm = Colormap.of(cmap);
                 for (XYMatrix m : matrix) {
                     if (m != null) {
-                        m.colormap(cmap);
+                        m.colormap(cm);
                     }
                 }
             }
             foreground.repaint();
         });
+        foreground.visible.bindBidirectional(showImageProperty);
+        foreground.visible.addListener((_, _, e) -> foreground.repaint());
 
         return ret;
     }
@@ -126,18 +145,26 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
         double[] data;
 
+        var toolkit = BlueprintAppToolkit.newToolkit();
+
         try {
-            data = BlueprintAppToolkit.newToolkit().loadBlueprintData(file);
+            data = toolkit.loadBlueprintData(file);
         } catch (IOException ex) {
             log.warn("loadBlueprintData", ex);
             return;
         }
 
+        var kernal = interpolateProperty.get();
+        if (kernal > 1) {
+            data = toolkit.interpolateNaN(data, kernal, BlueprintToolkit.InterpolateMethod.mean);
+        }
+
         updateDataImage(data);
+        foreground.repaint();
     }
 
     protected void onClearData(ActionEvent e) {
-        if (matrix != null) foreground.removeGraphics(Arrays.asList(matrix));
+        if (matrix != null) foreground.clearGraphics();
         foreground.repaint();
     }
 
@@ -151,7 +178,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     }
 
     private void updateDataImage(double[] data) {
-        if (matrix != null) foreground.removeGraphics(Arrays.asList(matrix));
+        foreground.clearGraphics();
 
         var chmap = this.chmap;
         if (chmap == null) return;
@@ -171,15 +198,11 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         var h = pr * nr;
 
         for (int shank = 0; shank < nShank; shank++) {
-            var m = new XYMatrix();
-            foreground.addGraphics(m);
-            matrix[shank] = m;
-
-            m.x(ps * shank - w);
-            m.y(0);
-            m.w(w);
-            m.h(h);
-            m.colormap(cmap);
+            matrix[shank] = foreground.imshow()
+              .extent(ps * shank - w - pc, 0, w, h)
+              .colormap(cmap)
+              .z(-1)
+              .graphics();
         }
 
         toolkit.stream(data).forEach(e -> {
