@@ -33,6 +33,7 @@ public class Chart implements Runnable {
 
     public static void main(String[] args) {
         parser = new CommandLine(new Chart());
+        parser.setCaseInsensitiveEnumValuesAllowed(true);
 //        parser.setParameterExceptionHandler((ex, _) -> {
 //            ex.printStackTrace();
 //            return 1;

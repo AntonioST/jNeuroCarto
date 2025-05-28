@@ -89,10 +89,18 @@ public class XYBar extends XYSeries {
                     x -= width / 2;
                     w = width;
                     h = xy.v;
+                    if (h < 0) {
+                        y += h;
+                        h = -h;
+                    }
                 } else {
                     y -= width / 2;
                     w = xy.v;
                     h = width;
+                    if (w < 0) {
+                        x += w;
+                        w = -w;
+                    }
                 }
 
                 gc.fillRect(x, y, w, h);
@@ -115,6 +123,7 @@ public class XYBar extends XYSeries {
     public static class Builder extends XYSeries.Builder<XYBar, Builder> {
         private double step;
         private double ratio = Double.NaN;
+        private double baseline;
 
         public Builder(XYBar graphics, double step) {
             if (step == 0) throw new IllegalArgumentException();
@@ -168,9 +177,20 @@ public class XYBar extends XYSeries {
             return ret.orElse(0);
         }
 
-        private double b() {
-            ToDoubleFunction<XY> mapper = graphics.orientation == Orientation.vertical ? XY::y : XY::x;
-            return graphics.data().mapToDouble(mapper).min().orElse(0);
+        public Builder baseline(double b) {
+            baseline = b;
+
+            if (graphics.orientation == Orientation.vertical) {
+                for (var xy : graphics.data) {
+                    xy.y(b);
+                }
+            } else {
+                for (var xy : graphics.data) {
+                    xy.x(b);
+                }
+            }
+
+            return this;
         }
 
         public Builder step(double step) {
@@ -201,11 +221,11 @@ public class XYBar extends XYSeries {
         }
 
         public Builder addData(double v) {
-            return addData(p1() + step, b(), v);
+            return addData(p1() + step, baseline, v);
         }
 
         public Builder addData(double p, double v) {
-            return addData(p, b(), v);
+            return addData(p, baseline, v);
         }
 
         public Builder addData(double p, double b, double v) {
@@ -218,11 +238,11 @@ public class XYBar extends XYSeries {
         }
 
         public Builder addData(double[] v) {
-            return addData(p1() + step, b(), v);
+            return addData(p1() + step, baseline, v);
         }
 
         public Builder addData(double p, double[] v) {
-            return addData(p, b(), v);
+            return addData(p, baseline, v);
         }
 
         public Builder addData(double p, double b, double[] v) {

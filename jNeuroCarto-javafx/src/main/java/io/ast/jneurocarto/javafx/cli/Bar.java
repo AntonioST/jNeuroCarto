@@ -17,11 +17,15 @@ public class Bar implements Application.ApplicationContent, Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
-    @CommandLine.Option(names = "--orientation", defaultValue = "vertical")
+    @CommandLine.Option(names = {"--ori", "--orientation"}, defaultValue = "vertical",
+      description = "bar direction. could be ${COMPLETION-CANDIDATES}")
     XYBar.Orientation orientation;
 
     @CommandLine.Option(names = "--color", defaultValue = "blue")
     String color;
+
+    @CommandLine.Option(names = "--flip")
+    boolean flip;
 
     @CommandLine.ArgGroup(heading = "Data:%n")
     BarData gen;
@@ -74,6 +78,11 @@ public class Bar implements Application.ApplicationContent, Runnable {
     @Override
     public void run() {
         data = gen != null ? gen.get() : new RandomData().get();
+        if (flip) {
+            for (int i = 0, length = data.length; i < length; i++) {
+                data[i] *= -1;
+            }
+        }
         System.out.println(Arrays.toString(data));
 
         parent.launch(new Application(this));
@@ -87,6 +96,7 @@ public class Bar implements Application.ApplicationContent, Runnable {
     public void setup(InteractionXYChart chart) {
         var painter = chart.getPlotting();
         painter.bar(data, orientation)
+          .baseline(flip ? 100 : 0)
           .widthRatio(0.8)
           .fitInRange(0, 100)
           .fill(color);
