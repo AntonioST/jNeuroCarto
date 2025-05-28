@@ -235,7 +235,9 @@ public class Matrix implements Application.ApplicationContent, Runnable {
             m.y(0);
             m.w(length[2] * space[2]);
             m.h(length[1] * space[1]);
-            log.debug("matric x={}, y={}, w={}, h={}", m.x(), m.y(), m.w(), m.h());
+            m.nx(length[2]);
+            m.ny(length[1]);
+            log.debug("matric x={}, y={}, w={}, h={}, nx={}, ny={}", m.x(), m.y(), m.w(), m.h(), m.nx(), m.ny());
 
             for (int r = 0; r < length[1]; r++) {
                 for (int c = 0; c < length[2]; c++) {

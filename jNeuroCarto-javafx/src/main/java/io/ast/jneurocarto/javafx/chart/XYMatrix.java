@@ -24,6 +24,8 @@ public class XYMatrix extends XYSeries {
     private int numberOfData;
     private @Nullable MinMaxInt xr;
     private @Nullable MinMaxInt yr;
+    private int nx = -1;
+    private int ny = -1;
 
     public double x() {
         return x;
@@ -55,6 +57,22 @@ public class XYMatrix extends XYSeries {
 
     public void h(double h) {
         this.h = h;
+    }
+
+    public int nx() {
+        return nx;
+    }
+
+    public void nx(int nx) {
+        this.nx = nx;
+    }
+
+    public int ny() {
+        return ny;
+    }
+
+    public void ny(int ny) {
+        this.ny = ny;
     }
 
     public void addData(double[] data) {
@@ -89,13 +107,21 @@ public class XYMatrix extends XYSeries {
                 }
             }
         }
+
+        nx = column;
+        ny = row;
     }
 
     public void addData(double[][] data, boolean flip) {
+        ny = data.length;
+        nx = 0;
+
         for (int r = 0, nr = data.length; r < nr; r++) {
             var y = flip ? nr - r - 1 : r;
 
             var row = data[r];
+            nx = Math.max(nx, row.length);
+
             for (int c = 0, nc = row.length; c < nc; c++) {
                 var v = row[c];
                 if (!Double.isNaN(v)) {
@@ -104,6 +130,8 @@ public class XYMatrix extends XYSeries {
                 }
             }
         }
+
+
     }
 
     @Override
@@ -174,8 +202,8 @@ public class XYMatrix extends XYSeries {
 
         var x0 = xr.min();
         var y0 = yr.min();
-        int nx = xr.range() + 1;
-        int ny = yr.range() + 1;
+        int nx = this.nx > 0 ? this.nx : xr.range() + 1;
+        int ny = this.ny > 0 ? this.ny : yr.range() + 1;
 
         var dw = w / nx;
         var dh = h / ny;
@@ -191,8 +219,8 @@ public class XYMatrix extends XYSeries {
         if (inv != null) {
             // fix 1px gaps
             var q = inv.deltaTransform(1, 1);
-            dw += q.getX();
-            dh += q.getY();
+            dw += Math.abs(q.getX());
+            dh += Math.abs(q.getY());
         }
 
 
