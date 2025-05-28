@@ -13,6 +13,7 @@ public class XYPath extends XYSeries {
     protected double lw = 1;
     protected @Nullable Color line = null;
     protected @Nullable Color fill = null;
+    protected @Nullable Colormap colormap = null;
 
     public double linewidth() {
         return lw;
@@ -44,15 +45,19 @@ public class XYPath extends XYSeries {
         this.line = line;
     }
 
+    public @Nullable Colormap colormap() {
+        return colormap;
+    }
+
     /**
-     * {@inheritDoc}
+     * set colormap.
      * <br/>
      * It is used when {@link #line()} set to {@link Color#TRANSPARENT}.
      *
      * @param colormap
      */
     public void colormap(Colormap colormap) {
-        super.colormap(colormap);
+        this.colormap = colormap;
     }
 
     @Override
@@ -179,13 +184,31 @@ public class XYPath extends XYSeries {
             return this;
         }
 
+        public Builder fill(String fill) {
+            return fill(Color.valueOf(fill));
+        }
+
         public Builder fill(@Nullable Color fill) {
             graphics.fill(fill);
             return this;
         }
 
+        public Builder line(String line) {
+            return line(Color.valueOf(line));
+        }
+
         public Builder line(@Nullable Color line) {
             graphics.line(line);
+            return this;
+        }
+
+        public Builder colormap(String colormap) {
+            graphics.colormap(Colormap.of(colormap));
+            return this;
+        }
+
+        public Builder colormap(Colormap colormap) {
+            graphics.colormap(colormap);
             return this;
         }
 

@@ -39,14 +39,12 @@ public class ClickLines implements Application.ApplicationContent, Runnable {
         chart.addEventHandler(MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
 
         painter = chart.getPlotting();
-
-        path = new XYPath();
-        painter.addGraphics(path);
-
-        path.line(Color.TRANSPARENT);
-        path.normalize(Normalize.N01);
-        path.colormap("jet");
-        path.addData(0, 0, 0);
+        path = painter.lines()
+          .line(Color.TRANSPARENT)
+          .colormap("jet")
+          .normalize(Normalize.N01)
+          .addPoint(0, 0, 0)
+          .graphics();
     }
 
     private void onMouseClicked(MouseEvent e) {

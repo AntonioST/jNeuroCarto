@@ -18,6 +18,7 @@ module io.ast.jneurocarto.javafx {
 
     requires io.ast.jneurocarto.core;
     requires io.ast.jneurocarto.atlas;
+    requires org.apache.commons.io;
 
     exports io.ast.jneurocarto.javafx.app;
     exports io.ast.jneurocarto.javafx.app.dialog;

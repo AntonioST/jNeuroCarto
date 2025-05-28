@@ -11,8 +11,9 @@ import picocli.CommandLine;
   description = "show interaction xy chart",
   subcommands = {
     ClickLines.class,
+    Bar.class,
     Colorbar.class,
-    Matrix.class
+    Matrix.class,
   }
 )
 public class Chart implements Runnable {

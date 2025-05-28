@@ -19,6 +19,7 @@ public class XYMatrix extends XYSeries {
     protected double y = 0;
     protected double w = 1;
     protected double h = 1;
+    protected @Nullable Colormap colormap = null;
 
     private int numberOfData;
     private @Nullable MinMaxInt xr;
@@ -89,6 +90,19 @@ public class XYMatrix extends XYSeries {
 
     public void ny(int ny) {
         this.ny = ny;
+    }
+
+    public @Nullable Colormap colormap() {
+        return colormap;
+    }
+
+    /**
+     * set colormap.
+     *
+     * @param colormap
+     */
+    public void colormap(Colormap colormap) {
+        this.colormap = colormap;
     }
 
     /**
@@ -289,6 +303,16 @@ public class XYMatrix extends XYSeries {
 
         public Builder ny(int ny) {
             graphics.ny(ny);
+            return this;
+        }
+
+        public Builder colormap(String colormap) {
+            graphics.colormap(Colormap.of(colormap));
+            return this;
+        }
+
+        public Builder colormap(Colormap colormap) {
+            graphics.colormap(colormap);
             return this;
         }
 

@@ -2,8 +2,6 @@ package io.ast.jneurocarto.javafx.chart;
 
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.ScatterChart;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -46,10 +44,10 @@ public class Application {
     }
 
     private Parent root() {
-        var x = new NumberAxis(0, 100, 10);
-        var y = new NumberAxis(0, 100, 10);
+        chart = new InteractionXYChart();
+        chart.setResetAxesBoundaries(0, 100, 0, 100);
+        chart.resetAxesBoundaries();
 
-        chart = new InteractionXYChart<>(new ScatterChart<>(x, y));
         chart.setMinWidth(800);
         chart.setMinHeight(800);
 

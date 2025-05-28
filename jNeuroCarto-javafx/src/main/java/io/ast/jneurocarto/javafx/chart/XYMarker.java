@@ -15,6 +15,7 @@ public class XYMarker extends XYSeries {
     protected double ew = 1;
     protected @Nullable Color edge = null;
     protected @Nullable Color fill = null;
+    protected @Nullable Colormap colormap = null;
 
     public double w() {
         return w;
@@ -62,15 +63,19 @@ public class XYMarker extends XYSeries {
         this.fill = fill;
     }
 
+    public @Nullable Colormap colormap() {
+        return colormap;
+    }
+
     /**
-     * {@inheritDoc}
+     * set colormap.
      * <br/>
      * It is used when {@link #fill()} set to {@link Color#TRANSPARENT}.
      *
      * @param colormap
      */
     public void colormap(Colormap colormap) {
-        super.colormap(colormap);
+        this.colormap = colormap;
     }
 
     @Override
@@ -179,13 +184,31 @@ public class XYMarker extends XYSeries {
             return this;
         }
 
+        public Builder edge(String line) {
+            return edge(Color.valueOf(line));
+        }
+
         public Builder edge(@Nullable Color line) {
             graphics.edge(line);
             return this;
         }
 
+        public Builder fill(String fill) {
+            return fill(Color.valueOf(fill));
+        }
+
         public Builder fill(@Nullable Color fill) {
             graphics.fill(fill);
+            return this;
+        }
+
+        public Builder colormap(String colormap) {
+            graphics.colormap(Colormap.of(colormap));
+            return this;
+        }
+
+        public Builder colormap(Colormap colormap) {
+            graphics.colormap(colormap);
             return this;
         }
 

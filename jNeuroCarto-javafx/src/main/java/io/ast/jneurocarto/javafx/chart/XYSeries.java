@@ -23,7 +23,7 @@ public abstract class XYSeries implements XYGraphics {
 
     protected double z = 0;
     protected double alpha = 1;
-    protected @Nullable Colormap colormap = null;
+
     protected @Nullable Normalize normalize = null;
     protected boolean visible = true;
     protected List<XY> data = new ArrayList<>();
@@ -48,23 +48,6 @@ public abstract class XYSeries implements XYGraphics {
 
     public void alpha(double alpha) {
         this.alpha = alpha;
-    }
-
-    public @Nullable Colormap colormap() {
-        return colormap;
-    }
-
-    public void colormap(String colormap) {
-        colormap(Colormap.of(colormap));
-    }
-
-    /**
-     * set colormap.
-     *
-     * @param colormap
-     */
-    public void colormap(Colormap colormap) {
-        this.colormap = colormap;
     }
 
     public @Nullable Normalize normalize() {
@@ -293,11 +276,6 @@ public abstract class XYSeries implements XYGraphics {
 
         public B alpha(double alpha) {
             graphics.alpha(alpha);
-            return (B) this;
-        }
-
-        public B colormap(String colormap) {
-            graphics.colormap(colormap);
             return (B) this;
         }
 

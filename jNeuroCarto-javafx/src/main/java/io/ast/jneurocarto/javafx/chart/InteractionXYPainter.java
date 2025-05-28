@@ -115,6 +115,19 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      * data plotting *
      *===============*/
 
+    public XYBar.Builder bar(double[] y) {
+        return bar(y, XYBar.Orientation.vertical);
+    }
+
+    public XYBar.Builder bar(double[] v, XYBar.Orientation orientation) {
+        var ret = new XYBar();
+        ret.orientation(orientation);
+        addGraphics(ret);
+        var builder = ret.builder(1);
+        builder.addData(v);
+        return builder;
+    }
+
     public XYPath.Builder lines() {
         var ret = new XYPath();
         addGraphics(ret);
