@@ -9,9 +9,23 @@ import org.jspecify.annotations.NullMarked;
 public interface XYGraphics {
 
     /**
-     * {@return number of data points}
+     * {@return number of data}
      */
     int size();
+
+    /**
+     * number of data points. It is used by {@link InteractionXYPainter} to determinate
+     * the size of points need to be transformed for pre-allocating the array
+     * (used for parameter {@code p} in {@link #transform(Affine, double[][])}
+     * and {@link #paint(GraphicsContext, double[][], int, int)}).
+     * If a {@link XYGraphics} does not need to calculate the transform point,
+     * it could return 0 to avoid unnecessary array allocation.
+     *
+     * @return number of data points
+     */
+    default int points() {
+        return size();
+    }
 
     double z();
 

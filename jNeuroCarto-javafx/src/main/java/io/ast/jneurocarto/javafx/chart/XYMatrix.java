@@ -75,6 +75,16 @@ public class XYMatrix extends XYSeries {
         this.ny = ny;
     }
 
+    /**
+     * number of data points.
+     *
+     * @return always 0. It has no points need to be transformed.
+     */
+    @Override
+    public int points() {
+        return 0;
+    }
+
     public void addData(double[] data) {
         addData(data, 1);
     }

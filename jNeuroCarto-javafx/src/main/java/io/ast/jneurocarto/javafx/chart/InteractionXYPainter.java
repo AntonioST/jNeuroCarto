@@ -40,10 +40,12 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
     public void addGraphics(XYGraphics graphic) {
         graphics.add(graphic);
+        graphics.sort(Comparator.comparingDouble(XYGraphics::z));
     }
 
     public void addGraphics(Collection<XYGraphics> graphic) {
         this.graphics.addAll(graphic);
+        graphics.sort(Comparator.comparingDouble(XYGraphics::z));
     }
 
     public boolean removeGraphics(XYGraphics graphic) {
@@ -88,11 +90,8 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     public void draw(GraphicsContext gc) {
         if (graphics.isEmpty()) return;
 
-        var length = graphics.stream().mapToInt(XYGraphics::size).max().orElse(0);
-        if (length == 0) return;
-
+        var length = graphics.stream().mapToInt(XYGraphics::points).max().orElse(0);
         var p = getTransformedCache(length);
-        graphics.sort(Comparator.comparingDouble(XYGraphics::z));
 
         var aff = gc.getTransform();
         for (var series : graphics) {
