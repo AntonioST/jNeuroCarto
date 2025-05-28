@@ -30,17 +30,20 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.core.cli.CartoConfig;
+import io.ast.jneurocarto.core.config.JsonConfig;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.dialog.ChartAxesDialog;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.StateView;
 
 public class Application<T> {
 
@@ -208,7 +211,14 @@ public class Application<T> {
         stage.sizeToScene();
 
         if (config.file != null) {
-            Platform.runLater(() -> onLoadChannelmap(config.file));
+            Platform.runLater(() -> {
+                var file = config.file;
+                if (Repository.isViewConfigFile(file)) {
+                    onLoadViewConfigFile(file);
+                } else {
+                    onLoadChannelmap(file);
+                }
+            });
         }
     }
 
@@ -606,6 +616,11 @@ public class Application<T> {
         log.debug("setup plugins");
 
         {
+            var plugin = new ChannelmapStateListener();
+            log.debug("add ChannelmapStateListener");
+            plugins.add(new PluginInfo(plugin));
+        }
+        {
             var plugin = view.new ProbeViewStateListener();
             log.debug("add ProbeViewStateListener");
             plugins.add(new PluginInfo(plugin));
@@ -703,13 +718,24 @@ public class Application<T> {
 
         var channelmapFile = openChannelmapFileDialog(false);
         if (channelmapFile != null) {
-            currentChannelmapFile.set(channelmapFile);
-            onLoadChannelmap(channelmapFile);
+            if (Repository.isViewConfigFile(channelmapFile)) {
+                onLoadViewConfigFile(channelmapFile);
+            } else {
+                onLoadChannelmap(channelmapFile);
+            }
         }
     }
 
+    /**
+     * load a channelmap file.
+     *
+     * @param channelmapFile
+     */
     private void onLoadChannelmap(Path channelmapFile) {
+        log.debug("onLoadChannelmap {}", channelmapFile);
+
         channelmapFile = channelmapFile.toAbsolutePath().normalize();
+        currentChannelmapFile.set(channelmapFile);
 
         T channelmap;
         try {
@@ -742,6 +768,69 @@ public class Application<T> {
         fireProbeUpdate(channelmap, blueprint);
     }
 
+    private void onLoadViewConfigFile(Path viewConfigFile) {
+        log.debug("onLoadViewConfigFile {}", viewConfigFile);
+
+        JsonConfig config;
+
+        try {
+            config = repository.loadViewConfigFile(probe, viewConfigFile, true);
+        } catch (IOException e) {
+            printMessage("fail to load view config file.");
+            log.warn("loadViewConfigFile", e);
+            return;
+        }
+
+        ChannelmapState state;
+
+        try {
+            state = config.get(ChannelmapState.class);
+            if (state == null) {
+                printMessage("fail to load channelmap file from view config.");
+                return;
+            }
+        } catch (JsonProcessingException e) {
+            printMessage("fail to load channelmap file from view config.");
+            log.warn("loadViewConfigFile", e);
+            return;
+        }
+
+        if (state.family != null && !state.family.equals(this.config.probeFamily)) {
+            printMessage("fail to load channelmap file. probe family mismatch.");
+            return;
+        }
+
+        T channelmap = null;
+        List<ElectrodeDescription> blueprint = null;
+
+        if (state.channelmapFile != null) {
+            var channelmapFile = Path.of(state.channelmapFile);
+
+            try {
+                channelmap = loadChannelmap(channelmapFile);
+            } catch (IOException e) {
+                printMessage("fail to open channelmap file " + channelmapFile.getFileName());
+                log.warn("loadProbe", e);
+                return;
+            }
+
+            try {
+                blueprint = loadBlueprint(channelmapFile);
+            } catch (IOException ex) {
+                printMessage("fail to load blueprint file.");
+                log.warn("loadBlueprint", ex);
+                blueprint = Objects.requireNonNull(view.resetBlueprint());
+            }
+        }
+
+        log.debug("retrieveAllStates");
+        PluginStateService.retrieveAllStates();
+
+        if (channelmap != null && blueprint != null) {
+            fireProbeUpdate(channelmap, blueprint);
+        }
+    }
+
     private void onSaveChannelmap(ActionEvent e) {
         var channelmap = getChannelmap();
         if (channelmap == null) return;
@@ -753,7 +842,6 @@ public class Application<T> {
         }
         if (channelmapFile != null) {
             channelmapFile = repository.getChannelmapFile(probe, channelmapFile);
-            currentChannelmapFile.set(channelmapFile);
             onSaveChannelmap(channelmapFile, channelmap);
         }
     }
@@ -766,20 +854,19 @@ public class Application<T> {
         var channelmapFile = openChannelmapFileDialog(true);
         if (channelmapFile != null) {
             channelmapFile = repository.getChannelmapFile(probe, channelmapFile);
-            currentChannelmapFile.set(channelmapFile);
             onSaveChannelmap(channelmapFile, channelmap);
         }
     }
 
     private void onSaveChannelmap(Path channelmapFile, T channelmap) {
+        log.debug("onSaveChannelmap {}", channelmapFile);
+
         channelmapFile = channelmapFile.toAbsolutePath().normalize();
+        currentChannelmapFile.set(channelmapFile);
 
-        if (!probe.validateChannelmap(channelmap)) {
+        var saveChmap = probe.validateChannelmap(channelmap);
+        if (!saveChmap) {
             printMessage("incomplete channelmap");
-
-            if (!repository.getUserConfig().alwaysSaveBlueprintFile) {
-                return;
-            }
         } else {
             try {
                 log.debug("saveChannelmap {}", channelmapFile.getFileName());
@@ -791,13 +878,15 @@ public class Application<T> {
             }
         }
 
-        var blueprint = getBlueprint();
-        if (blueprint != null) {
-            try {
-                saveBlueprint(channelmapFile, blueprint);
-            } catch (IOException e) {
-                printMessage("fail to save blueprint file.");
-                log.warn("saveBlueprint", e);
+        if (saveChmap || repository.getUserConfig().alwaysSaveBlueprintFile) {
+            var blueprint = getBlueprint();
+            if (blueprint != null) {
+                try {
+                    saveBlueprint(channelmapFile, blueprint);
+                } catch (IOException e) {
+                    printMessage("fail to save blueprint file.");
+                    log.warn("saveBlueprint", e);
+                }
             }
         }
 
@@ -857,7 +946,12 @@ public class Application<T> {
         var suffixes = probe.channelMapFileSuffix();
         var exts = suffixes.stream()
           .map(it -> "*" + it)
-          .toList();
+          .collect(Collectors.toList());
+
+        if (!save) {
+            exts.add("*.config.json");
+        }
+
         chooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("channelmap file", exts));
 
         if (save) {
@@ -989,6 +1083,37 @@ public class Application<T> {
     /*================*
      * event on probe *
      *================*/
+
+    class ChannelmapStateListener implements StateView<ChannelmapState> {
+        @Override
+        public ChannelmapState getState() {
+            assert probe != null;
+
+            var state = new ChannelmapState();
+
+            state.family = config.probeFamily;
+
+            var chmap = getChannelmap();
+            if (chmap != null) {
+                state.code = probe.channelmapCode(chmap);
+            }
+
+            var file = currentChannelmapFile.get();
+            if (file != null) {
+                file = repository.getChannelmapFile(probe, file);
+                state.channelmapFile = file.toAbsolutePath().toString();
+                file = repository.getBlueprintFile(probe, file);
+                state.blueprintFile = file.toAbsolutePath().toString();
+            }
+
+            return state;
+        }
+
+        @Override
+        public void restoreState(@Nullable ChannelmapState state) {
+            // ignored
+        }
+    }
 
     public T loadChannelmap(String name) throws IOException {
         return loadChannelmap(repository.getChannelmapFile(probe, name));

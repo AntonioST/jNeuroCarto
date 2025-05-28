@@ -226,6 +226,15 @@ public class Repository {
         }
     }
 
+    /**
+     * check whether the filename of a channelmap file use the primary file extension.
+     * <br/>
+     * use for saving purpose.
+     *
+     * @param probe
+     * @param name
+     * @return
+     */
     public String getChannelmapName(ProbeDescription<?> probe, String name) {
         var suffix = probe.channelMapFileSuffix();
         if (suffix.isEmpty()) {
@@ -239,9 +248,64 @@ public class Repository {
         return name;
     }
 
+    /**
+     * check the filename of a channelmap file and complete the primary file extension if necessary.
+     * <br/>
+     * use for loading purpose.
+     *
+     * @param probe
+     * @param name
+     * @return
+     */
+    public String checkChannelmapName(ProbeDescription<?> probe, String name) {
+        var suffix = probe.channelMapFileSuffix();
+        if (suffix.isEmpty()) {
+            return name;
+        }
+        for (var s : suffix) {
+            if (name.endsWith(s)) return name;
+        }
+        return name + suffix.get(0);
+    }
+
+    /**
+     * check the filename of a channelmap file and replace to another file extension.
+     * <br/>
+     * use for loading related file.
+     *
+     * @param probe
+     * @param name
+     * @param ext
+     * @return
+     */
+    public String checkChannelmapName(ProbeDescription<?> probe, String name, String ext) {
+        if (name.endsWith(ext)) return name;
+
+        var suffix = probe.channelMapFileSuffix();
+        if (suffix.isEmpty()) {
+            return name + ext;
+        }
+        for (var s : suffix) {
+            if (name.endsWith(s)) {
+                return name.substring(0, name.length() - s.length()) + ext;
+            }
+        }
+        throw new RuntimeException("not a channelmap filename : " + name);
+    }
+
     public Path getChannelmapFile(ProbeDescription<?> probe, String name) {
         var root = getCurrentResourceRoot();
         return root.resolve(getChannelmapName(probe, name));
+    }
+
+    public Path checkChannelmapFile(ProbeDescription<?> probe, String name) {
+        var root = getCurrentResourceRoot();
+        return root.resolve(checkChannelmapName(probe, name));
+    }
+
+    public Path checkChannelmapFile(ProbeDescription<?> probe, String name, String ext) {
+        var root = getCurrentResourceRoot();
+        return root.resolve(checkChannelmapName(probe, name, ext));
     }
 
     public Path getChannelmapFile(ProbeDescription<?> probe, Path channelmapFile) {
@@ -249,7 +313,7 @@ public class Repository {
     }
 
     public <T> T loadChannelmapFile(ProbeDescription<T> probe, String name) throws IOException {
-        return loadChannelmapFile(probe, getChannelmapFile(probe, name));
+        return loadChannelmapFile(probe, checkChannelmapFile(probe, name));
     }
 
     public <T> T loadChannelmapFile(ProbeDescription<T> probe, Path channelmapFile) throws IOException {
@@ -287,22 +351,19 @@ public class Repository {
         probe.save(channelmapFile, chmap);
     }
 
+    public static boolean isBlueprintFile(Path file) {
+        return file.getFileName().toString().endsWith(".blueprint.npy");
+    }
+
     public Path getBlueprintFile(ProbeDescription<?> probe, String name) {
-        return getBlueprintFile(probe, getChannelmapFile(probe, name));
+        var root = getCurrentResourceRoot();
+        return root.resolve(checkChannelmapFile(probe, name, ".blueprint.npy"));
     }
 
     public Path getBlueprintFile(ProbeDescription<?> probe, Path channelmapFile) {
-        var d = channelmapFile.getParent();
-        var n = channelmapFile.getFileName().toString();
-
-        var suffix = probe.channelMapFileSuffix();
-        if (suffix.isEmpty()) {
-            return d.resolve(n + ".blueprint.npy");
-        }
-
-        assert n.equals(suffix.get(0));
-        var len = suffix.get(0).length();
-        return d.resolve(n.substring(0, n.length() - len) + ".blueprint.npy");
+        var d = channelmapFile.toAbsolutePath().getParent();
+        var name = channelmapFile.getFileName().toString();
+        return d.resolve(checkChannelmapFile(probe, name, ".blueprint.npy"));
     }
 
     public List<ElectrodeDescription> loadBlueprintFile(ProbeDescription<?> probe, String name) throws IOException {
@@ -310,7 +371,7 @@ public class Repository {
     }
 
     public List<ElectrodeDescription> loadBlueprintFile(ProbeDescription<?> probe, Path blueprintFile) throws IOException {
-        if (!blueprintFile.getFileName().toString().endsWith(".blueprint.npy")) {
+        if (!isBlueprintFile(blueprintFile)) {
             blueprintFile = getBlueprintFile(probe, blueprintFile);
         }
 
@@ -325,7 +386,7 @@ public class Repository {
     }
 
     public void saveBlueprintFile(ProbeDescription<?> probe, List<ElectrodeDescription> blueprint, Path blueprintFile) throws IOException {
-        if (!blueprintFile.getFileName().toString().endsWith(".blueprint.npy")) {
+        if (!isBlueprintFile(blueprintFile)) {
             blueprintFile = getBlueprintFile(probe, blueprintFile);
         }
 
@@ -334,22 +395,19 @@ public class Repository {
         probe.saveBlueprint(blueprintFile, blueprint);
     }
 
+    public static boolean isViewConfigFile(Path file) {
+        return file.getFileName().toString().endsWith(".config.json");
+    }
+
     public Path getViewConfigFile(ProbeDescription<?> probe, String name) {
-        return getViewConfigFile(probe, getChannelmapFile(probe, name));
+        var root = getCurrentResourceRoot();
+        return root.resolve(checkChannelmapFile(probe, name, ".config.json"));
     }
 
     public Path getViewConfigFile(ProbeDescription<?> probe, Path channelmapFile) {
-        var d = channelmapFile.getParent();
-        var n = channelmapFile.getFileName().toString();
-
-        var suffix = probe.channelMapFileSuffix();
-        if (suffix.isEmpty()) {
-            return d.resolve(n + ".config.json");
-        }
-
-        assert n.equals(suffix.get(0));
-        var len = suffix.get(0).length();
-        return d.resolve(n.substring(0, n.length() - len) + ".config.json");
+        var d = channelmapFile.toAbsolutePath().getParent();
+        var name = channelmapFile.getFileName().toString();
+        return d.resolve(checkChannelmapFile(probe, name, ".config.json"));
     }
 
     public JsonConfig loadViewConfigFile(ProbeDescription<?> probe, String name, boolean reset) throws IOException {
@@ -357,7 +415,7 @@ public class Repository {
     }
 
     public JsonConfig loadViewConfigFile(ProbeDescription<?> probe, Path viewConfigFile, boolean reset) throws IOException {
-        if (!viewConfigFile.getFileName().toString().endsWith(".config.json")) {
+        if (!isViewConfigFile(viewConfigFile)) {
             viewConfigFile = getBlueprintFile(probe, viewConfigFile);
         }
 
@@ -385,7 +443,7 @@ public class Repository {
     }
 
     public void saveViewConfigFile(ProbeDescription<?> probe, Path viewConfigFile) throws IOException {
-        if (!viewConfigFile.getFileName().toString().endsWith(".config.json")) {
+        if (!isViewConfigFile(viewConfigFile)) {
             viewConfigFile = getBlueprintFile(probe, viewConfigFile);
         }
 
