@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BlueprintTest {
 
     public static Blueprint<Object> fromShape(int ns, int ny, int nx) {
-        return new Blueprint<>(new TestProbe(ns, nx, ny), new Object());
+        return BlueprintToolkit.dummy(ns, ny, nx).blueprint;
     }
 
     @Test

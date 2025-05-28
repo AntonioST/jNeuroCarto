@@ -63,6 +63,79 @@ public record NumpyHeader(int majorVersion, int minorVersion, String data) {
           .count();
     }
 
+    public static int ndim(int[] shape) {
+        return shape.length;
+    }
+
+    public long size() {
+        return size(shape());
+    }
+
+    public static long size(int[] shape) {
+        long ret = 1;
+        for (var i : shape) {
+            ret *= i;
+        }
+        return ret;
+    }
+
+    public boolean match(int[] output) {
+        return match(output, shape());
+    }
+
+    public static boolean match(int[] output, int[] shape) {
+        if (numberOfNegDim(shape) > 0) {
+            throw new IllegalArgumentException("shape does not have determined dimension : " + Arrays.toString(shape));
+        }
+
+        if (output.length == 0) {
+            return shape.length == 0;
+        } else if (shape.length == 0) {
+            return false;
+        }
+
+//        assert shape.length > 0;
+//        assert output.length > 0;
+
+        int numberOfNegDim = numberOfNegDim(output);
+
+        if (numberOfNegDim == 0) {
+            var shapeSize = size(shape);
+            var outputSize = size(output);
+            return shapeSize >= outputSize && shapeSize % outputSize == 0;
+        } else if (numberOfNegDim == 1) {
+            var i = indexOfNegDim(output);
+            output[i] = -1;
+            var shapeSize = size(shape);
+            var outputSize = -size(output);
+            if (outputSize > shapeSize) {
+                return false;
+            }
+            if (shapeSize % outputSize != 0) {
+                return false;
+            }
+            output[i] = (int) (shapeSize / outputSize);
+            return true;
+        } else {
+            throw new RuntimeException("too many undetermined dimension : " + Arrays.toString(output));
+        }
+    }
+
+    private static int numberOfNegDim(int[] shape) {
+        int numberOfNegDim = 0;
+        for (var o : shape) {
+            if (o < 0) numberOfNegDim++;
+        }
+        return numberOfNegDim;
+    }
+
+    private static int indexOfNegDim(int[] shape) {
+        for (int i = 0, length = shape.length; i < length; i++) {
+            if (shape[i] < 0) return i;
+        }
+        return -1;
+    }
+
     private int indexOf(String name) {
         var key = "'" + name + "':";
         var ret = data.indexOf(key);

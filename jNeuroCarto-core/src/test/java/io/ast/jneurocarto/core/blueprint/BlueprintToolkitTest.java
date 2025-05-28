@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class BlueprintToolkitTest {
 
     public static BlueprintToolkit<Object> fromShape(int ns, int ny, int nx) {
-        return new BlueprintToolkit<>(BlueprintTest.fromShape(ns, ny, nx));
+        return BlueprintToolkit.dummy(ns, ny, nx);
     }
 
     private static void assertBlueprintEquals(BlueprintToolkit<?> bp, int[] expect, int[] actual) {

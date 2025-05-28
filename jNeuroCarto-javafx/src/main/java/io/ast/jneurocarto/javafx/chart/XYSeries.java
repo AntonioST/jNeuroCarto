@@ -85,7 +85,7 @@ public abstract class XYSeries implements XYGraphics {
             var result = data.stream()
               .mapToDouble(XY::v)
               .boxed()
-              .gather(MinMax.minmax())
+              .gather(MinMax.doubleMinmax())
               .findFirst()
               .get();
 

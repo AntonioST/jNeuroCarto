@@ -15,6 +15,9 @@ import picocli.CommandLine;
 )
 public class Colorbar implements Application.ApplicationContent, Runnable {
 
+    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
+    public boolean help;
+
     @CommandLine.Parameters(index = "0", defaultValue = "jet",
       description = "colormap")
     String colormap;

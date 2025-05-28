@@ -24,6 +24,7 @@ module io.ast.jneurocarto.javafx {
     exports io.ast.jneurocarto.javafx.atlas;
     exports io.ast.jneurocarto.javafx.blueprint;
     exports io.ast.jneurocarto.javafx.chart;
+    exports io.ast.jneurocarto.javafx.cli;
     exports io.ast.jneurocarto.javafx.script;
     exports io.ast.jneurocarto.javafx.utils;
     exports io.ast.jneurocarto.javafx.view;
@@ -32,5 +33,4 @@ module io.ast.jneurocarto.javafx {
     provides PluginProvider with DefaultPluginProvider;
 
     opens io.ast.jneurocarto.javafx.cli to info.picocli;
-    exports io.ast.jneurocarto.javafx.cli to javafx.graphics;
 }

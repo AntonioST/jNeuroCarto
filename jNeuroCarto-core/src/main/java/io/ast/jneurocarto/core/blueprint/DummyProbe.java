@@ -12,13 +12,13 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
-public class TestProbe implements ProbeDescription<Object> {
+class DummyProbe implements ProbeDescription<Object> {
 
     public final int nShanks;
     public final int nColumns;
     public final int nRows;
 
-    public TestProbe(int nShanks, int nColumns, int nRows) {
+    public DummyProbe(int nShanks, int nColumns, int nRows) {
         this.nShanks = nShanks;
         this.nColumns = nColumns;
         this.nRows = nRows;

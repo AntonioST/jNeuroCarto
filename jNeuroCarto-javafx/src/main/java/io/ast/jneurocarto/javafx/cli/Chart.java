@@ -11,7 +11,8 @@ import picocli.CommandLine;
   description = "show interaction xy chart",
   subcommands = {
     ClickLines.class,
-    Colorbar.class
+    Colorbar.class,
+    Matrix.class
   }
 )
 public class Chart implements Runnable {
@@ -23,15 +24,24 @@ public class Chart implements Runnable {
     public void debug(boolean value) {
         if (value) {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.javafx.chart", "debug");
+            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.javafx.cli", "debug");
         }
     }
 
+    private static CommandLine parser;
+
     public static void main(String[] args) {
-        new CommandLine(new Chart()).execute(args);
+        parser = new CommandLine(new Chart());
+//        parser.setParameterExceptionHandler((ex, _) -> {
+//            ex.printStackTrace();
+//            return 1;
+//        });
+        parser.execute(args);
     }
 
     @Override
     public void run() {
+        parser.usage(System.out);
     }
 
     public void launch(Application app) {

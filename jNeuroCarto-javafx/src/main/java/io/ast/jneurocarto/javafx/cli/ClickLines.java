@@ -15,6 +15,9 @@ import picocli.CommandLine;
 )
 public class ClickLines implements Application.ApplicationContent, Runnable {
 
+    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
+    public boolean help;
+
     @CommandLine.ParentCommand
     public Chart parent;
 

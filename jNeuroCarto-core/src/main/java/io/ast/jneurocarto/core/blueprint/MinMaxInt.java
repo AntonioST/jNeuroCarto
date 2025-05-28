@@ -19,12 +19,12 @@ public record MinMaxInt(int min, int max) {
      * {@snippet lang = "java":
      * import java.util.stream.IntStream;
      * IntStream stream = IntStream.of(); // @replace regex="IntStream\.of\(\)" replacement="..."
-     * var result = stream.boxed().gather(MinMaxInt.minmax()).findFirst().get();
+     * var result = stream.boxed().gather(MinMaxInt.intMinmax()).findFirst().get();
      *}
      *
      * @return
      */
-    public static Gatherer<Integer, ?, MinMaxInt> minmax() {
+    public static Gatherer<Integer, ?, MinMaxInt> intMinmax() {
         return Gatherer.ofSequential(
           () -> new MinMaxInt[1],
           Gatherer.Integrator.ofGreedy((state, element, _) -> {
@@ -36,7 +36,26 @@ public record MinMaxInt(int min, int max) {
               }
               return true;
           }),
-          (state, downstream) -> downstream.push(state[0])
+          (state, downstream) -> {
+              if (state[0] != null) downstream.push(state[0]);
+          }
+        );
+    }
+
+    public static Gatherer<MinMaxInt, ?, MinMaxInt> minmax() {
+        return Gatherer.ofSequential(
+          () -> new MinMaxInt[1],
+          Gatherer.Integrator.ofGreedy((state, element, _) -> {
+              if (state[0] == null) {
+                  state[0] = element;
+              } else {
+                  state[0] = state[0].consume(element);
+              }
+              return true;
+          }),
+          (state, downstream) -> {
+              if (state[0] != null) downstream.push(state[0]);
+          }
         );
     }
 }
