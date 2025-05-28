@@ -1880,12 +1880,12 @@ public class BlueprintToolkit<T> {
         return a;
     }
 
-    public enum InterpolateNaNBuiltinMethod {
+    public enum InterpolateMethod {
         zero, mean, median, min, max;
 
     }
 
-    private static ToDoubleFunction<double[]> getInterpolateMethod(InterpolateNaNBuiltinMethod f) {
+    private static ToDoubleFunction<double[]> getInterpolateMethod(InterpolateMethod f) {
         return switch (f) {
             case zero -> _ -> 0;
             case mean -> kernel -> {
@@ -1939,13 +1939,13 @@ public class BlueprintToolkit<T> {
         };
     }
 
-    public double[] interpolateNaN(double[] a, int k, InterpolateNaNBuiltinMethod f) {
+    public double[] interpolateNaN(double[] a, int k, InterpolateMethod f) {
         var m = getInterpolateMethod(f);
         return interpolateNaN(a, k, m);
     }
 
     public final double[] interpolateNaN(double[] a, int k, ToDoubleFunction<double[]> f) {
-        if (k % 2 != 1) throw new IllegalArgumentException();
+        if (k % 2 != 1) throw new IllegalArgumentException("k should be a odd number, but " + k);
         return interpolateNaN(a, new double[k], f);
     }
 
@@ -1954,7 +1954,7 @@ public class BlueprintToolkit<T> {
     }
 
     public double[] interpolateNaN(double[] o, double[] a, double[] k, ToDoubleFunction<double[]> f) {
-        if (k.length % 2 != 1) throw new IllegalArgumentException();
+        if (k.length % 2 != 1) throw new IllegalArgumentException("k should be a odd number, but " + k);
 
         var shank = shank();
         var posx = posx();
@@ -1987,10 +1987,10 @@ public class BlueprintToolkit<T> {
                 o[i] = a[i];
             }
         }
-        return a;
+        return o;
     }
 
-    private static ToDoubleFunction<double[][]> getInterpolateMethod(int kx, int ky, InterpolateNaNBuiltinMethod f) {
+    private static ToDoubleFunction<double[][]> getInterpolateMethod(int kx, int ky, InterpolateMethod f) {
         return switch (f) {
             case zero -> _ -> 0;
             case mean -> kernel -> {
@@ -2008,7 +2008,7 @@ public class BlueprintToolkit<T> {
             };
             case median -> new ToDoubleFunction<>() {
                 private final double[] tmp = new double[kx * ky];
-                private final ToDoubleFunction<double[]> func = getInterpolateMethod(InterpolateNaNBuiltinMethod.median);
+                private final ToDoubleFunction<double[]> func = getInterpolateMethod(InterpolateMethod.median);
 
                 @Override
                 public double applyAsDouble(double[][] kernel) {
@@ -2051,7 +2051,7 @@ public class BlueprintToolkit<T> {
         };
     }
 
-    public double[] interpolateNaN(double[] a, int kx, int ky, InterpolateNaNBuiltinMethod f) {
+    public double[] interpolateNaN(double[] a, int kx, int ky, InterpolateMethod f) {
         var m = getInterpolateMethod(kx, ky, f);
         return interpolateNaN(a, kx, ky, m);
     }

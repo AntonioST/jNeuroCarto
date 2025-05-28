@@ -752,4 +752,123 @@ public class BlueprintToolkitTest {
         }, bp.ref());
     }
 
+    @Test
+    public void interpolateNaNWithOneSizeKernel() {
+        var bp = fromShape(1, 5, 2);
+        var x = Double.NaN;
+        var origin = new double[]{
+          0, 0,
+          1, x,
+          x, 1,
+          1, x,
+          0, 0,
+        };
+        var expect = new double[]{
+          0, 0,
+          1, x,
+          x, 1,
+          1, x,
+          0, 0,
+        };
+        var actual = bp.interpolateNaN(origin, 1, BlueprintToolkit.InterpolateMethod.mean);
+        assertArrayEquals(expect, actual);
+        assertArrayEquals(expect, origin, "origin has beed changed");
+    }
+
+    @Test
+    public void interpolateNaN() {
+        var bp = fromShape(1, 5, 2);
+        var x = Double.NaN;
+        var origin = new double[]{
+          0, 0,
+          1, x,
+          x, 1,
+          1, x,
+          0, 0,
+        };
+        var copied = origin.clone();
+        var expect = new double[]{
+          0, 0,
+          1, .5,
+          1, 1,
+          1, .5,
+          0, 0,
+        };
+        var actual = bp.interpolateNaN(origin, 3, BlueprintToolkit.InterpolateMethod.mean);
+        assertArrayEquals(expect, actual);
+        assertArrayEquals(copied, origin, "origin has beed changed");
+    }
+
+    @Test
+    public void interpolateNaNWithKernelMin() {
+        var bp = fromShape(1, 5, 2);
+        var x = Double.NaN;
+        var origin = new double[]{
+          0, 0,
+          1, x,
+          x, 1,
+          1, x,
+          0, 0,
+        };
+        var copied = origin.clone();
+        var expect = new double[]{
+          0, 0,
+          1, 0,
+          1, 1,
+          1, 0,
+          0, 0,
+        };
+        var actual = bp.interpolateNaN(origin, 3, BlueprintToolkit.InterpolateMethod.min);
+        assertArrayEquals(expect, actual);
+        assertArrayEquals(copied, origin, "origin has beed changed");
+    }
+
+    @Test
+    public void interpolateNaNWithKernelMax() {
+        var bp = fromShape(1, 5, 2);
+        var x = Double.NaN;
+        var origin = new double[]{
+          0, 0,
+          1, x,
+          x, 1,
+          1, x,
+          0, 0,
+        };
+        var copied = origin.clone();
+        var expect = new double[]{
+          0, 0,
+          1, 1,
+          1, 1,
+          1, 1,
+          0, 0,
+        };
+        var actual = bp.interpolateNaN(origin, 3, BlueprintToolkit.InterpolateMethod.max);
+        assertArrayEquals(expect, actual);
+        assertArrayEquals(copied, origin, "origin has beed changed");
+    }
+
+    @Test
+    public void interpolateNaNWithKernelZero() {
+        var bp = fromShape(1, 5, 2);
+        var x = Double.NaN;
+        var origin = new double[]{
+          0, 1,
+          1, x,
+          x, 2,
+          1, x,
+          0, 3,
+        };
+        var copied = origin.clone();
+        var expect = new double[]{
+          0, 1,
+          1, 0,
+          0, 2,
+          1, 0,
+          0, 3,
+        };
+        var actual = bp.interpolateNaN(origin, 3, BlueprintToolkit.InterpolateMethod.zero);
+        assertArrayEquals(expect, actual);
+        assertArrayEquals(copied, origin, "origin has beed changed");
+    }
+
 }

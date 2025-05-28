@@ -36,10 +36,9 @@ public class Matrix implements Application.ApplicationContent, Runnable {
     IntArray dataShape;
     int[] shape;
 
-    @CommandLine.Option(names = {"--space"}, arity = "1", paramLabel = "S,R,C", defaultValue = "10,2,2",
-      converter = IntArrayConverter.class,
-      description = "electrode space.")
-    IntArray dataSpace;
+    @CommandLine.Option(names = {"--space"}, arity = "1", paramLabel = "UM",
+      defaultValue = "10,2,2", split = ",",
+      description = "electrode space S,R,C.")
     int[] space;
 
     public record IntArray(int[] shape) {
@@ -86,7 +85,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
     int[] orderIndex; // {S, R, C}
     int[] length; // {S, R, C}
 
-    @CommandLine.Command(name = "--interpolate",
+    @CommandLine.Option(names = "--interpolate",
       description = "interpolate NaN values")
     boolean interpolateNaN;
 
@@ -115,7 +114,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
     private void loadData() {
         log.debug("load data");
         shape = dataShape == null ? null : dataShape.shape;
-        space = dataSpace.shape;
+        if (space.length != 3) throw new RuntimeException("wrong space : " + Arrays.toString(shape));
 
         try {
             var read = Numpy.read(dataFile, header -> {
@@ -138,7 +137,6 @@ public class Matrix implements Application.ApplicationContent, Runnable {
 
     private void initData() {
         log.debug("init data");
-
 
         if (shape.length < 2 || shape.length > 3) {
             throw new RuntimeException("not a 2-d or 3-d shape " + Arrays.toString(shape));
@@ -176,9 +174,10 @@ public class Matrix implements Application.ApplicationContent, Runnable {
 
     private void processData() {
         if (interpolateNaN) {
+            log.debug("interpolateNaN over ({},{},{})", shape[orderIndex[0]], shape[orderIndex[1]], shape[orderIndex[2]]);
             if (!Objects.equals(order, "SRC")) log.warn("order not SRC, interpolateNaN may give wrong result.");
             var toolkit = BlueprintToolkit.dummy(shape[orderIndex[0]], shape[orderIndex[1]], shape[orderIndex[2]]);
-            data = toolkit.interpolateNaN(data, 1, BlueprintToolkit.InterpolateNaNBuiltinMethod.mean);
+            data = toolkit.interpolateNaN(data, 3, BlueprintToolkit.InterpolateMethod.mean);
         }
     }
 

@@ -12,6 +12,7 @@ module io.ast.jneurocarto.core {
     requires static org.apache.commons.csv;
 
     requires org.slf4j;
+    requires java.xml;
 
     exports io.ast.jneurocarto.core;
     exports io.ast.jneurocarto.core.blueprint;
