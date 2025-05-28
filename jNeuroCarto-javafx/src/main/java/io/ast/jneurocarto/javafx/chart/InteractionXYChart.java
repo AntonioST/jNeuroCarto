@@ -20,6 +20,7 @@ import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.ScatterChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.input.InputEvent;
 import javafx.scene.input.MouseButton;
@@ -38,9 +39,9 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
 
 @NullMarked
-public class InteractionXYChart<C extends XYChart<Number, Number>> extends StackPane {
+public class InteractionXYChart extends StackPane {
 
-    private final C chart;
+    private final ScatterChart<Number, Number> chart;
     private final Region chartPlottingArea;
     private final NumberAxis xAxis;
     private final NumberAxis yAxis;
@@ -66,14 +67,13 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
 
     private AxesBounds resetBounds;
 
-    public InteractionXYChart(C chart) {
-        this.chart = chart;
-
-        xAxis = (NumberAxis) chart.getXAxis();
-        yAxis = (NumberAxis) chart.getYAxis();
+    public InteractionXYChart() {
+        xAxis = new NumberAxis("", 0, 1000, 100);
+        yAxis = new NumberAxis("", 0, 1000, 100);
         xAxis.setAnimated(false);
         yAxis.setAnimated(false);
         resetBounds = new AxesBounds(xAxis, yAxis);
+        chart = new ScatterChart<>(xAxis, yAxis);
 
         // https://openjfx.io/javadoc/24/javafx.graphics/javafx/scene/doc-files/cssref.html#xychart
         chartPlottingArea = (Region) chart.lookup(".chart-plot-background");
@@ -110,8 +110,16 @@ public class InteractionXYChart<C extends XYChart<Number, Number>> extends Stack
         top.setOnScroll(this::onMouseWheeled);
     }
 
-    public C getChart() {
+    public ScatterChart<Number, Number> getChart() {
         return chart;
+    }
+
+    public NumberAxis getXAxis() {
+        return xAxis;
+    }
+
+    public NumberAxis getYAxis() {
+        return yAxis;
     }
 
     /*=============*

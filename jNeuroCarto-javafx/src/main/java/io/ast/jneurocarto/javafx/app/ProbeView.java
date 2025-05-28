@@ -5,8 +5,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.ScatterChart;
 import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
@@ -24,7 +22,7 @@ import io.ast.jneurocarto.javafx.chart.*;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 @NullMarked
-public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number>> {
+public class ProbeView<T> extends InteractionXYChart {
 
     private static final String STATE_HIGHLIGHTED = "_highlighted_";
     private static final Color COLOR_UNUSED = Color.BLACK;
@@ -44,15 +42,17 @@ public class ProbeView<T> extends InteractionXYChart<ScatterChart<Number, Number
     private final Logger log = LoggerFactory.getLogger(ProbeView.class);
 
     public ProbeView(CartoConfig config, ProbeDescription<T> probe) {
-        var x = new NumberAxis("(um)", 0, 1000, 100);
-        var y = new NumberAxis("(um)", 0, 1000, 100);
-        var scatter = new ScatterChart<>(x, y);
+        super();
+        var x = getXAxis();
+        var y = getYAxis();
+        var scatter = getChart();
+        x.setLabel("(um)");
+        y.setLabel("(um)");
         scatter.setAnimated(false);
         scatter.setLegendVisible(false);
         scatter.setVerticalZeroLineVisible(true);
         scatter.setHorizontalZeroLineVisible(true);
 
-        super(scatter);
         log.debug("init");
 
         this.config = config;

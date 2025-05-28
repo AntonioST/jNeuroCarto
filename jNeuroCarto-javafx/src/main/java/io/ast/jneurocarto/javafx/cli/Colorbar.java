@@ -1,11 +1,7 @@
 package io.ast.jneurocarto.javafx.cli;
 
-import javafx.scene.chart.ScatterChart;
-
 import io.ast.jneurocarto.javafx.chart.Application;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XYMatrix;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -38,30 +34,19 @@ public class Colorbar implements Application.ApplicationContent, Runnable {
      * Application *
      *=============*/
 
-    private InteractionXYChart<ScatterChart<Number, Number>> chart;
-    private InteractionXYPainter painter;
-    private XYMatrix colorbar;
-
     @Override
-    public void setup(InteractionXYChart<ScatterChart<Number, Number>> chart) {
-        this.chart = chart;
-        painter = chart.getPlotting();
-
-        colorbar = new XYMatrix();
-        painter.addGraphics(colorbar);
-
-        colorbar.colormap(colormap);
-        colorbar.normalize(0, n);
-        colorbar.x(0);
-        colorbar.y(0);
-        colorbar.w(100);
-        colorbar.h(10);
+    public void setup(InteractionXYChart chart) {
+        var painter = chart.getPlotting();
 
         var data = new double[n + 1];
         for (int i = 0; i < n + 1; i++) {
             data[i] = i;
         }
-        colorbar.addData(data);
+
+        painter.imshow(data, 1)
+          .colormap(colormap)
+          .normalize(0, n)
+          .extent(0, 0, 100, 10);
 
         painter.repaint();
     }

@@ -1,6 +1,5 @@
 package io.ast.jneurocarto.javafx.cli;
 
-import javafx.scene.chart.ScatterChart;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
@@ -30,12 +29,12 @@ public class ClickLines implements Application.ApplicationContent, Runnable {
      * Application *
      *=============*/
 
-    private InteractionXYChart<ScatterChart<Number, Number>> chart;
+    private InteractionXYChart chart;
     private InteractionXYPainter painter;
     private XYPath path;
 
     @Override
-    public void setup(InteractionXYChart<ScatterChart<Number, Number>> chart) {
+    public void setup(InteractionXYChart chart) {
         this.chart = chart;
         chart.addEventHandler(MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
 

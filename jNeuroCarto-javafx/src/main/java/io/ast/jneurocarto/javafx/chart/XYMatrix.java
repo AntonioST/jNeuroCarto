@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.NonInvertibleTransformException;
@@ -48,7 +49,8 @@ public class XYMatrix extends XYSeries {
     }
 
     public void w(double w) {
-        this.w = w;
+        if (w < 0) x += w;
+        this.w = Math.abs(w);
     }
 
     public double h() {
@@ -56,7 +58,8 @@ public class XYMatrix extends XYSeries {
     }
 
     public void h(double h) {
-        this.h = h;
+        if (h < 0) y += h;
+        this.h = Math.abs(h);
     }
 
     public void extent(double x, double y, double w, double h) {
@@ -155,8 +158,6 @@ public class XYMatrix extends XYSeries {
                 }
             }
         }
-
-
     }
 
     @Override
@@ -267,6 +268,78 @@ public class XYMatrix extends XYSeries {
 
         } finally {
             gc.setGlobalAlpha(oldAlpha);
+        }
+    }
+
+    /*=========*
+     * builder *
+     *=========*/
+
+    public Builder builder() {
+        return new Builder(this);
+    }
+
+    public static class Builder extends XYSeries.Builder<XYMatrix, Builder> {
+        public Builder(XYMatrix graphics) {
+            super(graphics);
+        }
+
+        public Builder x(double x) {
+            graphics.x(x);
+            return this;
+        }
+
+        public Builder y(double y) {
+            graphics.y(y);
+            return this;
+        }
+
+        public Builder w(double w) {
+            graphics.w(w);
+            return this;
+        }
+
+        public Builder h(double h) {
+            graphics.h(h);
+            return this;
+        }
+
+        public Builder extent(double x, double y, double w, double h) {
+            graphics.extent(x, y, w, h);
+            return this;
+        }
+
+        public Builder extent(double x, double y, int nx, double dw, int ny, double dh) {
+            graphics.extent(x, y, nx, dw, ny, dh);
+            return this;
+        }
+
+        public Builder nx(int nx) {
+            graphics.nx(nx);
+            return this;
+        }
+
+        public Builder ny(int ny) {
+            graphics.ny(ny);
+            return this;
+        }
+
+        public Builder addData(int x, int y) {
+            graphics.addData(x, y);
+            return this;
+        }
+
+        public Builder addData(int x, int y, double v) {
+            graphics.addData(x, y, v);
+            return this;
+        }
+
+        public Builder addData(Point2D p) {
+            return addData((int) p.getX(), (int) p.getY());
+        }
+
+        public Builder addData(Point2D p, double v) {
+            return addData((int) p.getX(), (int) p.getY(), v);
         }
     }
 }

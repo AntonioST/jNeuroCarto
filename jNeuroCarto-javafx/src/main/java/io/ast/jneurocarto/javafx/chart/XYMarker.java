@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.javafx.chart;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -60,7 +61,6 @@ public class XYMarker extends XYSeries {
     public void fill(@Nullable Color fill) {
         this.fill = fill;
     }
-
 
     /**
      * {@inheritDoc}
@@ -142,6 +142,71 @@ public class XYMarker extends XYSeries {
             if (!Double.isNaN(x) && !Double.isNaN(y)) {
                 gc.strokeRect(x - dx, y - dy, w, h);
             }
+        }
+    }
+
+    /*=========*
+     * builder *
+     *=========*/
+
+    public Builder builder() {
+        return new Builder(this);
+    }
+
+    public static class Builder extends XYSeries.Builder<XYMarker, Builder> {
+        public Builder(XYMarker graphics) {
+            super(graphics);
+        }
+
+        public Builder w(double w) {
+            graphics.w(w);
+            return this;
+        }
+
+        public Builder h(double h) {
+            graphics.h(h);
+            return this;
+        }
+
+        public Builder wh(double w, double h) {
+            graphics.w(w);
+            graphics.h(h);
+            return this;
+        }
+
+        public Builder edgewidth(double lw) {
+            graphics.edgewidth(lw);
+            return this;
+        }
+
+        public Builder edge(@Nullable Color line) {
+            graphics.edge(line);
+            return this;
+        }
+
+        public Builder fill(@Nullable Color fill) {
+            graphics.fill(fill);
+            return this;
+        }
+
+        public Builder addMarker(double x, double y) {
+            graphics.addData(x, y);
+            return this;
+        }
+
+        public Builder addMarker(double x, double y, double v) {
+            graphics.addData(x, y, v);
+            return this;
+        }
+
+        public Builder addMarker(Point2D p) {
+            graphics.addData(p);
+            return this;
+        }
+
+        public Builder addMarker(Point2D p, double v) {
+            graphics.addData(p, v);
+            return this;
         }
     }
 }

@@ -5,8 +5,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
 
-import javafx.scene.chart.ScatterChart;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -211,12 +209,12 @@ public class Matrix implements Application.ApplicationContent, Runnable {
      * Application *
      *=============*/
 
-    private InteractionXYChart<ScatterChart<Number, Number>> chart;
+    private InteractionXYChart chart;
     private InteractionXYPainter painter;
     private XYMatrix[] matrix;
 
     @Override
-    public void setup(InteractionXYChart<ScatterChart<Number, Number>> chart) {
+    public void setup(InteractionXYChart chart) {
         log.debug("setup");
 
         this.chart = chart;

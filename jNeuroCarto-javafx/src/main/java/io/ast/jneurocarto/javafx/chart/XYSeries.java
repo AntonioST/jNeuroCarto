@@ -227,4 +227,54 @@ public abstract class XYSeries implements XYGraphics {
 
         return length;
     }
+
+    /*=========*
+     * builder *
+     *=========*/
+
+    public <B extends Builder<XYSeries, B>> Builder<XYSeries, B> builder() {
+        return new Builder<>(this);
+    }
+
+    public static class Builder<S extends XYSeries, B extends Builder<S, B>> {
+        protected final S graphics;
+
+        protected Builder(S graphics) {
+            this.graphics = graphics;
+        }
+
+        public S graphics() {
+            return graphics;
+        }
+
+        public B z(double z) {
+            graphics.z(z);
+            return (B) this;
+        }
+
+        public B alpha(double alpha) {
+            graphics.alpha(alpha);
+            return (B) this;
+        }
+
+        public B colormap(String colormap) {
+            graphics.colormap(colormap);
+            return (B) this;
+        }
+
+        public B normalize(double lower, double upper) {
+            graphics.normalize(lower, upper);
+            return (B) this;
+        }
+
+        public B normalize(Normalize normalize) {
+            graphics.normalize(normalize);
+            return (B) this;
+        }
+
+        public B setVisible(boolean visible) {
+            graphics.setVisible(visible);
+            return (B) this;
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.javafx.chart;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
@@ -28,9 +29,8 @@ public class XYPath extends XYSeries {
         return fill;
     }
 
-    public XYPath fill(@Nullable Color fill) {
+    public void fill(@Nullable Color fill) {
         this.fill = fill;
-        return this;
     }
 
     /**
@@ -40,9 +40,8 @@ public class XYPath extends XYSeries {
         return line;
     }
 
-    public XYPath line(@Nullable Color line) {
+    public void line(@Nullable Color line) {
         this.line = line;
-        return this;
     }
 
     /**
@@ -162,4 +161,52 @@ public class XYPath extends XYSeries {
         }
     }
 
+    /*=========*
+     * builder *
+     *=========*/
+
+    public Builder builder() {
+        return new Builder(this);
+    }
+
+    public static class Builder extends XYSeries.Builder<XYPath, Builder> {
+        public Builder(XYPath graphics) {
+            super(graphics);
+        }
+
+        public Builder linewidth(double lw) {
+            graphics.linewidth(lw);
+            return this;
+        }
+
+        public Builder fill(@Nullable Color fill) {
+            graphics.fill(fill);
+            return this;
+        }
+
+        public Builder line(@Nullable Color line) {
+            graphics.line(line);
+            return this;
+        }
+
+        public Builder addPoint(double x, double y) {
+            graphics.addData(x, y);
+            return this;
+        }
+
+        public Builder addPoint(double x, double y, double v) {
+            graphics.addData(x, y, v);
+            return this;
+        }
+
+        public Builder addPoint(Point2D p) {
+            graphics.addData(p);
+            return this;
+        }
+
+        public Builder addPoint(Point2D p, double v) {
+            graphics.addData(p, v);
+            return this;
+        }
+    }
 }

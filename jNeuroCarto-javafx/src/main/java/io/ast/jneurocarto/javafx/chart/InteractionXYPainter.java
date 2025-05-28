@@ -17,13 +17,13 @@ import org.jspecify.annotations.Nullable;
 public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
     static final Affine IDENTIFY = new Affine();
-    private final InteractionXYChart<?> chart;
+    private final InteractionXYChart chart;
     private final Canvas canvas;
     private final int layer;
     private final GraphicsContext gc;
     private final List<XYGraphics> graphics = new ArrayList<>();
 
-    InteractionXYPainter(InteractionXYChart<?> chart, Canvas canvas, int layer) {
+    InteractionXYPainter(InteractionXYChart chart, Canvas canvas, int layer) {
         this.chart = chart;
         this.canvas = canvas;
         this.layer = layer;
@@ -109,5 +109,85 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
             transformedCache = new SoftReference<>(ret);
         }
         return ret;
+    }
+
+    /*===============*
+     * data plotting *
+     *===============*/
+
+    public XYPath.Builder lines() {
+        var ret = new XYPath();
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYPath.Builder lines(double[] y) {
+        var ret = new XYPath();
+        for (int i = 0, length = y.length; i < length; i++) {
+            ret.addData(i, y[i]);
+        }
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYPath.Builder lines(double[] x, double[] y) {
+        int length = x.length;
+        if (length != y.length) throw new IllegalArgumentException();
+
+        var ret = new XYPath();
+        for (int i = 0; i < length; i++) {
+            ret.addData(x[i], y[i]);
+        }
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYMarker.Builder scatter() {
+        var ret = new XYMarker();
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYMarker.Builder scatter(double[] y) {
+        var ret = new XYMarker();
+        for (int i = 0, length = y.length; i < length; i++) {
+            ret.addData(i, y[i]);
+        }
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYMarker.Builder scatter(double[] x, double[] y) {
+        int length = x.length;
+        if (length != y.length) throw new IllegalArgumentException();
+
+        var ret = new XYMarker();
+        for (int i = 0; i < length; i++) {
+            ret.addData(x[i], y[i]);
+        }
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYMatrix.Builder imshow(double[][] mat) {
+        return imshow(mat, false);
+    }
+
+    public XYMatrix.Builder imshow(double[][] mat, boolean flip) {
+        var ret = new XYMatrix();
+        ret.addData(mat, flip);
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYMatrix.Builder imshow(double[] mat, int row) {
+        return imshow(mat, row, false);
+    }
+
+    public XYMatrix.Builder imshow(double[] mat, int row, boolean flip) {
+        var ret = new XYMatrix();
+        ret.addData(mat, row, flip);
+        addGraphics(ret);
+        return ret.builder();
     }
 }

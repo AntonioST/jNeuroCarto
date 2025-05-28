@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 public class Application {
     public interface ApplicationContent {
-        void setup(InteractionXYChart<ScatterChart<Number, Number>> chart);
+        void setup(InteractionXYChart chart);
     }
 
     private final ApplicationContent content;
@@ -27,7 +27,7 @@ public class Application {
      *===========*/
 
     private Stage stage;
-    private InteractionXYChart<ScatterChart<Number, Number>> chart;
+    private InteractionXYChart chart;
 
     public void start(Stage stage) {
         this.stage = stage;
