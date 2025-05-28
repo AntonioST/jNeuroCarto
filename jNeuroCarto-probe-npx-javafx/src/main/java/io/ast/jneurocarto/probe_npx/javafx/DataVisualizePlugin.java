@@ -164,8 +164,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     }
 
     protected void onClearData(ActionEvent e) {
-        if (matrix != null) foreground.clearGraphics();
-        foreground.repaint();
+        clearData();
     }
 
     /*================*
@@ -177,7 +176,12 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         this.chmap = chmap;
     }
 
-    private void updateDataImage(double[] data) {
+    public void clearData() {
+        foreground.clearGraphics();
+        foreground.repaint();
+    }
+
+    public void updateDataImage(double[] data) {
         foreground.clearGraphics();
 
         var chmap = this.chmap;
