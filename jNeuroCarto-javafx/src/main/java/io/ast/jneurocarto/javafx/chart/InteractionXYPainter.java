@@ -115,10 +115,35 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      * data plotting *
      *===============*/
 
+    /**
+     * Create bar graphics.
+     * {@snippet file = "BarExample.java" region = "bar example"}
+     * <p/>
+     * Create a stacked bar graphics.
+     * {@snippet file = "BarExample.java" region = "stack bar example"}
+     * <br/>
+     * For a normalized stacked bar, add an extra line.
+     * {@snippet file = "BarExample.java" region = "normalized stack bar example"}
+     * <p/>
+     * Note that once bar has stacked, they cannot add data or modify its position
+     * (such as {@link XYBar.Builder#addData(double) addData} and {@link XYBar.Builder#step(double) step})
+     * anymore.
+     *
+     * @param y
+     * @return
+     * @see io.ast.jneurocarto.javafx.cli.Bar#setup(InteractionXYChart)
+     */
     public XYBar.Builder bar(double[] y) {
         return bar(y, XYBar.Orientation.vertical);
     }
 
+    /**
+     *
+     * @param v
+     * @param orientation
+     * @return
+     * @see #bar(double[])
+     */
     public XYBar.Builder bar(double[] v, XYBar.Orientation orientation) {
         var ret = new XYBar();
         ret.orientation(orientation);
