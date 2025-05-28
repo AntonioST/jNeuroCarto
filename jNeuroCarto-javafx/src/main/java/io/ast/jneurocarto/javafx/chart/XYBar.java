@@ -1,6 +1,8 @@
 package io.ast.jneurocarto.javafx.chart;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.ToDoubleFunction;
 
@@ -124,6 +126,8 @@ public class XYBar extends XYSeries {
         private double step;
         private double ratio = Double.NaN;
         private double baseline;
+        private boolean frozon;
+        private @Nullable Builder stack;
 
         public Builder(XYBar graphics, double step) {
             if (step == 0) throw new IllegalArgumentException();
@@ -143,7 +147,17 @@ public class XYBar extends XYSeries {
             return this;
         }
 
+        private Builder frozon() {
+            frozon = true;
+            return this;
+        }
+
+        private void checkNotFrozon() {
+            if (frozon) throw new RuntimeException("data set has frozon");
+        }
+
         public Builder fitInRange(double lower, double upper) {
+            checkNotFrozon();
             if (!(lower < upper)) throw new IllegalArgumentException();
             var n = graphics.data.size();
             step = (upper - lower) / n;
@@ -178,6 +192,8 @@ public class XYBar extends XYSeries {
         }
 
         public Builder baseline(double b) {
+            checkNotFrozon();
+
             baseline = b;
 
             if (graphics.orientation == Orientation.vertical) {
@@ -194,6 +210,7 @@ public class XYBar extends XYSeries {
         }
 
         public Builder step(double step) {
+            checkNotFrozon();
             if (step == 0) throw new IllegalArgumentException();
             this.step = step;
 
@@ -207,6 +224,8 @@ public class XYBar extends XYSeries {
         }
 
         private void restep(double zero, double step) {
+            checkNotFrozon();
+
             var vertical = graphics.orientation == Orientation.vertical;
             ToDoubleFunction<XY> mapper = vertical ? XY::x : XY::y;
 
@@ -221,14 +240,20 @@ public class XYBar extends XYSeries {
         }
 
         public Builder addData(double v) {
+            checkNotFrozon();
+
             return addData(p1() + step, baseline, v);
         }
 
         public Builder addData(double p, double v) {
+            checkNotFrozon();
+
             return addData(p, baseline, v);
         }
 
         public Builder addData(double p, double b, double v) {
+            checkNotFrozon();
+
             if (graphics.orientation == Orientation.vertical) {
                 graphics.addData(p, b, v);
             } else {
@@ -238,14 +263,20 @@ public class XYBar extends XYSeries {
         }
 
         public Builder addData(double[] v) {
+            checkNotFrozon();
+
             return addData(p1() + step, baseline, v);
         }
 
         public Builder addData(double p, double[] v) {
+            checkNotFrozon();
+
             return addData(p, baseline, v);
         }
 
         public Builder addData(double p, double b, double[] v) {
+            checkNotFrozon();
+
             if (graphics.orientation == Orientation.vertical) {
                 for (int i = 0, length = v.length; i < length; i++) {
                     graphics.addData(p + i * step, b, v[i]);
@@ -258,6 +289,98 @@ public class XYBar extends XYSeries {
             return this;
         }
 
-    }
+        public Builder stackOn(Builder base) {
+            if (stack != null) throw new RuntimeException();
 
+            stack = base.frozon();
+            baseline = stack.baseline;
+
+            var size = graphics.size();
+            if (size != stack.graphics.size()) {
+                throw new IllegalArgumentException("data set mis-match on number");
+            }
+
+            var vertical = graphics.orientation == Orientation.vertical;
+            if (graphics.orientation != base.graphics.orientation) {
+                throw new RuntimeException("orientation mis-match");
+            }
+
+            for (int i = 0; i < size; i++) {
+                var b = stack.graphics.data.get(i);
+                var t = graphics.data.get(i);
+                if (Math.signum(b.v) != Math.signum(t.v)) {
+                    throw new RuntimeException("bar direction mis-match");
+                }
+            }
+
+            graphics.width(stack.graphics.width());
+            for (int i = 0; i < size; i++) {
+                var b = stack.graphics.data.get(i);
+                var t = graphics.data.get(i);
+                if (vertical) {
+                    t.x = b.x;
+                    t.y = b.y + b.v;
+                } else {
+                    t.x = b.x + b.v;
+                    t.y = b.y;
+                }
+            }
+
+            return frozon();
+        }
+
+        public Builder normalizeStack(double upper) {
+            return normalizeStack(baseline, upper);
+        }
+
+        public Builder normalizeStack(double lower, double upper) {
+            if (!(lower < upper)) throw new IllegalArgumentException();
+            if (stack == null) throw new IllegalArgumentException("nothing stacked");
+
+            List<Builder> stacks = new ArrayList<>();
+            for (var self = frozon(); self != null; self = self.stack) {
+                stacks.add(self);
+            }
+            stacks = stacks.reversed();
+
+            var vertical = graphics.orientation == Orientation.vertical;
+
+            var size = graphics.data.size();
+            for (int i = 0; i < size; i++) {
+                var sum = 0.0;
+                for (var s : stacks) {
+                    sum += s.graphics.data.get(i).v;
+                }
+                sum /= (upper - lower);
+
+                if (sum == 0.0) {
+                    for (var s : stacks) {
+                        s.graphics.data.get(i).v = 0;
+                    }
+                } else {
+                    if (vertical) {
+                        var base = sum > 0 ? lower : upper;
+                        sum = Math.abs(sum);
+                        for (var s : stacks) {
+                            var xy = s.graphics.data.get(i);
+                            xy.y = base;
+                            xy.v /= sum;
+                            base += xy.v;
+                        }
+                    } else {
+                        var base = sum > 0 ? lower : upper;
+                        sum = Math.abs(sum);
+                        for (var s : stacks) {
+                            var xy = s.graphics.data.get(i);
+                            xy.x = base;
+                            xy.v /= sum;
+                            base += xy.x;
+                        }
+                    }
+                }
+            }
+
+            return this;
+        }
+    }
 }

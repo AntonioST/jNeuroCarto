@@ -1,10 +1,6 @@
 package io.ast.jneurocarto.javafx.cli;
 
-import java.util.Arrays;
-
-import io.ast.jneurocarto.javafx.chart.Application;
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.XYBar;
+import io.ast.jneurocarto.javafx.chart.*;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -21,11 +17,21 @@ public class Bar implements Application.ApplicationContent, Runnable {
       description = "bar direction. could be ${COMPLETION-CANDIDATES}")
     XYBar.Orientation orientation;
 
-    @CommandLine.Option(names = "--color", defaultValue = "blue")
+    @CommandLine.Option(names = "--color", defaultValue = "blue",
+      description = "bar color. If stack > 1, use as colormap")
     String color;
 
-    @CommandLine.Option(names = "--flip")
+    @CommandLine.Option(names = "--flip",
+      description = "flip bar orientation")
     boolean flip;
+
+    @CommandLine.Option(names = "--stack", defaultValue = "1",
+      description = "stack bars")
+    int stack;
+
+    @CommandLine.Option(names = "--normalize",
+      description = "normalize stacks")
+    boolean normalize;
 
     @CommandLine.ArgGroup(heading = "Data:%n")
     BarData gen;
@@ -53,11 +59,11 @@ public class Bar implements Application.ApplicationContent, Runnable {
           description = "N random numbers")
         int n = 25;
 
-        @CommandLine.Option(names = "-min", defaultValue = "0",
+        @CommandLine.Option(names = "--min", defaultValue = "0",
           description = "min random number")
         int min = 0;
 
-        @CommandLine.Option(names = "-max", defaultValue = "100",
+        @CommandLine.Option(names = "--max", defaultValue = "100",
           description = "max random numbers")
         int max = 100;
 
@@ -73,19 +79,19 @@ public class Bar implements Application.ApplicationContent, Runnable {
     @CommandLine.ParentCommand
     public Chart parent;
 
-    double[] data;
-
     @Override
     public void run() {
-        data = gen != null ? gen.get() : new RandomData().get();
+        parent.launch(new Application(this));
+    }
+
+    private double[] data() {
+        var data = gen != null ? gen.get() : new RandomData().get();
         if (flip) {
             for (int i = 0, length = data.length; i < length; i++) {
                 data[i] *= -1;
             }
         }
-        System.out.println(Arrays.toString(data));
-
-        parent.launch(new Application(this));
+        return data;
     }
 
     /*=============*
@@ -95,11 +101,29 @@ public class Bar implements Application.ApplicationContent, Runnable {
     @Override
     public void setup(InteractionXYChart chart) {
         var painter = chart.getPlotting();
-        painter.bar(data, orientation)
-          .baseline(flip ? 100 : 0)
+
+        var bar = painter.bar(data(), orientation)
+          .baseline(stack == 1 && flip ? 100 : 0)
           .widthRatio(0.8)
-          .fitInRange(0, 100)
-          .fill(color);
+          .fitInRange(0, 100);
+
+        if (stack == 1) {
+            bar.fill(color);
+        } else {
+            var cmap = Colormap.of(color);
+            var norm = new Normalize(0, stack);
+            bar.fill(cmap.get(norm, 0));
+
+            for (int s = 1; s < stack; s++) {
+                bar = painter.bar(data(), orientation)
+                  .stackOn(bar)
+                  .fill(cmap.get(norm, s));
+            }
+
+            if (normalize) {
+                bar.normalizeStack(100);
+            }
+        }
 
         painter.repaint();
     }
