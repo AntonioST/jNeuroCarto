@@ -59,6 +59,21 @@ public class XYMatrix extends XYSeries {
         this.h = h;
     }
 
+    public void extent(double x, double y, double w, double h) {
+        this.x = w < 0 ? x + w : x;
+        this.y = h < 0 ? y + h : y;
+        this.w = Math.abs(w);
+        this.h = Math.abs(h);
+    }
+
+    public void extent(double x, double y, int nx, double dw, int ny, double dh) {
+        if (nx <= 0) throw new IllegalArgumentException();
+        if (ny <= 0) throw new IllegalArgumentException();
+        extent(x, y, nx * dw, ny * dh);
+        this.nx = nx;
+        this.ny = ny;
+    }
+
     public int nx() {
         return nx;
     }

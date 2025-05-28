@@ -230,13 +230,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
 
             m.alpha(1);
             m.colormap(colormap);
-
-            m.x(s * space[0]);
-            m.y(0);
-            m.w(length[2] * space[2]);
-            m.h(length[1] * space[1]);
-            m.nx(length[2]);
-            m.ny(length[1]);
+            m.extent(s * space[0], 0, length[2], space[2], length[1], space[1]);
             log.debug("matric x={}, y={}, w={}, h={}, nx={}, ny={}", m.x(), m.y(), m.w(), m.h(), m.nx(), m.ny());
 
             for (int r = 0; r < length[1]; r++) {
