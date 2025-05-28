@@ -47,7 +47,7 @@ public final class PluginStateService {
         var application = Application.getInstance();
 
         for (var plugin : application.plugins) {
-            if (plugin instanceof StateView<?> view) {
+            if (plugin.instance() instanceof StateView<?> view) {
                 view.restoreState();
             }
         }
@@ -59,7 +59,7 @@ public final class PluginStateService {
         var application = Application.getInstance();
 
         for (var plugin : application.plugins) {
-            if (plugin instanceof StateView<?> view) {
+            if (plugin.instance() instanceof StateView<?> view) {
                 view.saveState();
             }
         }

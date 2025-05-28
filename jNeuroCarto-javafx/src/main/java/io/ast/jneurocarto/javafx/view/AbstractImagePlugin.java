@@ -42,7 +42,7 @@ public abstract class AbstractImagePlugin extends InvisibleView {
      * properties *
      *============*/
 
-    public final BooleanProperty showImageProperty = new SimpleBooleanProperty();
+    public final BooleanProperty showImageProperty = new SimpleBooleanProperty(true);
 
     public final boolean isShowImage() {
         return showImageProperty.get();
@@ -60,6 +60,14 @@ public abstract class AbstractImagePlugin extends InvisibleView {
 
     public final void setFile(@Nullable Path value) {
         fileProperty.set(value);
+    }
+
+    public final void setFile(@Nullable String value) {
+        if (value == null) {
+            fileProperty.set(null);
+        } else {
+            fileProperty.set(Path.of(value));
+        }
     }
 
     /*===========*

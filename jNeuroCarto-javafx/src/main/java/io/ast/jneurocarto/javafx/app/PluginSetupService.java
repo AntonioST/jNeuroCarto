@@ -165,7 +165,13 @@ public final class PluginSetupService {
     }
 
     List<PluginInfo> filterPluginByNameRule(List<PluginInfo> provides, String rule) {
+        var tester = createPluginFilter(rule);
+        return provides.stream().filter(tester).toList();
+    }
+
+    static Predicate<PluginInfo> createPluginFilter(String rule) {
         Predicate<String> tester;
+
         if (rule.endsWith(".*")) {
             var name = rule.substring(0, rule.length() - 1);
             tester = it -> it.startsWith(name);
@@ -180,9 +186,9 @@ public final class PluginSetupService {
         } else {
             tester = it -> it.equals(rule);
         }
-        return provides.stream().filter(it -> {
-            return tester.test(it.plugin().getName()) || Arrays.stream(it.name()).anyMatch(tester);
-        }).toList();
+
+        return plugin -> tester.test(plugin.plugin().getName())
+                         || Arrays.stream(plugin.name()).anyMatch(tester);
     }
 
     <P extends Plugin> P loadPlugin(PluginInfo plugin) throws Throwable {

@@ -23,9 +23,10 @@ import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYMatrix;
 import io.ast.jneurocarto.javafx.view.AbstractImagePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.StateView;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
 
-public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlugin<ChannelMap> {
+public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlugin<ChannelMap>, StateView<DataVisualizeState> {
 
     private InteractionXYPainter foreground;
     private XYMatrix[] matrix;
@@ -60,6 +61,29 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         colormapProperty.set(colormap);
     }
 
+    /*=================*
+     * state load/save *
+     *=================*/
+
+    @Override
+    public @Nullable DataVisualizeState getState() {
+        var file = fileProperty.get();
+
+        var state = new DataVisualizeState();
+        state.filePath = file == null ? null : file.toAbsolutePath().toString();
+        state.colormap = colormapProperty.get();
+
+        return state;
+    }
+
+    @Override
+    public void restoreState(@Nullable DataVisualizeState state) {
+        if (state == null) return;
+
+        setFile(state.filePath);
+        var colormap = state.colormap;
+        if (colormap != null) colormapProperty.set(colormap);
+    }
 
     /*===========*
      * UI layout *

@@ -596,14 +596,14 @@ public class BlueprintToolkit<T> {
      * @param v value
      * @return {@code a} itself.
      */
-    public int[] set(int[] a, int[] i, int v) {
+    public static int[] set(int[] a, int[] i, int v) {
         for (int j : i) {
             a[j] = v;
         }
         return a;
     }
 
-    public int[] set(int[] a, int[] i, int[] v) {
+    public static int[] set(int[] a, int[] i, int[] v) {
         if (i.length != v.length) throw new IllegalArgumentException();
         for (int j = 0, length = i.length; j < length; j++) {
             a[i[j]] = v[j];
@@ -622,14 +622,14 @@ public class BlueprintToolkit<T> {
      * @param v      value
      * @return {@code a} itself.
      */
-    public int[] set(int[] a, int[] i, int offset, int length, int v) {
+    public static int[] set(int[] a, int[] i, int offset, int length, int v) {
         for (int j = 0; j < length; j++) {
             a[i[j + offset]] = v;
         }
         return a;
     }
 
-    public int[] setIfUnset(int[] a, int[] i, int offset, int length, int v) {
+    public static int[] setIfUnset(int[] a, int[] i, int offset, int length, int v) {
         for (int j = 0; j < length; j++) {
             var k = i[j + offset];
             if (a[k] == 0) a[k] = v;
@@ -2050,7 +2050,6 @@ public class BlueprintToolkit<T> {
             };
         };
     }
-
 
     public double[] interpolateNaN(double[] a, int kx, int ky, InterpolateNaNBuiltinMethod f) {
         var m = getInterpolateMethod(kx, ky, f);

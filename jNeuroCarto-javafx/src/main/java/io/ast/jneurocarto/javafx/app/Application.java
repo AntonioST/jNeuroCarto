@@ -38,6 +38,7 @@ import io.ast.jneurocarto.core.ProbeProviders;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.dialog.ChartAxesDialog;
+import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 
@@ -583,7 +584,22 @@ public class Application<T> {
      * plugins *
      *=========*/
 
-    final List<Object> plugins = new ArrayList<>();
+    record PluginInfo(Object instance, PluginSetupService.@Nullable PluginInfo info) {
+        PluginInfo(Object instance) {
+            this(instance, null);
+        }
+
+        boolean match(String rule) {
+            if (info == null) return false;
+            return PluginSetupService.createPluginFilter(rule).test(info);
+        }
+
+        <P extends Plugin> boolean match(Class<P> cls) {
+            return cls.isInstance(instance);
+        }
+    }
+
+    final List<PluginInfo> plugins = new ArrayList<>();
     final List<PluginProvider> providers = new ArrayList<>();
 
     private void setupPlugins() {
@@ -592,7 +608,7 @@ public class Application<T> {
         {
             var plugin = view.new ProbeViewStateListener();
             log.debug("add ProbeViewStateListener");
-            plugins.add(plugin);
+            plugins.add(new PluginInfo(plugin));
         }
 
         var service = new PluginSetupService(this);
@@ -650,7 +666,7 @@ public class Application<T> {
             try {
                 log.debug("add plugin : {}", cls.getName());
                 var plugin = service.loadPlugin(provide);
-                this.plugins.add(plugin);
+                this.plugins.add(new PluginInfo(plugin, provide));
 
                 service.bind(plugin);
 
@@ -1143,7 +1159,7 @@ public class Application<T> {
         view.updateElectrode();
 
         for (var plugin : plugins) {
-            if (plugin instanceof ProbePlugin<?> p) {
+            if (plugin.instance() instanceof ProbePlugin<?> p) {
                 log.debug("onProbeUpdate for {}", p.getClass().getSimpleName());
                 ((ProbePlugin<T>) p).onProbeUpdate(chmap, blueprint);
             }

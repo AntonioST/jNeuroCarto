@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.javafx.view.Plugin;
 
 @NullMarked
 public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
@@ -232,6 +233,24 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public void repaintViewBlueprint() {
         application.view.repaint();
+    }
+
+    /*========*
+     * plugin *
+     *========*/
+
+    public @Nullable Plugin getPlugin(String name) {
+        for (var plugin : application.plugins) {
+            if (plugin.match(name) && plugin.instance() instanceof Plugin ret) return ret;
+        }
+        return null;
+    }
+
+    public <P extends Plugin> @Nullable P getPlugin(Class<P> cls) {
+        for (var plugin : application.plugins) {
+            if (plugin.match(cls)) return (P) plugin.instance();
+        }
+        return null;
     }
 
     /*=============*
