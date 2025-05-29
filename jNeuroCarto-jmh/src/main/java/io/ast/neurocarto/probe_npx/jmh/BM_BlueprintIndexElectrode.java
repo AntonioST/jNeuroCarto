@@ -18,7 +18,7 @@ import io.ast.jneurocarto.probe_npx.NpxProbeType;
 @Measurement(iterations = 5, time = 100, timeUnit = TimeUnit.MICROSECONDS)
 @BenchmarkMode(Mode.AverageTime)
 @State(Scope.Benchmark)
-public class BlueprintIndexElectrode {
+public class BM_BlueprintIndexElectrode {
 
     @Param({"0", "21", "24"})
     public int code;

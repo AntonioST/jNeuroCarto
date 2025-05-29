@@ -7,7 +7,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public class Main {
     public static void main(String[] args) throws RunnerException {
         var opt = new OptionsBuilder()
-          .include(ChannelmapUtils.class.getSimpleName())
+          .include(BM_ChannelmapUtil.class.getSimpleName())
           .forks(1)
           .build();
 

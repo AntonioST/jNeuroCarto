@@ -342,6 +342,8 @@ public final class ChannelMaps {
     }
 
     /**
+     * Sample each electrode selection result and select the one with the best channel efficiency metric.
+     *
      * @param chmap       initial channelmap.
      * @param blueprint   blueprint
      * @param selector    electrode selector

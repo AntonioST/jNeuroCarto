@@ -4,14 +4,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.*;
 
-import io.ast.jneurocarto.probe_npx.ChannelMapUtilPlain;
-import io.ast.jneurocarto.probe_npx.ChannelMapUtilVec;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 5, time = 100, timeUnit = TimeUnit.MICROSECONDS)
 @Measurement(iterations = 5, time = 100, timeUnit = TimeUnit.MICROSECONDS)
-public class ChannelmapUtils {
+public class BM_ChannelmapUtil {
 
     @State(Scope.Benchmark)
     public static class Shared {
