@@ -390,6 +390,8 @@ public final class ChannelMapUtil {
 
     /**
      * Get shank, column and row index array for given electrodes.
+     * <p/>
+     * shank column always zero.
      *
      * @param type      neuropixels probe type.
      * @param electrode electrode index array [E]
