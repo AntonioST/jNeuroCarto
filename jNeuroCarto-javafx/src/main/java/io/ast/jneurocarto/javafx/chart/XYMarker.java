@@ -8,14 +8,13 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class XYMarker extends XYSeries {
+public class XYMarker extends XYSeries.XYColormapSeries {
 
     protected double w = 1;
     protected double h = 1;
     protected double ew = 1;
     protected @Nullable Color edge = null;
     protected @Nullable Color fill = null;
-    protected @Nullable Colormap colormap = null;
 
     public double w() {
         return w;
@@ -63,10 +62,6 @@ public class XYMarker extends XYSeries {
         this.fill = fill;
     }
 
-    public @Nullable Colormap colormap() {
-        return colormap;
-    }
-
     /**
      * set colormap.
      * <br/>
@@ -88,8 +83,8 @@ public class XYMarker extends XYSeries {
             gc.setGlobalAlpha(alpha);
             gc.setLineWidth(ew);
 
-            if (normalize != null && colormap != null && fill == Color.TRANSPARENT) {
-                paintMarkers(gc, p, offset, length, colormap, normalize);
+            if (colormap != null && fill == Color.TRANSPARENT) {
+                paintMarkers(gc, p, offset, length, colormap);
             } else if (fill != null) {
                 paintMarkers(gc, p, offset, length);
             }
@@ -112,13 +107,13 @@ public class XYMarker extends XYSeries {
         for (int i = 0; i < length; i++) {
             var x = p[0][i + offset];
             var y = p[1][i + offset];
-            if (!Double.isNaN(x) && !Double.isNaN(y)) {
+            if (!Double.isNaN(x + y)) {
                 gc.fillRect(x - dx, y - dy, w, h);
             }
         }
     }
 
-    private void paintMarkers(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap, Normalize norm) {
+    private void paintMarkers(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap) {
         assert fill != null;
 
         var dx = w / 2;
@@ -128,8 +123,8 @@ public class XYMarker extends XYSeries {
             var x = p[0][i + offset];
             var y = p[1][i + offset];
             var v = p[2][i + offset];
-            if (!Double.isNaN(x) && !Double.isNaN(y)) {
-                gc.setFill(cmap.get(norm, v));
+            if (!Double.isNaN(x + y + v)) {
+                gc.setFill(cmap.apply(v));
                 gc.fillRect(x - dx, y - dy, w, h);
             }
         }
@@ -144,7 +139,7 @@ public class XYMarker extends XYSeries {
         for (int i = 0; i < length; i++) {
             var x = p[0][i + offset];
             var y = p[1][i + offset];
-            if (!Double.isNaN(x) && !Double.isNaN(y)) {
+            if (!Double.isNaN(x + y)) {
                 gc.strokeRect(x - dx, y - dy, w, h);
             }
         }
@@ -158,7 +153,7 @@ public class XYMarker extends XYSeries {
         return new Builder(this);
     }
 
-    public static class Builder extends XYSeries.Builder<XYMarker, Builder> {
+    public static class Builder extends XYSeries.XYColormapSeriesBuilder<XYMarker, Builder> {
         public Builder(XYMarker graphics) {
             super(graphics);
         }
@@ -199,16 +194,6 @@ public class XYMarker extends XYSeries {
 
         public Builder fill(@Nullable Color fill) {
             graphics.fill(fill);
-            return this;
-        }
-
-        public Builder colormap(String colormap) {
-            graphics.colormap(Colormap.of(colormap));
-            return this;
-        }
-
-        public Builder colormap(Colormap colormap) {
-            graphics.colormap(colormap);
             return this;
         }
 

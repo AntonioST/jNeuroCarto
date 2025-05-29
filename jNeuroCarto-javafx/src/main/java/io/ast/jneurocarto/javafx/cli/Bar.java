@@ -112,12 +112,12 @@ public class Bar implements Application.ApplicationContent, Runnable {
         } else {
             var cmap = Colormap.of(color);
             var norm = new Normalize(0, stack);
-            bar.fill(cmap.get(norm, 0));
+            bar.fill(cmap.apply(0));
 
             for (int s = 1; s < stack; s++) {
                 bar = painter.bar(data(), orientation)
                   .stackOn(bar)
-                  .fill(cmap.get(norm, s));
+                  .fill(cmap.apply(s));
             }
 
             if (normalize) {

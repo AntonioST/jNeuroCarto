@@ -8,12 +8,11 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class XYPath extends XYSeries {
+public class XYPath extends XYSeries.XYColormapSeries {
 
     protected double lw = 1;
     protected @Nullable Color line = null;
     protected @Nullable Color fill = null;
-    protected @Nullable Colormap colormap = null;
 
     public double linewidth() {
         return lw;
@@ -45,10 +44,6 @@ public class XYPath extends XYSeries {
         this.line = line;
     }
 
-    public @Nullable Colormap colormap() {
-        return colormap;
-    }
-
     /**
      * set colormap.
      * <br/>
@@ -74,8 +69,8 @@ public class XYPath extends XYSeries {
                 paintFill(gc, p, offset, length);
             }
 
-            if (normalize != null && colormap != null && line == Color.TRANSPARENT) {
-                paintLine(gc, p, offset, length, colormap, normalize);
+            if (colormap != null && line == Color.TRANSPARENT) {
+                paintLine(gc, p, offset, length, colormap);
             } else if (line != null) {
                 paintLine(gc, p, offset, length);
             }
@@ -115,7 +110,7 @@ public class XYPath extends XYSeries {
         }
     }
 
-    private void paintLine(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap, Normalize norm) {
+    private void paintLine(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap) {
         assert line == Color.TRANSPARENT;
 
         var x1 = p[0][offset];
@@ -127,7 +122,7 @@ public class XYPath extends XYSeries {
             var y2 = p[1][i + offset];
             var v2 = p[2][i + offset];
             if (!Double.isNaN(x1 + y1 + x2 + y2 + v1 + v2)) {
-                gc.setStroke(cmap.get(x1, y1, x2, y2, norm, v1, v2));
+                gc.setStroke(cmap.gradient(x1, y1, x2, y2, v1, v2));
                 gc.strokeLine(x1, y1, x2, y2);
             }
             x1 = x2;
@@ -174,7 +169,7 @@ public class XYPath extends XYSeries {
         return new Builder(this);
     }
 
-    public static class Builder extends XYSeries.Builder<XYPath, Builder> {
+    public static class Builder extends XYSeries.XYColormapSeriesBuilder<XYPath, Builder> {
         public Builder(XYPath graphics) {
             super(graphics);
         }
@@ -199,16 +194,6 @@ public class XYPath extends XYSeries {
 
         public Builder line(@Nullable Color line) {
             graphics.line(line);
-            return this;
-        }
-
-        public Builder colormap(String colormap) {
-            graphics.colormap(Colormap.of(colormap));
-            return this;
-        }
-
-        public Builder colormap(Colormap colormap) {
-            graphics.colormap(colormap);
             return this;
         }
 

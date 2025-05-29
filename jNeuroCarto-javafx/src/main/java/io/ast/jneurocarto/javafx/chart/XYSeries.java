@@ -3,6 +3,7 @@ package io.ast.jneurocarto.javafx.chart;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -23,8 +24,6 @@ public abstract class XYSeries implements XYGraphics {
 
     protected double z = 0;
     protected double alpha = 1;
-
-    protected @Nullable Normalize normalize = null;
     protected boolean visible = true;
     protected List<XY> data = new ArrayList<>();
 
@@ -50,67 +49,34 @@ public abstract class XYSeries implements XYGraphics {
         this.alpha = alpha;
     }
 
-    public @Nullable Normalize normalize() {
-        return normalize;
-    }
-
-    public void normalize(double lower, double upper) {
-        normalize(new Normalize(lower, upper));
-    }
-
-    public void normalize(Normalize normalize) {
-        this.normalize = normalize;
-    }
-
-    public Normalize renormalize() {
-        if (data.size() < 2) {
-            return Normalize.N01;
-        } else {
-            var result = data.stream()
-              .mapToDouble(XY::v)
-              .boxed()
-              .gather(MinMax.doubleMinmax())
-              .findFirst()
-              .get();
-
-            return new Normalize(result);
-        }
-    }
-
-    public static Normalize renormalize(XYSeries[] graphics) {
+    public static Normalize renormalize(XYColormapSeries[] graphics) {
         if (graphics.length == 0) throw new RuntimeException();
         if (graphics.length == 1) return graphics[0].renormalize();
 
         var norm = Arrays.stream(graphics)
-          .map(XYSeries::renormalize)
+          .map(XYColormapSeries::renormalize)
           .gather(Normalize.union())
           .findFirst().get();
 
-        for (var matrix : graphics) {
-            matrix.normalize(norm);
-        }
-        return norm;
-    }
-
-    public static Normalize normalize(XYSeries[] graphics, Normalize norm) {
         for (var g : graphics) {
             g.normalize(norm);
         }
         return norm;
     }
 
-    public static Normalize renormalize(XYSeries[] graphics, Normalize init) {
+    public static Normalize renormalize(XYColormapSeries[] graphics, Normalize init) {
         if (graphics.length == 0) return init;
 
-        var stream = Arrays.stream(graphics).map(XYSeries::renormalize);
+        var stream = Arrays.stream(graphics).map(XYColormapSeries::renormalize);
 
         var norm = Stream.concat(Stream.of(init), stream)
           .gather(Normalize.union())
           .findFirst().get();
 
-        for (var matrix : graphics) {
-            matrix.normalize(norm);
+        for (var g : graphics) {
+            g.normalize(norm);
         }
+
         return norm;
     }
 
@@ -250,6 +216,8 @@ public abstract class XYSeries implements XYGraphics {
         return length;
     }
 
+
+
     /*=========*
      * builder *
      *=========*/
@@ -279,26 +247,86 @@ public abstract class XYSeries implements XYGraphics {
             return (B) this;
         }
 
-        public B normalize() {
-            graphics.renormalize();
-            return (B) this;
-        }
-
-        public B normalize(double lower, double upper) {
-            graphics.normalize(lower, upper);
-            return (B) this;
-        }
-
-        public B normalize(Normalize normalize) {
-            graphics.normalize(normalize);
-            return (B) this;
-        }
-
         public B setVisible(boolean visible) {
             graphics.setVisible(visible);
             return (B) this;
         }
+    }
 
+    /*==========*
+     * subclass *
+     *==========*/
 
+    public static abstract class XYColormapSeries extends XYSeries {
+        protected @Nullable Colormap colormap = null;
+
+        public @Nullable Colormap colormap() {
+            return colormap;
+        }
+
+        /**
+         * set colormap.
+         *
+         * @param colormap
+         */
+        public void colormap(Colormap colormap) {
+            this.colormap = colormap;
+        }
+
+        public @Nullable Normalize normalize() {
+            var cm = colormap;
+            return cm == null ? null : cm.normalize();
+        }
+
+        public void normalize(Normalize normalize) {
+            var cm = Objects.requireNonNull(colormap, "miss colormap");
+            colormap = cm.withNormalize(normalize);
+        }
+
+        public Normalize renormalize() {
+            if (data.size() < 2) {
+                return Normalize.N01;
+            } else {
+                var result = data.stream()
+                  .mapToDouble(XY::v)
+                  .boxed()
+                  .gather(MinMax.doubleMinmax())
+                  .findFirst()
+                  .get();
+
+                return new Normalize(result);
+            }
+        }
+    }
+
+    public static class XYColormapSeriesBuilder<S extends XYColormapSeries, B extends XYColormapSeriesBuilder<S, B>> extends Builder<S, B> {
+
+        public XYColormapSeriesBuilder(S graphics) {
+            super(graphics);
+        }
+
+        public B colormap(String colormap) {
+            graphics.colormap(Colormap.of(colormap));
+            return (B) this;
+        }
+
+        public B colormap(Colormap colormap) {
+            graphics.colormap(colormap);
+            return (B) this;
+        }
+
+        public B normalize(double upper) {
+            return normalize(0, upper);
+        }
+
+        public B normalize(double lower, double upper) {
+            return normalize(new Normalize(lower, upper));
+        }
+
+        public B normalize(Normalize normalize) {
+            var colormap = Objects.requireNonNull(graphics.colormap, "miss a colormap");
+            graphics.colormap(colormap.withNormalize(normalize));
+            return (B) this;
+        }
     }
 }

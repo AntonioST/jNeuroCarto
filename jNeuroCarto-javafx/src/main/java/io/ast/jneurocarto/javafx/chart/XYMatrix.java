@@ -13,13 +13,12 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.blueprint.MinMaxInt;
 
 @NullMarked
-public class XYMatrix extends XYSeries {
+public class XYMatrix extends XYSeries.XYColormapSeries {
 
     protected double x = 0;
     protected double y = 0;
     protected double w = 1;
     protected double h = 1;
-    protected @Nullable Colormap colormap = null;
 
     private int numberOfData;
     private @Nullable MinMaxInt xr;
@@ -90,19 +89,6 @@ public class XYMatrix extends XYSeries {
 
     public void ny(int ny) {
         this.ny = ny;
-    }
-
-    public @Nullable Colormap colormap() {
-        return colormap;
-    }
-
-    /**
-     * set colormap.
-     *
-     * @param colormap
-     */
-    public void colormap(Colormap colormap) {
-        this.colormap = colormap;
     }
 
     /**
@@ -202,8 +188,6 @@ public class XYMatrix extends XYSeries {
         if (colormap == null) return;
 
         var cmap = colormap;
-        var norm = normalize;
-        if (norm == null) norm = renormalize();
 
         assert xr != null;
         assert yr != null;
@@ -244,7 +228,7 @@ public class XYMatrix extends XYSeries {
                 var px = x + w * ((int) xy.x - x0) / nx;
                 var py = y + h * ((int) xy.y - y0) / ny;
 
-                gc.setFill(cmap.get(norm, xy.v));
+                gc.setFill(cmap.apply(xy.v));
                 gc.fillRect(px, py, dw, dh);
             }
 
@@ -261,7 +245,7 @@ public class XYMatrix extends XYSeries {
         return new Builder(this);
     }
 
-    public static class Builder extends XYSeries.Builder<XYMatrix, Builder> {
+    public static class Builder extends XYSeries.XYColormapSeriesBuilder<XYMatrix, Builder> {
         public Builder(XYMatrix graphics) {
             super(graphics);
         }
@@ -303,16 +287,6 @@ public class XYMatrix extends XYSeries {
 
         public Builder ny(int ny) {
             graphics.ny(ny);
-            return this;
-        }
-
-        public Builder colormap(String colormap) {
-            graphics.colormap(Colormap.of(colormap));
-            return this;
-        }
-
-        public Builder colormap(Colormap colormap) {
-            graphics.colormap(colormap);
             return this;
         }
 

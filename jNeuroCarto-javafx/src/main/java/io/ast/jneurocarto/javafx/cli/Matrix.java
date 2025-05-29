@@ -242,7 +242,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
             var norm = XYMatrix.renormalize(matrix, new Normalize(0, 0));
             log.debug("norm = {}", norm);
         } else {
-            XYMatrix.normalize(matrix, normalize);
+            XYMatrix.renormalize(matrix, normalize);
         }
 
         var x1 = space[0] * length[0];
