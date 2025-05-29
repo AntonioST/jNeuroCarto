@@ -32,6 +32,11 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         gc = canvas.getGraphicsContext2D();
     }
 
+    @Override
+    public double z() {
+        return graphics.stream().mapToDouble(XYGraphics::z).min().orElse(0);
+    }
+
     /*============*
      * properties *
      *============*/
@@ -57,11 +62,13 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     public void addGraphics(XYGraphics graphic) {
         graphics.add(graphic);
         graphics.sort(Comparator.comparingDouble(XYGraphics::z));
+        chart.reorderPainter();
     }
 
     public void addGraphics(Collection<XYGraphics> graphic) {
         this.graphics.addAll(graphic);
         graphics.sort(Comparator.comparingDouble(XYGraphics::z));
+        chart.reorderPainter();
     }
 
     public boolean removeGraphics(XYGraphics graphic) {
@@ -196,6 +203,13 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         return ret.builder();
     }
 
+//    public XYPath.Builder lines(XYSeries xy) {
+//        var ret = new XYPath();
+//        ret.addData(xy.data);
+//        addGraphics(ret);
+//        return ret.builder();
+//    }
+
     public XYMarker.Builder scatter() {
         var ret = new XYMarker();
         addGraphics(ret);
@@ -222,6 +236,13 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         addGraphics(ret);
         return ret.builder();
     }
+
+//    public XYMarker.Builder scatter(XYSeries xy) {
+//        var ret = new XYMarker();
+//        ret.addData(xy.data);
+//        addGraphics(ret);
+//        return ret.builder();
+//    }
 
     public XYMatrix.Builder imshow() {
         var ret = new XYMatrix();

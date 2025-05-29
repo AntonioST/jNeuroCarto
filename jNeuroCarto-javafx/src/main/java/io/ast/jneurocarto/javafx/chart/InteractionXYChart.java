@@ -2,6 +2,7 @@ package io.ast.jneurocarto.javafx.chart;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -622,6 +623,10 @@ public class InteractionXYChart extends StackPane {
      *================*/
 
     public interface PlottingJob {
+        default double z() {
+            return 0;
+        }
+
         void draw(GraphicsContext gc);
     }
 
@@ -630,6 +635,12 @@ public class InteractionXYChart extends StackPane {
 
         WeakRefPlottingJob(PlottingJob plotting) {
             reference = new WeakReference<>(plotting);
+        }
+
+        @Override
+        public double z() {
+            var ref = reference.get();
+            return ref == null ? Double.POSITIVE_INFINITY : ref.z();
         }
 
         boolean isInvalid() {
@@ -685,6 +696,11 @@ public class InteractionXYChart extends StackPane {
         }
         LoggerFactory.getLogger(getClass()).debug("removeBackgroundPlotting {}", display.getClass().getSimpleName());
         return backgroundJobs.remove(job);
+    }
+
+    void reorderPainter() {
+        foregroundJobs.sort(Comparator.comparingDouble(PlottingJob::z));
+        backgroundJobs.sort(Comparator.comparingDouble(PlottingJob::z));
     }
 
     public void repaintForeground() {

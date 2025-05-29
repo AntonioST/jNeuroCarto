@@ -86,6 +86,16 @@ public final class PluginSetupService {
         return app.probe;
     }
 
+    public @Nullable Plugin getPlugin(String name) {
+        var app = checkApplication();
+        return app.getPlugin(name);
+    }
+
+    public <P extends Plugin> @Nullable P getPlugin(Class<P> cls) {
+        var app = checkApplication();
+        return app.getPlugin(cls);
+    }
+
     /*======*
      * menu *
      *======*/

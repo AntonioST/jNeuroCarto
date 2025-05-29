@@ -60,6 +60,7 @@ public record RequestChannelmapType(Class<? extends ProbeDescription> probe, @Nu
                 if (probe == ProbeDescription.class) probe = check.probe();
                 if (family.isEmpty()) family = check.value();
                 if (code.isEmpty()) code = check.code();
+                create = check.create(); // take last one
             }
         }
 

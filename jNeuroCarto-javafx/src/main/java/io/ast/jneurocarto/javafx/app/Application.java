@@ -548,6 +548,8 @@ public class Application<T> {
         logMessageArea.setEditable(false);
         logMessageArea.setPrefWidth(290);
         logMessageArea.setPrefColumnCount(100);
+        logMessageArea.setMinHeight(300);
+        logMessageArea.setPrefHeight(500);
 
         var root = new VBox(
           stateLabel,
@@ -572,9 +574,8 @@ public class Application<T> {
         view.setMinWidth(700);
         view.setMinHeight(800);
 
-        viewLayout = new VBox(
-          view
-        );
+        viewLayout = new VBox(view);
+        VBox.setVgrow(view, Priority.ALWAYS);
         return viewLayout;
     }
 
@@ -700,6 +701,20 @@ public class Application<T> {
                 service.unbind();
             }
         }
+    }
+
+    public @Nullable Plugin getPlugin(String name) {
+        for (var plugin : plugins) {
+            if (plugin.match(name) && plugin.instance() instanceof Plugin ret) return ret;
+        }
+        return null;
+    }
+
+    public <P extends Plugin> @Nullable P getPlugin(Class<P> cls) {
+        for (var plugin : plugins) {
+            if (plugin.match(cls)) return (P) plugin.instance();
+        }
+        return null;
     }
 
     /*================*

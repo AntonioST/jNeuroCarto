@@ -231,5 +231,40 @@ public class XYPath extends XYSeries {
             graphics.addData(p, v);
             return this;
         }
+
+        public Builder addPoints(double x, double dx, double[] y) {
+            return addPoints(x, dx, 0, y);
+        }
+
+        public Builder addPoints(double x, double dx, double y, double[] dy) {
+            for (int i = 0, length = dy.length; i < length; i++) {
+                graphics.addData(x + dx * i, y + dy[i]);
+            }
+            return this;
+        }
+
+        public Builder addPoints(double[] x, double y, double dy) {
+            return addPoints(0, x, y, dy);
+        }
+
+        public Builder addPoints(double x, double[] dx, double y, double dy) {
+            for (int i = 0, length = dx.length; i < length; i++) {
+                graphics.addData(x + dx[i], y + dy * i);
+            }
+            return this;
+        }
+
+        public Builder addPoints(double[] x, double[] y) {
+            return addPoints(0, x, 0, y);
+        }
+
+        public Builder addPoints(double x, double[] dx, double y, double[] dy) {
+            int length = dx.length;
+            if (length != dy.length) throw new IllegalArgumentException();
+            for (int i = 0; i < length; i++) {
+                graphics.addData(x + dx[i], y + dy[i]);
+            }
+            return this;
+        }
     }
 }

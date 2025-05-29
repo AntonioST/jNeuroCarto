@@ -3,6 +3,8 @@
 package io.ast.jneurocarto.script
 
 import java.util.function.Function
+import kotlin.math.pow
+import kotlin.math.roundToInt
 import io.ast.jneurocarto.core.blueprint.BlueprintMask
 
 private fun newBlueprintMask(length: Int, init: Function<Int, Boolean>): BlueprintMask {
@@ -133,4 +135,25 @@ operator fun DoubleArray.set(mask: BlueprintMask, value: DoubleArray) {
 
 fun isnan(array: DoubleArray): BlueprintMask {
     return newBlueprintMask(array.size) { java.lang.Double.isNaN(array[it]) }
+}
+
+fun DoubleArray.nanmin(): Double {
+    return asSequence().filter { !java.lang.Double.isNaN(it) }.minOrNull() ?: Double.NaN
+}
+
+fun DoubleArray.nanmax(): Double {
+    return asSequence().filter { !java.lang.Double.isNaN(it) }.maxOrNull() ?: Double.NaN
+}
+
+fun DoubleArray.nanmean(): Double {
+    var cnt = 0
+    return asSequence().filter { !java.lang.Double.isNaN(it) }.sumOf {
+        cnt++
+        it
+    } / cnt
+}
+
+fun Double.round(d: Int): Double {
+    val p = 10.0.pow(d.toDouble())
+    return (this * d).roundToInt().toDouble() / p
 }

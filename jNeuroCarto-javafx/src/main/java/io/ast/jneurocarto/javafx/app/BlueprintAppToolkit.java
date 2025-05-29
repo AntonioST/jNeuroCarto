@@ -240,17 +240,11 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      *========*/
 
     public @Nullable Plugin getPlugin(String name) {
-        for (var plugin : application.plugins) {
-            if (plugin.match(name) && plugin.instance() instanceof Plugin ret) return ret;
-        }
-        return null;
+        return application.getPlugin(name);
     }
 
     public <P extends Plugin> @Nullable P getPlugin(Class<P> cls) {
-        for (var plugin : application.plugins) {
-            if (plugin.match(cls)) return (P) plugin.instance();
-        }
-        return null;
+        return application.getPlugin(cls);
     }
 
     /*=============*

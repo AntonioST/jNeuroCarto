@@ -3,6 +3,7 @@
 package io.ast.jneurocarto.script.probe_npx
 
 import java.nio.file.Path
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit
 import io.ast.jneurocarto.javafx.script.BlueprintScript
 import io.ast.jneurocarto.javafx.script.CheckProbe
@@ -24,7 +25,7 @@ which follows:
 * extend the full-density zone with half-density zone.
 """
 )
-@CheckProbe(probe = NpxProbeDescription::class)
+@CheckProbe(probe = NpxProbeDescription::class, code = "NP24")
 fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
     toolkit: BlueprintAppToolkit<ChannelMap>,
     @ScriptParameter(value = "filename", description = "a numpy filepath, which shape Array[int, N, (shank, col, row, state, value)]")
@@ -34,11 +35,9 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
 ) {
     toolkit.printLogMessage("filename=$filename, threshold=$threshold")
 
-    val data = toolkit.loadNumpyBlueprint(filename).let { arr ->
-        DoubleArray(arr.size) { arr[it].toDouble() }
-    }
-
+    var data = toolkit.loadNumpyBlueprintData(filename)
     data[data eq 0.0] = Double.NaN
+    data = toolkit.interpolateNaN(data, 3, BlueprintToolkit.InterpolateMethod.mean)
 
     val F = NpxProbeDescription.CATE_FULL
     val H = NpxProbeDescription.CATE_HALF
@@ -46,11 +45,12 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
     val L = NpxProbeDescription.CATE_LOW
     val X = NpxProbeDescription.CATE_EXCLUDED
 
-    toolkit.printLogMessage("min=${data.min()}, max=${data.max()}")
+    toolkit.printLogMessage("min=${data.nanmin().round(2)}, max=${data.nanmax().round(2)}")
 
     toolkit.getPlugin(DataVisualizePlugin::class.java)?.let { plugin ->
         plugin.file = filename
-        plugin.updateDataImage()
+        plugin.interpolate = 3
+        plugin.updateDataImage(data)
         plugin.repaint()
     }
 
@@ -63,4 +63,6 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
     toolkit.fill(F)
     toolkit.extend(F, 2, 0..100)
     toolkit.extend(F, 10, H)
+
+    toolkit.applyViewBlueprint()
 }
