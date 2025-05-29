@@ -1,5 +1,9 @@
 package io.ast.jneurocarto.core;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Map;
 
@@ -34,4 +38,10 @@ public interface ElectrodeSelector {
     }
 
     <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint);
+
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface Selector {
+        String value();
+    }
 }

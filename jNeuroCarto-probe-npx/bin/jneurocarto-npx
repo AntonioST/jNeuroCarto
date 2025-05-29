@@ -3,6 +3,7 @@
 M=$HOME/.m2/repository
 read -d '' -r CP << EOF
 $M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
+$M/io/github/classgraph/classgraph/4.8.179/classgraph-4.8.179.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
 ../jNeuroCarto-core/target/classes
@@ -12,7 +13,6 @@ EOF
 archlinux-java-run --min 24 -- \
     --enable-preview \
     -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
-    -Dio.ast.jneurocarto.probe_npx.use_vector="" \
     -Dio.ast.jneurocarto.probe_npx.print_probe_symbol=42 \
     -p $(echo $CP | tr ' ' ':') \
     -m io.ast.jneurocarto.probe_npx/io.ast.jneurocarto.probe_npx.cli.Main \

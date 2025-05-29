@@ -4,8 +4,8 @@ import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
-import io.ast.jneurocarto.javafx.app.RequestChannelmapType;
 
 public interface BlueprintScriptCallable {
 
@@ -26,7 +26,7 @@ public interface BlueprintScriptCallable {
 
     Parameter[] parameters();
 
-    default @Nullable RequestChannelmapType requestChannelmap() {
+    default @Nullable RequestChannelmapInfo requestChannelmap() {
         return null;
     }
 

@@ -23,11 +23,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.RequestChannelmap;
+import io.ast.jneurocarto.core.RequestChannelmapException;
+import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.*;
 import io.ast.jneurocarto.javafx.view.GlobalStateView;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
-import io.github.classgraph.AnnotationClassRef;
 import io.github.classgraph.ClassInfo;
 
 public class ScriptPlugin extends InvisibleView implements GlobalStateView<ScriptConfig> {
@@ -89,47 +91,21 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         }
         log.debug("find \"{}\" = {}", name, info.getName());
 
-        var checkAnn = info.getAnnotationInfo(CheckProbe.class);
+        var checkAnn = info.getAnnotationInfo(RequestChannelmap.class);
         if (checkAnn == null) return true;
-
-        var check = checkAnn.getParameterValues();
-        var family = (String) check.getValue("value");
-
-        var probeValue = check.getValue("probe");
-        Class<? extends ProbeDescription> probe;
-        if (probeValue instanceof AnnotationClassRef ref) {
-            var refClass = ref.loadClass(true);
-            if (refClass == null) {
-                log.debug("unknown probe() class {}", ref.getName());
-                return false;
-            } else if (ProbeDescription.class.isAssignableFrom(refClass)) {
-                probe = (Class<? extends ProbeDescription>) refClass;
-            } else {
-                log.debug("illegal probe() class {}", ref.getName());
-                return false;
-            }
-        } else {
-            log.debug("unknown probe() value {}", probeValue);
+        RequestChannelmapInfo request;
+        try {
+            request = RequestChannelmapInfo.of(checkAnn);
+        } catch (Exception e) {
+            log.debug(e.getMessage(), e);
             return false;
         }
 
-        if (probe == ProbeDescription.class) {
-            if (family.isEmpty()) return true;
-
-            var ret = ProbeDescription.getProbeDescription(family);
-            if (ret == null) {
-                log.debug("unknown value(), probe {} not found.", family);
-                return false;
-            }
-            probe = ret.getClass();
-        }
-
-        var ret = this.probe.getClass().isAssignableFrom(probe);
-        if (!ret) {
-            log.debug("reject probe {}", probe.getName());
+        if (!request.checkProbe(probe)) {
+            log.debug("reject probe {}", request.probe().getName());
             return false;
         }
-        return ret;
+        return true;
     }
 
     private void initBlueprintScript(BlueprintScriptCallable callable) {
@@ -358,7 +334,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             var toolkit = BlueprintAppToolkit.newToolkit();
             callable.invoke(toolkit, arguments);
             return;
-        } catch (RequestChannelmapTypeException e) {
+        } catch (RequestChannelmapException e) {
             log.debug("fail. check {} {}", callable.name(), e.request);
             if (!checkScriptRequest(e.request)) {
                 throw e;
@@ -378,7 +354,7 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         }
     }
 
-    private boolean checkScriptRequest(RequestChannelmapType request) {
+    private boolean checkScriptRequest(RequestChannelmapInfo request) {
         if (!request.probe().isInstance(probe)) {
             LogMessageService.printMessage("probe mis-matched.");
             return false;

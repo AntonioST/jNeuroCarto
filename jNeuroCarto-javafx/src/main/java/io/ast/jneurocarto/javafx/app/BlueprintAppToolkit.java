@@ -7,6 +7,8 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.RequestChannelmapException;
+import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.view.Plugin;
@@ -78,20 +80,20 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public final <P> boolean checkProbe(Class<ProbeDescription<P>> probe) {
-        return checkProbe(new RequestChannelmapType(probe, null));
+        return checkProbe(new RequestChannelmapInfo(probe, null));
     }
 
     public final boolean checkProbe(String probe, @Nullable String code) {
-        var request = RequestChannelmapType.of(probe, code);
+        var request = RequestChannelmapInfo.of(probe, code);
         if (request == null) throw new RuntimeException("probe " + probe + " not found.");
         return checkProbe(request);
     }
 
     public final <P> boolean checkProbe(Class<ProbeDescription<P>> probe, @Nullable String code) {
-        return checkProbe(new RequestChannelmapType(probe, code));
+        return checkProbe(new RequestChannelmapInfo(probe, code));
     }
 
-    public final <P> boolean checkProbe(RequestChannelmapType request) {
+    public final <P> boolean checkProbe(RequestChannelmapInfo request) {
         return request.checkChannelmap(probe(), channelmap());
     }
 
@@ -100,22 +102,22 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public final <P> BlueprintAppToolkit<P> ensureProbe(Class<ProbeDescription<P>> probe) {
-        return ensureProbe(new RequestChannelmapType(probe, null));
+        return ensureProbe(new RequestChannelmapInfo(probe, null));
     }
 
     public final void ensureProbe(String probe, @Nullable String code) {
-        var request = RequestChannelmapType.of(probe, code);
+        var request = RequestChannelmapInfo.of(probe, code);
         if (request == null) throw new RuntimeException("probe " + probe + " not found.");
         ensureProbe(request);
     }
 
     public final <P> BlueprintAppToolkit<P> ensureProbe(Class<ProbeDescription<P>> probe, @Nullable String code) {
-        return ensureProbe(new RequestChannelmapType(probe, code));
+        return ensureProbe(new RequestChannelmapInfo(probe, code));
     }
 
-    public final <P> BlueprintAppToolkit<P> ensureProbe(RequestChannelmapType request) {
+    public final <P> BlueprintAppToolkit<P> ensureProbe(RequestChannelmapInfo request) {
         if (!checkProbe(request)) {
-            throw new RequestChannelmapTypeException(request);
+            throw new RequestChannelmapException(request);
         }
         return (BlueprintAppToolkit<P>) this;
     }

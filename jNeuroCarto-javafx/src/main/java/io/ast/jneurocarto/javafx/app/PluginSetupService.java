@@ -19,9 +19,10 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.RequestChannelmap;
+import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.Repository;
-import io.ast.jneurocarto.javafx.script.CheckProbe;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
@@ -189,9 +190,9 @@ public final class PluginSetupService {
     List<PluginInfo> getProvidePlugins(PluginProvider provider, ProbeDescription<?> probe) {
         var cls = provider.getClass();
 
-        var check = cls.getAnnotation(CheckProbe.class);
+        var check = cls.getAnnotation(RequestChannelmap.class);
         if (check != null) {
-            var request = RequestChannelmapType.of(check);
+            var request = RequestChannelmapInfo.of(check);
             if (request == null || !request.checkProbe(probe)) return List.of();
         }
 

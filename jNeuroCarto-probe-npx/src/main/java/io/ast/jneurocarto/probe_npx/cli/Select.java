@@ -43,7 +43,7 @@ public final class Select implements Callable<Integer> {
       description = "output channelmap file.")
     Path outputFile;
 
-    @CommandLine.Option(names = {"-s", "--selector"}, paramLabel = "NAME", defaultValue = "default",
+    @CommandLine.Option(names = {"-s", "--selector"}, paramLabel = "NAME",
       description = "use selector")
     String selector;
 
@@ -81,9 +81,17 @@ public final class Select implements Callable<Integer> {
 
         if (listSelectors) {
             printSelectors();
+            System.out.println("use -s=VALUE to choose selector.");
+
             return 0;
         } else if (listOptions) {
-            printOptions(selector);
+            if (selector == null) {
+                printAllOptions();
+            } else {
+                printOptions(selector);
+            }
+            System.out.println("use -ONAME=VALUE to set options.");
+
             return 0;
         } else {
             try {
@@ -96,18 +104,27 @@ public final class Select implements Callable<Integer> {
 
     public void printSelectors() {
         var desp = new NpxProbeDescription();
+        var selectors = desp.getElectrodeSelectors();
         System.out.println("Selector:");
-        desp.getElectrodeSelectors().forEach(name -> {
+        for (String name : selectors) {
             System.out.printf("+ %-8s - %s\n", name, desp.newElectrodeSelector(name).getClass().getName());
-        });
-        System.out.println("use -s=VALUE to choose selector.");
+        }
+    }
+
+    public void printAllOptions() {
+        var desp = new NpxProbeDescription();
+        var selectors = desp.getElectrodeSelectors();
+        for (var selector : selectors) {
+            printOptions(selector);
+            System.out.println();
+        }
     }
 
     public void printOptions(String selectorName) {
         var desp = new NpxProbeDescription();
 
         var selector = desp.newElectrodeSelector(selectorName);
-        System.out.println(selector.getClass().getName());
+        System.out.println(selectorName + " : " + selector.getClass().getName());
 
         var options = selector.getOptions();
         if (options.isEmpty()) {
@@ -116,7 +133,6 @@ public final class Select implements Callable<Integer> {
             options.forEach((name, value) -> {
                 System.out.printf("+ %-8s - %s\n", name, this.options.getOrDefault(name, value));
             });
-            System.out.println("use -ONAME=VALUE to set options.");
         }
     }
 

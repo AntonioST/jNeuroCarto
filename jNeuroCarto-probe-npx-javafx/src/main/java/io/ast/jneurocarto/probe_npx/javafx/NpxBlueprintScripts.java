@@ -3,12 +3,12 @@ package io.ast.jneurocarto.probe_npx.javafx;
 import java.util.Arrays;
 import java.util.function.Function;
 
+import io.ast.jneurocarto.core.RequestChannelmap;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
-import io.ast.jneurocarto.javafx.script.CheckProbe;
 import io.ast.jneurocarto.javafx.script.PyValue;
 import io.ast.jneurocarto.javafx.script.ScriptParameter;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
@@ -17,13 +17,13 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 @BlueprintScript()
-@CheckProbe(probe = NpxProbeDescription.class)
+@RequestChannelmap(probe = NpxProbeDescription.class)
 public final class NpxBlueprintScripts {
 
     @BlueprintScript(value = "npx24_single_shank", description = """
       Make a block channelmap for 4-shank Neuropixels probe.
       """)
-    @CheckProbe(code = "NP24")
+    @RequestChannelmap(code = "NP24")
     public void newNpx24Singleshank(
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "shank", defaultValue = "0",
@@ -36,7 +36,7 @@ public final class NpxBlueprintScripts {
     @BlueprintScript(value = "npx24_stripe", description = """
       Make a block channelmap for 4-shank Neuropixels probe.
       """)
-    @CheckProbe(code = "NP24")
+    @RequestChannelmap(code = "NP24")
     public void npx24Stripe(
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "row", defaultValue = "0",
@@ -105,7 +105,7 @@ public final class NpxBlueprintScripts {
     @BlueprintScript(value = "npx24_half_density", description = """
       Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *half* density.
       """)
-    @CheckProbe(code = "NP24")
+    @RequestChannelmap(code = "NP24")
     public void npx24HalfDensity(
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "shank", type = "int|[int,int]|'selected'", defaultValue = "selected",
@@ -157,7 +157,7 @@ public final class NpxBlueprintScripts {
     @BlueprintScript(value = "npx24_quarter_density", description = """
       Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *quarter* density.
       """)
-    @CheckProbe(code = "NP24")
+    @RequestChannelmap(code = "NP24")
     public void npx24QuarterDensity(
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "shank", type = "int|[int,int]|'selected'|'None'", defaultValue = "None",
@@ -199,7 +199,7 @@ public final class NpxBlueprintScripts {
     @BlueprintScript(value = "npx24_one_eighth_density", description = """
       Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *one-eighth* density.
       """)
-    @CheckProbe(code = "NP24")
+    @RequestChannelmap(code = "NP24")
     public void npx24OneEightDensity(
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "row", defaultValue = "0",
@@ -222,7 +222,7 @@ public final class NpxBlueprintScripts {
     @BlueprintScript(value = "move_blueprint", description = """
       Move blueprint upward or downward.
       """)
-    @CheckProbe(code = "NP24", create = false)
+    @RequestChannelmap(code = "NP24", create = false)
     public void moveShanks(
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "y",
@@ -245,7 +245,7 @@ public final class NpxBlueprintScripts {
     @BlueprintScript(value = "exchange_shank", description = """
       Move blueprint between shanks.
       """)
-    @CheckProbe(code = "NP24", create = false)
+    @RequestChannelmap(code = "NP24", create = false)
     public static class ExchangeShanks implements Runnable {
 
         private final static BlueprintMask[] MASK;

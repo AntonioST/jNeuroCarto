@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.probe_npx.select;
+package io.ast.jneurocarto.probe_npx;
 
 import java.util.List;
 import java.util.Map;
@@ -12,12 +12,11 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
-import io.ast.jneurocarto.probe_npx.ChannelHasBeenUsedException;
-import io.ast.jneurocarto.probe_npx.ChannelMap;
-import io.ast.jneurocarto.probe_npx.Electrode;
-import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
+import io.ast.jneurocarto.core.RequestChannelmap;
 
 @NullMarked
+@ElectrodeSelector.Selector("weaker")
+@RequestChannelmap(probe = NpxProbeDescription.class)
 public class WeakerElectrodeSelector implements ElectrodeSelector {
 
     static final class Probability {

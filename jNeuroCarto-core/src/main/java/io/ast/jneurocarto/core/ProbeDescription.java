@@ -261,20 +261,11 @@ public interface ProbeDescription<T> {
     }
 
     default List<String> getElectrodeSelectors() {
-        var ret = new ArrayList<String>();
-        for (var provider : ServiceLoader.load(ElectrodeSelectorProvider.class)) {
-            ret.addAll(provider.name(this));
-        }
-        return ret;
+        return ProbeProviders.getElectrodeSelectors(this);
     }
 
     default ElectrodeSelector newElectrodeSelector(String name) {
-        for (var provider : ServiceLoader.load(ElectrodeSelectorProvider.class)) {
-            if (provider.name(this).contains(name)) {
-                return provider.newSelector(name);
-            }
-        }
-        throw new IllegalArgumentException("");
+        return ProbeProviders.newElectrodeSelector(this, name);
     }
 
     List<ElectrodeDescription> loadBlueprint(Path file) throws IOException;

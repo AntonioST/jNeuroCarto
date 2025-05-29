@@ -8,6 +8,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
+@ElectrodeSelector.Selector("random")
 public class RandomElectrodeSelector implements ElectrodeSelector {
 
     private boolean ignorePreSelected = false;

@@ -7,9 +7,10 @@ import java.lang.reflect.Method;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.core.RequestChannelmap;
+import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
-import io.ast.jneurocarto.javafx.app.RequestChannelmapType;
 
 @NullMarked
 public final class BlueprintScriptMethodHandle extends BlueprintScriptHandle {
@@ -32,10 +33,10 @@ public final class BlueprintScriptMethodHandle extends BlueprintScriptHandle {
     }
 
     @Override
-    public @Nullable RequestChannelmapType requestChannelmap() {
-        var c1 = declaredClass.getAnnotation(CheckProbe.class);
-        var c2 = declaredMethod.getAnnotation(CheckProbe.class);
-        return RequestChannelmapType.of(c1, c2);
+    public @Nullable RequestChannelmapInfo requestChannelmap() {
+        var c1 = declaredClass.getAnnotation(RequestChannelmap.class);
+        var c2 = declaredMethod.getAnnotation(RequestChannelmap.class);
+        return RequestChannelmapInfo.of(c1, c2);
     }
 
     @Override

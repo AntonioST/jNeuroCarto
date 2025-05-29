@@ -3,10 +3,10 @@
 package io.ast.jneurocarto.script.probe_npx
 
 import java.nio.file.Path
+import io.ast.jneurocarto.core.RequestChannelmap
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit
 import io.ast.jneurocarto.javafx.script.BlueprintScript
-import io.ast.jneurocarto.javafx.script.CheckProbe
 import io.ast.jneurocarto.javafx.script.ScriptParameter
 import io.ast.jneurocarto.probe_npx.ChannelMap
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription
@@ -25,7 +25,7 @@ which follows:
 * extend the full-density zone with half-density zone.
 """
 )
-@CheckProbe(probe = NpxProbeDescription::class, code = "NP24")
+@RequestChannelmap(probe = NpxProbeDescription::class, code = "NP24")
 fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
     toolkit: BlueprintAppToolkit<ChannelMap>,
     @ScriptParameter(value = "filename", description = "a numpy filepath, which shape Array[int, N, (shank, col, row, state, value)]")

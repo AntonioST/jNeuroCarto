@@ -25,7 +25,7 @@ public final class Main implements Runnable {
     @CommandLine.Option(names = "--debug")
     public void debug(boolean value) {
         if (value) {
-            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.probe_npx", "debug");
+            System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
         }
     }
 

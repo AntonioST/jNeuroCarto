@@ -1,15 +1,13 @@
-package io.ast.jneurocarto.javafx.script;
+package io.ast.jneurocarto.core;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import io.ast.jneurocarto.core.ProbeDescription;
-
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CheckProbe {
+public @interface RequestChannelmap {
 
     /**
      * {@return probe family name}
