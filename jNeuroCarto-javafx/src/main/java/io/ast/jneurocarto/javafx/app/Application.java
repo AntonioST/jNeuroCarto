@@ -36,6 +36,7 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ProbeProviders;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.JsonConfig;
 import io.ast.jneurocarto.core.config.Repository;
@@ -1287,7 +1288,7 @@ public class Application<T> {
         long start = System.currentTimeMillis();
         T newMap;
         try {
-            newMap = selector.select(probe, chmap, blueprint);
+            newMap = selector.select(new Blueprint<>(probe, chmap, blueprint));
         } catch (RuntimeException ex) {
             printMessage("selection fail.");
             log.warn("refreshSelection", ex);

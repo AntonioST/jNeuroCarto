@@ -75,7 +75,7 @@ public final class Blueprint<T> {
 
         probe = blueprint.probe;
         this.chmap = chmap;
-        this.blueprint = new int[blueprint.blueprint.length];
+        this.blueprint = blueprint.blueprint.clone();
         shank = blueprint.shank;
         posx = blueprint.posx;
         posy = blueprint.posy;
@@ -105,6 +105,10 @@ public final class Blueprint<T> {
           .orElse(0);
     }
 
+    public ProbeDescription<T> probe() {
+        return probe;
+    }
+
     /**
      * {@return total electrode numbers}
      */
@@ -117,6 +121,10 @@ public final class Blueprint<T> {
      */
     public @Nullable T channelmap() {
         return chmap;
+    }
+
+    public T newChannelmap() {
+        return probe.newChannelmap(Objects.requireNonNull(chmap, "missing channelmap"));
     }
 
     public List<ElectrodeDescription> electrodes() {
@@ -185,7 +193,7 @@ public final class Blueprint<T> {
         return this;
     }
 
-    public Blueprint<T> set(int category, int newCategory) {
+    public Blueprint<T> setTo(int category, int newCategory) {
         if (category != newCategory) {
             for (int i = 0, length = blueprint.length; i < length; i++) {
                 if (blueprint[i] == category) {
@@ -209,14 +217,19 @@ public final class Blueprint<T> {
         return this;
     }
 
+    public Blueprint<T> set(int category, int index) {
+        blueprint[index] = category;
+        return this;
+    }
+
     /**
-     * @param category       electrode category
-     * @param electrodeIndex electrode index array
+     * @param category electrode category
+     * @param index    electrode index array
      * @return
      */
-    public Blueprint<T> set(int category, int[] electrodeIndex) {
-        for (int index : electrodeIndex) {
-            blueprint[index] = category;
+    public Blueprint<T> set(int category, int[] index) {
+        for (int i : index) {
+            blueprint[i] = category;
         }
 
         return this;
@@ -250,7 +263,7 @@ public final class Blueprint<T> {
     }
 
     public Blueprint<T> unset(int category) {
-        return set(category, ProbeDescription.CATE_UNSET);
+        return setTo(category, ProbeDescription.CATE_UNSET);
     }
 
     public Blueprint<T> unset(List<ElectrodeDescription> electrodes) {

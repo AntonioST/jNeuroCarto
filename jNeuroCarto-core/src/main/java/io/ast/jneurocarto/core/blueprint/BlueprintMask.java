@@ -1,7 +1,9 @@
 package io.ast.jneurocarto.core.blueprint;
 
 import java.util.BitSet;
+import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
 
 public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
     public BlueprintMask(int length) {
@@ -27,6 +29,38 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
     @Override
     public boolean test(int value) {
         return mask.get(value);
+    }
+
+    public boolean get(int value) {
+        return mask.get(value);
+    }
+
+    /**
+     * Get the index of the n-th set bit.
+     *
+     * @param n n-th
+     * @return position index. {@code -1} if {@code n} over {@link #count()}
+     */
+    public int getSet(int n) {
+        if (n < 0) throw new IllegalArgumentException();
+        for (int i = nextSetIndex(0), j = 0; i >= 0; i = nextSetIndex(i + 1), j++) {
+            if (j == n) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Get the index of the n-th clear bit.
+     *
+     * @param n n-th
+     * @return position index. {@code -1} if {@code n} over {@link #count()}
+     */
+    public int getClear(int n) {
+        if (n < 0) throw new IllegalArgumentException();
+        for (int i = nextClearIndex(0), j = 0; i >= 0; i = nextClearIndex(i + 1), j++) {
+            if (j == n) return i;
+        }
+        return -1;
     }
 
     public void set(int i) {
@@ -100,20 +134,45 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         return ret;
     }
 
-    public int previousClearBit(int fromIndex) {
+    public BlueprintMask diff(BlueprintMask other) {
+        if (length != other.length) throw new RuntimeException();
+        var ret = new BlueprintMask(this);
+        ret.mask.and(other.mask);
+        ret.mask.flip(0, length);
+        ret.mask.and(this.mask);
+        return ret;
+    }
+
+    public int previousClearIndex(int fromIndex) {
         return mask.previousClearBit(fromIndex);
     }
 
-    public int previousSetBit(int fromIndex) {
+    public int previousSetIndex(int fromIndex) {
         return mask.previousSetBit(fromIndex);
     }
 
-    public int nextClearBit(int fromIndex) {
+    public int nextClearIndex(int fromIndex) {
         return mask.nextClearBit(fromIndex);
     }
 
-    public int nextSetBit(int fromIndex) {
+    public int nextSetIndex(int fromIndex) {
         return mask.nextSetBit(fromIndex);
+    }
+
+    public IntStream stream() {
+        return mask.stream();
+    }
+
+    public void forEach(IntConsumer set) {
+        for (int i = nextSetIndex(0); i >= 0; i = nextSetIndex(i + 1)) {
+            set.accept(i);
+        }
+    }
+
+    public void forEachClear(IntConsumer set) {
+        for (int i = nextClearIndex(0); i >= 0; i = nextClearIndex(i + 1)) {
+            set.accept(i);
+        }
     }
 
     public int[] asElectrodeIndex() {

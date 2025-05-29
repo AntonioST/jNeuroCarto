@@ -1,168 +1,156 @@
 package io.ast.jneurocarto.probe_npx;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.RequestChannelmap;
+import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
 @ElectrodeSelector.Selector("default")
 @RequestChannelmap(probe = NpxProbeDescription.class)
 public class DefaultElectrodeSelector implements ElectrodeSelector {
 
+    private static final int CATE_INVALIDED = Integer.MAX_VALUE;
+
     @Override
-    public <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint) {
-        if (desp instanceof NpxProbeDescription d && chmap instanceof ChannelMap c) {
-            return (T) select(d, c, blueprint);
-        }
-        throw new RuntimeException("unsupported ProbeDescription : " + desp.getClass().getName());
+    public <T> T select(Blueprint<T> blueprint) {
+        var _ = (ChannelMap) blueprint.channelmap();
+        return (T) new Selector((Blueprint<ChannelMap>) blueprint).select();
     }
 
-    public ChannelMap select(NpxProbeDescription desp, ChannelMap chmap, List<ElectrodeDescription> blueprint) {
-        var ret = desp.newChannelmap(chmap);
-        var cand = desp.allElectrodes(chmap).stream().collect(Collectors.toMap(
-          e -> e,
-          e -> e,
-          (_, _) -> {
-              throw new RuntimeException("duplicated electrode");
-          }
-        ));
-        for (var electrode : blueprint) {
-            cand.get(electrode).category(electrode.category());
+    private static class Selector {
+
+        private final NpxProbeType type;
+        private final Blueprint<ChannelMap> blueprint;
+        private final BlueprintToolkit<ChannelMap> tool;
+        private final List<ElectrodeDescription> electrodes;
+
+        Selector(Blueprint<ChannelMap> blueprint) {
+            var chmap = blueprint.channelmap();
+            type = chmap.type();
+            this.blueprint = blueprint;
+            tool = new BlueprintToolkit<>(blueprint);
+            electrodes = blueprint.electrodes();
         }
 
-        for (var electrode : blueprint) {
-            switch (electrode.category()) {
-            case NpxProbeDescription.CATE_SET -> add(desp, ret, cand, electrode);
-            case NpxProbeDescription.CATE_EXCLUDED -> cand.remove(electrode);
+        public ChannelMap select() {
+            var ret = blueprint.newChannelmap();
+
+            tool.mask(ProbeDescription.CATE_SET).forEach(i -> add(ret, i));
+            tool.setTo(ProbeDescription.CATE_EXCLUDED, CATE_INVALIDED);
+
+            return selectLoop(ret);
+        }
+
+        private ChannelMap selectLoop(ChannelMap chmap) {
+            while (tool.count(CATE_INVALIDED) < tool.length()) {
+                var e = pickElectrode();
+                if (e >= 0) {
+                    update(chmap, e);
+                } else {
+                    break;
+                }
+            }
+            return chmap;
+        }
+
+        private int pickElectrode() {
+            int ret;
+            if ((ret = pickElectrode(NpxProbeDescription.CATE_FULL)) >= 0) return ret;
+            if ((ret = pickElectrode(NpxProbeDescription.CATE_HALF)) >= 0) return ret;
+            if ((ret = pickElectrode(NpxProbeDescription.CATE_QUARTER)) >= 0) return ret;
+            if ((ret = pickElectrode(NpxProbeDescription.CATE_LOW)) >= 0) return ret;
+            if ((ret = pickElectrode(NpxProbeDescription.CATE_UNSET)) >= 0) return ret;
+            return -1;
+        }
+
+        private int pickElectrode(int category) {
+            var mask = tool.mask(category);
+            var count = mask.count();
+            if (count == 0) return -1;
+            int pick = (int) (Math.random() * count);
+            return mask.getSet(pick);
+        }
+
+        private void update(ChannelMap chmap, int e) {
+            switch (tool.category(e)) {
+            case NpxProbeDescription.CATE_FULL -> updateD1(chmap, e);
+            case NpxProbeDescription.CATE_HALF -> updateD2(chmap, e);
+            case NpxProbeDescription.CATE_QUARTER -> updateD4(chmap, e);
+            case NpxProbeDescription.CATE_LOW, NpxProbeDescription.CATE_UNSET -> add(chmap, e);
+            default -> throw new RuntimeException("un-reachable");
             }
         }
 
-        return selectLoop(desp, ret, cand);
+        private void updateD1(ChannelMap chmap, int e) {
+            if (e < 0 || tool.category(e) == CATE_INVALIDED) return;
+            add(chmap, e);
 
-    }
-
-    private ChannelMap selectLoop(NpxProbeDescription desp, ChannelMap chmap, Map<ElectrodeDescription, ElectrodeDescription> cand) {
-        while (!cand.isEmpty()) {
-            var e = pickElectrode(cand);
-            if (e == null || e.category() == NpxProbeDescription.CATE_EXCLUDED) {
-                break;
-            }
-            update(desp, chmap, cand, e);
+            add(chmap, get(e, 1, 0));
+            updateD1(chmap, get(e, 0, 1));
+            updateD1(chmap, get(e, 0, -1));
         }
-        return chmap;
-    }
 
-    private @Nullable ElectrodeDescription pickElectrode(Map<ElectrodeDescription, ElectrodeDescription> cand) {
-        if (cand.isEmpty()) return null;
-        ElectrodeDescription ret;
-        if ((ret = pickElectrode(cand, NpxProbeDescription.CATE_FULL)) != null) return ret;
-        if ((ret = pickElectrode(cand, NpxProbeDescription.CATE_HALF)) != null) return ret;
-        if ((ret = pickElectrode(cand, NpxProbeDescription.CATE_QUARTER)) != null) return ret;
-        if ((ret = pickElectrode(cand, NpxProbeDescription.CATE_LOW)) != null) return ret;
-        if ((ret = pickElectrode(cand, NpxProbeDescription.CATE_UNSET)) != null) return ret;
-        return null;
-    }
+        private void updateD2(ChannelMap chmap, int e) {
+            if (e < 0 || tool.category(e) == CATE_INVALIDED) return;
+            add(chmap, e);
 
-    private @Nullable ElectrodeDescription pickElectrode(Map<ElectrodeDescription, ElectrodeDescription> cand, int category) {
-        var found = cand.keySet().stream().filter(e -> e.category() == category).toList();
-        if (found.isEmpty()) return null;
-        int pick = (int) (Math.random() * found.size());
-        return found.get(pick);
-    }
-
-    private void update(NpxProbeDescription desp,
-                        ChannelMap chmap,
-                        Map<ElectrodeDescription, ElectrodeDescription> cand,
-                        ElectrodeDescription electrode) {
-        switch (electrode.category()) {
-        case NpxProbeDescription.CATE_FULL -> updateD1(desp, chmap, cand, electrode);
-        case NpxProbeDescription.CATE_HALF -> updateD2(desp, chmap, cand, electrode);
-        case NpxProbeDescription.CATE_QUARTER -> updateD4(desp, chmap, cand, electrode);
-        case NpxProbeDescription.CATE_LOW, NpxProbeDescription.CATE_UNSET -> add(desp, chmap, cand, electrode);
-        default -> throw new RuntimeException("un-reachable");
+            remove(get(e, 1, 0));
+            remove(get(e, 0, 1));
+            remove(get(e, 0, -1));
+            updateD2(chmap, get(e, 1, 1));
+            updateD2(chmap, get(e, 1, -1));
         }
-    }
 
-    private void updateD1(NpxProbeDescription desp,
-                          ChannelMap chmap,
-                          Map<ElectrodeDescription, ElectrodeDescription> cand,
-                          ElectrodeDescription electrode) {
-        add(desp, chmap, cand, electrode);
+        private void updateD4(ChannelMap chmap, int e) {
+            if (e < 0 || tool.category(e) == CATE_INVALIDED) return;
+            add(chmap, e);
 
-        get(chmap, cand, electrode, 1, 0).ifPresent(e -> add(desp, chmap, cand, e));
-        get(chmap, cand, electrode, 0, 1).ifPresent(e -> updateD1(desp, chmap, cand, e));
-        get(chmap, cand, electrode, 0, -1).ifPresent(e -> updateD1(desp, chmap, cand, e));
-
-    }
-
-    private void updateD2(NpxProbeDescription desp,
-                          ChannelMap chmap,
-                          Map<ElectrodeDescription, ElectrodeDescription> cand,
-                          ElectrodeDescription electrode) {
-        add(desp, chmap, cand, electrode);
-
-        get(chmap, cand, electrode, 1, 0).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 0, 1).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 0, -1).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 1, 1).ifPresent(e -> updateD2(desp, chmap, cand, e));
-        get(chmap, cand, electrode, 1, -1).ifPresent(e -> updateD2(desp, chmap, cand, e));
-    }
-
-    private void updateD4(NpxProbeDescription desp,
-                          ChannelMap chmap,
-                          Map<ElectrodeDescription, ElectrodeDescription> cand,
-                          ElectrodeDescription electrode) {
-        add(desp, chmap, cand, electrode);
-
-        get(chmap, cand, electrode, 1, 0).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 0, 1).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 1, 1).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 0, -1).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 1, -1).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 0, 2).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 0, -2).ifPresent(cand::remove);
-        get(chmap, cand, electrode, 1, 2).ifPresent(e -> updateD4(desp, chmap, cand, e));
-        get(chmap, cand, electrode, 1, -2).ifPresent(e -> updateD4(desp, chmap, cand, e));
-    }
-
-    private void add(NpxProbeDescription desp,
-                     ChannelMap chmap,
-                     Map<ElectrodeDescription, ElectrodeDescription> cand,
-                     ElectrodeDescription electrode) {
-        var added = desp.addElectrode(chmap, electrode);
-        if (added != null) {
-            desp.getInvalidElectrodes(chmap, added, cand.keySet()).forEach(cand::remove);
+            remove(get(e, 1, 0));
+            remove(get(e, 0, 1));
+            remove(get(e, 1, 1));
+            remove(get(e, 0, -1));
+            remove(get(e, 1, -1));
+            remove(get(e, 0, 2));
+            remove(get(e, 0, -2));
+            updateD4(chmap, get(e, 1, 2));
+            updateD4(chmap, get(e, 1, -2));
         }
-    }
 
-    private Optional<ElectrodeDescription> get(ChannelMap chmap,
-                                               Map<ElectrodeDescription, ElectrodeDescription> cand,
-                                               ElectrodeDescription electrode,
-                                               int col,
-                                               int row) {
-        var type = chmap.type();
-        var n = type.nColumnPerShank();
-        var e = (Electrode) electrode.electrode();
-        var s = e.shank;
-        var c = (e.column + col) % n;
-        var r = e.row + row;
-        var g = electrode.category();
-
-        for (var k : cand.keySet()) {
-            var t = (Electrode) k.electrode();
-            if (t.shank == s && t.column == c && t.row == r && k.category() == g) {
-                return Optional.of(k);
+        private void add(ChannelMap chmap, int e) {
+            if (e >= 0) {
+                var electrode = electrodes.get(e);
+                var added = tool.probe().addElectrode(chmap, electrode);
+                tool.set(CATE_INVALIDED, e);
+                if (added != null) {
+                    tool.set(CATE_INVALIDED, tool.invalid(electrodes, electrode));
+                }
             }
         }
-        return Optional.empty();
+
+        private void remove(int remove) {
+            if (remove >= 0) tool.set(CATE_INVALIDED, remove);
+        }
+
+        private int get(int i, int col, int row) {
+            var n = type.nColumnPerShank();
+            var e = (Electrode) electrodes.get(i).electrode();
+            var s = e.shank;
+            var c = (e.column + col) % n;
+            var r = e.row + row;
+
+            var x = s * type.spacePerShank() + c * type.spacePerColumn();
+            var y = r * type.spacePerRow();
+
+            var t = tool.index(s, x, y);
+            if (t >= 0 && tool.category(i) == tool.category(t)) return t;
+            return -1;
+        }
     }
 }

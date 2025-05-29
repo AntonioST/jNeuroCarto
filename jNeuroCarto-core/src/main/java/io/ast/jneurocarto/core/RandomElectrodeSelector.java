@@ -2,15 +2,17 @@ package io.ast.jneurocarto.core;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
 @ElectrodeSelector.Selector("random")
 public class RandomElectrodeSelector implements ElectrodeSelector {
 
+    private static final int CATE_INVALIDED = Integer.MAX_VALUE;
     private boolean ignorePreSelected = false;
     private boolean ignoreExclude = false;
 
@@ -35,58 +37,46 @@ public class RandomElectrodeSelector implements ElectrodeSelector {
     }
 
     @Override
-    public <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint) {
-        var ret = desp.newChannelmap(chmap);
-        var cand = desp.allElectrodes(chmap).stream().collect(Collectors.toMap(
-          e -> e,
-          e -> e,
-          (_, _) -> {
-              throw new RuntimeException("duplicated electrode");
-          }
-        ));
-        for (var electrode : blueprint) {
-            cand.get(electrode).category(electrode.category());
-        }
+    public <T> T select(Blueprint<T> blueprint) {
+        var tool = new BlueprintToolkit<>(blueprint);
+        var ret = blueprint.newChannelmap();
+        var electrodes = blueprint.electrodes();
 
         if (!ignorePreSelected) {
-            for (var electrode : blueprint) {
-                if (electrode.category() == ProbeDescription.CATE_SET) {
-                    add(desp, ret, cand, electrode);
-                }
-            }
+            tool.mask(ProbeDescription.CATE_SET).forEach(i -> add(tool, ret, electrodes, i));
         }
 
-        if (!ignoreExclude) {
-            for (var electrode : blueprint) {
-                if (electrode.category() == ProbeDescription.CATE_EXCLUDED) {
-                    cand.remove(electrode);
-                }
-            }
-        }
-
-        return selectLoop(desp, ret, cand);
+        return selectLoop(tool, ret, electrodes);
     }
 
-    private <T> T selectLoop(ProbeDescription<T> desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand) {
-        while (!cand.isEmpty()) {
-            var e = pickElectrode(cand);
-            if (e != null && !(e.category() == ProbeDescription.CATE_EXCLUDED && ignoreExclude)) {
-                add(desp, chmap, cand, e);
+    private <T> T selectLoop(BlueprintToolkit<T> tool, T chmap, List<ElectrodeDescription> electrodes) {
+        while (tool.count(CATE_INVALIDED) < tool.length()) {
+            var e = pickElectrode(tool);
+            if (e >= 0) {
+                add(tool, chmap, electrodes, e);
             }
         }
         return chmap;
     }
 
-    private @Nullable ElectrodeDescription pickElectrode(Map<ElectrodeDescription, ElectrodeDescription> cand) {
-        if (cand.isEmpty()) return null;
-        int pick = (int) (Math.random() * cand.size());
-        return cand.keySet().stream().skip(pick).findFirst().orElse(null);
+    private int pickElectrode(BlueprintToolkit<?> tool) {
+        var valid = tool.mask(e -> e.c() != CATE_INVALIDED);
+        if (!ignoreExclude) {
+            valid = valid.diff(tool.mask(ProbeDescription.CATE_EXCLUDED));
+        }
+
+        var count = valid.count();
+        if (count == 0) return -1;
+        int pick = (int) (Math.random() * count);
+        return valid.getSet(pick);
     }
 
-    private <T> void add(ProbeDescription<T> desp, T chmap, Map<ElectrodeDescription, ElectrodeDescription> cand, ElectrodeDescription electrode) {
-        var added = desp.addElectrode(chmap, electrode);
+    private <T> void add(BlueprintToolkit<T> tool, T chmap, List<ElectrodeDescription> electrodes, int add) {
+        var e = electrodes.get(add);
+        var added = tool.probe().addElectrode(chmap, e);
+        tool.set(CATE_INVALIDED, add);
         if (added != null) {
-            desp.getInvalidElectrodes(chmap, added, cand.keySet()).forEach(cand::remove);
+            tool.set(CATE_INVALIDED, tool.invalid(electrodes, e));
         }
     }
 }

@@ -77,7 +77,6 @@ public class BlueprintTest {
 
         for (int i = 0, length = b2.blueprint.length; i < length; i++) {
             b2.blueprint[i] = i;
-
         }
 
         assertArrayEquals(new int[]{0, x, 0, x, 0, x, 0, x}, b1.blueprint);

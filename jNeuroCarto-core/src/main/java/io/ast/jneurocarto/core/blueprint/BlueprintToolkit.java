@@ -91,6 +91,10 @@ public class BlueprintToolkit<T> {
         return blueprint.dy;
     }
 
+    public final int category(int index) {
+        return blueprint.blueprint[index];
+    }
+
     /*=================*
      * blueprint array *
      *=================*/
@@ -194,7 +198,7 @@ public class BlueprintToolkit<T> {
         if (dst.length != blueprint.length) throw new RuntimeException();
         if (dst.length != mask.length()) throw new RuntimeException();
         if (dst != blueprint) {
-            for (int i = mask.nextSetBit(0); i >= 0; i = mask.nextSetBit(i + 1)) {
+            for (int i = mask.nextSetIndex(0); i >= 0; i = mask.nextSetIndex(i + 1)) {
                 dst[i] = blueprint[i];
             }
         }
@@ -208,12 +212,12 @@ public class BlueprintToolkit<T> {
         if (writeMask.count() != readMask.count()) throw new RuntimeException();
 
         if (dst != blueprint) {
-            int i = writeMask.nextSetBit(0);
-            int j = readMask.nextSetBit(0);
+            int i = writeMask.nextSetIndex(0);
+            int j = readMask.nextSetIndex(0);
             while (i >= 0) {
                 dst[i] = blueprint[j];
-                i = writeMask.nextSetBit(i + 1);
-                j = readMask.nextSetBit(j + 1);
+                i = writeMask.nextSetIndex(i + 1);
+                j = readMask.nextSetIndex(j + 1);
             }
         }
     }
@@ -266,12 +270,15 @@ public class BlueprintToolkit<T> {
         blueprint.set(category);
     }
 
-    public final void set(int category, int newCategory) {
-        blueprint.set(category, newCategory);
+    public final void setTo(int category, int newCategory) {
+        blueprint.setTo(category, newCategory);
     }
-
     public final void set(int category, List<ElectrodeDescription> electrodes) {
         blueprint.set(category, electrodes);
+    }
+
+    public final void set(int category, int index) {
+        blueprint.set(category, index);
     }
 
     public final void set(int category, int[] index) {
@@ -517,9 +524,39 @@ public class BlueprintToolkit<T> {
         return blueprint.stream().filter(filter);
     }
 
+    /**
+     * get invalid electrode index array for given electrode.
+     *
+     * @param electrode electrode index.
+     * @return electrode index array.
+     */
     public int[] invalid(int electrode) {
         var electrodes = electrodes();
         var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrodes.get(electrode), electrodes);
+        return index(invalid);
+    }
+
+    /**
+     * get invalid electrode index array for given electrode.
+     *
+     * @param electrodes restrict subset of electrodes
+     * @param index      test electrode index of {@code electrodes}
+     * @return electrode index array (domain use all electrode set instead of {@code electrodes}).
+     */
+    public int[] invalid(List<ElectrodeDescription> electrodes, int index) {
+        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrodes.get(index), electrodes);
+        return index(invalid);
+    }
+
+    /**
+     * get invalid electrode index array for given electrode.
+     *
+     * @param electrodes restrict subset of electrodes
+     * @param electrode  test electrode
+     * @return electrode index array (domain use all electrode set instead of {@code electrodes}).
+     */
+    public int[] invalid(List<ElectrodeDescription> electrodes, ElectrodeDescription electrode) {
+        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrode, electrodes);
         return index(invalid);
     }
 
@@ -585,6 +622,10 @@ public class BlueprintToolkit<T> {
     public int count(int[] blueprint, int category, BlueprintMask mask) {
         if (blueprint.length != mask.length()) throw new RuntimeException();
         return mask(blueprint, category).and(mask).count();
+    }
+
+    public final int count(Predicate<Electrode> picker) {
+        return (int) filter(picker).count();
     }
 
 
@@ -1723,7 +1764,7 @@ public class BlueprintToolkit<T> {
     public double[] get(double[] data, BlueprintMask mask) {
         if (data.length != mask.length()) throw new RuntimeException();
         var ret = new double[mask.count()];
-        for (int i = mask.nextSetBit(0), j = 0; i >= 0; i = mask.nextSetBit(i + 1), j++) {
+        for (int i = mask.nextSetIndex(0), j = 0; i >= 0; i = mask.nextSetIndex(i + 1), j++) {
             ret[j] = data[i];
         }
         return ret;
@@ -1740,33 +1781,34 @@ public class BlueprintToolkit<T> {
      * <br/>
      * If an index out of array boundary, it is ignored.
      *
-     * @param a double array
-     * @param i {@code a} indexed array
-     * @param v value
+     * @param data double array
+     * @param i    {@code a} indexed array
+     * @param v    value
      * @return {@code a} itself.
      */
-    public double[] set(double[] a, int[] i, double v) {
+    public double[] set(double[] data, int[] i, double v) {
         for (int j = 0, length = i.length; j < length; j++) {
             var k = i[j];
             if (k >= 0 && k < length) {
-                a[k] = v;
+                data[k] = v;
             }
         }
-        return a;
+        return data;
     }
 
-    public double[] set(double[] a, T chmap, double v) {
-        return set(a, blueprint.probe.allChannels(chmap), v);
+
+    public double[] set(double[] data, T chmap, double v) {
+        return set(data, blueprint.probe.allChannels(chmap), v);
     }
 
-    public double[] set(double[] a, List<ElectrodeDescription> e, double v) {
+    public double[] set(double[] data, List<ElectrodeDescription> e, double v) {
         for (var k : e) {
             var i = index(k.s(), k.x(), k.y());
-            if (i >= 0 && i < a.length) {
-                a[i] = v;
+            if (i >= 0 && i < data.length) {
+                data[i] = v;
             }
         }
-        return a;
+        return data;
     }
 
 
@@ -1775,21 +1817,21 @@ public class BlueprintToolkit<T> {
      * <br/>
      * If an index out of array boundary, it is ignored.
      *
-     * @param a
+     * @param data
      * @param i
      * @param v
      * @return {@code a} itself
      * @throws IllegalArgumentException the length of {@code i} and {@code v} does not agree.
      */
-    public double[] set(double[] a, int[] i, double[] v) {
+    public double[] set(double[] data, int[] i, double[] v) {
         if (i.length != v.length) throw new IllegalArgumentException();
         for (int j = 0, length = i.length; j < length; j++) {
             var k = i[j];
             if (k >= 0 && k < length) {
-                a[k] = v[j];
+                data[k] = v[j];
             }
         }
-        return a;
+        return data;
     }
 
     /**
@@ -1797,7 +1839,7 @@ public class BlueprintToolkit<T> {
      * <br/>
      * If an index out of array boundary, it is ignored.
      *
-     * @param a      double array
+     * @param data   double array
      * @param i      {@code a} indexed array
      * @param offset start index of {@code i}
      * @param length
@@ -1806,7 +1848,7 @@ public class BlueprintToolkit<T> {
      * @throws IllegalArgumentException       when negative {@code length}
      * @throws ArrayIndexOutOfBoundsException {@code offset} and {@code length} out of {@code i}'s bounds.
      */
-    public double[] set(double[] a, int[] i, int offset, int length, double v) {
+    public double[] set(double[] data, int[] i, int offset, int length, double v) {
         if (length < 0) throw new IllegalArgumentException();
         var _ = i[offset];
         var _ = i[offset + length - 1];
@@ -1814,43 +1856,41 @@ public class BlueprintToolkit<T> {
         for (int j = 0; j < length; j++) {
             var k = i[j + offset];
             if (k >= 0 && k < length) {
-                a[k] = v;
+                data[k] = v;
             }
         }
-        return a;
+        return data;
     }
 
 
-    public double[] set(double[] a, BlueprintMask mask, double v) {
-        if (a.length != mask.length()) throw new RuntimeException();
-        for (int i = mask.nextSetBit(0); i >= 0; i = mask.nextSetBit(i + 1)) {
-            a[i] = v;
-        }
-        return a;
+    public double[] set(double[] data, BlueprintMask mask, double v) {
+        if (data.length != mask.length()) throw new RuntimeException();
+        mask.forEach(i -> data[i] = v);
+        return data;
     }
 
-    public double[] set(double[] a, BlueprintMask mask, double[] v) {
-        if (a.length != mask.length()) throw new RuntimeException();
+    public double[] set(double[] data, BlueprintMask mask, double[] v) {
+        if (data.length != mask.length()) throw new RuntimeException();
         if (v.length != mask.count()) throw new RuntimeException();
-        for (int i = mask.nextSetBit(0), j = 0; i >= 0; i = mask.nextSetBit(i + 1), j++) {
-            a[i] = v[j];
+        for (int i = mask.nextSetIndex(0), j = 0; i >= 0; i = mask.nextSetIndex(i + 1), j++) {
+            data[i] = v[j];
         }
-        return a;
+        return data;
     }
 
-    public double[] set(double[] a, BlueprintMask writeMask, double[] v, BlueprintMask readMask) {
-        if (a.length != writeMask.length()) throw new RuntimeException();
+    public double[] set(double[] data, BlueprintMask writeMask, double[] v, BlueprintMask readMask) {
+        if (data.length != writeMask.length()) throw new RuntimeException();
         if (v.length != readMask.length()) throw new RuntimeException();
         if (writeMask.count() != readMask.count()) throw new RuntimeException();
 
-        int i = writeMask.nextSetBit(0);
-        int j = readMask.nextSetBit(0);
+        int i = writeMask.nextSetIndex(0);
+        int j = readMask.nextSetIndex(0);
         while (i >= 0) {
-            a[i] = v[j];
-            i = writeMask.nextSetBit(i + 1);
-            j = writeMask.nextSetBit(j + 1);
+            data[i] = v[j];
+            i = writeMask.nextSetIndex(i + 1);
+            j = writeMask.nextSetIndex(j + 1);
         }
-        return a;
+        return data;
     }
 
 
@@ -1859,14 +1899,14 @@ public class BlueprintToolkit<T> {
      * <br/>
      * If an index out of array boundary, it is ignored.
      *
-     * @param a      double array
+     * @param data   double array
      * @param i      {@code a} indexed array
      * @param offset
      * @param length
      * @param oper   value operator
      * @return {@code a} itself.
      */
-    public double[] set(double[] a, int[] i, int offset, int length, DoubleUnaryOperator oper) {
+    public double[] set(double[] data, int[] i, int offset, int length, DoubleUnaryOperator oper) {
         if (length < 0) throw new IllegalArgumentException();
         var _ = i[offset];
         var _ = i[offset + length - 1];
@@ -1874,10 +1914,10 @@ public class BlueprintToolkit<T> {
         for (int j = 0; j < length; j++) {
             var k = i[j + offset];
             if (k >= 0 && k < length) {
-                a[k] = oper.applyAsDouble(a[k]);
+                data[k] = oper.applyAsDouble(data[k]);
             }
         }
-        return a;
+        return data;
     }
 
     public enum InterpolateMethod {

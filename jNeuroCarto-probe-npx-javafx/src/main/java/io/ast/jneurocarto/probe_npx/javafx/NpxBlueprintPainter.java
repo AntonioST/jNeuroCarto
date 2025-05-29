@@ -60,7 +60,7 @@ public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
     }
 
     private void plotDefaultBlueprint(BlueprintPaintingHandle<ChannelMap> handle) {
-        handle.blueprint().set(CATE_SET, CATE_FULL);
+        handle.blueprint().setTo(CATE_SET, CATE_FULL);
     }
 
     private void setConflictBlueprint(BlueprintToolkit<ChannelMap> blueprint) {

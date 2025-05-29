@@ -222,7 +222,7 @@ public final class Select implements Callable<Integer> {
                                        List<ElectrodeDescription> blueprint,
                                        ElectrodeSelector selector) {
         if (sampleTimes == 0) {
-            return selector.select(desp, chmap, blueprint);
+            return selector.select(new Blueprint<>(desp, chmap, blueprint));
         } else {
             log.debug("selectBestEfficiencyResult(sampleTimes={}, parallel={})", sampleTimes, parallelCore);
             return ChannelMaps.selectBestEfficiencyResult(chmap, blueprint, selector, sampleTimes, parallelCore);

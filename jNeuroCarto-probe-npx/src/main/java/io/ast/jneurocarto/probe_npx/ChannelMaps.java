@@ -374,7 +374,7 @@ public final class ChannelMaps {
 
             for (int i = 0; i < sampleTimes; i++) {
                 scope.fork(() -> {
-                    var newMap = selector.select(desp, chmap, blueprint);
+                    var newMap = selector.select(new Blueprint<>(bp));
                     if (desp.validateChannelmap(newMap)) {
                         var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
                         return new Result(newMap, efficiency);
@@ -519,10 +519,10 @@ public final class ChannelMaps {
             var tool = new BlueprintToolkit<>(bp);
 
             scope.fork(() -> {
-                var newMap = selector.select(desp, chmap, blueprint);
+                var newMap = selector.select(new Blueprint<>(bp));
                 var index = tool.index(newMap);
                 var complete = desp.validateChannelmap(newMap);
-                var efficiency = channelEfficiency(bp).efficiency();
+                var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
                 return new Result(index, complete, efficiency);
             });
 
