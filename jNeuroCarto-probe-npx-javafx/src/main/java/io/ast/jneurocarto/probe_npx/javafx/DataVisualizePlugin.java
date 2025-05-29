@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.beans.property.*;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.stage.FileChooser;
@@ -74,6 +71,17 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         if (value % 2 != 1) throw new IllegalArgumentException();
         interpolateProperty.set(value);
     }
+
+    private final BooleanProperty dataShowProperty = new SimpleBooleanProperty(true);
+
+    public final ReadOnlyBooleanProperty dataShowProperty() {
+        return dataShowProperty;
+    }
+
+    public final boolean isDataShowing() {
+        return dataShowProperty.get();
+    }
+
 
     /*=================*
      * state load/save *
@@ -160,6 +168,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     public void clearData() {
         foreground.clearGraphics();
         foreground.repaint();
+        dataShowProperty.set(false);
     }
 
     public void updateDataImage() {
@@ -184,6 +193,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
         updateDataImage(data);
     }
+
     public void updateDataImage(double[] data) {
         foreground.clearGraphics();
 
@@ -215,6 +225,8 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         toolkit.stream(data).forEach(e -> {
             matrix[e.s()].addData((double) e.x() / pc, (double) e.y() / pr, e.v());
         });
+
+        dataShowProperty.set(true);
     }
 
     @Override

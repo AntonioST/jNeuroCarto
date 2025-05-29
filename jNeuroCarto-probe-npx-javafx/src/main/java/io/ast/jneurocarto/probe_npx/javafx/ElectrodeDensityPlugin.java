@@ -1,6 +1,5 @@
 package io.ast.jneurocarto.probe_npx.javafx;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,7 +17,6 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XYPath;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.probe_npx.ChannelMap;
@@ -29,8 +27,6 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
 
     private ProbeView<?> canvas;
     private InteractionXYPainter painter;
-    private XYPath @Nullable [] baseline;
-    private XYPath @Nullable [] curves;
 
     /**
      * ChannelMap cache.
@@ -124,7 +120,16 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
         }
     }
 
+    private void updateXYData() {
+        var chmap = this.chmap;
+        var density = this.density;
+        if (chmap == null || density == null) return;
+        updateXYData(chmap, density);
+    }
+
     private void updateXYData(ChannelMap chmap, double[][] density) {
+        painter.clearGraphics();
+
         var ps = chmap.type().spacePerShank();
         var pc = chmap.type().spacePerColumn();
         var spacing = getSpacing();
@@ -132,37 +137,29 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
         var nShank = density.length;
         var length = density[0].length;
 
-        if (curves != null) painter.removeGraphics(Arrays.asList(curves));
-        if (baseline != null) painter.removeGraphics(Arrays.asList(baseline));
-        if (curves == null || curves.length < nShank) curves = new XYPath[nShank];
-        if (baseline == null || baseline.length < nShank) baseline = new XYPath[nShank];
-
         for (int shank = 0; shank < nShank; shank++) {
-            var path = new XYPath();
-            baseline[shank] = path;
-            painter.addGraphics(path);
-
-            path.line(Color.BLUE);
-            path.linewidth(1);
-            path.alpha(0.5);
             var zero = shank * ps + 2 * pc;
-            path.addData(zero, 0);
-            path.addData(zero, length * spacing);
+            painter.lines()
+              .z(5)
+              .line(Color.BLUE)
+              .linewidth(1)
+              .alpha(0.5)
+              .addPoint(zero, 0)
+              .addPoint(zero, length * spacing);
         }
 
         for (int shank = 0; shank < nShank; shank++) {
-            var path = new XYPath();
-            curves[shank] = path;
-            painter.addGraphics(path);
-
-            path.line(Color.BLUE);
-            path.linewidth(1);
-            path.clearData();
+            var builder = painter.lines()
+              .z(10)
+              .line(Color.BLUE)
+              .linewidth(1)
+              .alpha(1);
 
             var zero = shank * ps + 2 * pc;
             var curve = density[shank];
+
             for (int i = 0; i < length; i++) {
-                path.addData(zero + curve[i] * ps, i * spacing);
+                builder.addPoint(zero + curve[i] * ps / 2, i * spacing);
             }
         }
     }

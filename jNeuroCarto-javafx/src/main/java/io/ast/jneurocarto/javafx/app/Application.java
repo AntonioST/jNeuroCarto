@@ -645,7 +645,10 @@ public class Application<T> {
                     // add unnamed plugin, which is un-removable.
                     if (provide.name().length == 0) {
                         iter.remove();
-                        setupPlugin(service, provide);
+                        var info = initPlugin(service, provide);
+                        if (info != null) {
+                            plugins.add(info);
+                        }
                     }
                 }
 
@@ -668,29 +671,46 @@ public class Application<T> {
 
         for (var rule : extra) {
             for (var provide : service.filterPluginByNameRule(found, rule)) {
-                setupPlugin(service, provide);
+                var info = initPlugin(service, provide);
+                if (info != null) {
+                    plugins.add(info);
+                }
             }
+        }
+
+        for (var info : plugins) {
+            setupPlugin(service, info);
         }
     }
 
-    private void setupPlugin(PluginSetupService service, PluginSetupService.PluginInfo provide) {
+    private @Nullable PluginInfo initPlugin(PluginSetupService service, PluginSetupService.PluginInfo provide) {
         var cls = provide.plugin();
 
         if (!provide.provider().filterPlugin(service, cls)) {
             log.debug("plugin rejected : {}", cls.getName());
         } else {
             try {
-                log.debug("add plugin : {}", cls.getName());
+                log.debug("init plugin : {}", cls.getName());
                 var plugin = service.loadPlugin(provide);
-                this.plugins.add(new PluginInfo(plugin, provide));
+                return new PluginInfo(plugin, provide);
+            } catch (Throwable e) {
+                log.warn("init fail", e);
+            }
+        }
 
+        return null;
+    }
+
+    private void setupPlugin(PluginSetupService service, PluginInfo provide) {
+        if (provide.instance instanceof Plugin plugin) {
+            try {
                 service.bind(plugin);
 
-                log.debug("setup plugin {}", cls.getSimpleName());
+                log.debug("setup plugin {}", plugin.getClass().getSimpleName());
                 var start = System.currentTimeMillis();
                 var node = plugin.setup(service);
                 var cost = System.currentTimeMillis() - start;
-                log.debug("setup plugin {}, cost {} ms", cls.getSimpleName(), cost);
+                log.debug("setup plugin {}, cost {} ms", plugin.getClass().getSimpleName(), cost);
 
                 if (node != null) {
                     pluginLayout.getChildren().add(node);
