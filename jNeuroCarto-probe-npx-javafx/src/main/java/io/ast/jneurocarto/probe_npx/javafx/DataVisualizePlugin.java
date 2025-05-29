@@ -11,6 +11,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.MenuItem;
 import javafx.stage.FileChooser;
 
 import org.jspecify.annotations.Nullable;
@@ -22,9 +24,11 @@ import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
+import io.ast.jneurocarto.javafx.app.dialog.ColormapChooseDialog;
 import io.ast.jneurocarto.javafx.chart.Colormap;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYMatrix;
+import io.ast.jneurocarto.javafx.chart.XYSeries;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.AbstractImagePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
@@ -33,13 +37,11 @@ import io.ast.jneurocarto.probe_npx.ChannelMap;
 
 public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlugin<ChannelMap>, StateView<DataVisualizeState> {
 
-    private InteractionXYPainter foreground;
-    private XYMatrix[] matrix;
-
     /**
      * ChannelMap cache.
      */
     private @Nullable ChannelMap chmap;
+    private double[] data;
 
     private final Logger log = LoggerFactory.getLogger(DataVisualizePlugin.class);
 
@@ -56,6 +58,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
      * properties *
      *============*/
 
+    private @Nullable Colormap colormap;
     public final StringProperty colormapProperty = new SimpleStringProperty("plasma");
 
     public final String getColormap() {
@@ -107,26 +110,26 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
      * UI layout *
      *===========*/
 
+    private InteractionXYPainter foreground;
+
     @Override
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
         var ret = super.setup(service);
 
         foreground = canvas.getForegroundPainter();
-        colormapProperty.addListener((_, _, cmap) -> {
-            var matrix = this.matrix;
-            if (matrix != null) {
-                var cm = Colormap.of(cmap);
-                for (XYMatrix m : matrix) {
-                    if (m != null) {
-                        m.colormap(cm);
-                    }
-                }
+        colormapProperty.addListener((_, _, _) -> {
+            if (data != null) {
+                updateDataImage(data);
+                foreground.repaint();
             }
-            foreground.repaint();
         });
         foreground.visible.bindBidirectional(showImageProperty);
         foreground.visible.addListener((_, _, e) -> foreground.repaint());
+
+        var setColormap = new MenuItem("Set data colormap");
+        setColormap.setOnAction(this::onSetColormap);
+        service.addMenuInView(setColormap);
 
         return ret;
     }
@@ -147,6 +150,33 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
     protected void onClearData(ActionEvent e) {
         clearData();
+    }
+
+    private void onSetColormap(ActionEvent e) {
+        log.debug("onSetColormap");
+        var oldColormap = this.colormap;
+        var initcolormap = oldColormap != null ? oldColormap : Colormap.of(colormapProperty.get());
+
+        var dialog = new ColormapChooseDialog("Data Visualize", initcolormap);
+        dialog.colormapProperty.addListener((_, _, colormap) -> {
+            log.debug("onSetColormap {}", colormap);
+            this.colormap = colormap;
+            if (data != null) {
+                updateDataImage(data);
+                foreground.repaint();
+            }
+        });
+
+        dialog.showAndWait().ifPresent(r -> {
+            if (r.getButtonData() == ButtonBar.ButtonData.CANCEL_CLOSE) {
+                log.debug("onSetColormap cancel");
+                this.colormap = oldColormap;
+                if (data != null) {
+                    updateDataImage(data);
+                    foreground.repaint();
+                }
+            }
+        });
     }
 
     /*================*
@@ -193,6 +223,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     }
 
     public void updateDataImage(double[] data) {
+        this.data = data;
         foreground.clearGraphics();
 
         var chmap = this.chmap;
@@ -200,10 +231,18 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
         var type = chmap.type();
         var nShank = type.nShank();
-        if (matrix == null || matrix.length < nShank) matrix = new XYMatrix[nShank];
+        var matrix = new XYMatrix[nShank];
 
         var toolkit = BlueprintAppToolkit.newToolkit();
-        var cmap = colormapProperty.get();
+
+        Colormap colormap;
+        var updateNormalize = false;
+        if (this.colormap != null) {
+            colormap = this.colormap;
+        } else {
+            colormap = Colormap.of(colormapProperty.get());
+            updateNormalize = true;
+        }
 
         var ps = type.spacePerShank();
         var pc = type.spacePerColumn();
@@ -215,7 +254,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         for (int shank = 0; shank < nShank; shank++) {
             matrix[shank] = foreground.imshow()
               .extent(ps * shank - w - pc, 0, w, h)
-              .colormap(cmap)
+              .colormap(colormap)
               .z(-1)
               .graphics();
         }
@@ -223,6 +262,11 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         toolkit.stream(data).forEach(e -> {
             matrix[e.s()].addData((double) e.x() / pc, (double) e.y() / pr, e.v());
         });
+
+        if (updateNormalize) {
+            var norm = XYSeries.renormalize(matrix);
+            this.colormap = colormap.withNormalize(norm);
+        }
     }
 
     @Override
