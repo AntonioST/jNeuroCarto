@@ -28,7 +28,7 @@ names = [
 
 print(f"""\
 \"""
-Generate by {__file__}. 
+Generate by matplotlib_color_maps.py
 \"""
 """)
 for name in names:

@@ -1,5 +1,5 @@
 """
-Generate by /home/antonio/intellijidea/Java/jNeuroCarto/jNeuroCarto-javafx/bin/matplotlib_color_maps.py. 
+Generate by matplotlib_color_maps.py
 """
 
 Accent = [
@@ -2408,3 +2408,4 @@ YlOrRd = [
    0.9600, 0.5770, 0.0000, 0.1490,
    1.0000, 0.5020, 0.0000, 0.1490,
 ]
+
