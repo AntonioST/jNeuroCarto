@@ -1,6 +1,6 @@
 @file:BlueprintScript()
 
-package io.ast.jneurocarto.probe_npx.javafx.script
+package io.ast.jneurocarto.script.probe_npx
 
 import java.nio.file.Path
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit
@@ -9,6 +9,7 @@ import io.ast.jneurocarto.javafx.script.CheckProbe
 import io.ast.jneurocarto.javafx.script.ScriptParameter
 import io.ast.jneurocarto.probe_npx.ChannelMap
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription
+import io.ast.jneurocarto.probe_npx.javafx.DataVisualizePlugin
 import io.ast.jneurocarto.script.*
 
 @BlueprintScript(
@@ -46,6 +47,12 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
     val X = NpxProbeDescription.CATE_EXCLUDED
 
     toolkit.printLogMessage("min=${data.min()}, max=${data.max()}")
+
+    toolkit.getPlugin(DataVisualizePlugin::class.java)?.let { plugin ->
+        plugin.file = filename
+        plugin.updateDataImage()
+        plugin.repaint()
+    }
 
     toolkit.clear()
     toolkit[isnan(data)] = X

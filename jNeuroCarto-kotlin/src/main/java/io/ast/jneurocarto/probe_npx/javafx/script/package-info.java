@@ -1,1 +1,0 @@
-package io.ast.jneurocarto.probe_npx.javafx.script;

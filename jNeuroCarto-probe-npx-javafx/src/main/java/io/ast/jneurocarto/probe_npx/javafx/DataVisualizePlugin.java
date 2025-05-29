@@ -140,26 +140,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     }
 
     protected void onDrawData(ActionEvent e) {
-        var file = fileProperty.get();
-        if (file == null) return;
-
-        double[] data;
-
-        var toolkit = BlueprintAppToolkit.newToolkit();
-
-        try {
-            data = toolkit.loadBlueprintData(file);
-        } catch (IOException ex) {
-            log.warn("loadBlueprintData", ex);
-            return;
-        }
-
-        var kernal = interpolateProperty.get();
-        if (kernal > 1) {
-            data = toolkit.interpolateNaN(data, kernal, BlueprintToolkit.InterpolateMethod.mean);
-        }
-
-        updateDataImage(data);
+        updateDataImage();
         foreground.repaint();
     }
 
@@ -181,6 +162,28 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         foreground.repaint();
     }
 
+    public void updateDataImage() {
+        var file = fileProperty.get();
+        if (file == null) return;
+
+        double[] data;
+
+        var toolkit = BlueprintAppToolkit.newToolkit();
+
+        try {
+            data = toolkit.loadBlueprintData(file);
+        } catch (IOException ex) {
+            log.warn("loadBlueprintData", ex);
+            return;
+        }
+
+        var kernal = interpolateProperty.get();
+        if (kernal > 1) {
+            data = toolkit.interpolateNaN(data, kernal, BlueprintToolkit.InterpolateMethod.mean);
+        }
+
+        updateDataImage(data);
+    }
     public void updateDataImage(double[] data) {
         foreground.clearGraphics();
 

@@ -632,10 +632,10 @@ public class Application<T> {
         // load plugin providers
         for (var provider : ServiceLoader.load(PluginProvider.class)) {
             log.debug("found provider {}.", provider.getClass().getName());
+            providers.add(provider);
 
             var provides = new ArrayList<>(service.getProvidePlugins(provider, probe));
             if (!provides.isEmpty()) {
-                providers.add(provider);
 
                 var iter = provides.iterator();
                 while (iter.hasNext()) {
