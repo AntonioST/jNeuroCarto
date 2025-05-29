@@ -678,44 +678,58 @@ public class Application<T> {
             }
         }
 
-        for (var info : plugins) {
-            setupPlugin(service, info);
+        try {
+            for (var info : plugins) {
+                setupPlugin(service, info);
+            }
+        } finally {
+            service.dispose();
         }
     }
 
     private @Nullable PluginInfo initPlugin(PluginSetupService service, PluginSetupService.PluginInfo provide) {
         var cls = provide.plugin();
-
         if (!provide.provider().filterPlugin(service, cls)) {
             log.debug("plugin rejected : {}", cls.getName());
-        } else {
-            try {
-                log.debug("init plugin : {}", cls.getName());
-                var plugin = service.loadPlugin(provide);
-                return new PluginInfo(plugin, provide);
-            } catch (Throwable e) {
-                log.warn("init fail", e);
-            }
+            return null;
         }
 
-        return null;
+        Plugin instance;
+
+        try {
+            instance = initPlugin(service, provide.plugin());
+        } catch (Throwable e) {
+            log.warn("init fail", e);
+            return null;
+        }
+
+        return new PluginInfo(instance, provide);
+    }
+
+    private <P extends Plugin> P initPlugin(PluginSetupService service, Class<P> plugin) throws Throwable {
+        log.debug("init plugin : {}", plugin.getName());
+        return service.loadPlugin(plugin);
     }
 
     private void setupPlugin(PluginSetupService service, PluginInfo provide) {
         if (provide.instance instanceof Plugin plugin) {
-            try {
-                service.bind(plugin);
+            service.bind(plugin);
 
-                log.debug("setup plugin {}", plugin.getClass().getSimpleName());
-                var start = System.currentTimeMillis();
+            var name = plugin.getClass().getSimpleName();
+            log.debug("setup plugin {}", name);
+            var start = System.currentTimeMillis();
+
+            try {
                 var node = plugin.setup(service);
                 var cost = System.currentTimeMillis() - start;
-                log.debug("setup plugin {}, cost {} ms", plugin.getClass().getSimpleName(), cost);
+                log.debug("setup plugin {}, cost {} ms", name, cost);
 
                 if (node != null) {
                     pluginLayout.getChildren().add(node);
                 }
             } catch (Throwable e) {
+                var cost = System.currentTimeMillis() - start;
+                log.debug("setup plugin {} fail, cost {} ms", name, cost);
                 log.warn("setup fail", e);
             } finally {
                 service.unbind();
@@ -735,6 +749,35 @@ public class Application<T> {
             if (plugin.match(cls)) return (P) plugin.instance();
         }
         return null;
+    }
+
+    public <P extends Plugin> P addPlugin(Class<P> plugin) throws Throwable {
+        var service = new PluginSetupService(this);
+
+        var instance = initPlugin(service, plugin);
+
+        var info = new PluginInfo(instance);
+        plugins.add(info);
+
+        try {
+            setupPlugin(service, info);
+        } finally {
+            service.dispose();
+        }
+
+        return instance;
+    }
+
+    public void addPlugin(Plugin plugin) {
+        var info = new PluginInfo(plugin);
+        plugins.add(info);
+
+        var service = new PluginSetupService(this);
+        try {
+            setupPlugin(service, info);
+        } finally {
+            service.dispose();
+        }
     }
 
     /*================*

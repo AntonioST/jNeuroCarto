@@ -32,7 +32,6 @@ public final class PluginSetupService {
 
     private @Nullable Application<?> app;
     private @Nullable Plugin plugin;
-    private List<PluginSetupService> subServices = new ArrayList<>();
 
     PluginSetupService(Application<?> app) {
         this.app = app;
@@ -53,10 +52,6 @@ public final class PluginSetupService {
     void dispose() {
         app = null;
         plugin = null;
-
-        for (var service : subServices) {
-            service.dispose();
-        }
     }
 
     private Application<?> checkApplication() {
@@ -201,31 +196,30 @@ public final class PluginSetupService {
                          || Arrays.stream(plugin.name()).anyMatch(tester);
     }
 
-    <P extends Plugin> P loadPlugin(PluginInfo plugin) throws Throwable {
-        Class<P> cls = (Class<P>) plugin.plugin();
+    <P extends Plugin> P loadPlugin(Class<P> plugin) throws Throwable {
 
         Constructor<P> ctor = null;
 
         try {
-            ctor = cls.getConstructor(PluginSetupService.class);
+            ctor = plugin.getConstructor(PluginSetupService.class);
         } catch (NoSuchMethodException e) {
         }
 
         if (ctor != null) {
-            return loadPlugin(plugin, ctor);
+            return loadPlugin(ctor);
         }
 
-        for (var c : cls.getConstructors()) {
+        for (var c : plugin.getConstructors()) {
             try {
-                return loadPlugin(plugin, (Constructor<P>) c);
+                return loadPlugin((Constructor<P>) c);
             } catch (Throwable e) {
             }
         }
 
-        throw new RuntimeException("cannot initialize plugin : " + cls.getName());
+        throw new RuntimeException("cannot initialize plugin : " + plugin.getName());
     }
 
-    <P extends Plugin> P loadPlugin(PluginInfo plugin, Constructor<P> ctor) throws Throwable {
+    <P extends Plugin> P loadPlugin(Constructor<P> ctor) throws Throwable {
         var ps = ctor.getParameters();
         var os = new Object[ps.length];
         for (int i = 0, length = ps.length; i < length; i++) {
