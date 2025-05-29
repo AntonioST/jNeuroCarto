@@ -1,6 +1,5 @@
 package io.ast.jneurocarto.javafx.chart;
 
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -9,8 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Application {
+
+
     public interface ApplicationContent {
         default void setup(Scene scene) {
+        }
+
+        default void setup(VBox layout) {
         }
 
         void setup(InteractionXYChart chart);
@@ -29,6 +33,7 @@ public class Application {
 
     private Stage stage;
     private Scene scene;
+    private VBox layout;
     private InteractionXYChart chart;
 
     public void start(Stage stage) {
@@ -36,19 +41,23 @@ public class Application {
         log.debug("start");
         stage.setTitle("InteractionXYChart");
         stage.setScene(scene());
+
+        content.setup(layout);
+        content.setup(scene);
+
         stage.sizeToScene();
         stage.show();
 
-        content.setup(scene);
         content.setup(chart);
     }
 
     private Scene scene() {
-        scene = new Scene(root());
+        layout = root();
+        scene = new Scene(layout);
         return scene;
     }
 
-    private Parent root() {
+    private VBox root() {
         chart = new InteractionXYChart();
         chart.setResetAxesBoundaries(0, 100, 0, 100);
         chart.resetAxesBoundaries();

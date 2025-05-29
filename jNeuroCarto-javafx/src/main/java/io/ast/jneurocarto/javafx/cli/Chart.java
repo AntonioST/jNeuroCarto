@@ -14,7 +14,8 @@ import picocli.CommandLine;
     Bar.class,
     Colorbar.class,
     Matrix.class,
-    FlashText.class
+    FlashText.class,
+    Complete.class
   }
 )
 public class Chart implements Runnable {
