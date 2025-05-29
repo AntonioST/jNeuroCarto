@@ -582,7 +582,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var brain = this.brain;
         if (brain == null) return;
 
-        Thread.ofVirtual().start(() -> {
+        Thread.ofVirtual().name("updateStructureInformation").start(() -> {
             Structure structure = null;
             try {
                 structure = brain.structureFromCoords(coor);

@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
-import javafx.beans.property.*;
+import javafx.application.Platform;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.stage.FileChooser;
@@ -21,6 +25,7 @@ import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.chart.Colormap;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYMatrix;
+import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.AbstractImagePlugin;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.StateView;
@@ -71,17 +76,6 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         if (value % 2 != 1) throw new IllegalArgumentException();
         interpolateProperty.set(value);
     }
-
-    private final BooleanProperty dataShowProperty = new SimpleBooleanProperty(true);
-
-    public final ReadOnlyBooleanProperty dataShowProperty() {
-        return dataShowProperty;
-    }
-
-    public final boolean isDataShowing() {
-        return dataShowProperty.get();
-    }
-
 
     /*=================*
      * state load/save *
@@ -149,7 +143,6 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
     protected void onDrawData(ActionEvent e) {
         updateDataImage();
-        foreground.repaint();
     }
 
     protected void onClearData(ActionEvent e) {
@@ -168,30 +161,35 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     public void clearData() {
         foreground.clearGraphics();
         foreground.repaint();
-        dataShowProperty.set(false);
     }
 
     public void updateDataImage() {
         var file = fileProperty.get();
         if (file == null) return;
 
-        double[] data;
-
         var toolkit = BlueprintAppToolkit.newToolkit();
 
-        try {
-            data = toolkit.loadBlueprintData(file);
-        } catch (IOException ex) {
-            log.warn("loadBlueprintData", ex);
-            return;
-        }
+        IOAction.measure(log, "load numpy data", () -> {
+            double[] data;
 
-        var kernal = interpolateProperty.get();
-        if (kernal > 1) {
-            data = toolkit.interpolateNaN(data, kernal, BlueprintToolkit.InterpolateMethod.mean);
-        }
+            try {
+                data = toolkit.loadBlueprintData(file);
+            } catch (IOException ex) {
+                log.warn("loadBlueprintData", ex);
+                return;
+            }
 
-        updateDataImage(data);
+            var kernal = interpolateProperty.get();
+            if (kernal > 1) {
+                data = toolkit.interpolateNaN(data, kernal, BlueprintToolkit.InterpolateMethod.mean);
+            }
+
+            var finalData = data;
+            Platform.runLater(() -> {
+                updateDataImage(finalData);
+                foreground.repaint();
+            });
+        });
     }
 
     public void updateDataImage(double[] data) {
@@ -225,8 +223,6 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         toolkit.stream(data).forEach(e -> {
             matrix[e.s()].addData((double) e.x() / pc, (double) e.y() / pr, e.v());
         });
-
-        dataShowProperty.set(true);
     }
 
     @Override

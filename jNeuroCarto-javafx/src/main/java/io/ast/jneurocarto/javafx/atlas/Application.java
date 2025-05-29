@@ -384,7 +384,7 @@ public class Application {
     }
 
     private void updateStructureInformation(Coordinate coor) {
-        Thread.ofVirtual().start(() -> {
+        Thread.ofVirtual().name("updateStructureInformation").start(() -> {
             Structure structure = null;
             try {
                 structure = brain.structureFromCoords(coor);

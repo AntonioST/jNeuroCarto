@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -15,6 +16,7 @@ import javafx.scene.control.MenuItem;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.cli.CartoConfig;
@@ -60,6 +62,35 @@ public final class PluginSetupService {
 
     private void checkPlugin() {
         Objects.requireNonNull(this.plugin, "not during UI setup.");
+    }
+
+    /**
+     * fork a virtual thread for UI-excluded setup.
+     *
+     * @param name
+     * @param consumer
+     */
+    public void fork(String name, Consumer<PluginSetupService> consumer) {
+        var log = LoggerFactory.getLogger(PluginSetupService.class);
+
+        log.debug("fork {}", name);
+        var shadow = new PluginSetupService(app);
+
+        Thread.ofVirtual().name(name).start(() -> {
+            log.debug("fork start");
+            var start = System.currentTimeMillis();
+            try {
+                consumer.accept(shadow);
+            } finally {
+                var pass = System.currentTimeMillis() - start;
+                shadow.dispose();
+                if (pass > 10_000) {
+                    log.debug("fork end, use {} sec", String.format("%.4f", (double) pass / 1000));
+                } else {
+                    log.debug("fork end, use {} ms", pass);
+                }
+            }
+        });
     }
 
     /*========*

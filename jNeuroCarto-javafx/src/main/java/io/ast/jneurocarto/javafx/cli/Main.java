@@ -22,7 +22,7 @@ public class Main {
         }
 
         if (config.atlasName != null && !config.atlasName.isEmpty() && AtlasBrainService.isPreloadAtlasBrain()) {
-            Thread.ofVirtual().start(() -> preloadAtlasBrain(config));
+            Thread.ofVirtual().name("preloadAtlasBrain").start(() -> preloadAtlasBrain(config));
         }
 
         new Application(config);

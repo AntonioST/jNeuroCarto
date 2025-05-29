@@ -10,14 +10,21 @@ public interface IOAction {
     static void measure(Logger log, String message, IOAction action) {
         Thread.ofVirtual().name(message).start(() -> {
             log.debug("start {}", message);
-            var start = System.currentTimeMillis();
             try {
-                action.doit();
+                var start = System.currentTimeMillis();
+                try {
+                    action.doit();
+                } finally {
+                    var pass = System.currentTimeMillis() - start;
+                    if (pass > 10_000) {
+                        log.debug("stop {}. use {} sec", message, String.format("%.4f", (double) pass / 1000));
+                    } else {
+                        log.debug("stop {}, use {} ms", message, pass);
+                    }
+                }
             } catch (IOException e) {
                 log.warn(message, e);
             }
-            var pass = System.currentTimeMillis() - start;
-            log.debug("stop {}. use {} sec", message, String.format("%.4f", (double) pass / 1000));
         });
     }
 }

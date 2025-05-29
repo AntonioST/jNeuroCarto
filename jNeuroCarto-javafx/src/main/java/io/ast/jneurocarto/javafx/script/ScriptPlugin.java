@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -82,8 +83,11 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             name = info.getSimpleName();
         } else {
             name = (String) ann.getParameterValues().getValue("value");
+            if (name.isEmpty()) {
+                name = info.getSimpleName();
+            }
         }
-        log.debug("filter \"{}\" = {}", name, info.getName());
+        log.debug("find \"{}\" = {}", name, info.getName());
 
         var checkAnn = info.getAnnotationInfo(CheckProbe.class);
         if (checkAnn == null) return true;
@@ -130,7 +134,9 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     private void initBlueprintScript(BlueprintScriptCallable callable) {
         if (callable instanceof BlueprintScriptMethodHandle handle) {
-            log.debug("init {} = {}.{}", handle.name, handle.declaredClass.getSimpleName(), handle.declaredMethod.getName());
+            log.debug("init {} = {}.{}()", handle.name, handle.declaredClass.getSimpleName(), handle.declaredMethod.getName());
+        } else if (callable instanceof BlueprintScriptClassHandle handle) {
+            log.debug("init {} = {}.{}", handle.name, handle.declaredClass.getSimpleName(), handle.declaredInner.getSimpleName());
         } else {
             log.debug("init {}", callable.name());
         }
@@ -171,13 +177,16 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
 
+        service.fork("ScriptPlugin.initBlueprintScripts", s -> {
+            log.debug("initBlueprintScripts");
+            initBlueprintScripts(s);
+            log.debug("updateScriptChoice");
+            Platform.runLater(this::updateScriptChoice);
+        });
+
         view = (ProbeView<Object>) service.getProbeView();
 
-        initBlueprintScripts(service);
-
-        var ret = super.setup(service);
-        updateScriptChoice();
-        return ret;
+        return super.setup(service);
     }
 
     @Override
