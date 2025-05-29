@@ -145,8 +145,8 @@ public final class ChannelMapUtilVec {
 
         int i = 0;
         for (int u = I.loopBound(electrode.length); i < u; i += I.length()) {
-            IntVector.fromArray(I, cr[0], i).mul(pc).add(shank * ps).intoArray(ret[1], i);
-            IntVector.fromArray(I, cr[1], i).mul(pr).intoArray(ret[2], i);
+            IntVector.fromArray(I, cr[1], i).mul(pc).add(shank * ps).intoArray(ret[1], i);
+            IntVector.fromArray(I, cr[2], i).mul(pr).intoArray(ret[2], i);
         }
         for (int length = electrode.length; i < length; i++) {
             ret[1][i] = cr[1][i] * pc + shank * ps;
@@ -305,11 +305,16 @@ public final class ChannelMapUtilVec {
             var row = t3.div();
             var column = t3.mod();
 
-            var r = IntVector.fromArray(I, bf, 0, ret[1], i);
-            var c = IntVector.fromArray(I, ba, 0, ret[1], i);
-            var d = divmod(r.mul(c), 16).mod();
-            var b = block.mul(32).add(column);
-            var channel = d.mul(2).add(b);
+            // channel = 2 * ((row * bf[bank] + column * ba[bank]) % 16) + 32 * block + column;
+            var f = IntVector.fromArray(I, bf, 0, ret[1], i);
+            var a = IntVector.fromArray(I, ba, 0, ret[1], i);
+            // channel = 2 * ((row * f + column * a) % 16) + 32 * block + column;
+            var b16 = row.mul(f).add(column.mul(a));
+            var b32 = block.mul(32);
+            // channel = 2 * (b16 % 16) + b32 + column;
+            var m16 = divmod(b16, 16).mod();
+            // channel = 2 * m16 + b32 + column;
+            var channel = m16.mul(2).add(b32).add(column);
             channel.intoArray(ret[0], i);
         }
 
@@ -388,12 +393,18 @@ public final class ChannelMapUtilVec {
         return ret;
     }
 
-    private record DivMod(IntVector div, IntVector mod) {
+    private static DivMod divmod(IntVector a, int b) {
+        return new DivMod(a, b);
     }
 
-    private static DivMod divmod(IntVector a, int b) {
-        var c = a.div(b);
-        var d = a.sub(c.mul(b));
-        return new DivMod(c, d);
+    private record DivMod(IntVector a, int b) {
+        public IntVector div() {
+            return a.div(b);
+        }
+
+        public IntVector mod() {
+            var c = a.div(b);
+            return a.sub(c.mul(b));
+        }
     }
 }

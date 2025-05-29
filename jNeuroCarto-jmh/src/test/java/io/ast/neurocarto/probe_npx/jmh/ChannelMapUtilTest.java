@@ -1,12 +1,12 @@
 package io.ast.neurocarto.probe_npx.jmh;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.FieldSource;
 
+import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -38,6 +38,11 @@ public class ChannelMapUtilTest {
         public int nElectrode() {
             return electrodes.length;
         }
+
+        @Override
+        public String toString() {
+            return type().name();
+        }
     }
 
     public static NpxTypeData[] DATA;
@@ -45,10 +50,6 @@ public class ChannelMapUtilTest {
     @BeforeAll
     public static void initNpxTypeData() {
         DATA = new NpxTypeData[]{new NpxTypeData(NpxProbeType.NP0), new NpxTypeData(NpxProbeType.NP21), new NpxTypeData(NpxProbeType.NP24)};
-    }
-
-    public static List<NpxTypeData> allNpxTypeData() {
-        return Arrays.asList(DATA);
     }
 
     private static void assert2DArrayEquals(int[][] expect, int[][] actual) {
@@ -59,27 +60,42 @@ public class ChannelMapUtilTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void electrodePosSCR(NpxTypeData data) {
+        assert2DArrayEquals(
+          ChannelMapUtil.electrodePosSCR(data.type),
+          ChannelMapUtilPlain.electrodePosSCR(data.type)
+        );
         assert2DArrayEquals(
           ChannelMapUtilPlain.electrodePosSCR(data.type),
           ChannelMapUtilVec.electrodePosSCR(data.type)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void electrodePosXY(NpxTypeData data) {
+        assert2DArrayEquals(
+          ChannelMapUtil.electrodePosXY(data.type),
+          ChannelMapUtilPlain.electrodePosXY(data.type)
+        );
         assert2DArrayEquals(
           ChannelMapUtilPlain.electrodePosXY(data.type),
           ChannelMapUtilVec.electrodePosXY(data.type)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void e2xy(NpxTypeData data) {
+        for (int i = 0, length = data.shanks.length; i < length; i++) {
+            var shank = data.shanks[i];
+            assert2DArrayEquals(
+              ChannelMapUtil.e2xy(data.type, shank, data.electrodes),
+              ChannelMapUtilPlain.e2xy(data.type, shank, data.electrodes)
+            );
+        }
         for (int i = 0, length = data.shanks.length; i < length; i++) {
             var shank = data.shanks[i];
             assert2DArrayEquals(
@@ -89,48 +105,71 @@ public class ChannelMapUtilTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void e2cr(NpxTypeData data) {
+        assert2DArrayEquals(
+          ChannelMapUtil.e2cr(data.type, data.electrodes),
+          ChannelMapUtilPlain.e2cr(data.type, data.electrodes)
+        );
         assert2DArrayEquals(
           ChannelMapUtilPlain.e2cr(data.type, data.electrodes),
           ChannelMapUtilVec.e2cr(data.type, data.electrodes)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void e2xyFromScr(NpxTypeData data) {
         var scr = ChannelMapUtilPlain.e2cr(data.type, data.electrodes);
+        assert2DArrayEquals(
+          ChannelMapUtil.e2xy(data.type, scr),
+          ChannelMapUtilPlain.e2xy(data.type, scr)
+        );
         assert2DArrayEquals(
           ChannelMapUtilPlain.e2xy(data.type, scr),
           ChannelMapUtilVec.e2xy(data.type, scr)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void cr2e(NpxTypeData data) {
         var scr = ChannelMapUtilPlain.e2cr(data.type, data.electrodes);
+        assertArrayEquals(
+          ChannelMapUtil.cr2e(data.type, scr),
+          ChannelMapUtilPlain.cr2e(data.type, scr)
+        );
         assertArrayEquals(
           ChannelMapUtilPlain.cr2e(data.type, scr),
           ChannelMapUtilVec.cr2e(data.type, scr)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void e2c(NpxTypeData data) {
         var scr = ChannelMapUtilPlain.e2cr(data.type, data.electrodes);
+        assertArrayEquals(
+          ChannelMapUtil.e2c(data.type, scr),
+          ChannelMapUtilPlain.e2c(data.type, scr)
+        );
         assertArrayEquals(
           ChannelMapUtilPlain.e2c(data.type, scr),
           ChannelMapUtilVec.e2c(data.type, scr)
         );
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void e2cb(NpxTypeData data) {
+        for (int i = 0, length = data.shanks.length; i < length; i++) {
+            var shank = data.shanks[i];
+            assert2DArrayEquals(
+              ChannelMapUtil.e2cb(data.type, shank, data.electrodes),
+              ChannelMapUtilPlain.e2cb(data.type, shank, data.electrodes)
+            );
+        }
         for (int i = 0, length = data.shanks.length; i < length; i++) {
             var shank = data.shanks[i];
             assert2DArrayEquals(
@@ -140,8 +179,8 @@ public class ChannelMapUtilTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("allNpxTypeData")
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
     public void e2cbWithShank(NpxTypeData data) {
         var s = data.nShank();
         int e = data.nElectrode();
@@ -154,6 +193,10 @@ public class ChannelMapUtilTest {
             }
         }
 
+        assert2DArrayEquals(
+          ChannelMapUtil.e2cb(data.type, shank, data.electrodes),
+          ChannelMapUtilPlain.e2cb(data.type, shank, data.electrodes)
+        );
         assert2DArrayEquals(
           ChannelMapUtilPlain.e2cb(data.type, shank, data.electrodes),
           ChannelMapUtilVec.e2cb(data.type, shank, data.electrodes)
