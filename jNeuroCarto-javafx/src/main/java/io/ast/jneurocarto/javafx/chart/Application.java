@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 
 public class Application {
     public interface ApplicationContent {
+        default void setup(Scene scene) {
+        }
+
         void setup(InteractionXYChart chart);
     }
 
@@ -25,6 +28,7 @@ public class Application {
      *===========*/
 
     private Stage stage;
+    private Scene scene;
     private InteractionXYChart chart;
 
     public void start(Stage stage) {
@@ -35,11 +39,12 @@ public class Application {
         stage.sizeToScene();
         stage.show();
 
+        content.setup(scene);
         content.setup(chart);
     }
 
     private Scene scene() {
-        var scene = new Scene(root());
+        scene = new Scene(root());
         return scene;
     }
 

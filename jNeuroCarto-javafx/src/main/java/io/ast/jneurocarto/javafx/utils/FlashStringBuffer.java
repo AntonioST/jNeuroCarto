@@ -23,7 +23,7 @@ public class FlashStringBuffer {
 
     /**
      * Accept key code into a buffer.
-     * It accepts all letter, number and backspace.
+     * It accepts all letter, number, space, backspace and escape.
      *
      * @param c
      * @return Did {@code c} accept?
@@ -36,13 +36,19 @@ public class FlashStringBuffer {
 
         if (c.isLetterKey() || c.isDigitKey()) {
             buffer.append(c.getChar());
+        } else if (c == KeyCode.SPACE) {
+            if (!buffer.isEmpty()) {
+                buffer.append(' ');
+            }
         } else if (c == KeyCode.BACK_SPACE) {
             buffer.deleteCharAt(buffer.length() - 1);
+        } else if (c == KeyCode.ESCAPE) {
+            reset();
+            return true;
         } else {
             return false;
         }
 
-        System.out.println(buffer);
         last = current;
         return true;
     }

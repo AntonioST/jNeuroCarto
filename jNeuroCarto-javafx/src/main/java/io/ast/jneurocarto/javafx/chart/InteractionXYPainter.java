@@ -88,6 +88,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      * plotting *
      *==========*/
 
+    public GraphicsContext gc() {
+        return gc;
+    }
+
     private @Nullable SoftReference<double[][]> transformedCache;
 
     public void repaint() {
@@ -270,5 +274,19 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         ret.addData(mat, row, flip);
         addGraphics(ret);
         return ret.builder();
+    }
+
+    public XYText.Builder text() {
+        var ret = new XYText();
+        addGraphics(ret);
+        return ret.builder();
+    }
+
+    public XYText.Builder text(String text, double x, double y) {
+        var ret = new XYText();
+        addGraphics(ret);
+        var builder = ret.builder();
+        builder.addText(text, x, y);
+        return builder;
     }
 }

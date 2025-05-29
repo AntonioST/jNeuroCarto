@@ -216,8 +216,6 @@ public abstract class XYSeries implements XYGraphics {
         return length;
     }
 
-
-
     /*=========*
      * builder *
      *=========*/
