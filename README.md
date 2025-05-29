@@ -112,6 +112,7 @@ Other dependencies
 - `com.twelvemonkeys.imageio:imageio-tiff` tiff file
 - `org.apache.commons:commons-csv` csv file
 - `org.jetbrains.kotlin:kotlin-stdlib` kotlin support
+- `org.openjdk.jmh` benchmark framework
 
 Web related
 

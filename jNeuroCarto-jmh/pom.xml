@@ -10,13 +10,13 @@
         <version>0.0</version>
     </parent>
 
-    <artifactId>jNeuroCarto-probe-npx-jmh</artifactId>
+    <artifactId>jNeuroCarto-jmh</artifactId>
     <version>0.0</version>
     <packaging>jar</packaging>
 
     <properties>
         <jmh.version>1.37</jmh.version>
-        <uberjar.name>jneurocarto-probe_npx-benchmarks</uberjar.name>
+        <uberjar.name>jneurocarto-benchmarks</uberjar.name>
     </properties>
 
     <dependencies>
@@ -35,6 +35,11 @@
         </dependency>
 
         <!-- jNeuroCarto -->
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-core</artifactId>
+            <version>0.0</version>
+        </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-probe-npx</artifactId>

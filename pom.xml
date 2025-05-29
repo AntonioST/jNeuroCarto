@@ -12,11 +12,11 @@
     <modules>
         <module>jNeuroCarto-core</module>
         <module>jNeuroCarto-probe-npx</module>
-        <module>jNeuroCarto-probe-npx-jmh</module>
         <module>jNeuroCarto-probe-npx-javafx</module>
         <module>jNeuroCarto-atlas</module>
         <module>jNeuroCarto-javafx</module>
         <module>jNeuroCarto-kotlin</module>
+        <module>jNeuroCarto-jmh</module>
         <module>jNeuroCarto-web-chart</module>
         <module>jNeuroCarto-web</module>
     </modules>
