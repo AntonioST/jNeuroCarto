@@ -26,13 +26,6 @@
             <version>0.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
-        <dependency>
-            <groupId>io.github.classgraph</groupId>
-            <artifactId>classgraph</artifactId>
-            <version>4.8.179</version>
-        </dependency>
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -56,6 +49,10 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

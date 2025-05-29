@@ -20,13 +20,23 @@ Features
 
 ### Difference from NeuroCarto
 
-- TODO
+- support more configuration.
+- better image transformation (translation and rotation).
+- use Java standard tool (`ServiceLoader`) to load external components.
+
+#### Missed features but planned in future
+
+- same ability of blueprint functions.
+- probe implant coordinate transformation.
+
+#### Highlighted
 
 The following features are supported by python packages, but implemented in Java:
 
-- read/write [numpy](https://github.com/numpy/numpy) (`.npy`) file.
-- manage [brainglobe](https://github.com/brainglobe/brainglobe-atlasapi) files.
-- [bokeh](https://github.com/bokeh/bokeh) interactive chart.
+- read/write [numpy](https://github.com/numpy/numpy) (`.npy`) file (only int and float 1~3-dimension array).
+- manage/download [brainglobe](https://github.com/brainglobe/brainglobe-atlasapi) files.
+- interactive chart for supporting [bokeh](https://github.com/bokeh/bokeh)-like features.
+- chart graphics for supporting [matplotlib](https://github.com/matplotlib/matplotlib)-like features
 
 Relevant Papers
 ---------------
@@ -37,6 +47,12 @@ https://doi.org/10.1007/s12021-024-09705-2
 
 Documents
 ---------
+
+### General conception
+
+Please check original [Documentation](https://neurocarto.readthedocs.io/en/latest/) for more details.
+
+### Programming side
 
 TODO
 
@@ -79,6 +95,34 @@ TODO
 Build from source
 -----------------
 
-TODO
+### Dependency overview
+
+Core dependencies
+
+- `org.jspecify` null annotations
+- `org.slf4j` logging framework
+- `info.picocli` command line interface
+- `com.fasterxml.jackson.core` json read/write
+- `org.junit.jupiter` testing framework
+- `org.openjfx` GUI framework
+- `io.github.classgraph` classpath/module scanner
+
+Other dependencies
+
+- `com.twelvemonkeys.imageio:imageio-tiff` tiff file
+- `org.apache.commons:commons-csv` csv file
+- `org.jetbrains.kotlin:kotlin-stdlib` kotlin support
+
+Web related
+
+- `org.springframework.boot`
+- `com.vaadin`
+- (npm) `plotly.js`
+
+### Build
+
+```
+mvn package
+```
 
 
