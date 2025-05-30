@@ -11,11 +11,11 @@ public record Clustering(int[] clustering) {
 
     public static Clustering EMPTY = new Clustering(new int[0]);
 
-    Clustering(int length) {
+    public Clustering(int length) {
         this(new int[length]);
     }
 
-    Clustering(Clustering clustering) {
+    public Clustering(Clustering clustering) {
         this(clustering.clustering.clone());
     }
 
@@ -33,28 +33,8 @@ public record Clustering(int[] clustering) {
         return clustering[i];
     }
 
-    int get(int[] i) {
-        var ret = -1;
-        for (var j : i) {
-            var g = clustering[j];
-            if (g < 0) throw new RuntimeException();
-            if (ret < 0) {
-                ret = g;
-            } else if (ret != g) {
-                throw new RuntimeException();
-            }
-        }
-        return ret;
-    }
-
     void set(int i, int group) {
         clustering[i] = group;
-    }
-
-    void set(int[] i, int group) {
-        for (var j : i) {
-            clustering[j] = group;
-        }
     }
 
     void fill(int group) {

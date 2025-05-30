@@ -16,6 +16,7 @@
         <module>jNeuroCarto-atlas</module>
         <module>jNeuroCarto-javafx</module>
         <module>jNeuroCarto-kotlin</module>
+        <module>jNeuroCarto-test</module>
         <module>jNeuroCarto-jmh</module>
         <module>jNeuroCarto-web-chart</module>
         <module>jNeuroCarto-web</module>

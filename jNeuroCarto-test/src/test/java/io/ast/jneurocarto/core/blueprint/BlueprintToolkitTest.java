@@ -2,198 +2,13 @@ package io.ast.jneurocarto.core.blueprint;
 
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.opentest4j.AssertionFailedError;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static io.ast.jneurocarto.test.BlueprintAssertion.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class BlueprintToolkitTest {
 
-    public static BlueprintToolkit<Object> fromShape(int ns, int ny, int nx) {
-        return BlueprintToolkit.dummy(ns, ny, nx);
-    }
-
-    private static void assertBlueprintEquals(BlueprintToolkit<?> bp, int[] expect, int[] actual) {
-        try {
-            assertArrayEquals(expect, actual);
-        } catch (AssertionFailedError e) {
-            String message;
-
-            try {
-                message = buildBlueprintComparingMessage(bp, expect, actual);
-            } catch (Exception ex) {
-                throw e;
-            }
-
-            throw new AssertionFailedError(message, e.getExpected(), e.getActual(), e);
-        }
-    }
-
-    private static void assertClusteringEquals(BlueprintToolkit<?> bp, int[] expect, int[] actual) {
-        assertClusteringEquals(bp, new Clustering(expect), new Clustering(actual));
-    }
-
-    private static void assertClusteringEquals(BlueprintToolkit<?> bp, int[] expect, Clustering actual) {
-        assertClusteringEquals(bp, new Clustering(expect), actual);
-    }
-
-    private static void assertClusteringEquals(BlueprintToolkit<?> bp, Clustering expect, Clustering actual) {
-        try {
-            assertEquals(expect.length(), actual.length(), "different length");
-
-            var totalGroup = expect.groupNumber();
-            var actualGroup = actual.groupNumber();
-            assertEquals(totalGroup, actualGroup, "different group number");
-
-            var tmp = new Clustering(actual);
-            for (var expGroup : expect.groups()) {
-                var index = expect.indexGroup(expGroup);
-                var actGroup = assertDoesNotThrow(() -> tmp.get(index), "not unique group with given index");
-                assertTrue(actGroup > 0, "not a group with given index");
-                tmp.set(index, 0);
-                assertEquals(--actualGroup, tmp.groupNumber(), "group does not match with given index");
-            }
-            assertEquals(0, tmp.groupNumber(), "has extra groups");
-
-        } catch (AssertionFailedError e) {
-            String message;
-            try {
-                message = buildBlueprintComparingMessage(bp, expect.clustering(), actual.clustering());
-            } catch (Exception ex) {
-                throw e;
-            }
-
-            throw new AssertionFailedError(message, e.getExpected(), e.getActual(), e);
-
-        } catch (Throwable e) {
-            String message;
-            try {
-                message = buildBlueprintComparingMessage(bp, expect.clustering(), actual.clustering());
-            } catch (Exception ex) {
-                throw e;
-            }
-
-            throw new AssertionFailedError(message, expect, actual, e);
-        }
-    }
-
-    private static String buildBlueprintComparingMessage(BlueprintToolkit<?> bp, int[] expect, int[] actual) {
-        var expIter = bp.toString(expect).lines().iterator();
-        var actIter = bp.toString(actual).lines().iterator();
-        var expLen = 0;
-        var actLen = 0;
-        String expText;
-        String actText;
-
-        var message = new StringBuilder("\n");
-
-        while (expIter.hasNext() && actIter.hasNext()) {
-            expText = expIter.next();
-            actText = actIter.next();
-            expLen = expText.length();
-            actLen = actText.length();
-            message.append(expText).append("  ").append(actText).append('\n');
-        }
-
-        if (expIter.hasNext()) {
-            actText = " ".repeat(actLen);
-            while (expIter.hasNext()) {
-                message.append(expIter.next()).append("  ").append(actText).append('\n');
-            }
-        } else if (actIter.hasNext()) {
-            expText = " ".repeat(expLen);
-            while (actIter.hasNext()) {
-                message.append(expText).append("  ").append(actIter.next()).append('\n');
-            }
-        }
-
-        message.append("%%-%ds".formatted(expLen).formatted("exp")).append("  ")
-          .append("%%-%ds".formatted(actLen).formatted("act")).append('\n');
-
-        return message.toString();
-    }
-
-
-    @Test
-    @Order(0)
-    public void testInternalClusteringAssertor() {
-        var bp = fromShape(1, 5, 2);
-        assertClusteringEquals(bp, new int[]{
-          1, 1,
-          2, 2,
-          0, 0,
-          4, 4,
-          5, 5,
-        }, new int[]{
-          1, 1,
-          2, 2,
-          0, 0,
-          4, 4,
-          5, 5,
-        });
-        assertClusteringEquals(bp, new int[]{
-          5, 5,
-          4, 4,
-          0, 0,
-          2, 2,
-          1, 1,
-        }, new int[]{
-          1, 1,
-          2, 2,
-          0, 0,
-          4, 4,
-          5, 5,
-        });
-
-        assertThrows(AssertionFailedError.class, () -> {
-            assertClusteringEquals(bp, new int[]{
-              5, 5,
-              4, 4,
-              3, 3,
-              2, 2,
-              1, 1,
-            }, new int[]{
-              1, 1,
-              2, 2,
-              3, 3,
-              4, 4,
-              5, 5,
-              6, 6,
-            });
-        });
-
-        assertThrows(AssertionFailedError.class, () -> {
-            assertClusteringEquals(bp, new int[]{
-              5, 5,
-              4, 4,
-              3, 3,
-              2, 2,
-              1, 1,
-            }, new int[]{
-              4, 4,
-              1, 1,
-              1, 1,
-              3, 3,
-              5, 5,
-            });
-        });
-
-        assertThrows(AssertionFailedError.class, () -> {
-            assertClusteringEquals(bp, new int[]{
-              5, 5,
-              4, 4,
-              3, 3,
-              2, 2,
-              1, 1,
-            }, new int[]{
-              1, 1,
-              1, 2,
-              1, 3,
-              1, 4,
-              1, 5,
-            });
-        });
-
-    }
 
     @Test
     @Order(0)
@@ -901,6 +716,17 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 0, 0,
           0, 1, 1, 1, 0, 0,
           0, 1, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(1, 1, 1, 1), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
         }, bp.ref());
     }
