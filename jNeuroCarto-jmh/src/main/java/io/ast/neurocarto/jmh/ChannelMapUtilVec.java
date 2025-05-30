@@ -1,4 +1,4 @@
-package io.ast.neurocarto.probe_npx.jmh;
+package io.ast.neurocarto.jmh;
 
 import java.util.Arrays;
 
@@ -7,7 +7,7 @@ import io.ast.jneurocarto.probe_npx.NpxProbeType;
 import jdk.incubator.vector.IntVector;
 import jdk.incubator.vector.VectorSpecies;
 
-import static io.ast.neurocarto.probe_npx.jmh.ChannelMapUtilPlain.*;
+import static io.ast.neurocarto.jmh.ChannelMapUtilPlain.*;
 
 public final class ChannelMapUtilVec {
 

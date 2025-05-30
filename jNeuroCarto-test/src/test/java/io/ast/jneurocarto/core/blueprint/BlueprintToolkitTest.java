@@ -3,7 +3,7 @@ package io.ast.jneurocarto.core.blueprint;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
-import static io.ast.jneurocarto.test.BlueprintAssertion.*;
+import static io.ast.jneurocarto.core.blueprint.BlueprintAssertion.*;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -75,7 +75,7 @@ public class BlueprintToolkitTest {
           3, 4,
           0, 3,
           0, 0,
-        }, bp.ref());
+        });
 
         bp.move(1);
         assertBlueprintEquals(bp, new int[]{
@@ -86,7 +86,7 @@ public class BlueprintToolkitTest {
           0, 0,
           3, 4,
           0, 3,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -214,7 +214,7 @@ public class BlueprintToolkitTest {
 
         bp.from(reset);
         bp.move(new BlueprintToolkit.Movement(0, 0));
-        assertBlueprintEquals(bp, reset, bp.ref());
+        assertBlueprintEquals(bp, reset);
 
         bp.from(reset);
         bp.move(new BlueprintToolkit.Movement(1, 0));
@@ -225,7 +225,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 1, 1,
           0, 0, 1, 1, 1, 1,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.move(new BlueprintToolkit.Movement(-1, 0));
@@ -236,7 +236,7 @@ public class BlueprintToolkitTest {
           1, 1, 1, 1, 0, 0,
           1, 1, 1, 1, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.move(new BlueprintToolkit.Movement(0, 1));
@@ -247,7 +247,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 1, 0,
           0, 1, 1, 1, 1, 0,
           0, 1, 1, 1, 1, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.move(new BlueprintToolkit.Movement(0, -1));
@@ -258,7 +258,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.move(new BlueprintToolkit.Movement(1, 1));
@@ -269,7 +269,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 1, 1,
           0, 0, 1, 1, 1, 1,
           0, 0, 1, 1, 1, 1,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -414,7 +414,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           1, 1,
-        }, bp.ref());
+        });
 
         bp.from(new int[]{
           0, 1,
@@ -431,7 +431,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           1, 1,
-        }, bp.ref());
+        });
 
         bp.from(new int[]{
           0, 0,
@@ -448,7 +448,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           0, 0,
-        }, bp.ref());
+        });
 
         bp.from(new int[]{
           0, 0,
@@ -465,7 +465,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -486,7 +486,7 @@ public class BlueprintToolkitTest {
           2, 2,
           0, 1,
           1, 1,
-        }, bp.ref());
+        });
 
         bp.from(new int[]{
           2, 2,
@@ -503,7 +503,7 @@ public class BlueprintToolkitTest {
           2, 0,
           1, 1,
           1, 1,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -524,7 +524,7 @@ public class BlueprintToolkitTest {
           1, 1,
           1, 1,
           0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -545,7 +545,7 @@ public class BlueprintToolkitTest {
           1, 1,
           2, 2,
           0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -569,7 +569,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 0, 0,
           0, 0, 1, 1, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.extend(1, new BlueprintToolkit.AreaChange(0, 1, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -580,7 +580,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 0, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.extend(1, new BlueprintToolkit.AreaChange(0, 0, 1, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -591,7 +591,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 0, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.extend(1, new BlueprintToolkit.AreaChange(0, 0, 0, 1), BlueprintToolkit.AreaThreshold.ALL);
@@ -602,7 +602,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.extend(1, new BlueprintToolkit.AreaChange(1, 1, 1, 1), BlueprintToolkit.AreaThreshold.ALL);
@@ -613,7 +613,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 1, 0,
           0, 1, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
     }
 
@@ -639,7 +639,7 @@ public class BlueprintToolkitTest {
           1, 1,
           0, 0,
           0, 0,
-        }, bp.ref());
+        });
 
         bp.from(new int[]{
           2, 2,
@@ -660,7 +660,7 @@ public class BlueprintToolkitTest {
           1, 1,
           0, 0,
           0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -684,7 +684,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 1, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -695,7 +695,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 1, 0,
           0, 1, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 0, 1, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -706,7 +706,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 1, 0,
           0, 0, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 0, 0, 1), BlueprintToolkit.AreaThreshold.ALL);
@@ -717,7 +717,7 @@ public class BlueprintToolkitTest {
           0, 1, 1, 1, 0, 0,
           0, 1, 1, 1, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(1, 1, 1, 1), BlueprintToolkit.AreaThreshold.ALL);
@@ -728,7 +728,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 0, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -752,7 +752,7 @@ public class BlueprintToolkitTest {
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 0, 2, 2), BlueprintToolkit.AreaThreshold.ALL);
@@ -763,7 +763,7 @@ public class BlueprintToolkitTest {
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 1, 1, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -774,7 +774,7 @@ public class BlueprintToolkitTest {
           0, 0, 1, 1, 1, 0,
           0, 0, 1, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 2, 2, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -785,7 +785,7 @@ public class BlueprintToolkitTest {
           0, 0, 0, 1, 1, 0,
           0, 0, 0, 1, 1, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 3, 3, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -796,7 +796,7 @@ public class BlueprintToolkitTest {
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 1, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
 
         bp.from(reset);
         bp.reduce(1, new BlueprintToolkit.AreaChange(0, 4, 4, 0), BlueprintToolkit.AreaThreshold.ALL);
@@ -807,7 +807,7 @@ public class BlueprintToolkitTest {
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -832,7 +832,7 @@ public class BlueprintToolkitTest {
           1, 1,
           2, 2,
           0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test
@@ -851,7 +851,7 @@ public class BlueprintToolkitTest {
           0, 0,
           0, 0,
           0, 0,
-        }, bp.ref());
+        });
     }
 
     @Test

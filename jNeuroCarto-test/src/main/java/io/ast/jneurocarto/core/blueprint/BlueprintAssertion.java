@@ -1,9 +1,6 @@
-package io.ast.jneurocarto.test;
+package io.ast.jneurocarto.core.blueprint;
 
 import org.opentest4j.AssertionFailedError;
-
-import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
-import io.ast.jneurocarto.core.blueprint.Clustering;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,6 +12,10 @@ public class BlueprintAssertion {
 
     public static BlueprintToolkit<Object> fromShape(int ns, int ny, int nx) {
         return BlueprintToolkit.dummy(ns, ny, nx);
+    }
+
+    public static void assertBlueprintEquals(BlueprintToolkit<?> bp, int[] expect) {
+        assertBlueprintEquals(bp, expect, bp.ref());
     }
 
     public static void assertBlueprintEquals(BlueprintToolkit<?> bp, int[] expect, int[] actual) {

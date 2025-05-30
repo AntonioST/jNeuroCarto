@@ -328,10 +328,30 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    public final void print(BlueprintMask blueprint) {
+        var ret = new int[blueprint.length()];
+        blueprint.fill(ret, 1);
+        try {
+            print(ret, System.out);
+        } catch (IOException e) {
+        }
+    }
+
     public final String toString(int[] blueprint) {
         var sb = new StringBuilder();
         try {
             print(blueprint, sb);
+        } catch (IOException e) {
+        }
+        return sb.toString();
+    }
+
+    public final String toString(BlueprintMask blueprint) {
+        var ret = new int[blueprint.length()];
+        blueprint.fill(ret, 1);
+        var sb = new StringBuilder();
+        try {
+            print(ret, sb);
         } catch (IOException e) {
         }
         return sb.toString();
@@ -916,7 +936,7 @@ public class BlueprintToolkit<T> {
      * @param step   movement
      * @return number of index filled in {@code output}.
      */
-    protected int moveIndex(int[] output, int[] index, Movement step) {
+    public int moveIndex(int[] output, int[] index, Movement step) {
         if (index.length == 0) return 0;
         if (step.isZero()) {
             if (output != index) {
@@ -942,6 +962,33 @@ public class BlueprintToolkit<T> {
                 output[ret++] = j;
             }
         }
+
+        return ret;
+    }
+
+    public BlueprintMask moveMask(BlueprintMask mask, Movement step) {
+        if (length() != mask.length()) throw new IllegalArgumentException();
+        if (step.isZero()) {
+            return mask;
+        }
+
+        var shank = shank();
+        var posx = posx();
+        var posy = posy();
+        var dx = dx();
+        var dy = dy();
+        var ret = new BlueprintMask(length());
+
+        mask.forEach(i -> {
+            var s = shank[i];
+            var x = (int) (posx[i] + step.x * dx);
+            var y = (int) (posy[i] + step.y * dy);
+            var j = index(s, x, y);
+
+            if (j >= 0) {
+                ret.set(j);
+            }
+        });
 
         return ret;
     }
@@ -1521,49 +1568,29 @@ public class BlueprintToolkit<T> {
             }
         }
 
-        var index = clustering.indexGroup();
-        var move = new int[index.length];
-
-        int size;
+        var from = clustering.maskGroup();
+        var mark = new BlueprintMask(from);
         if (step.left > 0) {
-            size = moveIndex(move, index, new Movement(step.left, 0)); // move right
-            Arrays.sort(move, 0, size);
-            for (int i : index) {
-                if (Arrays.binarySearch(move, i) < 0) { // `i` does not live in moved area
-                    output[i] = value;
-                }
-            }
+            var move = moveMask(from, new Movement(step.left, 0)); // move right
+            mark.iand(move);
         }
 
         if (step.right > 0) {
-            size = moveIndex(move, index, new Movement(-step.right, 0)); // move left
-            Arrays.sort(move, 0, size);
-            for (int i : index) {
-                if (Arrays.binarySearch(move, i) < 0) { // `i` does not live in moved area
-                    output[i] = value;
-                }
-            }
+            var move = moveMask(from, new Movement(-step.right, 0)); // move left
+            mark.iand(move);
         }
 
         if (step.up > 0) {
-            size = moveIndex(move, index, new Movement(0, -step.up)); // move down
-            Arrays.sort(move, 0, size);
-            for (int i : index) {
-                if (Arrays.binarySearch(move, i) < 0) { // `i` does not live in moved area
-                    output[i] = value;
-                }
-            }
+            var move = moveMask(from, new Movement(0, -step.up)); // move down
+            mark.iand(move);
         }
 
         if (step.down > 0) {
-            size = moveIndex(move, index, new Movement(0, step.down)); // move up
-            Arrays.sort(move, 0, size);
-            for (int i : index) {
-                if (Arrays.binarySearch(move, i) < 0) { // `i` does not live in moved area
-                    output[i] = value;
-                }
-            }
+            var move = moveMask(from, new Movement(0, step.down)); // move up
+            mark.iand(move);
         }
+
+        from.idiff(mark).fill(output, value);
 
         return output;
     }

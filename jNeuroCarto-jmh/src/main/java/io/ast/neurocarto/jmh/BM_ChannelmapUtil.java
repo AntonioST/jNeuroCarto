@@ -1,4 +1,4 @@
-package io.ast.neurocarto.probe_npx.jmh;
+package io.ast.neurocarto.jmh;
 
 import java.util.concurrent.TimeUnit;
 
@@ -7,7 +7,7 @@ import org.openjdk.jmh.annotations.*;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 /// last run 2025/05/29
-/// {@snippet lang = "TEXT":
+/// ```
 /// Benchmark                          (code)  Mode  Cnt    Score     Error  Units
 /// BM_ChannelmapUtil.measureCUP_e2cb       0  avgt   25   69.227 ±  28.421  us/op
 /// BM_ChannelmapUtil.measureCUP_e2cb      21  avgt   25  122.995 ±  35.008  us/op
@@ -27,7 +27,7 @@ import io.ast.jneurocarto.probe_npx.NpxProbeType;
 /// BM_ChannelmapUtil.measureCUV_e2xy       0  avgt   25  380.426 ±  85.346  us/op
 /// BM_ChannelmapUtil.measureCUV_e2xy      21  avgt   25  456.188 ±  60.662  us/op
 /// BM_ChannelmapUtil.measureCUV_e2xy      24  avgt   25  483.141 ± 106.215  us/op
-///}
+///```
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 5, time = 100, timeUnit = TimeUnit.MICROSECONDS)
 @Measurement(iterations = 5, time = 100, timeUnit = TimeUnit.MICROSECONDS)

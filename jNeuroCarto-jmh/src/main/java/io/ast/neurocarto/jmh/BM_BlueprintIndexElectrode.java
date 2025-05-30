@@ -1,4 +1,4 @@
-package io.ast.neurocarto.probe_npx.jmh;
+package io.ast.neurocarto.jmh;
 
 import java.util.Arrays;
 import java.util.Comparator;

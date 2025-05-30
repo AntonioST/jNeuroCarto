@@ -1,10 +1,10 @@
-package io.ast.jneurocarto.test;
+package io.ast.jneurocarto.core.blueprint;
 
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
 
-import static io.ast.jneurocarto.test.BlueprintAssertion.assertClusteringEquals;
-import static io.ast.jneurocarto.test.BlueprintAssertion.fromShape;
+import static io.ast.jneurocarto.core.blueprint.BlueprintAssertion.assertClusteringEquals;
+import static io.ast.jneurocarto.core.blueprint.BlueprintAssertion.fromShape;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class BlueprintAssertionTest {

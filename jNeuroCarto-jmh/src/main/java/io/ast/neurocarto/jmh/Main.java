@@ -1,4 +1,4 @@
-package io.ast.neurocarto.probe_npx.jmh;
+package io.ast.neurocarto.jmh;
 
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;

@@ -124,38 +124,58 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         return ret;
     }
 
+    public BlueprintMask inot() {
+        mask.flip(0, length);
+        return this;
+    }
+
     public BlueprintMask and(BlueprintMask other) {
         if (length != other.length) throw new IllegalArgumentException();
-        var ret = new BlueprintMask(this);
-        if (this == other) return ret;
-        ret.mask.and(other.mask);
-        return ret;
+        return new BlueprintMask(this).iand(other);
+    }
+
+    public BlueprintMask iand(BlueprintMask other) {
+        if (length != other.length) throw new IllegalArgumentException();
+        mask.and(other.mask);
+        return this;
     }
 
     public BlueprintMask or(BlueprintMask other) {
         if (length != other.length) throw new IllegalArgumentException();
-        var ret = new BlueprintMask(this);
-        if (this == other) return ret;
-        ret.mask.or(other.mask);
-        return ret;
+        return new BlueprintMask(this).ior(other);
+    }
+
+    public BlueprintMask ior(BlueprintMask other) {
+        if (length != other.length) throw new IllegalArgumentException();
+        mask.or(other.mask);
+        return this;
     }
 
     public BlueprintMask xor(BlueprintMask other) {
         if (length != other.length) throw new IllegalArgumentException();
         if (this == other) return new BlueprintMask(length);
-        var ret = new BlueprintMask(this);
-        ret.mask.xor(other.mask);
-        return ret;
+        return new BlueprintMask(this).ixor(other);
+    }
+
+    public BlueprintMask ixor(BlueprintMask other) {
+        if (length != other.length) throw new IllegalArgumentException();
+        mask.xor(other.mask);
+        return this;
     }
 
     public BlueprintMask diff(BlueprintMask other) {
         if (length != other.length) throw new IllegalArgumentException();
         if (this == other) return new BlueprintMask(length);
-        var ret = new BlueprintMask(this);
-        ret.mask.and(other.mask);
-        ret.mask.flip(0, length);
-        ret.mask.and(this.mask);
-        return ret;
+        return and(new BlueprintMask(other).inot());
+    }
+
+    public BlueprintMask idiff(BlueprintMask other) {
+        if (length != other.length) throw new IllegalArgumentException();
+        if (this == other) {
+            mask.clear(0, length);
+            return this;
+        }
+        return iand(new BlueprintMask(other).inot());
     }
 
     public int previousClearIndex(int fromIndex) {

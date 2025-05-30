@@ -89,6 +89,14 @@ public record Clustering(int[] clustering) {
         return pointer;
     }
 
+    public BlueprintMask maskGroup() {
+        return BlueprintMask.gt(clustering, 0);
+    }
+
+    public BlueprintMask maskGroup(int group) {
+        return BlueprintMask.eq(clustering, group);
+    }
+
     public void removeGroup(int group) {
         for (int i = 0, length = clustering.length; i < length; i++) {
             if (clustering[i] == group) clustering[i] = 0;
