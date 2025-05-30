@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.javafx.utils;
 
+import java.util.function.Function;
+
 import javafx.beans.property.*;
 import javafx.event.ActionEvent;
 import javafx.scene.control.TextField;
@@ -13,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 public abstract class FormattedTextField<T> extends TextField {
 
     private final StringConverter<T> converter;
+    private final Tooltip tooltip = new Tooltip("");
 
     public FormattedTextField(@Nullable T value, StringConverter<T> converter) {
         this.converter = converter;
@@ -35,9 +38,11 @@ public abstract class FormattedTextField<T> extends TextField {
     private void onKeyTyped(String text) {
         try {
             converter.fromString(text);
+            Tooltip.uninstall(this, tooltip);
             setStyle("-fx-control-inner-background: white;");
         } catch (Exception ex) {
-//            setTooltip(new Tooltip(ex.getMessage()));
+            tooltip.setText(ex.getMessage());
+            Tooltip.install(this, tooltip);
             setStyle("-fx-control-inner-background: pink;");
         }
     }
@@ -45,11 +50,32 @@ public abstract class FormattedTextField<T> extends TextField {
     private void onAction() {
         try {
             setValue(converter.fromString(getText()));
+            Tooltip.uninstall(this, tooltip);
             setStyle("-fx-control-inner-background: white;");
         } catch (Exception ex) {
-            setTooltip(new Tooltip(ex.getMessage()));
+            tooltip.setText(ex.getMessage());
+            Tooltip.install(this, tooltip);
             setStyle("-fx-control-inner-background: pink;");
         }
+    }
+
+    public static void install(TextField field, Function<String, @Nullable String> validator) {
+        var tooltip = new Tooltip();
+        field.textProperty().addListener((_, _, t) -> {
+            var message = validator.apply(t);
+            if (message == null) {
+                Tooltip.uninstall(field, tooltip);
+                field.setStyle("-fx-control-inner-background: white;");
+            } else {
+                if (!message.isEmpty()) {
+                    tooltip.setText(message);
+                    Tooltip.install(field, tooltip);
+                } else {
+                    Tooltip.uninstall(field, tooltip);
+                }
+                field.setStyle("-fx-control-inner-background: pink;");
+            }
+        });
     }
 
     public static class OfIntField extends FormattedTextField<Number> {

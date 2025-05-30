@@ -1,9 +1,12 @@
 package io.ast.jneurocarto.javafx.utils;
 
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
@@ -31,21 +34,9 @@ public class AutoCompleteTextField extends TextField {
     private @Nullable List<String> candidates = null;
     private int candidateIndex;
 
-    private AutoCompleteTextField() {
-        if (this instanceof Completor completor) {
-            this.completor = completor;
-        } else {
-            throw new RuntimeException("itself is not a Completor");
-        }
-        setup();
-    }
-
     public AutoCompleteTextField(Completor completor) {
         this.completor = completor;
-        setup();
-    }
 
-    private void setup() {
         addEventFilter(KeyEvent.KEY_PRESSED, this::onKeyType);
         textProperty().addListener((_, _, text) -> onKeyType(text));
     }
@@ -99,11 +90,7 @@ public class AutoCompleteTextField extends TextField {
         selectRange(text.length(), pos);
     }
 
-    public static class OfPathField extends AutoCompleteTextField implements AutoCompleteTextField.Completor {
-
-        public OfPathField() {
-            super();
-        }
+    public static class PathCompletor implements Completor {
 
         /*============*
          * properties *
@@ -111,44 +98,25 @@ public class AutoCompleteTextField extends TextField {
 
         public final ObjectProperty<Path> pathProperty = new SimpleObjectProperty<>(Path.of("."));
 
-        public final Path getRoot() {
-            return pathProperty.get();
-        }
+        public final BooleanProperty onlyDirectoryProperty = new SimpleBooleanProperty(false);
 
-        public final void setRoot(Path value) {
-            pathProperty.set(value);
-        }
+        public final ObjectProperty<@Nullable PathMatcher> fileMatcherProperty = new SimpleObjectProperty<>(null);
 
         public final BooleanProperty allowMultipleFileProperty = new SimpleBooleanProperty();
 
-        public final boolean isAllowMultipleFileProperty() {
-            return allowMultipleFileProperty.get();
-        }
-
-        public final void setAllowMultipleFileProperty(boolean value) {
-            allowMultipleFileProperty.set(value);
-        }
-
         public final BooleanProperty allowEscapeRootProperty = new SimpleBooleanProperty();
 
-        public final boolean isAllowEscapeRootProperty() {
-            return allowEscapeRootProperty.get();
-        }
+        /*===========*
+         * completor *
+         *===========*/
 
-        public final void setAllowEscapeRootProperty(boolean value) {
-            allowEscapeRootProperty.set(value);
-        }
-
-        /*==========*
-         * complete *
-         *==========*/
 
         @Override
         public @Nullable List<String> complete(String content, int cursor) {
             content = content.substring(0, cursor);
             Stream<String> ret;
 
-            if (isAllowMultipleFileProperty()) {
+            if (allowMultipleFileProperty.get()) {
                 var r = content.lastIndexOf(' ');
 
                 if (r < 0) {
@@ -169,7 +137,7 @@ public class AutoCompleteTextField extends TextField {
             }
         }
 
-        public List<String> completeFile(String content) {
+        public List<String> completeFor(String content) {
             try (var ret = complete(content)) {
                 return ret.toList();
             }
@@ -202,7 +170,7 @@ public class AutoCompleteTextField extends TextField {
             if (!Files.exists(dir)) {
                 return Stream.of(content);
             }
-            if (!isAllowEscapeRootProperty() && !dir.startsWith(root)) {
+            if (!allowEscapeRootProperty.get() && !dir.startsWith(root)) {
                 return Stream.of(content);
             }
 
@@ -212,6 +180,15 @@ public class AutoCompleteTextField extends TextField {
                 ret = Files.list(dir);
             } catch (IOException e) {
                 return Stream.of(content);
+            }
+
+            if (onlyDirectoryProperty.get()) {
+                ret = ret.filter(Files::isDirectory);
+            } else {
+                var pm = fileMatcherProperty.get();
+                if (pm != null) {
+                    ret = ret.filter(path -> Files.isDirectory(path) || pm.matches(path.getFileName()));
+                }
             }
 
             return ret.map(p -> {
@@ -225,6 +202,139 @@ public class AutoCompleteTextField extends TextField {
               .sorted(String::compareToIgnoreCase)
               .map(it -> dirname + it)
               .onClose(ret::close);
+        }
+    }
+
+    public static class OfPathField extends AutoCompleteTextField {
+
+        /*============*
+         * properties *
+         *============*/
+
+        public final ObjectProperty<Path> pathProperty = new SimpleObjectProperty<>();
+
+        public final Path getRoot() {
+            return pathProperty.get();
+        }
+
+        public final void setRoot(Path value) {
+            pathProperty.set(value);
+        }
+
+        public final BooleanProperty onlyDirectoryProperty = new SimpleBooleanProperty(false);
+
+        public final boolean isOnlyDirectory() {
+            return onlyDirectoryProperty.get();
+        }
+
+        public final void setOnlyDirectory(boolean value) {
+            onlyDirectoryProperty.set(value);
+        }
+
+        public final ObjectProperty<@Nullable PathMatcher> fileMatcherProperty = new SimpleObjectProperty<>(null);
+
+        public final @Nullable PathMatcher getFileMatcher() {
+            return fileMatcherProperty.get();
+        }
+
+        public final void setFileMatcher(@Nullable String pattern) {
+            if (pattern == null) {
+                fileMatcherProperty.set(null);
+            } else {
+                fileMatcherProperty.set(FileSystems.getDefault().getPathMatcher("glob:" + pattern));
+            }
+        }
+
+        public final void setFileMatcher(@Nullable Pattern pattern) {
+            if (pattern == null) {
+                fileMatcherProperty.set(null);
+            } else {
+                fileMatcherProperty.set(FileSystems.getDefault().getPathMatcher("regex:" + pattern.pattern()));
+            }
+        }
+
+        public final void setFileMatcher(@Nullable PathMatcher matcher) {
+            fileMatcherProperty.set(matcher);
+        }
+
+        public final BooleanProperty allowMultipleFileProperty = new SimpleBooleanProperty();
+
+        public final boolean isAllowMultipleFile() {
+            return allowMultipleFileProperty.get();
+        }
+
+        public final void setAllowMultipleFile(boolean value) {
+            allowMultipleFileProperty.set(value);
+        }
+
+        public final BooleanProperty allowEscapeRootProperty = new SimpleBooleanProperty();
+
+        public final boolean isAllowEscapeRoot() {
+            return allowEscapeRootProperty.get();
+        }
+
+        public final void setAllowEscapeRoot(boolean value) {
+            allowEscapeRootProperty.set(value);
+        }
+
+        public final BooleanProperty validateContentProperty = new SimpleBooleanProperty();
+
+        public final boolean isValidateContent() {
+            return validateContentProperty.get();
+        }
+
+        public final void setValidateContent(boolean value) {
+            validateContentProperty.set(value);
+        }
+
+        /*=============*
+         * constructor *
+         *=============*/
+
+        public OfPathField() {
+            var completor = new PathCompletor();
+            super(completor);
+            pathProperty.bindBidirectional(completor.pathProperty);
+            onlyDirectoryProperty.bindBidirectional(completor.onlyDirectoryProperty);
+            fileMatcherProperty.bindBidirectional(completor.fileMatcherProperty);
+            allowMultipleFileProperty.bindBidirectional(completor.allowMultipleFileProperty);
+            allowEscapeRootProperty.bindBidirectional(completor.allowEscapeRootProperty);
+            FormattedTextField.install(this, this::validate);
+        }
+
+        protected @Nullable String validate(String content) {
+            if (!isValidateContent() || content.isEmpty()) return null;
+
+            var root = getRoot();
+            if (isAllowMultipleFile()) {
+                for (var file : content.split(" +")) {
+                    var message = validate(root.resolve(file));
+                    if (message != null) return message;
+                }
+            } else {
+                return validate(root.resolve(content));
+            }
+
+            return null;
+        }
+
+        public @Nullable String validate(Path file) {
+            if (isOnlyDirectory() && !Files.isDirectory(file)) {
+                return file + " is not a directory";
+            }
+
+            var pm = getFileMatcher();
+            if (pm != null) {
+                if (Files.isDirectory(file)) {
+                    return file + " is a directory";
+                }
+
+                if (!pm.matches(file.getFileName())) {
+                    return "";
+                }
+            }
+
+            return null;
         }
     }
 }
