@@ -788,6 +788,7 @@ public class Application<T> {
     private void onNewChannelmap(ActionEvent e) {
         if (e.getSource() instanceof CodedMenuItem item) {
             printMessage("new channelmap " + item.code);
+            currentChannelmapFile.set(null);
             clearProbe(item.code);
         }
     }

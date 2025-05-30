@@ -43,7 +43,7 @@ public class DefaultElectrodeSelector implements ElectrodeSelector {
             var ret = blueprint.newChannelmap();
 
             tool.mask(ProbeDescription.CATE_SET).forEach(i -> add(ret, i));
-            tool.setTo(ProbeDescription.CATE_EXCLUDED, CATE_INVALIDED);
+            tool.set(CATE_INVALIDED, tool.mask(ProbeDescription.CATE_EXCLUDED));
 
             return selectLoop(ret);
         }

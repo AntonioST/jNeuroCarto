@@ -56,23 +56,27 @@ public class NpxBlueprintPainter implements BlueprintPainter<ChannelMap> {
     }
 
     private void plotConflictBlueprint(BlueprintPaintingHandle<ChannelMap> handle) {
-        setConflictBlueprint(new BlueprintToolkit<>(handle.blueprint()));
+        setConflictBlueprint(handle.blueprintToolkit());
     }
 
     private void plotDefaultBlueprint(BlueprintPaintingHandle<ChannelMap> handle) {
-        handle.blueprint().setTo(CATE_SET, CATE_FULL);
+        var tool = handle.blueprintToolkit();
+        tool.set(CATE_FULL, tool.mask(CATE_SET));
     }
 
     private void setConflictBlueprint(BlueprintToolkit<ChannelMap> blueprint) {
+        var mc = blueprint.mask();
         var m0 = blueprint.mask(CATE_SET);
         var m1 = blueprint.mask(CATE_FULL);
         var m2 = blueprint.mask(CATE_HALF);
         var m4 = blueprint.mask(CATE_QUARTER);
 
-        var i0 = blueprint.invalid(blueprint.mask().and(m0.or(m1)));
-        var r0 = m1.or(m2).or(m4);
+        // selected conflict set/full categories
+        var i0 = blueprint.invalid(mc, false);
+        var r0 = m0.or(m1);
         var c0 = i0.and(r0);
 
+        // set/full categories conflict half/quarter categories
         var i1 = blueprint.invalid(m0.or(m1));
         var r1 = m2.or(m4);
         var c1 = i1.and(r1);

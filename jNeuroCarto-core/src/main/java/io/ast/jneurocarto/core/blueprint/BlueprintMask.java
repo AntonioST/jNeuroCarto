@@ -22,6 +22,7 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         this.mask.or(mask.mask);
     }
 
+
     public int count() {
         return mask.cardinality();
     }
@@ -182,6 +183,110 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
     public boolean[] asBooleanMask() {
         var ret = new boolean[length];
         mask.stream().forEach(i -> ret[i] = true);
+        return ret;
+    }
+
+    public static BlueprintMask eq(int[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] == value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ne(int[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] != value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask lt(int[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] < value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask le(int[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] <= value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask gt(int[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] > value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ge(int[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] >= value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask eq(double[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] == value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ne(double[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] != value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask lt(double[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] < value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask le(double[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] <= value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask gt(double[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] > value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ge(double[] array, int value) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (array[i] >= value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask nan(double[] array) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (Double.isNaN(array[i])) ret.set(i);
+        }
         return ret;
     }
 }

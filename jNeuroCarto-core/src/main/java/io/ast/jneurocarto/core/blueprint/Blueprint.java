@@ -193,17 +193,6 @@ public final class Blueprint<T> {
         return this;
     }
 
-    public Blueprint<T> setTo(int category, int newCategory) {
-        if (category != newCategory) {
-            for (int i = 0, length = blueprint.length; i < length; i++) {
-                if (blueprint[i] == category) {
-                    blueprint[i] = newCategory;
-                }
-            }
-        }
-        return this;
-    }
-
     /**
      * @param category   electrode category
      * @param electrodes
@@ -250,6 +239,14 @@ public final class Blueprint<T> {
         return this;
     }
 
+    public Blueprint<T> set(int category, BlueprintMask mask) {
+        if (blueprint.length != mask.length()) throw new RuntimeException();
+
+        mask.forEach(i -> blueprint[i] = category);
+
+        return this;
+    }
+
     /**
      * @param category electrode category
      * @param pick
@@ -263,7 +260,7 @@ public final class Blueprint<T> {
     }
 
     public Blueprint<T> unset(int category) {
-        return setTo(category, ProbeDescription.CATE_UNSET);
+        return set(category, BlueprintMask.eq(blueprint, ProbeDescription.CATE_UNSET));
     }
 
     public Blueprint<T> unset(List<ElectrodeDescription> electrodes) {
@@ -280,6 +277,10 @@ public final class Blueprint<T> {
 
     public Blueprint<T> unset(boolean[] electrodeMask) {
         return set(ProbeDescription.CATE_UNSET, electrodeMask);
+    }
+
+    public Blueprint<T> unset(BlueprintMask mask) {
+        return set(ProbeDescription.CATE_UNSET, mask);
     }
 
     public Blueprint<T> unset(Predicate<Electrode> pick) {

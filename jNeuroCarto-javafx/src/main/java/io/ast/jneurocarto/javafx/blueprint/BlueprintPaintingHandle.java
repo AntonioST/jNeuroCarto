@@ -9,6 +9,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
 public class BlueprintPaintingHandle<T> {
@@ -60,6 +61,10 @@ public class BlueprintPaintingHandle<T> {
 
     public Blueprint<T> blueprint() {
         return Objects.requireNonNull(blueprint);
+    }
+
+    public BlueprintToolkit<T> blueprintToolkit() {
+        return new BlueprintToolkit<>(blueprint());
     }
 
     void setBlueprint(Blueprint<T> blueprint) {

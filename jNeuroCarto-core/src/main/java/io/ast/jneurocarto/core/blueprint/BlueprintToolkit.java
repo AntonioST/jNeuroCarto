@@ -270,9 +270,6 @@ public class BlueprintToolkit<T> {
         blueprint.set(category);
     }
 
-    public final void setTo(int category, int newCategory) {
-        blueprint.setTo(category, newCategory);
-    }
     public final void set(int category, List<ElectrodeDescription> electrodes) {
         blueprint.set(category, electrodes);
     }
@@ -567,9 +564,22 @@ public class BlueprintToolkit<T> {
     }
 
     public BlueprintMask invalid(BlueprintMask selected) {
+        return invalid(selected, true);
+    }
+
+    /**
+     * @param selected
+     * @param include  include selected into invalid results
+     * @return
+     */
+    public BlueprintMask invalid(BlueprintMask selected, boolean include) {
         var electrodes = electrodes();
         var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, pick(electrodes, selected), electrodes);
-        return mask(invalid);
+        var ret = mask(invalid);
+        if (!include) {
+            ret = ret.diff(selected);
+        }
+        return ret;
     }
 
     /**
