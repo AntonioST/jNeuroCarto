@@ -2,6 +2,8 @@ package io.ast.jneurocarto.javafx.cli;
 
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -52,7 +54,8 @@ public class FlashText implements Application.ApplicationContent, Runnable {
           .font(Font.font("monospace", 60))
           .align(TextAlignment.LEFT)
           .baseline(VPos.CENTER)
-          .color(Color.BLACK);
+          .color(Color.BLACK)
+          .textEffect(new DropShadow(BlurType.ONE_PASS_BOX, Color.GRAY, 5, 5, 5, 5));
     }
 
     public void onKeyType(KeyEvent e) {

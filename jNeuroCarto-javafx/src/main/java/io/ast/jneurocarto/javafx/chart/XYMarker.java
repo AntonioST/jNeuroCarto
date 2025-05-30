@@ -81,6 +81,7 @@ public class XYMarker extends XYSeries.XYColormapSeries {
         try {
             gc.setTransform(InteractionXYPainter.IDENTIFY);
             gc.setGlobalAlpha(alpha);
+            gc.setEffect(effect);
             gc.setLineWidth(ew);
 
             if (colormap != null && fill == Color.TRANSPARENT) {

@@ -215,10 +215,10 @@ public class XYMatrix extends XYSeries.XYColormapSeries {
             dh += Math.abs(q.getY());
         }
 
-
-        var oldAlpha = gc.getGlobalAlpha();
+        gc.save();
         try {
             gc.setGlobalAlpha(alpha);
+            gc.setEffect(effect);
 
             for (var xy : data) {
                 if (Double.isNaN(xy.x + xy.y + xy.v)) {
@@ -233,7 +233,7 @@ public class XYMatrix extends XYSeries.XYColormapSeries {
             }
 
         } finally {
-            gc.setGlobalAlpha(oldAlpha);
+            gc.restore();
         }
     }
 

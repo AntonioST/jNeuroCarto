@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.Effect;
 import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
@@ -25,6 +26,7 @@ public abstract class XYSeries implements XYGraphics {
     protected double z = 0;
     protected double alpha = 1;
     protected boolean visible = true;
+    protected @Nullable Effect effect = null;
     protected List<XY> data = new ArrayList<>();
 
     @Override
@@ -47,6 +49,14 @@ public abstract class XYSeries implements XYGraphics {
 
     public void alpha(double alpha) {
         this.alpha = alpha;
+    }
+
+    public @Nullable Effect effect() {
+        return effect;
+    }
+
+    public void effect(@Nullable Effect effect) {
+        this.effect = effect;
     }
 
     public static Normalize renormalize(XYColormapSeries[] graphics) {
@@ -241,6 +251,11 @@ public abstract class XYSeries implements XYGraphics {
 
         public B alpha(double alpha) {
             graphics.alpha(alpha);
+            return (B) this;
+        }
+
+        public B effect(Effect effect) {
+            graphics.effect(effect);
             return (B) this;
         }
 

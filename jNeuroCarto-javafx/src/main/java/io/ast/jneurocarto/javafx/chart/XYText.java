@@ -6,6 +6,7 @@ import java.util.IdentityHashMap;
 import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.Effect;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
@@ -22,6 +23,7 @@ public class XYText extends XYSeries {
     protected @Nullable VPos baseline;
     protected @Nullable Color color = null;
     protected @Nullable Color line = null;
+    protected @Nullable Effect textEffect = null;
 
     public @Nullable Font font() {
         return font;
@@ -63,6 +65,14 @@ public class XYText extends XYSeries {
         this.line = color;
     }
 
+    public @Nullable Effect textEffect() {
+        return textEffect;
+    }
+
+    public void textEffect(@Nullable Effect effect) {
+        this.textEffect = effect;
+    }
+
     private record Annotation(XY data) {
     }
 
@@ -81,8 +91,6 @@ public class XYText extends XYSeries {
 
         var length = data.size();
         var index = new IdentityHashMap<XY, Integer>(length);
-
-        var linespace = (font == null ? 12 : font.getSize()) * 1.2;
 
         for (int i = 0; i < length; i++) {
             var xy = data.get(i);
@@ -145,11 +153,13 @@ public class XYText extends XYSeries {
                     if (j < 0) {
                         var o = data.get(i).external;
                         if (o instanceof String text) {
+                            gc.setEffect(textEffect);
                             gc.fillText(text, x, y);
                         }
                     } else {
                         var x1 = p[0][j];
                         var y1 = p[1][j];
+                        gc.setEffect(effect);
                         gc.strokeLine(x, y, x1, y1);
                     }
                 }
@@ -194,6 +204,11 @@ public class XYText extends XYSeries {
 
         public Builder line(@Nullable Color color) {
             graphics.line(color);
+            return this;
+        }
+
+        public Builder textEffect(@Nullable Effect effect) {
+            graphics.textEffect(effect);
             return this;
         }
 

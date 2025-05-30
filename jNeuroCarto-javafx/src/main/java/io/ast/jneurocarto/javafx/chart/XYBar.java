@@ -70,11 +70,11 @@ public class XYBar extends XYSeries {
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
         if (fill == null) return;
 
-        gc.setFill(fill);
-
-        var oldAlpha = gc.getGlobalAlpha();
+        gc.save();
         try {
             gc.setGlobalAlpha(alpha);
+            gc.setEffect(effect);
+            gc.setFill(fill);
 
             for (var xy : data) {
                 double x = xy.x;
@@ -109,7 +109,7 @@ public class XYBar extends XYSeries {
             }
 
         } finally {
-            gc.setGlobalAlpha(oldAlpha);
+            gc.restore();
         }
     }
 

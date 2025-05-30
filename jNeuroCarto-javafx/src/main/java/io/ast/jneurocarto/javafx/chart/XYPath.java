@@ -63,6 +63,7 @@ public class XYPath extends XYSeries.XYColormapSeries {
         try {
             gc.setTransform(InteractionXYPainter.IDENTIFY);
             gc.setGlobalAlpha(alpha);
+            gc.setEffect(effect);
             gc.setLineWidth(lw);
 
             if (fill != null) {
