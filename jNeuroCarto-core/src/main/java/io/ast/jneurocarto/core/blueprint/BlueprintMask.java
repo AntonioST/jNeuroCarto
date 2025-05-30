@@ -342,6 +342,14 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         return ret;
     }
 
+    public static BlueprintMask notNan(double[] array) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            if (!Double.isNaN(array[i])) ret.set(i);
+        }
+        return ret;
+    }
+
     /**
      * {@code array[this] = value}
      *

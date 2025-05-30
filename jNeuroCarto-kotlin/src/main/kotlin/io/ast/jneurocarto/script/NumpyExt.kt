@@ -24,6 +24,10 @@ infix fun BlueprintMask.xor(other: BlueprintMask): BlueprintMask {
     return this.xor(other)
 }
 
+operator fun BlueprintMask.minus(other: BlueprintMask): BlueprintMask {
+    return this.diff(other)
+}
+
 infix fun IntArray.eq(value: Int): BlueprintMask {
     return BlueprintMask.eq(this, value)
 }
@@ -73,55 +77,27 @@ infix fun DoubleArray.ge(value: Double): BlueprintMask {
 }
 
 operator fun IntArray.get(mask: BlueprintMask): IntArray {
-    if (this.size != mask.length) throw IllegalArgumentException()
-    val ret = IntArray(this.size)
-    var ptr = 0
-    for (i in 0 until size) {
-        if (mask[i]) ret[ptr++] = this[i]
-    }
-    return ret.copyOfRange(0, ptr)
+    return mask.squeeze(this)
 }
 
 operator fun DoubleArray.get(mask: BlueprintMask): DoubleArray {
-    if (this.size != mask.length) throw IllegalArgumentException()
-    val ret = DoubleArray(this.size)
-    var ptr = 0
-    for (i in 0 until size) {
-        if (mask[i]) ret[ptr++] = this[i]
-    }
-    return ret.copyOfRange(0, ptr)
+    return mask.squeeze(this)
 }
 
 operator fun IntArray.set(mask: BlueprintMask, value: Int) {
-    if (this.size != mask.length) throw IllegalArgumentException()
-    for (i in 0 until size) {
-        if (mask[i]) this[i] = value
-    }
+    mask.fill(this, value)
 }
 
 operator fun DoubleArray.set(mask: BlueprintMask, value: Double) {
-    if (this.size != mask.length) throw IllegalArgumentException()
-    for (i in 0 until size) {
-        if (mask[i]) this[i] = value
-    }
+    mask.fill(this, value)
 }
 
 operator fun IntArray.set(mask: BlueprintMask, value: IntArray) {
-    if (this.size != mask.length) throw IllegalArgumentException()
-    if (mask.count() != value.size) throw IllegalArgumentException()
-    var ptr = 0
-    for (i in 0 until size) {
-        if (mask[i]) this[i] = value[ptr++]
-    }
+    mask.where(this, value, null)
 }
 
 operator fun DoubleArray.set(mask: BlueprintMask, value: DoubleArray) {
-    if (this.size != mask.length) throw IllegalArgumentException()
-    if (mask.count() != value.size) throw IllegalArgumentException()
-    var ptr = 0
-    for (i in 0 until size) {
-        if (mask[i]) this[i] = value[ptr++]
-    }
+    mask.where(this, value, null)
 }
 
 fun isnan(array: DoubleArray): BlueprintMask {
@@ -129,19 +105,18 @@ fun isnan(array: DoubleArray): BlueprintMask {
 }
 
 fun DoubleArray.nanmin(): Double {
-    return asSequence().filter { !java.lang.Double.isNaN(it) }.minOrNull() ?: Double.NaN
+    return BlueprintMask.notNan(this).fold(this, Math::min).orElse(Double.NaN)
 }
 
 fun DoubleArray.nanmax(): Double {
-    return asSequence().filter { !java.lang.Double.isNaN(it) }.maxOrNull() ?: Double.NaN
+    return BlueprintMask.notNan(this).fold(this, Math::max).orElse(Double.NaN)
 }
 
 fun DoubleArray.nanmean(): Double {
-    var cnt = 0
-    return asSequence().filter { !java.lang.Double.isNaN(it) }.sumOf {
-        cnt++
-        it
-    } / cnt
+    val mask = BlueprintMask.notNan(this)
+    val count = mask.count()
+    if (count == 0) return Double.NaN
+    return mask.fold(this, 0.0, Double::plus) / count
 }
 
 fun Double.round(d: Int): Double {
