@@ -65,6 +65,7 @@ Modules
 * `jNeuroCarto-probe-npx-javafx` Neuropixels plugins for application
 * `jNeuroCarto-atlas` Atlas brain supporting.
 * `jNeuroCarto-kotlin` kotlin support and demonstration of blueprint script
+* `jNeuroCarto-test` jNeuroCarto test supporting
 
 ### Working in progress modules
 

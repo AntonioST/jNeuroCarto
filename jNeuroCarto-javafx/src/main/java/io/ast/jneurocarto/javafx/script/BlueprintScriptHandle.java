@@ -9,15 +9,18 @@ public sealed abstract class BlueprintScriptHandle implements BlueprintScriptCal
     public final String name;
     public final String description;
     public final Parameter[] parameters;
+    public final boolean isAsync;
 
     public BlueprintScriptHandle(Class<?> declaredClass,
                                  String name,
                                  String description,
-                                 Parameter[] parameters) {
+                                 Parameter[] parameters,
+                                 boolean isAsync) {
         this.declaredClass = declaredClass;
         this.name = name;
         this.description = description;
         this.parameters = parameters;
+        this.isAsync = isAsync;
     }
 
     @Override
@@ -33,5 +36,10 @@ public sealed abstract class BlueprintScriptHandle implements BlueprintScriptCal
     @Override
     public Parameter[] parameters() {
         return parameters;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return isAsync;
     }
 }

@@ -108,7 +108,7 @@ public final class NpxBlueprintScripts {
     @RequestChannelmap(code = "NP24")
     public void npx24HalfDensity(
       BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", type = "int|[int,int]|'selected'", defaultValue = "selected",
+      @ScriptParameter(value = "shank", label = "int|[int,int]|'selected'", defaultValue = "selected",
         converter = ShankOrSelect.Select.class,
         description = "on which shank/s. Use 'select' for selected electrodes.") ShankOrSelect shank,
       @ScriptParameter(value = "row", defaultValue = "0",
@@ -160,7 +160,7 @@ public final class NpxBlueprintScripts {
     @RequestChannelmap(code = "NP24")
     public void npx24QuarterDensity(
       BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", type = "int|[int,int]|'selected'|'None'", defaultValue = "None",
+      @ScriptParameter(value = "shank", label = "int|[int,int]|'selected'|'None'", defaultValue = "None",
         converter = ShankOrSelect.Select.class,
         description = "on which shank/s. Use 'select' for selected electrodes. Use ``all`` for four shanks.") ShankOrSelect shank,
       @ScriptParameter(value = "row", defaultValue = "0",
@@ -227,7 +227,7 @@ public final class NpxBlueprintScripts {
       BlueprintAppToolkit<ChannelMap> bp,
       @ScriptParameter(value = "y",
         description = "um") double y,
-      @ScriptParameter(value = "shank", type = "list[int]", defaultValue = "None",
+      @ScriptParameter(value = "shank", label = "list[int]", defaultValue = "None",
         description = "only particular shanks.") PyValue shank,
       @ScriptParameter(value = "update", defaultValue = "False",
         description = "update channelmap to follow the blueprint change.") boolean update) {

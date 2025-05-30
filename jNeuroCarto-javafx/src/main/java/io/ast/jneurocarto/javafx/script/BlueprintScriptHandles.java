@@ -7,10 +7,12 @@ import java.lang.reflect.*;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,7 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 
+@NullMarked
 public final class BlueprintScriptHandles {
 
     private static final Logger log = LoggerFactory.getLogger(BlueprintScriptHandles.class);
@@ -144,7 +147,7 @@ public final class BlueprintScriptHandles {
 
         var description = ann.description();
 
-        var ps = lookupParameter(method).toArray(BlueprintScriptCallable.Parameter[]::new);
+        var ps = lookupMethodParameter(method).toArray(BlueprintScriptCallable.Parameter[]::new);
 
         if (instance != null && !is_static) {
             handle = handle.bindTo(instance);
@@ -160,7 +163,7 @@ public final class BlueprintScriptHandles {
         return null;
     }
 
-    private static List<BlueprintScriptCallable.Parameter> lookupParameter(Method method) {
+    private static List<BlueprintScriptCallable.Parameter> lookupMethodParameter(Method method) {
         var ret = new ArrayList<BlueprintScriptCallable.Parameter>();
         Parameter[] parameters = method.getParameters();
         for (int i = 1, length = parameters.length; i < length; i++) {
@@ -190,7 +193,7 @@ public final class BlueprintScriptHandles {
      *====================*/
 
     private static @Nullable BlueprintScriptClassHandle lookupInnerClass(MethodHandles.Lookup lookup, Class<?> clazz, Class<?> inner) {
-        log.debug("lookup inner class {}.{}", clazz.getSimpleName(), inner.getSimpleName());
+        log.debug("lookup iclass {}.{}", clazz.getSimpleName(), inner.getSimpleName());
 
         var modifiers = inner.getModifiers();
         if ((modifiers & Modifier.PUBLIC) == 0) {
@@ -237,16 +240,35 @@ public final class BlueprintScriptHandles {
 
         var description = ann.description();
 
-        var fs = new ArrayList<Field>();
-        var ps = lookupParameter(inner, fs).toArray(BlueprintScriptCallable.Parameter[]::new);
+        List<FoundParameter> fs;
+        try {
+            fs = lookupClassParameter(inner);
+        } catch (Exception e) {
+            log.warn("lookupInnerClass for parameters", e);
+            return null;
+        }
 
-        var fields = new MethodHandle[fs.size()];
+        var ps = new BlueprintScriptCallable.Parameter[fs.size()];
+        var handles = new MethodHandle[fs.size()];
+
         for (int i = 0, size = fs.size(); i < size; i++) {
-            try {
-                fields[i] = lookup.unreflectSetter(fs.get(i));
-            } catch (IllegalAccessException e) {
-                log.warn("lookupInnerClass for field", e);
-                return null;
+            var found = fs.get(i);
+            ps[i] = found.parameter;
+
+            if (found.member instanceof Field field) {
+                try {
+                    handles[i] = lookup.unreflectSetter(field);
+                } catch (IllegalAccessException e) {
+                    log.warn("lookupInnerClass for field", e);
+                    return null;
+                }
+            } else if (found.member instanceof Method method) {
+                try {
+                    handles[i] = lookup.unreflect(method);
+                } catch (IllegalAccessException e) {
+                    log.warn("lookupInnerClass for method", e);
+                    return null;
+                }
             }
         }
 
@@ -278,25 +300,62 @@ public final class BlueprintScriptHandles {
         throw new NoSuchMethodException(inner.getSimpleName() + "(Blueprint)");
     }
 
-
-    private static List<BlueprintScriptCallable.Parameter> lookupParameter(Class<?> inner, List<Field> fields) {
-        var ret = new ArrayList<BlueprintScriptCallable.Parameter>();
-        Field[] parameters = inner.getFields();
-        for (Field parameter : parameters) {
-            var ann = parameter.getAnnotation(ScriptParameter.class);
-            if (ann != null) {
-                log.trace("class {} find field {}", inner.getSimpleName(), parameter.getName());
-                ret.add(newParameter(parameter.getType(), ann, false));
-                fields.add(parameter);
+    private record FoundParameter(Member member, ScriptParameter ann, BlueprintScriptCallable.Parameter parameter) {
+        FoundParameter {
+            if (!(member instanceof Field || member instanceof Method)) {
+                throw new RuntimeException();
             }
         }
-        return ret;
+
+        int index() {
+            return ann().index();
+        }
+    }
+
+    private static List<FoundParameter> lookupClassParameter(Class<?> inner) {
+        var unindexed = new ArrayList<FoundParameter>();
+        var indexed = new ArrayList<FoundParameter>();
+
+        for (var field : inner.getFields()) {
+            var ann = field.getAnnotation(ScriptParameter.class);
+            if (ann != null) {
+                log.trace("class {} find field {}", inner.getSimpleName(), field.getName());
+                var found = new FoundParameter(field, ann, newParameter(field.getType(), ann, false));
+                (found.index() < 0 ? unindexed : indexed).add(found);
+            }
+        }
+        for (var method : inner.getMethods()) {
+            var ann = method.getAnnotation(ScriptParameter.class);
+            if (ann != null) {
+                log.trace("class {} find method {}()", inner.getSimpleName(), method.getName());
+                if (method.getParameterCount() == 1) {
+                    var para = method.getParameters()[0];
+                    var found = new FoundParameter(method, ann, newParameter(para.getType(), ann, para.isVarArgs()));
+                    (found.index() < 0 ? unindexed : indexed).add(found);
+                } else {
+                    throw new RuntimeException("not a one-parameter method : " + inner.getSimpleName() + "." + method.getName() + "()");
+                }
+            }
+        }
+
+        indexed.sort(Comparator.comparingInt(FoundParameter::index));
+        for (var para : indexed) {
+            unindexed.add(para.index(), para);
+        }
+
+        if (log.isTraceEnabled()) {
+            log.trace("resolved parameter order {}",
+              unindexed.stream().map(it -> it.parameter.name()).toList()
+            );
+        }
+
+        return unindexed;
     }
 
     private static BlueprintScriptCallable.Parameter newParameter(Class<?> type, ScriptParameter ann, boolean isVarArg) {
         var name = ann.value();
 
-        var typeDesp = ann.type();
+        var typeDesp = ann.label();
         if (typeDesp.isEmpty()) {
             if (type.isArray()) {
                 var t = type.getComponentType();
