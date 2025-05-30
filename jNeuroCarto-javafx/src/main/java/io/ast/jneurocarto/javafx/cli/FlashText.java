@@ -1,9 +1,11 @@
 package io.ast.jneurocarto.javafx.cli;
 
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 import io.ast.jneurocarto.javafx.chart.Application;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
@@ -48,6 +50,8 @@ public class FlashText implements Application.ApplicationContent, Runnable {
         painter = chart.getForegroundPainter();
         builder = painter.text()
           .font(Font.font("monospace", 60))
+          .align(TextAlignment.LEFT)
+          .baseline(VPos.CENTER)
           .color(Color.BLACK);
     }
 
@@ -56,7 +60,9 @@ public class FlashText implements Application.ApplicationContent, Runnable {
             e.consume();
             builder.graphics().clearData();
             var text = buffer.toString();
-            builder.addText(text, 10, 10);
+            if (!text.isEmpty()) {
+                builder.addText(text.replaceAll(" +", "\n"), 50, 50, 10, 10);
+            }
             painter.repaint();
         }
     }

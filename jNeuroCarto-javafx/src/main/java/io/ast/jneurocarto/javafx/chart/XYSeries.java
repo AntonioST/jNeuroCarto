@@ -191,10 +191,9 @@ public abstract class XYSeries implements XYGraphics {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <br/>
      * Only use 3 columns, which put transformed {@link XY#x()}, transformed {@link XY#y()},
-     * and {@link XY#v()}, respectively.
-     * <p/>
+     * and {@link XY#v()}, respectively, by default.
      *
      * @param aff {@link GraphicsContext}'s affine transformation.
      * @param p   {@code double[4][row]} array that store the transformed data.
