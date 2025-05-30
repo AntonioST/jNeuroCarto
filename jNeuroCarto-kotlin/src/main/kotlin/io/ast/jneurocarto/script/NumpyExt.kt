@@ -2,18 +2,9 @@
 
 package io.ast.jneurocarto.script
 
-import java.util.function.Function
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import io.ast.jneurocarto.core.blueprint.BlueprintMask
-
-private fun newBlueprintMask(length: Int, init: Function<Int, Boolean>): BlueprintMask {
-    return BlueprintMask(length).apply {
-        for (i in 0 until length) {
-            set(i, init.apply(i))
-        }
-    }
-}
 
 operator fun BlueprintMask.get(i: Int): Boolean = test(i)
 
@@ -34,51 +25,51 @@ infix fun BlueprintMask.xor(other: BlueprintMask): BlueprintMask {
 }
 
 infix fun IntArray.eq(value: Int): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] == value }
+    return BlueprintMask.eq(this, value)
 }
 
 infix fun IntArray.ne(value: Int): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] != value }
+    return BlueprintMask.ne(this, value)
 }
 
 infix fun IntArray.lt(value: Int): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] < value }
+    return BlueprintMask.lt(this, value)
 }
 
 infix fun IntArray.le(value: Int): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] <= value }
+    return BlueprintMask.le(this, value)
 }
 
 infix fun IntArray.gt(value: Int): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] > value }
+    return BlueprintMask.gt(this, value)
 }
 
 infix fun IntArray.ge(value: Int): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] >= value }
+    return BlueprintMask.ge(this, value)
 }
 
 infix fun DoubleArray.eq(value: Double): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] == value }
+    return BlueprintMask.eq(this, value)
 }
 
 infix fun DoubleArray.ne(value: Double): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] != value }
+    return BlueprintMask.ne(this, value)
 }
 
 infix fun DoubleArray.lt(value: Double): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] < value }
+    return BlueprintMask.lt(this, value)
 }
 
 infix fun DoubleArray.le(value: Double): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] <= value }
+    return BlueprintMask.le(this, value)
 }
 
 infix fun DoubleArray.gt(value: Double): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] > value }
+    return BlueprintMask.gt(this, value)
 }
 
 infix fun DoubleArray.ge(value: Double): BlueprintMask {
-    return newBlueprintMask(this.size) { this[it] >= value }
+    return BlueprintMask.ge(this, value)
 }
 
 operator fun IntArray.get(mask: BlueprintMask): IntArray {
@@ -134,7 +125,7 @@ operator fun DoubleArray.set(mask: BlueprintMask, value: DoubleArray) {
 }
 
 fun isnan(array: DoubleArray): BlueprintMask {
-    return newBlueprintMask(array.size) { java.lang.Double.isNaN(array[it]) }
+    return BlueprintMask.nan(array)
 }
 
 fun DoubleArray.nanmin(): Double {

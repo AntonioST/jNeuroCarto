@@ -149,10 +149,7 @@ public class BlueprintToolkit<T> {
         var length = length();
         if (length != mask.length()) throw new RuntimeException();
         if (length != electrodes.size()) throw new RuntimeException();
-        return IntStream.range(0, length)
-          .filter(mask)
-          .mapToObj(electrodes::get)
-          .toList();
+        return mask.stream().mapToObj(electrodes::get).toList();
     }
 
     /**
@@ -194,32 +191,13 @@ public class BlueprintToolkit<T> {
     }
 
     public final void from(int[] blueprint, BlueprintMask mask) {
-        var dst = this.blueprint.blueprint;
-        if (dst.length != blueprint.length) throw new RuntimeException();
-        if (dst.length != mask.length()) throw new RuntimeException();
-        if (dst != blueprint) {
-            for (int i = mask.nextSetIndex(0); i >= 0; i = mask.nextSetIndex(i + 1)) {
-                dst[i] = blueprint[i];
-            }
-        }
+        var output = this.blueprint.blueprint;
+        mask.where(output, blueprint);
     }
 
     public final void from(BlueprintMask writeMask, int[] blueprint, BlueprintMask readMask) {
-        var dst = this.blueprint.blueprint;
-        if (dst.length != blueprint.length) throw new RuntimeException();
-        if (dst.length != writeMask.length()) throw new RuntimeException();
-        if (dst.length != readMask.length()) throw new RuntimeException();
-        if (writeMask.count() != readMask.count()) throw new RuntimeException();
-
-        if (dst != blueprint) {
-            int i = writeMask.nextSetIndex(0);
-            int j = readMask.nextSetIndex(0);
-            while (i >= 0) {
-                dst[i] = blueprint[j];
-                i = writeMask.nextSetIndex(i + 1);
-                j = readMask.nextSetIndex(j + 1);
-            }
-        }
+        var output = this.blueprint.blueprint;
+        writeMask.where(output, blueprint, readMask);
     }
 
     /**
@@ -510,11 +488,7 @@ public class BlueprintToolkit<T> {
     }
 
     public final BlueprintMask mask(int[] blueprint, int category) {
-        var ret = new BlueprintMask(blueprint.length);
-        for (int i = 0, length = blueprint.length; i < length; i++) {
-            ret.set(i, blueprint[i] == category);
-        }
-        return ret;
+        return BlueprintMask.eq(blueprint, category);
     }
 
     public final Stream<Electrode> filter(Predicate<Electrode> filter) {
@@ -1772,12 +1746,7 @@ public class BlueprintToolkit<T> {
     }
 
     public double[] get(double[] data, BlueprintMask mask) {
-        if (data.length != mask.length()) throw new RuntimeException();
-        var ret = new double[mask.count()];
-        for (int i = mask.nextSetIndex(0), j = 0; i >= 0; i = mask.nextSetIndex(i + 1), j++) {
-            ret[j] = data[i];
-        }
-        return ret;
+        return mask.squeeze(data);
     }
 
     public double[] get(double[] data, Predicate<Electrode> pick) {
@@ -1874,35 +1843,19 @@ public class BlueprintToolkit<T> {
 
 
     public double[] set(double[] data, BlueprintMask mask, double v) {
-        if (data.length != mask.length()) throw new RuntimeException();
-        mask.forEach(i -> data[i] = v);
+        mask.fill(data, v);
         return data;
     }
 
     public double[] set(double[] data, BlueprintMask mask, double[] v) {
-        if (data.length != mask.length()) throw new RuntimeException();
-        if (v.length != mask.count()) throw new RuntimeException();
-        for (int i = mask.nextSetIndex(0), j = 0; i >= 0; i = mask.nextSetIndex(i + 1), j++) {
-            data[i] = v[j];
-        }
+        mask.where(data, v, null);
         return data;
     }
 
     public double[] set(double[] data, BlueprintMask writeMask, double[] v, BlueprintMask readMask) {
-        if (data.length != writeMask.length()) throw new RuntimeException();
-        if (v.length != readMask.length()) throw new RuntimeException();
-        if (writeMask.count() != readMask.count()) throw new RuntimeException();
-
-        int i = writeMask.nextSetIndex(0);
-        int j = readMask.nextSetIndex(0);
-        while (i >= 0) {
-            data[i] = v[j];
-            i = writeMask.nextSetIndex(i + 1);
-            j = writeMask.nextSetIndex(j + 1);
-        }
+        writeMask.where(data, v, readMask);
         return data;
     }
-
 
     /**
      * {@code a[i[offset:offset+length]] = oper(a[i[offset:offset+length]])}

@@ -241,9 +241,7 @@ public final class Blueprint<T> {
 
     public Blueprint<T> set(int category, BlueprintMask mask) {
         if (blueprint.length != mask.length()) throw new RuntimeException();
-
         mask.forEach(i -> blueprint[i] = category);
-
         return this;
     }
 
