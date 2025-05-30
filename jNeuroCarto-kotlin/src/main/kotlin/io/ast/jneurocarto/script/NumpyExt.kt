@@ -76,6 +76,54 @@ infix fun DoubleArray.ge(value: Double): BlueprintMask {
     return BlueprintMask.ge(this, value)
 }
 
+infix fun IntArray.eq(value: IntArray): BlueprintMask {
+    return BlueprintMask.eq(this, value)
+}
+
+infix fun IntArray.ne(value: IntArray): BlueprintMask {
+    return BlueprintMask.ne(this, value)
+}
+
+infix fun IntArray.lt(value: IntArray): BlueprintMask {
+    return BlueprintMask.lt(this, value)
+}
+
+infix fun IntArray.le(value: IntArray): BlueprintMask {
+    return BlueprintMask.le(this, value)
+}
+
+infix fun IntArray.gt(value: IntArray): BlueprintMask {
+    return BlueprintMask.gt(this, value)
+}
+
+infix fun IntArray.ge(value: IntArray): BlueprintMask {
+    return BlueprintMask.ge(this, value)
+}
+
+infix fun DoubleArray.eq(value: DoubleArray): BlueprintMask {
+    return BlueprintMask.eq(this, value)
+}
+
+infix fun DoubleArray.ne(value: DoubleArray): BlueprintMask {
+    return BlueprintMask.ne(this, value)
+}
+
+infix fun DoubleArray.lt(value: DoubleArray): BlueprintMask {
+    return BlueprintMask.lt(this, value)
+}
+
+infix fun DoubleArray.le(value: DoubleArray): BlueprintMask {
+    return BlueprintMask.le(this, value)
+}
+
+infix fun DoubleArray.gt(value: DoubleArray): BlueprintMask {
+    return BlueprintMask.gt(this, value)
+}
+
+infix fun DoubleArray.ge(value: DoubleArray): BlueprintMask {
+    return BlueprintMask.ge(this, value)
+}
+
 operator fun IntArray.get(mask: BlueprintMask): IntArray {
     return mask.squeeze(this)
 }

@@ -194,7 +194,7 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         return mask.stream().toArray();
     }
 
-    public static BlueprintMask fromElectrodeIndex(int total, int[] index) {
+    public static BlueprintMask from(int total, int[] index) {
         var ret = new BlueprintMask(total);
         for (int e : index) {
             ret.set(e);
@@ -202,7 +202,7 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         return ret;
     }
 
-    public static BlueprintMask fromElectrodeIndex(int total, int[] index, int offset, int length) {
+    public static BlueprintMask from(int total, int[] index, int offset, int length) {
         var ret = new BlueprintMask(total);
         for (int i = 0; i < length; i++) {
             ret.set(index[i + offset]);
@@ -216,10 +216,34 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         return ret;
     }
 
-    public static BlueprintMask fromBooleanMask(boolean[] mask) {
+    public static BlueprintMask from(boolean[] mask) {
         var ret = new BlueprintMask(mask.length);
         for (int i = 0, length = mask.length; i < length; i++) {
             if (mask[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask from(int[] array, IntPredicate tester) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            ret.set(i, tester.test(array[i]));
+        }
+        return ret;
+    }
+
+    public static BlueprintMask from(double[] array, DoublePredicate tester) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            ret.set(i, tester.test(array[i]));
+        }
+        return ret;
+    }
+
+    public static <T> BlueprintMask from(T[] array, Predicate<T> tester) {
+        var ret = new BlueprintMask(array.length);
+        for (int i = 0, length = array.length; i < length; i++) {
+            ret.set(i, tester.test(array[i]));
         }
         return ret;
     }
@@ -330,6 +354,127 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
         var ret = new BlueprintMask(array.length);
         for (int i = 0, length = array.length; i < length; i++) {
             if (array[i] >= value) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask eq(int[] array, int[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] == value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ne(int[] array, int[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] != value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask lt(int[] array, int[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] < value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask le(int[] array, int[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] <= value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask gt(int[] array, int[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] > value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ge(int[] array, int[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] >= value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask eq(double[] array, double[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] == value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ne(double[] array, double[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] != value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask lt(double[] array, double[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] < value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask le(double[] array, double[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] <= value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask gt(double[] array, double[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] > value[i]) ret.set(i);
+        }
+        return ret;
+    }
+
+    public static BlueprintMask ge(double[] array, double[] value) {
+        var length = array.length;
+        if (length != value.length) throw new IllegalArgumentException();
+        var ret = new BlueprintMask(length);
+        for (int i = 0; i < length; i++) {
+            if (array[i] >= value[i]) ret.set(i);
         }
         return ret;
     }
