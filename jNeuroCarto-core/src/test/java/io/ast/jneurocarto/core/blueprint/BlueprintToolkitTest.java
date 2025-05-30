@@ -385,6 +385,77 @@ public class BlueprintToolkitTest {
         assertArrayEquals(o, blueprint);
     }
 
+    @Test
+    public void moveWithDirection() {
+        var bp = fromShape(1, 6, 6);
+        var reset = new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        };
+
+        bp.from(reset);
+        bp.move(new BlueprintToolkit.Movement(0, 0));
+        assertBlueprintEquals(bp, reset, bp.ref());
+
+        bp.from(reset);
+        bp.move(new BlueprintToolkit.Movement(1, 0));
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.move(new BlueprintToolkit.Movement(-1, 0));
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          1, 1, 1, 1, 0, 0,
+          1, 1, 1, 1, 0, 0,
+          1, 1, 1, 1, 0, 0,
+          1, 1, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.move(new BlueprintToolkit.Movement(0, 1));
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.move(new BlueprintToolkit.Movement(0, -1));
+        assertBlueprintEquals(bp, new int[]{
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.move(new BlueprintToolkit.Movement(1, 1));
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1,
+        }, bp.ref());
+    }
 
     @Test
     public void clustering() {
@@ -663,6 +734,75 @@ public class BlueprintToolkitTest {
     }
 
     @Test
+    public void expendWithDirection() {
+        var bp = fromShape(1, 6, 6);
+        var reset = new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        };
+
+        bp.from(reset);
+        bp.extend(1, new BlueprintToolkit.AreaChange(1, 0, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.extend(1, new BlueprintToolkit.AreaChange(0, 1, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.extend(1, new BlueprintToolkit.AreaChange(0, 0, 1, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 0, 0,
+          0, 1, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.extend(1, new BlueprintToolkit.AreaChange(0, 0, 0, 1), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.extend(1, new BlueprintToolkit.AreaChange(1, 1, 1, 1), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+    }
+
+    @Test
     public void reduce() {
         var bp = fromShape(1, 7, 2);
         bp.from(new int[]{
@@ -705,6 +845,142 @@ public class BlueprintToolkitTest {
           1, 1,
           0, 0,
           0, 0,
+        }, bp.ref());
+    }
+
+    @Test
+    public void reduceWithDirection() {
+        var bp = fromShape(1, 6, 6);
+        var reset = new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        };
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(1, 0, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 1, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 0, 1, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 0, 0, 1), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 0, 0,
+          0, 1, 1, 1, 0, 0,
+          0, 1, 1, 1, 0, 0,
+          0, 1, 1, 1, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+    }
+
+    @Test
+    public void reduceOverArea() {
+        var bp = fromShape(1, 6, 6);
+        var reset = new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 1, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        };
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(2, 2, 0, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 0, 2, 2), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 1, 1, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 2, 2, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 1, 1, 0,
+          0, 0, 0, 1, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 3, 3, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 1, 0,
+          0, 0, 0, 0, 0, 0,
+        }, bp.ref());
+
+        bp.from(reset);
+        bp.reduce(1, new BlueprintToolkit.AreaChange(0, 4, 4, 0), BlueprintToolkit.AreaThreshold.ALL);
+        assertBlueprintEquals(bp, new int[]{
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0,
         }, bp.ref());
     }
 
