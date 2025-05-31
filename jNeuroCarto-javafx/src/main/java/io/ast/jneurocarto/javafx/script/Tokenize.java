@@ -55,10 +55,10 @@ public class Tokenize {
             var n = line.substring(i, k);
             d = nextNonSpaceChar(d + 1, x);
             if (d == x) {
-                values.add(new PyValue.PyNamedParameter(n, line.substring(i, x), i, d, null));
+                values.add(new PyValue.PyNamedParameter(n, "", d, null));
             } else {
                 var v = parseValue(d, x);
-                values.add(new PyValue.PyNamedParameter(n, line.substring(i, x), i, d, v));
+                values.add(new PyValue.PyNamedParameter(n, line.substring(d, x), d, v));
             }
         }
     }

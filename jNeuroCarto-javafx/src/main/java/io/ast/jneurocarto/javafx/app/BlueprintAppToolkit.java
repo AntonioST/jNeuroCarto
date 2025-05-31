@@ -1,6 +1,8 @@
 package io.ast.jneurocarto.javafx.app;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.jspecify.annotations.NullMarked;
@@ -11,6 +13,7 @@ import io.ast.jneurocarto.core.RequestChannelmapException;
 import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.javafx.script.ScriptPlugin;
 import io.ast.jneurocarto.javafx.view.Plugin;
 
 @NullMarked
@@ -247,6 +250,42 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public <P extends Plugin> @Nullable P getPlugin(Class<P> cls) {
         return application.getPlugin(cls);
+    }
+
+    /*==================*
+     * blueprint script *
+     *==================*/
+
+    public boolean hasScript(String name) {
+        var plugin = getPlugin(ScriptPlugin.class);
+        return plugin != null && plugin.hasScript(name);
+    }
+
+    public void runScript(String name, String... args) {
+        runScript(name, Arrays.asList(args));
+    }
+
+    public void runScript(String name, List<String> args) {
+        runScript(name, args, Map.of());
+    }
+
+    public void runScript(String name, List<String> args, Map<String, String> kwargs) {
+        var plugin = getPlugin(ScriptPlugin.class);
+        if (plugin != null) {
+            plugin.runScript(name, args, kwargs);
+        }
+    }
+
+    public boolean interruptScript(String name) {
+        var plugin = getPlugin(ScriptPlugin.class);
+        return plugin != null && plugin.interruptScript(name);
+    }
+
+    public void setScriptInput(String name, String... args) {
+        var plugin = getPlugin(ScriptPlugin.class);
+        if (plugin != null) {
+            plugin.selectScript(name);
+        }
     }
 
     /*=============*

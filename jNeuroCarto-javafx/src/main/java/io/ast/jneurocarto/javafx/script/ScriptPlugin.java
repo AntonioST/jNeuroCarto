@@ -31,11 +31,10 @@ import io.ast.jneurocarto.core.RequestChannelmapException;
 import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.*;
-import io.ast.jneurocarto.javafx.view.GlobalStateView;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.github.classgraph.ClassInfo;
 
-public class ScriptPlugin extends InvisibleView implements GlobalStateView<ScriptConfig> {
+public class ScriptPlugin extends InvisibleView {
 
     private final Application<Object> application;
     private final CartoConfig config;
@@ -44,7 +43,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     private ProbeView<Object> view;
 
     private final Logger log = LoggerFactory.getLogger(ScriptPlugin.class);
-
 
     public ScriptPlugin(Application<Object> application, CartoConfig config, ProbeDescription<?> probe) {
         this.application = application;
@@ -127,20 +125,6 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
      * properties *
      *============*/
 
-    /*=================*
-     * state load/save *
-     *=================*/
-
-    @Override
-    public @Nullable ScriptConfig getState() {
-        return null;
-    }
-
-    @Override
-    public void restoreState(@Nullable ScriptConfig state) {
-
-    }
-
     /*===========*
      * UI layout *
      *===========*/
@@ -148,9 +132,9 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
     private ChoiceBox<String> script;
     private TextField line;
     private Button run;
-    private Map<String, String> cached = new HashMap<>();
     private Label information;
     private Label document;
+    private final Map<String, String> cached = new HashMap<>();
 
     @Override
     public @Nullable Node setup(PluginSetupService service) {
@@ -294,9 +278,12 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
      * script controls *
      *=================*/
 
-    public void selectScript(String name) {
+    public boolean selectScript(String name) {
         if (getScript(name) != null) {
             script.setValue(name);
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -317,12 +304,10 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         line.appendText(text);
     }
 
-    public List<PyValue.PyParameter> parseScriptInputLine() {
-        return parseScriptInputLine(line.getText());
-    }
-
-    public List<PyValue.PyParameter> parseScriptInputLine(String line) {
-        return new Tokenize(line).parse().values;
+    public void appendScriptInputValueText(String name, String value) {
+        if (name.contains("=")) throw new IllegalArgumentException();
+        if (name.contains(",")) throw new IllegalArgumentException();
+        appendScriptInputValueText(name + "=" + value);
     }
 
     public void runScript() {
@@ -335,10 +320,11 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         runScript(name, input);
     }
 
-    public void showAndRunScript(String name, String line) {
-        selectScript(name);
+    public boolean showAndRunScript(String name, String line) {
+        if (!selectScript(name)) return false;
         setScriptInputLine(line);
         runScript(name, line);
+        return true;
     }
 
     public void runScript(String name, String line) {
@@ -351,6 +337,25 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
         try {
             evalScript(script, line);
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) {
+                throw new RuntimeException("script \"" + name + "\" is interrupted", ex);
+            } else {
+                throw new RuntimeException("script \"" + name + "\" fail. " + ex.getMessage(), ex);
+            }
+        }
+    }
+
+    public void runScript(String name, List<String> args, Map<String, String> kwargs) {
+        var script = getScript(name);
+        if (script == null) throw new RuntimeException("script \"" + name + "\" not found");
+
+        if (isRunning(name)) {
+            throw new RuntimeException("script \"" + name + "\" is running");
+        }
+
+        try {
+            invokeScript(script, BlueprintScriptHandles.parseScriptInputArgs(args, kwargs));
         } catch (Exception ex) {
             if (ex instanceof InterruptedException) {
                 throw new RuntimeException("script \"" + name + "\" is interrupted", ex);
@@ -387,6 +392,10 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
      * script invoking *
      *=================*/
 
+    public boolean hasScript(String name) {
+        return getScript(name) != null;
+    }
+
     private @Nullable BlueprintScriptCallable getScript(String name) {
         for (var function : functions) {
             if (function.name().equals(name)) return function;
@@ -396,15 +405,11 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     private void evalScript(BlueprintScriptCallable callable, String line) {
         log.debug("run script {} with \"{}\"", callable.name(), line);
-        var arguments = parseScriptInputLine(line);
+        invokeScript(callable, BlueprintScriptHandles.parseScriptInputLine(line));
+    }
 
-        if (log.isDebugEnabled()) {
-            var content = arguments.stream()
-              .map(PyValue::toString)
-              .collect(Collectors.joining(", "));
-            log.debug("token [{}]", content);
-        }
-
+    private void invokeScript(BlueprintScriptCallable callable, List<PyValue.PyParameter> arguments) {
+        log.debug("run script {} with {}", callable.name(), arguments);
         invokeScript(callable, BlueprintScriptHandles.pairScriptArguments(callable, arguments));
     }
 
@@ -551,13 +556,25 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         return null;
     }
 
-    public void interruptScript(String name) {
+    /**
+     * Interrupt the script running thread.
+     * <p/>
+     * If the script is not an async script, then it is uninterruptible,
+     * and always return {@code false}.
+     * <p/>
+     * Unexisted script {@code name} always returns {@code false}.
+     *
+     * @param name the name of the script.
+     * @return Did interruption set?
+     */
+    public boolean interruptScript(String name) {
         for (var thread : running) {
             if (thread.name().equals(name)) {
                 interruptScript(thread);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     private void interruptScript(ScriptResult script) {

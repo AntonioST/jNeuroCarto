@@ -1,7 +1,9 @@
 package io.ast.jneurocarto.javafx.script;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 import javafx.application.Platform;
@@ -12,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.utils.Result;
 
 @NullMarked
 @SuppressWarnings("preview")
@@ -29,7 +32,7 @@ public class ScriptThread implements Runnable {
                  BlueprintScriptCallable callable,
                  Object[] arguments,
                  BiConsumer<ScriptThread, @Nullable Throwable> complete) {
-        log.debug("init {}", callable.name());
+        log.debug("script \"{}\" init", callable.name());
         this.toolkit = toolkit;
         this.callable = callable;
         this.arguments = arguments;
@@ -42,7 +45,7 @@ public class ScriptThread implements Runnable {
 
     @Override
     public void run() {
-        log.debug("start script {}", name());
+        log.debug("script \"{}\" start", name());
 
         try {
             complete(ScopedValue.where(CURRENT, this).call(this::invokeCallable));
@@ -57,7 +60,7 @@ public class ScriptThread implements Runnable {
     }
 
     private void complete(@Nullable Throwable error) {
-        log.debug("complete script \"{}\" with error {}", name(), Objects.toString(error));
+        log.debug("script \"{}\" complete with error {}", name(), Objects.toString(error));
 
         Platform.runLater(() -> {
             try {
@@ -72,6 +75,15 @@ public class ScriptThread implements Runnable {
         return CURRENT.orElse(null);
     }
 
+    public BlueprintScriptCallable callable() {
+        return callable;
+    }
+
+    public Object[] arguments() {
+        return arguments;
+    }
+
+    @SuppressWarnings("LoggingSimilarMessage")
     public static void awaitFxApplicationThread(Runnable runnable) throws InterruptedException {
         if (Thread.currentThread().isInterrupted()) {
             Thread.currentThread().interrupt();
@@ -88,26 +100,52 @@ public class ScriptThread implements Runnable {
             return;
         }
 
-        var flag = new AtomicInteger();
+        var latch = new CountDownLatch(1);
         Platform.runLater(() -> {
             current.log.trace("{} awaitFxApplicationThread (run)", current.name());
             try {
                 runnable.run();
             } finally {
-                flag.incrementAndGet();
-                synchronized (flag) {
-                    flag.notifyAll();
-                }
+                latch.countDown();
             }
         });
 
         current.log.trace("{} awaitFxApplicationThread (wait)", current.name());
-        while (flag.get() == 0) {
-            synchronized (flag) {
-                flag.wait(1000);
-            }
-        }
+        latch.await();
 
         current.log.trace("{} awaitFxApplicationThread (return)", current.name());
+    }
+
+    @SuppressWarnings("LoggingSimilarMessage")
+    public static <V> Result<V, Throwable> awaitFxApplicationThread(Callable<V> runnable) throws InterruptedException {
+        if (Thread.currentThread().isInterrupted()) {
+            Thread.currentThread().interrupt();
+            throw new InterruptedException();
+        }
+
+        var current = current();
+        if (current == null) throw new IllegalStateException("not in a script thread");
+
+        if (Platform.isFxApplicationThread()) {
+            current.log.trace("{} awaitFxApplicationThread (run)", current.name());
+            return Result.invoke(runnable);
+        }
+
+        var ret = new AtomicReference<Result<V, Throwable>>();
+        var latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            current.log.trace("{} awaitFxApplicationThread (run)", current.name());
+            try {
+                ret.set(Result.invoke(runnable));
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        current.log.trace("{} awaitFxApplicationThread (wait)", current.name());
+        latch.await();
+
+        current.log.trace("{} awaitFxApplicationThread (return)", current.name());
+        return ret.get();
     }
 }

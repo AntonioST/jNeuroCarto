@@ -5,10 +5,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -407,6 +404,26 @@ public final class BlueprintScriptHandles {
      * parse arguments *
      *=================*/
 
+    public static List<PyValue.PyParameter> parseScriptInputLine(String line) {
+        return Objects.requireNonNull(new Tokenize(line).parse().values);
+    }
+
+    public static List<PyValue.PyParameter> parseScriptInputArgs(List<String> args, Map<String, String> kwargs) {
+        var ret = new ArrayList<PyValue.PyParameter>();
+        for (int i = 0, size = args.size(); i < size; i++) {
+            var text = args.get(i);
+            var value = new Tokenize(text).parseValue();
+            ret.add(new PyValue.PyIndexParameter(i, text, -1, value));
+        }
+        for (var entry : kwargs.entrySet()) {
+            var name = entry.getKey();
+            var text = entry.getValue();
+            var value = new Tokenize(text).parseValue();
+            ret.add(new PyValue.PyNamedParameter(name, text, -1, value));
+        }
+        return ret;
+    }
+
     public static Object[] pairScriptArguments(BlueprintScriptCallable callable, List<PyValue.PyParameter> arguments) {
         var parameters = callable.parameters();
         var ret = new ArrayList<>(parameters.length);
@@ -429,7 +446,7 @@ public final class BlueprintScriptHandles {
                     ret.set(index, castScriptArgument(parameters[index], argument));
                 }
             }
-            case PyValue.PyNamedParameter(var name, _, _, _, _) -> {
+            case PyValue.PyNamedParameter(var name, _, _, _) -> {
                 var j = indexOfParameter(parameters, name);
                 if (j < 0) {
                     throw new RuntimeException("unresolved parameter name : " + name);
@@ -475,7 +492,7 @@ public final class BlueprintScriptHandles {
     public static @Nullable Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
                                                       PyValue.PyParameter token) {
         var value = token.value();
-        var rawString = token.valueText();
+        var rawString = token.text();
 
         var converter = parameter.converter();
         if (converter == ScriptParameter.RawString.class) {

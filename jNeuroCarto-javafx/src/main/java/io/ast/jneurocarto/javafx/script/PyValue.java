@@ -282,33 +282,53 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * python argument.
+     */
     sealed interface PyParameter extends PyValue {
+        /**
+         * {@return argument raw string.}
+         */
         String text();
 
+        /**
+         * index of {@link #text()} from the origin text.
+         *
+         * @return index of {@link #text()} from the origin text. {@code -1} if the origin text is unavailable.
+         */
         int offset();
 
+        /**
+         * {@return parsed non-{@link PyParameter} {@link PyValue}.}
+         */
         @Nullable
         PyValue value();
-
-        String valueText();
     }
 
+    /**
+     * python positional argument.
+     *
+     * @param index  position index of this parameter.
+     * @param text   argument raw string.
+     * @param offset index of {@code text} from the origin text. {@code -1} if the origin text is unavailable.
+     * @param value  parsed non-{@link PyParameter} {@link PyValue}.
+     */
     record PyIndexParameter(int index, String text, int offset, @Nullable PyValue value) implements PyParameter {
-        public String valueText() {
-            return text;
-        }
-
         @Override
         public String toString() {
             return index + "=" + value;
         }
     }
 
-    record PyNamedParameter(String name, String text, int offset, int delimiter, @Nullable PyValue value) implements PyParameter {
-        public String valueText() {
-            return text.substring(delimiter - offset);
-        }
-
+    /**
+     * python keyword argument.
+     *
+     * @param name   name of this argument.
+     * @param text   argument raw string.
+     * @param offset index of {@code text} from the origin text. {@code -1} if the origin text is unavailable.
+     * @param value  parsed non-{@link PyParameter} {@link PyValue}.
+     */
+    record PyNamedParameter(String name, String text, int offset, @Nullable PyValue value) implements PyParameter {
         @Override
         public String toString() {
             return name + "=" + value;

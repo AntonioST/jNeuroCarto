@@ -41,10 +41,15 @@ public class DebugScript {
         var plugin = toolkit.getPlugin(ScriptPlugin.class);
         if (plugin == null) throw new RuntimeException();
 
-        ScriptThread.awaitFxApplicationThread(() -> {
-            plugin.selectScript("echo");
-            plugin.setScriptInputLine("");
-        });
+        var success = ScriptThread.awaitFxApplicationThread(() -> {
+            if (plugin.selectScript("echo")) {
+                plugin.setScriptInputLine("");
+                return true;
+            } else {
+                return false;
+            }
+        }).getOrThrowRuntimeException();
+        if (!success) return;
 
         var i = 0;
         while (i < n) {
@@ -56,7 +61,7 @@ public class DebugScript {
             i++;
         }
 
-        ScriptThread.awaitFxApplicationThread(plugin::runScript);
+        ScriptThread.awaitFxApplicationThread((Runnable) plugin::runScript);
 
         ScriptThread.awaitFxApplicationThread(() -> {
             toolkit.printLogMessage("count");
