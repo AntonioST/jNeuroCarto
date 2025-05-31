@@ -529,6 +529,32 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return new SliceCoordinate(0, x, y);
     }
 
+    /*================*
+     * atlas controls *
+     *================*/
+
+    public @Nullable Structure getRegion(int id) {
+        var brain = this.brain;
+        if (brain == null) return null;
+
+        return brain.structures().get(id).orElse(null);
+    }
+
+    public @Nullable Structure getRegion(String name) {
+        var brain = this.brain;
+        if (brain == null) return null;
+
+        var ret = brain.structures().get(name).orElse(null);
+        if (ret != null) return ret;
+
+        name = name.toLowerCase();
+        for (var structure : brain.structures()) {
+            if (structure.acronym().toLowerCase().startsWith(name)) return structure;
+            if (structure.name().toLowerCase().contains(name)) return structure;
+        }
+        return null;
+    }
+
     /*=====================*
      * atlas brain drawing *
      *=====================*/

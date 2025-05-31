@@ -1,18 +1,17 @@
 package io.ast.jneurocarto.javafx.app;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.atlas.Structure;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.RequestChannelmapException;
 import io.ast.jneurocarto.core.RequestChannelmapInfo;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
 import io.ast.jneurocarto.javafx.view.Plugin;
 
@@ -244,12 +243,12 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * plugin *
      *========*/
 
-    public @Nullable Plugin getPlugin(String name) {
-        return application.getPlugin(name);
+    public Optional<Plugin> getPlugin(String name) {
+        return Optional.ofNullable(application.getPlugin(name));
     }
 
-    public <P extends Plugin> @Nullable P getPlugin(Class<P> cls) {
-        return application.getPlugin(cls);
+    public <P extends Plugin> Optional<P> getPlugin(Class<P> cls) {
+        return Optional.ofNullable(application.getPlugin(cls));
     }
 
     /*==================*
@@ -257,8 +256,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      *==================*/
 
     public boolean hasScript(String name) {
-        var plugin = getPlugin(ScriptPlugin.class);
-        return plugin != null && plugin.hasScript(name);
+        return getPlugin(ScriptPlugin.class).map(p -> p.hasScript(name)).orElse(false);
     }
 
     public void runScript(String name, String... args) {
@@ -270,27 +268,40 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public void runScript(String name, List<String> args, Map<String, String> kwargs) {
-        var plugin = getPlugin(ScriptPlugin.class);
-        if (plugin != null) {
-            plugin.runScript(name, args, kwargs);
-        }
+        getPlugin(ScriptPlugin.class).ifPresent(p -> p.runScript(name, args, kwargs));
     }
 
     public boolean interruptScript(String name) {
-        var plugin = getPlugin(ScriptPlugin.class);
-        return plugin != null && plugin.interruptScript(name);
+        return getPlugin(ScriptPlugin.class).map(p -> p.interruptScript(name)).orElse(false);
     }
 
     public void setScriptInput(String name, String... args) {
-        var plugin = getPlugin(ScriptPlugin.class);
-        if (plugin != null) {
-            plugin.selectScript(name);
-        }
+        getPlugin(ScriptPlugin.class).ifPresent(p -> {
+            if (p.selectScript(name)) {
+                for (var arg : args) {
+                    p.appendScriptInputValueText(arg);
+                }
+            }
+        });
     }
 
     /*=============*
      * atlas brain *
      *=============*/
+
+    public @Nullable String getRegion(int id) {
+        return getPlugin(AtlasPlugin.class)
+          .map(p -> p.getRegion(id))
+          .map(Structure::name)
+          .orElse(null);
+    }
+
+    public @Nullable String getRegion(String name) {
+        return getPlugin(AtlasPlugin.class)
+          .map(p -> p.getRegion(name))
+          .map(Structure::name)
+          .orElse(null);
+    }
 
     /*====================*
      * probe coordination *

@@ -38,8 +38,7 @@ public class DebugScript {
     //    @BlueprintScript(value = "count-echo", description = "count and echo", async = true)
     public void countEcho(BlueprintAppToolkit<Object> toolkit,
                           @ScriptParameter("n") int n) throws InterruptedException {
-        var plugin = toolkit.getPlugin(ScriptPlugin.class);
-        if (plugin == null) throw new RuntimeException();
+        var plugin = toolkit.getPlugin(ScriptPlugin.class).orElseThrow(RuntimeException::new);
 
         var success = ScriptThread.awaitFxApplicationThread(() -> {
             if (plugin.selectScript("echo")) {

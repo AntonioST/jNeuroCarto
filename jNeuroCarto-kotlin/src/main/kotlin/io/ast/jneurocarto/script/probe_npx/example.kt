@@ -47,7 +47,7 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
 
     toolkit.printLogMessage("min=${data.nanmin().round(2)}, max=${data.nanmax().round(2)}")
 
-    toolkit.getPlugin(DataVisualizePlugin::class.java)?.let { plugin ->
+    toolkit.getPlugin(DataVisualizePlugin::class.java).ifPresent { plugin ->
         plugin.file = filename
         plugin.interpolate = 3
         plugin.updateDataImage(data)
@@ -56,12 +56,12 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
 
     toolkit.clear()
     toolkit[isnan(data)] = X
-    toolkit.reduce(X, 20, 0..20)
+    toolkit.reduce(X, 20, threshold = 0..20)
     toolkit.fill(X, 10..Int.MAX_VALUE)
 
     toolkit[data ge threshold] = F
     toolkit.fill(F)
-    toolkit.extend(F, 2, 0..100)
+    toolkit.extend(F, 2, threshold = 0..100)
     toolkit.extend(F, 10, H)
 
     toolkit.applyViewBlueprint()
