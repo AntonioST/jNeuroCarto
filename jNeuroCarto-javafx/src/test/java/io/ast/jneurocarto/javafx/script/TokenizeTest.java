@@ -229,9 +229,9 @@ public class TokenizeTest {
     @Test
     public void parseLine() {
         assertEquals(List.of(
-            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
-            new PyValue.PyIndexParameter(1, new PyValue.PyInt(2)),
-            new PyValue.PyIndexParameter(2, new PyValue.PyInt(3))),
+            new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt(1)),
+            new PyValue.PyIndexParameter(1, "2", 2, new PyValue.PyInt(2)),
+            new PyValue.PyIndexParameter(2, "3", 4, new PyValue.PyInt(3))),
           new Tokenize("1,2,3").parse().values
         );
     }
@@ -240,23 +240,23 @@ public class TokenizeTest {
     public void parseLineWithNullValue() {
         assertEquals(
           List.of(
-            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
-            new PyValue.PyIndexParameter(1, null),
-            new PyValue.PyIndexParameter(2, new PyValue.PyInt(3))),
+            new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt(1)),
+            new PyValue.PyIndexParameter(1, "", 2, null),
+            new PyValue.PyIndexParameter(2, "3", 3, new PyValue.PyInt(3))),
           new Tokenize("1,,3").parse().values
         );
         assertEquals(
           List.of(
-            new PyValue.PyIndexParameter(0, null),
-            new PyValue.PyIndexParameter(1, null),
-            new PyValue.PyIndexParameter(2, null)),
+            new PyValue.PyIndexParameter(0, "", 0, null),
+            new PyValue.PyIndexParameter(1, "", 1, null),
+            new PyValue.PyIndexParameter(2, "", 2, null)),
           new Tokenize(",, ").parse().values
         );
         assertEquals(
           List.of(
-            new PyValue.PyIndexParameter(0, null),
-            new PyValue.PyIndexParameter(1, null),
-            new PyValue.PyIndexParameter(2, null)),
+            new PyValue.PyIndexParameter(0, "", 0, null),
+            new PyValue.PyIndexParameter(1, "", 1, null),
+            new PyValue.PyIndexParameter(2, "", 2, null)),
           new Tokenize(",,").parse().values
         );
     }
@@ -264,9 +264,9 @@ public class TokenizeTest {
     @Test
     public void parseLineWithName() {
         assertEquals(List.of(
-            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
-            new PyValue.PyNamedParameter("a", new PyValue.PyInt(2)),
-            new PyValue.PyNamedParameter("b", new PyValue.PyInt(3))),
+            new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt(1)),
+            new PyValue.PyNamedParameter("a", "a=2", 2, 4, new PyValue.PyInt(2)),
+            new PyValue.PyNamedParameter("b", "b=3", 6, 8, new PyValue.PyInt(3))),
           new Tokenize("1,a=2,b=3").parse().values
         );
     }
@@ -274,16 +274,16 @@ public class TokenizeTest {
     @Test
     public void parseLineWithNameAndNullValue() {
         assertEquals(List.of(
-            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
-            new PyValue.PyNamedParameter("a", null),
-            new PyValue.PyNamedParameter("b", new PyValue.PyInt(3))),
+            new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt(1)),
+            new PyValue.PyNamedParameter("a", "a=", 2, 4, null),
+            new PyValue.PyNamedParameter("b", "b=3", 5, 7, new PyValue.PyInt(3))),
           new Tokenize("1,a=,b=3").parse().values
         );
 
         assertEquals(List.of(
-            new PyValue.PyIndexParameter(0, new PyValue.PyInt(1)),
-            new PyValue.PyNamedParameter("a", new PyValue.PyInt(2)),
-            new PyValue.PyNamedParameter("b", null)),
+            new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt(1)),
+            new PyValue.PyNamedParameter("a", "a=2", 2, 4, new PyValue.PyInt(2)),
+            new PyValue.PyNamedParameter("b", "b=", 6, 8, null)),
           new Tokenize("1,a=2,b=").parse().values
         );
     }

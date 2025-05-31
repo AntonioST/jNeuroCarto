@@ -12,7 +12,6 @@ import org.jspecify.annotations.Nullable;
 public class Tokenize {
 
     public final String line;
-    public @Nullable List<String> tokens;
     public @Nullable List<PyValue.PyParameter> values;
 
     public Tokenize(String line) {
@@ -20,7 +19,6 @@ public class Tokenize {
     }
 
     public Tokenize parse() {
-        var tokens = new ArrayList<String>();
         var values = new ArrayList<PyValue.PyParameter>();
         var x = line.length();
         var s = nextNonSpaceChar(0, x);
@@ -32,41 +30,35 @@ public class Tokenize {
             int e = nextToken(s, x);
             int t = prevNonSpaceChar(s, e - 1) + 1;
             if (s == t) {
-                tokens.add("");
-                values.add(new PyValue.PyIndexParameter(values.size(), null));
+                values.add(new PyValue.PyIndexParameter(values.size(), "", s, null));
             } else {
-                parsePair(s, t, tokens, values);
+                parsePair(s, t, values);
             }
             s = nextNonSpaceChar(e + 1, x);
             if (e < x && s == x) { // tailing comma
-                tokens.add("");
-                values.add(new PyValue.PyIndexParameter(values.size(), null));
+                values.add(new PyValue.PyIndexParameter(values.size(), "", e + 1, null));
             }
         }
-        this.tokens = tokens;
         this.values = values;
         return this;
     }
 
-    private void parsePair(int i, int x, List<String> tokens, List<PyValue.PyParameter> values) {
+    private void parsePair(int i, int x, List<PyValue.PyParameter> values) {
         i = nextNonSpaceChar(i, x);
         int d = nextTokenUntil(i, '=', x);
         if (d < 0) {
             var p = values.size();
             var v = parseValue(i, x);
-            tokens.add(line.substring(i, x));
-            values.add(new PyValue.PyIndexParameter(p, v));
+            values.add(new PyValue.PyIndexParameter(p, line.substring(i, x), i, v));
         } else {
             int k = prevNonSpaceChar(i, d - 1) + 1;
             var n = line.substring(i, k);
             d = nextNonSpaceChar(d + 1, x);
             if (d == x) {
-                tokens.add("");
-                values.add(new PyValue.PyNamedParameter(n, null));
+                values.add(new PyValue.PyNamedParameter(n, line.substring(i, x), i, d, null));
             } else {
                 var v = parseValue(d, x);
-                tokens.add(line.substring(d, x));
-                values.add(new PyValue.PyNamedParameter(n, v));
+                values.add(new PyValue.PyNamedParameter(n, line.substring(i, x), i, d, v));
             }
         }
     }

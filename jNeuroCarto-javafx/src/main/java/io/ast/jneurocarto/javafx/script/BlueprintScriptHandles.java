@@ -153,7 +153,7 @@ public final class BlueprintScriptHandles {
             handle = handle.bindTo(instance);
         }
 
-        return new BlueprintScriptMethodHandle(clazz, method, name, description, blueprint, ps, handle);
+        return new BlueprintScriptMethodHandle(clazz, method, name, description, blueprint, ps, ann.async(), handle);
     }
 
     private static @Nullable Class<?> checkMethodParameter(Parameter parameter) {
@@ -272,7 +272,7 @@ public final class BlueprintScriptHandles {
             }
         }
 
-        return new BlueprintScriptClassHandle(clazz, runnable, name, description, blueprint, ps, constructor, fields);
+        return new BlueprintScriptClassHandle(clazz, runnable, name, description, blueprint, ps, ann.async(), constructor, handles);
     }
 
     private static @Nullable Class<?> checkInnerConstructor(Class<?> inner) throws NoSuchMethodException {
@@ -407,33 +407,29 @@ public final class BlueprintScriptHandles {
      * parse arguments *
      *=================*/
 
-    public static Object[] pairScriptArguments(BlueprintScriptCallable callable, Tokenize tokens) {
-        assert tokens.tokens != null;
-        assert tokens.values != null;
-
+    public static Object[] pairScriptArguments(BlueprintScriptCallable callable, List<PyValue.PyParameter> arguments) {
         var parameters = callable.parameters();
-        var ret = new ArrayList<Object>(parameters.length);
+        var ret = new ArrayList<>(parameters.length);
         var defv = new Object();
         for (int i = 0, length = parameters.length; i < length; i++) {
             ret.add(defv);
         }
 
-        for (int i = 0, size = tokens.size(); i < size; i++) {
-            var token = tokens.tokens.get(i);
-            var argument = tokens.values.get(i);
-
-            if (argument instanceof PyValue.PyIndexParameter(var index, var value)) {
+        for (var argument : arguments) {
+            switch (argument) {
+            case PyValue.PyIndexParameter(var index, _, _, _) -> {
                 if (index >= parameters.length) {
                     var last = parameters[parameters.length - 1];
                     if (last.isVarArg()) {
-                        ret.add(castScriptArgument(last, token, value));
+                        ret.add(castScriptArgument(last, argument));
                     } else {
                         throw new RuntimeException("too many arguments given.");
                     }
                 } else {
-                    ret.set(index, castScriptArgument(parameters[index], token, value));
+                    ret.set(index, castScriptArgument(parameters[index], argument));
                 }
-            } else if (argument instanceof PyValue.PyNamedParameter(var name, var value)) {
+            }
+            case PyValue.PyNamedParameter(var name, _, _, _, _) -> {
                 var j = indexOfParameter(parameters, name);
                 if (j < 0) {
                     throw new RuntimeException("unresolved parameter name : " + name);
@@ -444,23 +440,23 @@ public final class BlueprintScriptHandles {
 
                 var last = parameters[j];
                 if (last.isVarArg()) {
-                    ret.add(castScriptArgument(last, token, value));
+                    ret.add(castScriptArgument(last, argument));
                 } else {
-                    ret.set(j, castScriptArgument(last, token, value));
+                    ret.set(j, castScriptArgument(last, argument));
                 }
-
-            } else {
-                throw new RuntimeException();
+            }
             }
         }
 
         for (int i = 0, length = ret.size(); i < length; i++) {
             if (ret.get(i) == defv) {
                 var parameter = parameters[Math.min(i, parameters.length - 1)];
-                if (parameter.defaultValue() == null) {
-                    throw new RuntimeException("parameter " + parameter.name() + "is required");
+                var text = parameter.defaultValue();
+                if (text == null) {
+                    throw new RuntimeException("parameter " + parameter.name() + " is required");
                 } else {
-                    ret.set(i, castScriptArgument(parameter, (String) null, new Tokenize(parameter.defaultValue()).parseValue()));
+                    var value = new Tokenize(text).parseValue();
+                    ret.set(i, castScriptArgument(parameter, new PyValue.PyIndexParameter(i, text, 0, value)));
                 }
             }
         }
@@ -477,8 +473,10 @@ public final class BlueprintScriptHandles {
     }
 
     public static @Nullable Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
-                                                      @Nullable String rawString,
-                                                      PyValue value) {
+                                                      PyValue.PyParameter token) {
+        var value = token.value();
+        var rawString = token.valueText();
+
         var converter = parameter.converter();
         if (converter == ScriptParameter.RawString.class) {
             return rawString;

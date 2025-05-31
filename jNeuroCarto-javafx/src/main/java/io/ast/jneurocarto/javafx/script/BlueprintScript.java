@@ -26,4 +26,11 @@ public @interface BlueprintScript {
     String value() default "";
 
     String description() default "";
+
+    /**
+     * Is it an async method?
+     *
+     * @return
+     */
+    boolean async() default false;
 }

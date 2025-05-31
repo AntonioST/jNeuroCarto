@@ -25,8 +25,9 @@ public final class BlueprintScriptMethodHandle extends BlueprintScriptHandle {
                                        String description,
                                        Class<?> blueprint,
                                        Parameter[] parameters,
+                                       boolean isAsync,
                                        MethodHandle handle) {
-        super(declaredClass, name, description, parameters);
+        super(declaredClass, name, description, parameters, isAsync);
         this.declaredMethod = declaredMethod;
         this.blueprint = blueprint;
         this.handle = handle;

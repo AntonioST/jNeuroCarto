@@ -283,16 +283,32 @@ public sealed interface PyValue {
     }
 
     sealed interface PyParameter extends PyValue {
+        String text();
+
+        int offset();
+
+        @Nullable
+        PyValue value();
+
+        String valueText();
     }
 
-    record PyIndexParameter(int index, @Nullable PyValue value) implements PyParameter {
+    record PyIndexParameter(int index, String text, int offset, @Nullable PyValue value) implements PyParameter {
+        public String valueText() {
+            return text;
+        }
+
         @Override
         public String toString() {
             return index + "=" + value;
         }
     }
 
-    record PyNamedParameter(String name, @Nullable PyValue value) implements PyParameter {
+    record PyNamedParameter(String name, String text, int offset, int delimiter, @Nullable PyValue value) implements PyParameter {
+        public String valueText() {
+            return text.substring(delimiter - offset);
+        }
+
         @Override
         public String toString() {
             return name + "=" + value;

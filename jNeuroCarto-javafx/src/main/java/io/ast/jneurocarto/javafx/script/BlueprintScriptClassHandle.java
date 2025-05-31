@@ -25,10 +25,11 @@ public final class BlueprintScriptClassHandle extends BlueprintScriptHandle {
                                       String description,
                                       @Nullable Class<?> blueprint,
                                       Parameter[] parameters,
+                                      boolean isAsync,
                                       MethodHandle constructor,
                                       MethodHandle[] fields) {
         if (parameters.length != fields.length) throw new RuntimeException();
-        super(declaredClass, name, description, parameters);
+        super(declaredClass, name, description, parameters, isAsync);
         this.declaredInner = declaredInner;
         this.blueprint = blueprint;
         this.constructor = constructor;

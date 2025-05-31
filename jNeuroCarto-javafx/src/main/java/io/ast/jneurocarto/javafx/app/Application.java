@@ -1402,21 +1402,26 @@ public class Application<T> {
      *=============*/
 
     void printMessage(String message) {
-        log.info(message);
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> printMessage(message));
+            return;
+        }
 
+        log.info(message);
         var area = logMessageArea;
         if (area != null) {
             var content = area.getText();
             var updated = message + "\n" + content;
-            if (Platform.isFxApplicationThread()) {
-                area.setText(updated);
-            } else {
-                Platform.runLater(() -> area.setText(updated));
-            }
+            area.setText(updated);
         }
     }
 
     void printMessage(@NonNull List<String> message) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> printMessage(message));
+            return;
+        }
+
         if (log.isInfoEnabled()) {
             message.forEach(log::info);
         }
@@ -1426,22 +1431,19 @@ public class Application<T> {
             var content = area.getText();
             var updated = Stream.concat(message.stream(), Stream.of(content))
               .collect(Collectors.joining("\n"));
-            if (Platform.isFxApplicationThread()) {
-                area.setText(updated);
-            } else {
-                Platform.runLater(() -> area.setText(updated));
-            }
+            area.setText(updated);
         }
     }
 
     void clearMessages() {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(this::clearMessages);
+            return;
+        }
+
         var area = logMessageArea;
         if (area != null) {
-            if (Platform.isFxApplicationThread()) {
-                area.setText("");
-            } else {
-                Platform.runLater(() -> area.setText(""));
-            }
+            area.setText("");
         }
     }
 

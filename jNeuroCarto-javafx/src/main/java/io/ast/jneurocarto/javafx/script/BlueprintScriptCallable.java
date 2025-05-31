@@ -30,6 +30,8 @@ public interface BlueprintScriptCallable {
         return null;
     }
 
+    boolean isAsync();
+
     void invoke(BlueprintAppToolkit<?> toolkit, Object... arguments) throws Throwable;
 
 }

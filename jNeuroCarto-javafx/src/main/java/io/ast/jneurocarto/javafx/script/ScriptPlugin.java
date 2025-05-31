@@ -2,6 +2,8 @@ package io.ast.jneurocarto.javafx.script;
 
 import java.lang.invoke.MethodHandles;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -15,6 +17,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -225,6 +228,8 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             cached.put(old, oldInput);
         }
 
+        updateRunButtonState();
+
         BlueprintScriptCallable script;
         if (name == null || name.isEmpty() || (script = getScript(name)) == null) {
             line.setText("");
@@ -252,14 +257,29 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         var script = getScript(name);
         if (script == null) return;
 
-        var input = line.getText();
-        if (input == null) input = "";
+        if (isRunning(name)) {
+            interruptScript(name);
+        } else {
+            var input = line.getText();
+            if (input == null) input = "";
 
-        try {
-            evalScript(script, input);
-        } catch (Exception ex) {
-            LogMessageService.printMessage(ex.getMessage());
-            log.warn("evalScript", ex);
+            try {
+                evalScript(script, input);
+            } catch (Exception ex) {
+                onScriptFail(script, ex);
+            }
+        }
+    }
+
+    private void onScriptFail(BlueprintScriptCallable callable, Throwable error) {
+        if (error instanceof InterruptedException) {
+            LogMessageService.printMessage("script \"" + callable.name() + "\" interrupted");
+        } else {
+            LogMessageService.printMessage(List.of(
+              "script \"" + callable.name() + "\" failed with",
+              error.toString()
+            ));
+            log.warn("evalScript", error);
         }
     }
 
@@ -268,6 +288,76 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         var tool = BlueprintAppToolkit.newToolkit();
         tool.clear();
         tool.apply(view.getBlueprint());
+    }
+
+    /*=================*
+     * script controls *
+     *=================*/
+
+    public void selectScript(String name) {
+        if (getScript(name) != null) {
+            script.setValue(name);
+        }
+    }
+
+    public String getScriptInputLine() {
+        return line.getText();
+    }
+
+    public void setScriptInputLine(String line) {
+        this.line.setText(line);
+    }
+
+    public void appendScriptInputText(String text) {
+        line.appendText(text);
+    }
+
+    public void appendScriptInputValueText(String text) {
+        if (!line.getText().isEmpty()) line.appendText(", ");
+        line.appendText(text);
+    }
+
+    public List<PyValue.PyParameter> parseScriptInputLine() {
+        return parseScriptInputLine(line.getText());
+    }
+
+    public List<PyValue.PyParameter> parseScriptInputLine(String line) {
+        return new Tokenize(line).parse().values;
+    }
+
+    public void runScript() {
+        var name = script.getValue();
+        if (name == null || name.isEmpty()) throw new RuntimeException();
+
+        var input = line.getText();
+        if (input == null) input = "";
+
+        runScript(name, input);
+    }
+
+    public void showAndRunScript(String name, String line) {
+        selectScript(name);
+        setScriptInputLine(line);
+        runScript(name, line);
+    }
+
+    public void runScript(String name, String line) {
+        var script = getScript(name);
+        if (script == null) throw new RuntimeException("script \"" + name + "\" not found");
+
+        if (isRunning(name)) {
+            throw new RuntimeException("script \"" + name + "\" is running");
+        }
+
+        try {
+            evalScript(script, line);
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) {
+                throw new RuntimeException("script \"" + name + "\" is interrupted", ex);
+            } else {
+                throw new RuntimeException("script \"" + name + "\" fail. " + ex.getMessage(), ex);
+            }
+        }
     }
 
     private void updateScriptChoice() {
@@ -279,6 +369,17 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             script.setValue(current);
         } else if (config.debug && getScript("echo") != null) {
             script.setValue("echo");
+        }
+    }
+
+    private void updateRunButtonState() {
+        var name = script.getValue();
+        if (isRunning(name)) {
+            run.setText("Interrupt");
+            run.setTextFill(Color.RED);
+        } else {
+            run.setText("Run");
+            run.setTextFill(Color.BLACK);
         }
     }
 
@@ -295,16 +396,16 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
 
     private void evalScript(BlueprintScriptCallable callable, String line) {
         log.debug("run script {} with \"{}\"", callable.name(), line);
-        var token = new Tokenize(line).parse();
+        var arguments = parseScriptInputLine(line);
 
         if (log.isDebugEnabled()) {
-            var content = token.stream()
+            var content = arguments.stream()
               .map(PyValue::toString)
               .collect(Collectors.joining(", "));
             log.debug("token [{}]", content);
         }
 
-        invokeScript(callable, BlueprintScriptHandles.pairScriptArguments(callable, token));
+        invokeScript(callable, BlueprintScriptHandles.pairScriptArguments(callable, arguments));
     }
 
     private void invokeScript(BlueprintScriptCallable callable, Object[] arguments) {
@@ -330,27 +431,10 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
             log.debug("invoke script {} with [{}]", callable.name(), message);
         }
 
-        try {
-            var toolkit = BlueprintAppToolkit.newToolkit();
-            callable.invoke(toolkit, arguments);
-            return;
-        } catch (RequestChannelmapException e) {
-            log.debug("fail. check {} {}", callable.name(), e.request);
-            if (!checkScriptRequest(e.request)) {
-                throw e;
-            }
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            log.debug("reinvoke {}", callable.name());
-            var toolkit = BlueprintAppToolkit.newToolkit();
-            callable.invoke(toolkit, arguments);
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
+        if (callable.isAsync()) {
+            invokeScriptAsync(callable, arguments, this::onScriptThreadComplete);
+        } else {
+            invokeScriptSync(callable, arguments);
         }
     }
 
@@ -378,4 +462,204 @@ public class ScriptPlugin extends InvisibleView implements GlobalStateView<Scrip
         return true;
     }
 
+    private void invokeScriptSync(BlueprintScriptCallable callable, Object[] arguments) {
+        try {
+            var toolkit = BlueprintAppToolkit.newToolkit();
+            callable.invoke(toolkit, arguments);
+            return;
+        } catch (RequestChannelmapException e) {
+            log.debug("fail. check {} {}", callable.name(), e.request);
+            if (!checkScriptRequest(e.request)) {
+                throw e;
+            }
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            log.debug("reinvoke {}", callable.name());
+            var toolkit = BlueprintAppToolkit.newToolkit();
+            callable.invoke(toolkit, arguments);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /*=======================*
+     * async script invoking *
+     *=======================*/
+
+    private static final class ScriptResult {
+        private final Thread virtual;
+        private final ScriptThread thread;
+        private volatile boolean complete;
+        private volatile @Nullable Throwable error;
+
+        private ScriptResult(Thread virtual, ScriptThread thread) {
+            this.virtual = virtual;
+            this.thread = thread;
+        }
+
+        private String name() {
+            return thread.callable.name();
+        }
+
+        private synchronized @Nullable Throwable complete(@Nullable Throwable error) {
+            if (!complete) {
+                complete = true;
+                this.error = error;
+            }
+            notifyAll();
+            return this.error;
+        }
+    }
+
+    private static class WaitingResult {
+        private final ScriptResult thread;
+
+        WaitingResult(ScriptResult thread) {
+            this.thread = thread;
+        }
+
+        private @Nullable Throwable waitComplete(long wait) throws InterruptedException {
+            if (!thread.complete) {
+                synchronized (thread) {
+                    while (!thread.complete) {
+                        thread.wait(wait);
+                    }
+                }
+            }
+            return thread.error;
+        }
+    }
+
+    private final Deque<ScriptResult> running = new LinkedBlockingDeque<>();
+
+    public boolean isRunning(String name) {
+        for (var thread : running) {
+            if (thread.name().equals(name)) return true;
+        }
+        return false;
+    }
+
+    private ScriptPlugin.@Nullable ScriptResult getScriptResult(Object thread) {
+        for (var r : running) {
+            if (r.virtual == thread || r.thread == thread) return r;
+        }
+        return null;
+    }
+
+    public void interruptScript(String name) {
+        for (var thread : running) {
+            if (thread.name().equals(name)) {
+                interruptScript(thread);
+                return;
+            }
+        }
+    }
+
+    private void interruptScript(ScriptResult script) {
+        log.debug("interrupt script {}", script.name());
+        script.virtual.interrupt();
+    }
+
+    public @Nullable Throwable waitScriptFinished(String name) throws InterruptedException {
+        return waitScriptFinished(name, 0L);
+    }
+
+    public @Nullable Throwable waitScriptFinished(String name, long wait) throws InterruptedException {
+        if (Platform.isFxApplicationThread()) throw new IllegalStateException("run this method in FX application thread");
+
+        for (var thread : running) {
+            if (thread.name().equals(name)) {
+                return waitScriptFinished(thread, wait);
+            }
+        }
+
+        throw new RuntimeException("nothing to wait");
+    }
+
+    private @Nullable Throwable waitScriptFinished(ScriptResult script, long wait) throws InterruptedException {
+        assert !Platform.isFxApplicationThread();
+        var current = ScriptThread.current();
+        if (current == null) {
+            log.debug("wait script {}", script.name());
+        } else {
+            log.debug("{} wait script {}", current.name(), script.name());
+        }
+        var w = new WaitingResult(script);
+        return w.waitComplete(wait);
+    }
+
+    private void invokeScriptAsync(BlueprintScriptCallable callable, Object[] arguments, BiConsumer<ScriptThread, @Nullable Throwable> complete) {
+        var thread = new ScriptThread(BlueprintAppToolkit.newToolkit(), callable, arguments, complete);
+        var ret = Thread.ofVirtual().name(thread.callable.name()).unstarted(thread);
+        ret.setUncaughtExceptionHandler(this::onScriptUncaughtException);
+        running.add(new ScriptResult(ret, thread));
+        ret.start();
+        updateRunButtonState();
+    }
+
+    private void onScriptUncaughtException(Thread t, Throwable e) {
+        var result = getScriptResult(t);
+        if (result == null) {
+            log.warn("uncaught error {}: {}", t.getName(), e.toString());
+        } else {
+            log.debug("{} set complete with an uncaught error {}", result.name(), e.toString());
+            result.complete(e);
+            interruptScript(result);
+        }
+    }
+
+    /**
+     * mark {@code thread} completed. It will be removed from running queue. The error state will be settled.
+     *
+     * @param thread script thread.
+     * @param error  the received error.
+     * @return The primary error
+     */
+    private @Nullable Throwable notifyScriptThreadComplete(ScriptThread thread, @Nullable Throwable error) {
+        assert Platform.isFxApplicationThread();
+
+        var result = getScriptResult(thread);
+        if (result != null) {
+            this.running.remove(result);
+            error = result.complete(error);
+            log.debug("{} complete with {}", thread.name(), Objects.toString(error));
+        }
+
+        updateRunButtonState();
+        return error;
+    }
+
+    private void onScriptThreadComplete(ScriptThread thread, @Nullable Throwable error) {
+        assert Platform.isFxApplicationThread();
+
+        error = notifyScriptThreadComplete(thread, error);
+
+        var callable = thread.callable;
+        if (error instanceof RequestChannelmapException e) {
+            log.debug("fail. check {} {}", callable.name(), e.request);
+            if (!checkScriptRequest(e.request)) {
+                onScriptFail(callable, error);
+            } else {
+                invokeScriptAsync(callable, thread.arguments, this::onScriptThreadCompleteFinal);
+            }
+        } else if (error != null) {
+            onScriptFail(callable, error);
+        }
+    }
+
+    private void onScriptThreadCompleteFinal(ScriptThread thread, @Nullable Throwable error) {
+        assert Platform.isFxApplicationThread();
+
+        error = notifyScriptThreadComplete(thread, error);
+
+        var callable = thread.callable;
+        if (error != null) {
+            onScriptFail(callable, error);
+        }
+    }
 }
