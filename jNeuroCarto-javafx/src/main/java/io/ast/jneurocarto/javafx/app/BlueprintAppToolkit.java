@@ -5,13 +5,15 @@ import java.util.*;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.atlas.ImageSlice;
+import io.ast.jneurocarto.atlas.ImageSliceStack;
+import io.ast.jneurocarto.atlas.SliceCoordinate;
 import io.ast.jneurocarto.atlas.Structure;
-import io.ast.jneurocarto.core.ProbeDescription;
-import io.ast.jneurocarto.core.RequestChannelmapException;
-import io.ast.jneurocarto.core.RequestChannelmapInfo;
+import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
+import io.ast.jneurocarto.javafx.atlas.CoordinateLabel;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
 import io.ast.jneurocarto.javafx.view.Plugin;
 
@@ -289,23 +291,115 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * atlas brain *
      *=============*/
 
-    public @Nullable String getRegion(int id) {
+    public @Nullable String atlasGetRegion(int id) {
         return getPlugin(AtlasPlugin.class)
           .map(p -> p.getRegion(id))
           .map(Structure::name)
           .orElse(null);
     }
 
-    public @Nullable String getRegion(String name) {
+    public @Nullable String atlasGetRegion(String name) {
         return getPlugin(AtlasPlugin.class)
           .map(p -> p.getRegion(name))
           .map(Structure::name)
           .orElse(null);
     }
 
+    public @Nullable ImageSlice atlasGetSlice() {
+        return getPlugin(AtlasPlugin.class).flatMap(p -> Optional.ofNullable(p.getCurrentSlice())).orElse(null);
+    }
+
+    public void atlasSetSlice(ImageSliceStack.Projection projection) {
+        getPlugin(AtlasPlugin.class).ifPresent(p -> {
+            p.setProjection(projection);
+        });
+    }
+
+    public void atlasSetSlice(ImageSliceStack.Projection projection, double plane) {
+        getPlugin(AtlasPlugin.class).ifPresent(p -> {
+            p.setProjection(projection);
+            p.setPlane(plane);
+        });
+    }
+
+    public @Nullable CoordinateLabel atlasGetLabel(String text) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasGetLabel
+        throw new UnsupportedOperationException();
+    }
+
+    public @Nullable CoordinateLabel atlasAddLabel(String text, Coordinate coordinate) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasAddLabel
+        throw new UnsupportedOperationException();
+    }
+
+    public @Nullable CoordinateLabel atlasAddLabel(String text, SliceCoordinate coordinate) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasAddLabel
+        throw new UnsupportedOperationException();
+    }
+
+    public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y) {
+        var slice = atlasGetSlice();
+        if (slice == null) return null;
+        return atlasAddLabel(text, new SliceCoordinate(slice.plane(), x, y));
+    }
+
+    public void atlasFocusLabel(String text) {
+        var label = atlasGetLabel(text);
+        if (label != null) atlasFocusLabel(label);
+    }
+
+    public void atlasFocusLabel(CoordinateLabel label) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasFocusLabel
+        throw new UnsupportedOperationException();
+    }
+
+    public void atlasRemoveLabel(String text) {
+        var label = atlasGetLabel(text);
+        if (label != null) atlasRemoveLabel(label);
+    }
+
+    public void atlasRemoveLabel(CoordinateLabel label) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasRemoveLabel
+        throw new UnsupportedOperationException();
+    }
+
+    public void atlasClearLabels() {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasClearLabels
+        throw new UnsupportedOperationException();
+    }
+
     /*====================*
      * probe coordination *
      *====================*/
+
+    public void atlasSetTransform(SliceCoordinate coordinate, double rotation) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasSetTransform
+        throw new UnsupportedOperationException();
+    }
+
+    public void atlasSetAnchor(double x, double y) {
+        atlasSetAnchor(x, y, 0, 0);
+    }
+
+    public void atlasSetAnchor(double x, double y, double ax, double ay) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasSetAnchor
+        throw new UnsupportedOperationException();
+    }
+
+    public @Nullable ProbeCoordinate atlasNewProbeCoordinate() {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasNewProbeCoordinate
+        throw new UnsupportedOperationException();
+    }
+
+    public @Nullable ProbeCoordinate atlasCurrentProbeCoordinate() {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasCurrentProbeCoordinate
+        throw new UnsupportedOperationException();
+    }
+
+    public void atlasSetAnchorOnProbe(ProbeCoordinate coordinate) {
+        //XXX Unsupported Operation BlueprintAppToolkit.atlasCurrentProbeCoordinate
+        throw new UnsupportedOperationException();
+    }
 
     /*==========*
      * plotting *

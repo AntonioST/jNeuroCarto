@@ -555,6 +555,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return null;
     }
 
+    public @Nullable ImageSlice getCurrentSlice() {
+        return image;
+    }
+
     /*=====================*
      * atlas brain drawing *
      *=====================*/
