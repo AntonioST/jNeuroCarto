@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.ToDoubleFunction;
 
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
@@ -51,6 +54,68 @@ public class XYBar extends XYSeries {
         this.fill = fill;
     }
 
+    /*===========*
+     * selecting *
+     *===========*/
+
+    private @Nullable BoundingBox boundOf(XY xy) {
+        double x = xy.x;
+        double y = xy.y;
+
+        if (Double.isNaN(x) || Double.isNaN(y)) {
+            return null;
+        }
+
+        double w;
+        double h;
+
+        if (orientation == Orientation.vertical) {
+            x -= width / 2;
+            w = width;
+            h = xy.v;
+            if (h < 0) {
+                y += h;
+                h = -h;
+            }
+        } else {
+            y -= width / 2;
+            w = xy.v;
+            h = width;
+            if (w < 0) {
+                x += w;
+                w = -w;
+            }
+        }
+
+        return new BoundingBox(x, y, w, h);
+    }
+
+    @Override
+    public @Nullable XY touch(Point2D p) {
+        return data.stream()
+          .filter(xy -> {
+              var b = boundOf(xy);
+              return b != null && b.contains(p);
+          }).findFirst().orElse(null);
+    }
+
+    @Override
+    public @Nullable XY touch(Point2D p, double radius) {
+        return touch(p);
+    }
+
+    @Override
+    public List<XY> touch(Bounds bounds) {
+        return data.stream().filter(xy -> {
+            var b = boundOf(xy);
+            return b != null && bounds.contains(b);
+        }).toList();
+    }
+
+    /*================*
+     * Transformation *
+     *================*/
+
     /**
      * number of data points.
      *
@@ -66,9 +131,15 @@ public class XYBar extends XYSeries {
         return 0;
     }
 
+    /*==========*
+     * plotting *
+     *==========*/
+
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
         if (fill == null) return;
+
+        BoundingBox b;
 
         gc.save();
         try {
@@ -77,35 +148,9 @@ public class XYBar extends XYSeries {
             gc.setFill(fill);
 
             for (var xy : data) {
-                double x = xy.x;
-                double y = xy.y;
-
-                if (Double.isNaN(x) || Double.isNaN(y)) {
-                    continue;
+                if ((b = boundOf(xy)) != null) {
+                    gc.fillRect(b.getMinX(), b.getMinY(), b.getWidth(), b.getHeight());
                 }
-
-                double w;
-                double h;
-
-                if (orientation == Orientation.vertical) {
-                    x -= width / 2;
-                    w = width;
-                    h = xy.v;
-                    if (h < 0) {
-                        y += h;
-                        h = -h;
-                    }
-                } else {
-                    y -= width / 2;
-                    w = xy.v;
-                    h = width;
-                    if (w < 0) {
-                        x += w;
-                        w = -w;
-                    }
-                }
-
-                gc.fillRect(x, y, w, h);
             }
 
         } finally {

@@ -2,13 +2,17 @@ package io.ast.jneurocarto.javafx.chart;
 
 
 import java.util.IdentityHashMap;
+import java.util.List;
 
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.Effect;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.transform.Affine;
 
@@ -24,6 +28,8 @@ public class XYText extends XYSeries {
     protected @Nullable Color color = null;
     protected @Nullable Color line = null;
     protected @Nullable Effect textEffect = null;
+    private @Nullable Bounds bounds;
+    private double baselineOffset;
 
     public @Nullable Font font() {
         return font;
@@ -31,6 +37,9 @@ public class XYText extends XYSeries {
 
     public void font(Font font) {
         this.font = font;
+        bounds = null;
+
+        updateBaselineOffset();
     }
 
     public @Nullable TextAlignment align() {
@@ -47,6 +56,15 @@ public class XYText extends XYSeries {
 
     public void baseline(@Nullable VPos baseline) {
         this.baseline = baseline;
+        updateBaselineOffset();
+    }
+
+    private void updateBaselineOffset() {
+        if (baseline == VPos.BASELINE) {
+            var t = new Text("");
+            t.setFont(font);
+            baselineOffset = t.getBaselineOffset();
+        }
     }
 
     public @Nullable Color color() {
@@ -73,8 +91,90 @@ public class XYText extends XYSeries {
         this.textEffect = effect;
     }
 
+    /*==============*
+     * special data *
+     *==============*/
+
     private record Annotation(XY data) {
     }
+
+    /*===========*
+     * selecting *
+     *===========*/
+
+    private @Nullable BoundingBox boundOf(XY xy) {
+        double x = xy.x;
+        double y = xy.y;
+
+        if (Double.isNaN(x) || Double.isNaN(y)) {
+            return null;
+        }
+        return switch (xy.external) {
+            case String text -> boundOfText(text, x, y);
+            case Annotation(var prev) -> boundOfAnnotation(xy, prev);
+            case null, default -> null;
+        };
+    }
+
+    private BoundingBox boundOfAnnotation(XY p1, XY p2) {
+        var x = Math.min(p1.x, p2.x);
+        var y = Math.min(p1.y, p2.y);
+        var w = Math.abs(p1.x - p2.x);
+        var h = Math.abs(p1.y - p2.y);
+        return new BoundingBox(x, y, w, h);
+    }
+
+    private BoundingBox boundOfText(String text, double x, double y) {
+        if (bounds == null) {
+            var temp = new Text(text);
+            temp.setFont(font);
+            bounds = temp.getLayoutBounds();
+        }
+
+        var width = bounds.getWidth();
+        var height = bounds.getHeight();
+
+        var dx = switch (align) {
+            case CENTER -> -width / 2;
+            case RIGHT -> -width;
+            case null, default -> 0;
+        };
+
+        var dy = switch (baseline) {
+            case TOP -> 0;
+            case CENTER -> -height / 2;
+            case BOTTOM -> -height;
+            case BASELINE -> -baselineOffset;
+            case null -> -baselineOffset;
+        };
+
+        return new BoundingBox(x + dx, y + dy, width, height);
+    }
+
+    @Override
+    public @Nullable XY touch(Point2D p) {
+        return data.stream().filter(xy -> {
+            var b = boundOf(xy);
+            return b != null && b.contains(p);
+        }).findFirst().orElse(null);
+    }
+
+    @Override
+    public @Nullable XY touch(Point2D p, double radius) {
+        return touch(p);
+    }
+
+    @Override
+    public List<XY> touch(Bounds bounds) {
+        return data.stream().filter(xy -> {
+            var b = boundOf(xy);
+            return b != null && bounds.contains(b);
+        }).toList();
+    }
+
+    /*================*
+     * Transformation *
+     *================*/
 
     /**
      * {@inheritDoc}
@@ -129,6 +229,10 @@ public class XYText extends XYSeries {
 
         return length;
     }
+
+    /*==========*
+     * plotting *
+     *==========*/
 
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
