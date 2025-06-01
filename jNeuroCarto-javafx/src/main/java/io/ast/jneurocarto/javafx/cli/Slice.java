@@ -2,10 +2,11 @@ package io.ast.jneurocarto.javafx.cli;
 
 import java.io.IOException;
 
+import javafx.stage.Stage;
+
 import io.ast.jneurocarto.atlas.BrainAtlas;
 import io.ast.jneurocarto.atlas.cli.Main;
 import io.ast.jneurocarto.javafx.atlas.Application;
-import javafx.stage.Stage;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -47,14 +48,15 @@ public class Slice implements Runnable {
             throw new RuntimeException(e);
         }
 
-        new Application(brain);
+        App.INSTANCE = new Application(brain);
         javafx.application.Application.launch(App.class);
     }
 
     public static class App extends javafx.application.Application {
+        private static Application INSTANCE;
         @Override
         public void start(Stage primaryStage) throws Exception {
-            Application.getInstance().start(primaryStage);
+            INSTANCE.start(primaryStage);
         }
     }
 }

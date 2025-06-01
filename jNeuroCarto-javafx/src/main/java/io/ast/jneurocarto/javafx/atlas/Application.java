@@ -2,7 +2,6 @@ package io.ast.jneurocarto.javafx.atlas;
 
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
@@ -55,10 +54,6 @@ public class Application {
 
         IOAction.measure(log, "pre load annotation", brain::annotation);
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
-    }
-
-    public static Application getInstance() {
-        return Objects.requireNonNull(INSTANCE, "atlas.Application is not initialized.");
     }
 
     private Stage stage;
@@ -120,6 +115,8 @@ public class Application {
         imageView.setOnMouseMoved(this::onMouseMovingInSlice);
         imageView.setOnMouseExited(this::onMouseExitedInSlice);
         imageView.anchor.addListener((_, _, _) -> updateAnchorInformation());
+        imageView.painter.flipUD(true);
+        imageView.painter.flipLR(true);
         return imageView;
     }
 
@@ -318,7 +315,7 @@ public class Application {
         image = regImage.withOffset(dw, dh);
 
         // TODO image is left-right flipped
-        imageView.draw(this.image);
+        imageView.draw(image);
         stage.sizeToScene();
     }
 

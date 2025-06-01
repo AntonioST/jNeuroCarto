@@ -276,12 +276,21 @@ public final class ImageSliceStack {
         return new Coordinate(t[0], t[1], t[2]);
     }
 
+    /**
+     * @param plane index
+     * @return
+     */
     public ImageSlice sliceAtPlane(int plane) {
         int ax = width() / 2;
         int ay = height() / 2;
         return new ImageSlice(plane, ax, ay, 0, 0, this);
     }
 
+    /**
+     *
+     * @param plane um
+     * @return
+     */
     public ImageSlice sliceAtPlane(double plane) {
         var resolution = brainResolution[project.p];
         return sliceAtPlane((int) (plane / resolution));
@@ -313,5 +322,13 @@ public final class ImageSliceStack {
     public ImageSlice sliceAtPlane(ImageSlice slice) {
         if (slice.projection() != project) throw new IllegalArgumentException("different projection");
         return new ImageSlice(slice.plane(), slice.ax(), slice.ay(), slice.dw(), slice.dh(), this);
+    }
+
+    @Override
+    public String toString() {
+        return "ImageSliceStack["
+               + project.name()
+               + ",shape=(" + volumeShape[0] + "," + volumeShape[1] + "," + volumeShape[0] + ")"
+               + ",resolution=(" + resolution[0] + "," + resolution[1] + "," + resolution[1] + ")]";
     }
 }
