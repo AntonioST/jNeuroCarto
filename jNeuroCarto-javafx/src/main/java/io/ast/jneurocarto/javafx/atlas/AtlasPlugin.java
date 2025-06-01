@@ -494,21 +494,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private void onMouseMoved(MouseEvent e) {
-        var image = this.image;
-        if (image == null) {
-            labelMouseInformation.setText("");
-            labelStructure.setText("");
-            return;
-        }
-
-        var p = new Point2D(e.getX(), e.getY()); // canvas
-        p = canvas.getChartTransform(p); // chart <- canvas
-        p = painter.getImageTransform().transform(p); // slice <- chart
-        var coor = image.pullBack(image.planeAt(p)); // coor <- slice
-        var text = String.format("=(%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
-
-        labelMouseInformation.setText(text);
-        updateStructureInformation(coor);
+        updateMouseInformation(new Point2D(e.getX(), e.getY()));
     }
 
     private void onMouseExited(MouseEvent e) {
@@ -603,6 +589,26 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     /*=================*
      * information bar *
      *=================*/
+
+    /**
+     * @param p point on canvas.
+     */
+    private void updateMouseInformation(Point2D p) {
+        var image = this.image;
+        if (image == null) {
+            labelMouseInformation.setText("");
+            labelStructure.setText("");
+            return;
+        }
+
+        p = canvas.getChartTransform(p); // chart <- canvas
+        p = painter.getImageTransform().transform(p); // slice <- chart
+        var coor = image.pullBack(p); // coor <- slice
+        var text = String.format("=(%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+
+        labelMouseInformation.setText(text);
+        updateStructureInformation(coor);
+    }
 
     private void updateStructureInformation(Coordinate coor) {
         var brain = this.brain;

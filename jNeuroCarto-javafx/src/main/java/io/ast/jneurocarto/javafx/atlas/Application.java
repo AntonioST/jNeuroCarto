@@ -288,7 +288,7 @@ public class Application {
                 sliderPlane.setValue(0);
             }
         } else {
-            var coor = image.pullBack(image.planeAt(anchor));
+            var coor = image.pullBack(anchor);
             sliderPlane.setValue(projection.get(coor, projection.p) / 1000);
             imageView.anchor.setValue(this.image.project(coor));
         }
@@ -315,7 +315,6 @@ public class Application {
         }
         image = regImage.withOffset(dw, dh);
 
-        // TODO image is left-right flipped
         imageView.draw(image);
         stage.sizeToScene();
     }
@@ -333,19 +332,12 @@ public class Application {
             return;
         }
 
-        var coor = image.pullBack(image.planeAt(getCoordinate(e)));
-        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
-
-        labelMouseInformation.setText(text);
-        updateStructureInformation(coor);
+        updateMouseInformation(e);
     }
 
     private SliceCoordinate getCoordinate(MouseEvent e) {
-        var mx = e.getX();
-        var my = e.getY();
-        var x = image.width() * mx / imageView.getWidth();
-        var y = image.height() * my / imageView.getHeight();
-        return new SliceCoordinate(0, x, y);
+        var p = imageView.painter.getImageTransform().transform(e.getX(), e.getY());
+        return image.planeAt(p);
     }
 
     private void onMouseClickedInSlice(MouseEvent e) {
@@ -375,10 +367,18 @@ public class Application {
             return;
         }
 
-        var coor = image.pullBack(image.planeAt(anchor));
+        var coor = image.pullBack(anchor);
         var text = String.format("[anchor] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
 
         labelAnchorInformation.setText(text);
+    }
+
+    private void updateMouseInformation(MouseEvent e) {
+        var coor = image.pullBack(getCoordinate(e));
+        var text = String.format("[mouse] (%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
+
+        labelMouseInformation.setText(text);
+        updateStructureInformation(coor);
     }
 
     private void updateStructureInformation(Coordinate coor) {

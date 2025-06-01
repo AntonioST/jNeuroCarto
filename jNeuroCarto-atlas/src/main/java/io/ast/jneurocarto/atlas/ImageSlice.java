@@ -149,6 +149,10 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         return stack.pullBack(planeAt(coor));
     }
 
+    public Coordinate pullBack(Point2D p) {
+        return stack.pullBack(planeAt(p));
+    }
+
     /**
      * get rotation on (ap, dv, ml).
      *
