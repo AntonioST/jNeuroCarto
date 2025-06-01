@@ -115,7 +115,8 @@ public class Application {
         imageView.setOnMouseMoved(this::onMouseMovingInSlice);
         imageView.setOnMouseExited(this::onMouseExitedInSlice);
         imageView.anchor.addListener((_, _, _) -> updateAnchorInformation());
-        imageView.painter.flipUD(true);
+        imageView.painter.invertRotation(true);
+        imageView.painter.flipUD(false);
         imageView.painter.flipLR(true);
         return imageView;
     }

@@ -30,7 +30,7 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
     }
 
     /**
-     * image position in chart.
+     * image x position in chart.
      */
     public final DoubleProperty x = new SimpleDoubleProperty();
 
@@ -43,7 +43,7 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
     }
 
     /**
-     * image position in chart.
+     * image y position in chart.
      */
     public final DoubleProperty y = new SimpleDoubleProperty();
 
@@ -56,6 +56,8 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
     }
 
     /**
+     * offset image position.
+     *
      * @param dx x offset in chart.
      * @param dy y offset in chart.
      */
@@ -64,33 +66,39 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         y.set(y.get() + dy);
     }
 
-    public final DoubleProperty widthProperty = new SimpleDoubleProperty();
+    /**
+     * image width in chart.
+     */
+    public final DoubleProperty width = new SimpleDoubleProperty();
 
     public final double width() {
-        return widthProperty.get();
+        return width.get();
     }
 
     public final void width(double value) {
-        widthProperty.set(value);
-    }
-
-    public final DoubleProperty heightProperty = new SimpleDoubleProperty();
-
-    public final double height() {
-        return heightProperty.get();
-    }
-
-    public final void height(double value) {
-        heightProperty.set(value);
+        width.set(value);
     }
 
     /**
-     * image scaling on x-axis with unit: canvas[px]/image[px]
+     * image height in chart.
+     */
+    public final DoubleProperty height = new SimpleDoubleProperty();
+
+    public final double height() {
+        return height.get();
+    }
+
+    public final void height(double value) {
+        height.set(value);
+    }
+
+    /**
+     * image scaling on x-axis with unit: canvas/image
      */
     public final DoubleProperty sx = new SimpleDoubleProperty(1);
 
     /**
-     * image scaling on y-axis with unit: canvas[px]/image[px]
+     * image scaling on y-axis with unit: canvas/image
      */
     public final DoubleProperty sy = new SimpleDoubleProperty(1);
 
@@ -223,8 +231,8 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
     public Affine getChartTransform() {
         var x = x();
         var y = y();
-        var w = widthProperty.get();
-        var h = heightProperty.get();
+        var w = width.get();
+        var h = height.get();
         var cx = w / 2;
         var cy = h / 2;
 
@@ -261,8 +269,8 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
     }
 
     public Bounds getBound() {
-        var w = widthProperty.get();
-        var h = heightProperty.get();
+        var w = width.get();
+        var h = height.get();
 
         Bounds ret = new BoundingBox(0, 0, w, h);
         ret = getChartTransform().transform(ret);
@@ -280,8 +288,8 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         var image = imageProperty.get();
         if (image == null) return;
 
-        var w = widthProperty.get();
-        var h = heightProperty.get();
+        var w = width.get();
+        var h = height.get();
         var aff = gc.getTransform();
 
         gc.save();

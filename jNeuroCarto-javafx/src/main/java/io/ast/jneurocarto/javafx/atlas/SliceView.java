@@ -27,7 +27,7 @@ public class SliceView extends Canvas {
         var height = width * slice.heightPx() / slice.widthPx();
         setHeight(height);
 
-        painter.s(width / slice.widthPx());
+        painter.s(width / slice.width());
 
         var gc = getGraphicsContext2D();
         gc.clearRect(0, 0, width, height);
