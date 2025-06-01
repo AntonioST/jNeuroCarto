@@ -1,7 +1,6 @@
 package io.ast.jneurocarto.javafx.atlas;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -53,6 +52,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return "Brain Atlas";
     }
 
+    public String atlasName() {
+        return download.atlas();
+    }
+
+    public @Nullable BrainAtlas brain() {
+        return brain;
+    }
+
     /*============*
      * properties *
      *============*/
@@ -70,9 +77,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     /*=================*
      * state load/save *
      *=================*/
-
-    private List<String> regions = new ArrayList<>();
-    private List<CoordinateLabel> labels = new ArrayList<>();
 
     @Override
     public @Nullable AtlasBrainViewState getState() {
@@ -96,8 +100,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         state.imageRoration = painter.r();
         state.imageAlpha = painter.getImageAlpha();
         state.showImage = painter.isVisible();
-        state.regions.addAll(regions);
-        state.labels.addAll(labels);
         return state;
     }
 
@@ -124,9 +126,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         setPlaneIndex(state.plane);
         setOffsetWidthHeight(state.offsetWidth, state.offsetHeight);
 
-        labels.clear();
-        labels.addAll(state.labels); // TODO transform
-
         painter.x(state.imagePosX);
         painter.y(state.imagePosY);
         painter.sx(state.imageScaleX);
@@ -135,9 +134,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         painter.setImageAlpha(state.imageAlpha);
         painter.setVisible(state.showImage);
         canvas.repaintBackground();
-
-        regions.clear();
-        regions.addAll(state.regions);
     }
 
     /*===========================*

@@ -2,6 +2,7 @@ package io.ast.jneurocarto.javafx.app;
 
 import org.jspecify.annotations.NullMarked;
 
+import io.ast.jneurocarto.javafx.atlas.AtlasLabelPlugin;
 import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 import io.ast.jneurocarto.javafx.blueprint.BlueprintPlugin;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
@@ -11,6 +12,7 @@ import io.ast.jneurocarto.javafx.view.Provide;
 
 @NullMarked
 @Provide(value = AtlasPlugin.class, name = {"atlas", "neurocarto.views.atlas:AtlasBrainView"})
+@Provide(value = AtlasLabelPlugin.class, name = {"atlas.label"})
 @Provide(value = BlueprintPlugin.class, name = {"blueprint", "neurocarto.views.blueprint:BlueprintView"})
 @Provide(value = ScriptPlugin.class, name = {"script", "neurocarto.views.blueprint_script:BlueprintScriptView"})
 public class DefaultPluginProvider implements PluginProvider {

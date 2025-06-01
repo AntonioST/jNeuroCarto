@@ -1,8 +1,5 @@
 package io.ast.jneurocarto.javafx.atlas;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonRootName;
 
@@ -46,9 +43,9 @@ public class AtlasBrainViewState {
     @JsonProperty(value = "show_image", index = 11, defaultValue = "true")
     public boolean showImage = true;
 
-    @JsonProperty(index = 12, defaultValue = "[]")
-    public List<String> regions = new ArrayList<>();
-
-    @JsonProperty(index = 13, defaultValue = "[]")
-    public List<CoordinateLabel> labels = new ArrayList<>();
+//    @JsonProperty(index = 12, defaultValue = "[]")
+//    public List<String> regions = new ArrayList<>();
+//
+//    @JsonProperty(index = 13, defaultValue = "[]")
+//    public List<CoordinateLabel> labels = new ArrayList<>();
 }

@@ -28,6 +28,16 @@ public final class PluginStateService {
         }
     }
 
+    public static <S> @Nullable S loadLocalState(Class<S> state) {
+        log.debug("loadLocalState({})", state.getSimpleName());
+        return Application.getInstance().getRepository().getViewConfig(state);
+    }
+
+    public static <S> @Nullable S loadGlobalState(Class<S> state) {
+        log.debug("loadGlobalState({})", state.getSimpleName());
+        return Application.getInstance().getRepository().getGlobalConfig(state);
+    }
+
     public static <S> void saveState(StateView<S> plugin, S state) {
         log.debug("saveState({})", plugin.getClass().getSimpleName());
 
@@ -39,6 +49,16 @@ public final class PluginStateService {
         } else {
             repository.setViewConfig(state);
         }
+    }
+
+    public static <S> void saveLocalState(S state) {
+        log.debug("saveLocalState({})", state.getClass().getSimpleName());
+        Application.getInstance().getRepository().setViewConfig(state);
+    }
+
+    public static <S> void saveGlobalState(S state) {
+        log.debug("saveGlobalState({})", state.getClass().getSimpleName());
+        Application.getInstance().getRepository().setGlobalConfig(state);
     }
 
     public static void retrieveAllStates() {

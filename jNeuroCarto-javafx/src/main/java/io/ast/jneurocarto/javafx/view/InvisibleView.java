@@ -34,8 +34,8 @@ public abstract class InvisibleView implements Plugin {
     }
 
     protected void bindInvisibleNode(Node node) {
-        node.visibleProperty().bindBidirectional(visible);
-        node.managedProperty().bindBidirectional(visible);
+        node.visibleProperty().bind(visible);
+        node.managedProperty().bind(visible);
     }
 
     protected void setupMenuViewItem(PluginSetupService service, String name) {

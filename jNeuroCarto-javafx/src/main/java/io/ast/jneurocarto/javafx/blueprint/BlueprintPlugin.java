@@ -24,7 +24,6 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
-import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYPath;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
@@ -33,7 +32,6 @@ import io.ast.jneurocarto.javafx.view.ProbePlugin;
 public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object> {
 
     private final ProbeDescription<Object> probe;
-    private ProbeView<?> view;
     private InteractionXYPainter foreground;
     private BlueprintPainter<Object> painter;
     private Map<String, XYPath> categories = new HashMap<>();
@@ -136,7 +134,7 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
 
-        view = service.getProbeView();
+        var view = service.getProbeView();
         foreground = view.getForegroundPainter();
         painter = (BlueprintPainter<Object>) checkBlueprintPainter(service);
         if (painter == null) visible.set(false);
