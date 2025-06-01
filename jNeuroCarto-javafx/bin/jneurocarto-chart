@@ -1,0 +1,35 @@
+#! /bin/bash
+
+M=$HOME/.m2/repository
+read -d '' -r CP << EOF
+$M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
+$M/com/fasterxml/jackson/core/jackson-databind/2.18.3/jackson-databind-2.18.3.jar
+$M/com/fasterxml/jackson/core/jackson-core/2.18.3/jackson-core-2.18.3.jar
+$M/com/fasterxml/jackson/core/jackson-annotations/2.18.3/jackson-annotations-2.18.3.jar
+$M/commons-io/commons-io/2.16.1/commons-io-2.16.1.jar
+$M/org/apache/commons/commons-lang3/3.16.0/commons-lang3-3.16.0.jar
+$M/commons-codec/commons-codec/1.17.1/commons-codec-1.17.1.jar
+$M/org/apache/commons/commons-compress/1.27.1/commons-compress-1.27.1.jar
+$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1.jar
+$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1-linux.jar
+$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1.jar
+$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1-linux.jar
+$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1.jar
+$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1-linux.jar
+$M/io/github/classgraph/classgraph/4.8.179/classgraph-4.8.179.jar
+$M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
+$M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
+$M/org/jetbrains/kotlin/kotlin-stdlib/2.1.21/kotlin-stdlib-2.1.21.jar
+../jNeuroCarto-core/target/classes
+../jNeuroCarto-atlas/target/classes
+../jNeuroCarto-javafx-chart/target/classes
+target/classes
+EOF
+
+archlinux-java-run --min 24 -- \
+    --enable-preview \
+    --enable-native-access=javafx.graphics \
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
+    -p $(echo $CP | tr ' ' ':') \
+    -m io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Example \
+    "$@"

@@ -559,6 +559,9 @@ public class InteractionXYChart extends StackPane {
     public static class DataTouchEvent extends InputEvent {
         public static final EventType<DataTouchEvent> DATA_TOUCH = new EventType<>(InputEvent.ANY, "DATA_TOUCH");
 
+        /**
+         * touch point in chart coordinate.
+         */
         public final Point2D point;
         public final MouseButton button;
 
@@ -603,7 +606,7 @@ public class InteractionXYChart extends StackPane {
         public static final EventType<DataSelectEvent> DATA_SELECT = new EventType<>(InputEvent.ANY, "DATA_SELECT");
 
         /**
-         * a boundary in chart coordinate system.
+         * a selection boundary in chart coordinate.
          */
         public final Bounds bounds;
 
@@ -649,8 +652,19 @@ public class InteractionXYChart extends StackPane {
         public static final EventType<DataDragEvent> DRAGGING = new EventType<>(ANY, "DATA_DRAGGING");
         public static final EventType<DataDragEvent> DRAG_DONE = new EventType<>(ANY, "DATA_DRAG_DONE");
 
+        /**
+         * the start dragging point in chart coordinate.
+         */
         public final Point2D start;
+
+        /**
+         * the dragging point for the previous moment in chart coordinate.
+         */
         public final Point2D previous;
+
+        /**
+         * the current dragging point in chart coordinate.
+         */
         public final Point2D current;
         private final List<EventHandler<DataDragEvent>> listener;
 
