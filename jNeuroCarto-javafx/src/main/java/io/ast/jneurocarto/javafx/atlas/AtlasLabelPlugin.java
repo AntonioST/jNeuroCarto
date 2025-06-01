@@ -154,8 +154,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
         var ret = super.setup(service);
 
-        view.setOnDataTouch(this::onDataTouch);
-        view.setOnDataSelect(this::onDataSelect);
+        view.addEventFilter(InteractionXYChart.DataTouchEvent.DATA_TOUCH, this::onDataTouch);
+        view.addEventFilter(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onDataSelect);
 
         return ret;
     }

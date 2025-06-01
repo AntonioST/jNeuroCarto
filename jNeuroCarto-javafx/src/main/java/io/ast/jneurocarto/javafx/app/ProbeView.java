@@ -59,8 +59,8 @@ public class ProbeView<T> extends InteractionXYChart {
         this.probe = probe;
         interaction = getPlotting();
 
-        setOnDataTouch(this::onElectrodeTouch);
-        setOnDataSelect(this::onElectrodeSelect);
+        addEventHandler(DataTouchEvent.DATA_TOUCH, this::onElectrodeTouch);
+        addEventHandler(DataSelectEvent.DATA_SELECT, this::onElectrodeSelect);
 
 //        getStylesheets().add(getClass().getResource("/style-sheet/probe-view.css").toExternalForm());
 

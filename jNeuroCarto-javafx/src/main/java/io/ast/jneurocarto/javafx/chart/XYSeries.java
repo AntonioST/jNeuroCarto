@@ -1,12 +1,10 @@
 package io.ast.jneurocarto.javafx.chart;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.Effect;
@@ -99,6 +97,10 @@ public abstract class XYSeries implements XYGraphics {
     public void setVisible(boolean visible) {
         this.visible = visible;
     }
+
+    /*===============*
+     * data managing *
+     *===============*/
 
     public Stream<XY> data() {
         return data.stream();
@@ -198,6 +200,33 @@ public abstract class XYSeries implements XYGraphics {
         }
         return ret;
     }
+
+    /*======================*
+     * data point selecting *
+     *======================*/
+
+    public @Nullable XY touch(Point2D p) {
+        return touch(p, 1);
+    }
+
+    public @Nullable XY touch(Point2D p, double radius) {
+        return (XY) data.stream()
+          .map(xy -> new XY(0, 0, p.distance(xy.x, xy.y), xy))
+          .filter(xy -> xy.v < radius)
+          .min(Comparator.comparingDouble(XY::v))
+          .map(XY::external)
+          .orElse(null);
+    }
+
+    public List<XY> touch(Bounds bounds) {
+        return data.stream()
+          .filter(xy -> bounds.contains(xy.x, xy.y))
+          .toList();
+    }
+
+    /*================*
+     * transformation *
+     *================*/
 
     /**
      * {@inheritDoc}
