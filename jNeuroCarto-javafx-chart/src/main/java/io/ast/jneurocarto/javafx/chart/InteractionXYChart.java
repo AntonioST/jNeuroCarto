@@ -37,7 +37,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.ast.jneurocarto.javafx.utils.StylesheetsUtils;
+import io.ast.jneurocarto.javafx.chart.utils.StylesheetsUtils;
 
 @NullMarked
 public class InteractionXYChart extends StackPane {

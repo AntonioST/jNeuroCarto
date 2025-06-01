@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.app.dialog;
+package io.ast.jneurocarto.javafx.utils;
 
 import java.util.Collections;
 
@@ -16,8 +16,6 @@ import javafx.scene.layout.VBox;
 import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.javafx.chart.Colormap;
-import io.ast.jneurocarto.javafx.utils.FlashStringBuffer;
-import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 
 @NullMarked
 public class ColormapChooseDialog extends Dialog<ButtonType> {

@@ -1,11 +1,14 @@
-package io.ast.jneurocarto.javafx.cli;
+package io.ast.jneurocarto.javafx.chart.cli;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import javafx.scene.paint.Color;
 
-import io.ast.jneurocarto.javafx.chart.*;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.XY;
+import io.ast.jneurocarto.javafx.chart.XYMarker;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -13,17 +16,17 @@ import picocli.CommandLine;
   usageHelpAutoWidth = true,
   description = "show interaction xy chart for drag-and-drop feature"
 )
-public class DragDrop implements Application.ApplicationContent, Runnable {
+public class DragDrop implements Main.Content, Runnable {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
     @CommandLine.ParentCommand
-    public Chart parent;
+    public Main parent;
 
     @Override
     public void run() {
-        parent.launch(new Application(this));
+        parent.launch(this);
     }
 
     /*=============*

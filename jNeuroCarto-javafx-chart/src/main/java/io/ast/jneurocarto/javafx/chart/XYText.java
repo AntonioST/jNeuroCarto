@@ -28,6 +28,7 @@ public class XYText extends XYSeries {
     protected @Nullable Color color = null;
     protected @Nullable Color line = null;
     protected @Nullable Effect textEffect = null;
+    protected boolean showAnchorPoint;
     private @Nullable Bounds bounds;
     private double baselineOffset;
 
@@ -89,6 +90,14 @@ public class XYText extends XYSeries {
 
     public void textEffect(@Nullable Effect effect) {
         this.textEffect = effect;
+    }
+
+    public boolean showAnchorPoint() {
+        return showAnchorPoint;
+    }
+
+    public void showAnchorPoint(boolean showAnchorPoint) {
+        this.showAnchorPoint = showAnchorPoint;
     }
 
     /*==============*
@@ -168,7 +177,7 @@ public class XYText extends XYSeries {
     public List<XY> touch(Bounds bounds) {
         return data.stream().filter(xy -> {
             var b = boundOf(xy);
-            return b != null && bounds.contains(b);
+            return (b != null && bounds.contains(b)) || (bounds.contains(xy.x, xy.y));
         }).toList();
     }
 
@@ -259,6 +268,10 @@ public class XYText extends XYSeries {
                         if (o instanceof String text) {
                             gc.setEffect(textEffect);
                             gc.fillText(text, x, y);
+                            if (showAnchorPoint) {
+                                gc.strokeLine(x - 5, y, x + 5, y);
+                                gc.strokeLine(x, y - 5, x, y + 5);
+                            }
                         }
                     } else {
                         var x1 = p[0][j];
@@ -308,6 +321,11 @@ public class XYText extends XYSeries {
 
         public Builder line(@Nullable Color color) {
             graphics.line(color);
+            return this;
+        }
+
+        public Builder showAnchorPoint(boolean show) {
+            graphics.showAnchorPoint(show);
             return this;
         }
 

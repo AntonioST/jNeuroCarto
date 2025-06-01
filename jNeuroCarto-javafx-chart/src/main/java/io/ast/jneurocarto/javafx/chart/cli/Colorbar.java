@@ -1,6 +1,5 @@
-package io.ast.jneurocarto.javafx.cli;
+package io.ast.jneurocarto.javafx.chart.cli;
 
-import io.ast.jneurocarto.javafx.chart.Application;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import picocli.CommandLine;
 
@@ -9,7 +8,7 @@ import picocli.CommandLine;
   usageHelpAutoWidth = true,
   description = "show colorbar"
 )
-public class Colorbar implements Application.ApplicationContent, Runnable {
+public class Colorbar implements Main.Content, Runnable {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
@@ -23,11 +22,11 @@ public class Colorbar implements Application.ApplicationContent, Runnable {
     int n;
 
     @CommandLine.ParentCommand
-    public Chart parent;
+    public Main parent;
 
     @Override
     public void run() {
-        parent.launch(new Application(this));
+        parent.launch(this);
     }
 
     /*=============*

@@ -40,7 +40,7 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.JsonConfig;
 import io.ast.jneurocarto.core.config.Repository;
-import io.ast.jneurocarto.javafx.app.dialog.ChartAxesDialog;
+import io.ast.jneurocarto.javafx.utils.ChartAxesDialog;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;

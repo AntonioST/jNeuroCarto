@@ -10,7 +10,8 @@
         <version>0.0</version>
     </parent>
 
-    <artifactId>jNeuroCarto-javafx</artifactId>
+    <groupId>io.ast.jneurocarto</groupId>
+    <artifactId>jNeuroCarto-javafx-chart</artifactId>
     <version>0.0</version>
     <packaging>jar</packaging>
 
@@ -20,17 +21,6 @@
             <artifactId>jNeuroCarto-core</artifactId>
             <version>0.0</version>
         </dependency>
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-atlas</artifactId>
-            <version>0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-javafx-chart</artifactId>
-            <version>0.0</version>
-        </dependency>
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -44,6 +34,10 @@
             <artifactId>jspecify</artifactId>
         </dependency>
         <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-base</artifactId>
         </dependency>
@@ -54,22 +48,6 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.classgraph</groupId>
-            <artifactId>classgraph</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -107,12 +85,13 @@
                         <argument>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</argument>
                         <argument>-cp</argument>
                         <classpath/>
-                        <argument>io.ast.jneurocarto.javafx.cli.Main</argument>
+                        <argument>io.ast.jneurocarto.javafx.chart.cli.Main</argument>
                         <argument>--help</argument>
                     </arguments>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
 
 </project>

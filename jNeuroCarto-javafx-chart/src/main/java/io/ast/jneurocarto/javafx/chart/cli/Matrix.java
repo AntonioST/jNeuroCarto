@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.cli;
+package io.ast.jneurocarto.javafx.chart.cli;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.NumpyHeader;
-import io.ast.jneurocarto.javafx.chart.Application;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.Normalize;
 import io.ast.jneurocarto.javafx.chart.XYMatrix;
@@ -22,7 +21,7 @@ import picocli.CommandLine;
   usageHelpAutoWidth = true,
   description = "show matrix image"
 )
-public class Matrix implements Application.ApplicationContent, Runnable {
+public class Matrix implements Main.Content, Runnable {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
@@ -96,7 +95,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
     double[] data;
 
     @CommandLine.ParentCommand
-    public Chart parent;
+    public Main parent;
 
     private Logger log;
 
@@ -109,7 +108,7 @@ public class Matrix implements Application.ApplicationContent, Runnable {
         processData();
 
         log.debug("launch");
-        parent.launch(new Application(this));
+        parent.launch(this);
     }
 
     private void loadData() {

@@ -4,7 +4,6 @@ import java.util.regex.Pattern;
 
 import javafx.scene.layout.VBox;
 
-import io.ast.jneurocarto.javafx.chart.Application;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.utils.AutoCompleteTextField;
 import picocli.CommandLine;
@@ -14,7 +13,7 @@ import picocli.CommandLine;
   usageHelpAutoWidth = true,
   description = "demo complete text field"
 )
-public class Complete implements Application.ApplicationContent, Runnable {
+public class Complete implements Example.Content, Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
@@ -43,11 +42,11 @@ public class Complete implements Application.ApplicationContent, Runnable {
     boolean validate;
 
     @CommandLine.ParentCommand
-    public Chart parent;
+    public Example parent;
 
     @Override
     public void run() {
-        parent.launch(new Application(this));
+        parent.launch(this);
     }
 
     /*=============*

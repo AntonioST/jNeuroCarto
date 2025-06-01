@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.app.dialog;
+package io.ast.jneurocarto.javafx.utils;
 
 import javafx.event.Event;
 import javafx.geometry.Pos;
@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 
 public class ChartAxesDialog extends Dialog<ButtonType> {
 

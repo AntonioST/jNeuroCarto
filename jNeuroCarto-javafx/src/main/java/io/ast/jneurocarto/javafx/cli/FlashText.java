@@ -9,7 +9,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
-import io.ast.jneurocarto.javafx.chart.Application;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYText;
@@ -21,12 +20,12 @@ import picocli.CommandLine;
   usageHelpAutoWidth = true,
   description = "show flash text"
 )
-public class FlashText implements Application.ApplicationContent, Runnable {
+public class FlashText implements Example.Content, Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
     @CommandLine.ParentCommand
-    public Chart parent;
+    public Example parent;
 
     private FlashStringBuffer buffer;
     private InteractionXYPainter painter;
@@ -34,7 +33,7 @@ public class FlashText implements Application.ApplicationContent, Runnable {
 
     @Override
     public void run() {
-        parent.launch(new Application(this));
+        parent.launch(this);
     }
 
     /*=============*

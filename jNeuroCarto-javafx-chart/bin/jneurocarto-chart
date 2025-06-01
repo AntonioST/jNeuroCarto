@@ -1,0 +1,25 @@
+#! /bin/bash
+
+M=$HOME/.m2/repository
+read -d '' -r CP << EOF
+$M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
+$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1.jar
+$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1-linux.jar
+$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1.jar
+$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1-linux.jar
+$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1.jar
+$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1-linux.jar
+$M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
+$M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
+../jNeuroCarto-core/target/classes
+target/classes
+EOF
+
+archlinux-java-run --min 24 -- \
+    --enable-preview \
+    --enable-native-access=javafx.graphics \
+    --add-modules=info.picocli \
+    -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
+    -p $(echo $CP | tr ' ' ':') \
+    -m io.ast.jneurocarto.javafx.chart/io.ast.jneurocarto.javafx.chart.cli.Main \
+    "$@"

@@ -30,6 +30,7 @@ $M/org/jetbrains/kotlin/kotlin-stdlib/2.1.21/kotlin-stdlib-2.1.21.jar
 ../jNeuroCarto-probe-npx/target/classes
 ../jNeuroCarto-probe-npx-javafx/target/classes
 ../jNeuroCarto-atlas/target/classes
+../jNeuroCarto-javafx-chart/target/classes
 ../jNeuroCarto-kotlin/target/classes
 target/classes
 EOF
@@ -38,7 +39,6 @@ archlinux-java-run --min 24 -- \
     --enable-preview \
     --enable-native-access=javafx.graphics \
     -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
-    -cp "../jNeuroCarto-kotlin/target/classes" \
     -p $(echo $CP | tr ' ' ':') \
     -m io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Main \
     --debug \

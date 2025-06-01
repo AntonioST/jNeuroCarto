@@ -2,17 +2,18 @@ import io.ast.jneurocarto.core.ProbeProvider;
 import io.ast.jneurocarto.probe_npx.NpxProbeProvider;
 
 module io.ast.jneurocarto.probe_npx {
-    requires static org.jspecify;
-    requires jdk.incubator.vector;
 
     requires org.slf4j;
-    requires info.picocli;
+
+    requires static info.picocli;
+    requires static org.jspecify;
 
     requires io.ast.jneurocarto.core;
 
     exports io.ast.jneurocarto.probe_npx;
     exports io.ast.jneurocarto.probe_npx.cli;
-    opens io.ast.jneurocarto.probe_npx.cli to info.picocli;
 
     provides ProbeProvider with NpxProbeProvider;
+
+    opens io.ast.jneurocarto.probe_npx.cli to info.picocli;
 }

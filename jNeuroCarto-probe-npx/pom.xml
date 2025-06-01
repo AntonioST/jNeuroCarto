@@ -16,6 +16,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-core</artifactId>
+            <version>0.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
@@ -40,11 +45,6 @@
             <artifactId>junit-jupiter-engine</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.ast.jneurocarto</groupId>
-            <artifactId>jNeuroCarto-core</artifactId>
-            <version>0.0</version>
-        </dependency>
     </dependencies>
 
     <build>

@@ -18,11 +18,13 @@ $M/com/twelvemonkeys/imageio/imageio-metadata/3.12.0/imageio-metadata-3.12.0.jar
 $M/com/twelvemonkeys/imageio/imageio-tiff/3.12.0/imageio-tiff-3.12.0.jar
 $M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
 $M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
+../jNeuroCarto-core/target/classes
 target/classes
 EOF
 
 archlinux-java-run --min 24 -- \
     --enable-preview \
+    --add-modules=info.picocli \
     -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
     -p $(echo $CP | tr ' ' ':') \
     -m io.ast.jneurocarto.atlas/io.ast.jneurocarto.atlas.cli.Main \

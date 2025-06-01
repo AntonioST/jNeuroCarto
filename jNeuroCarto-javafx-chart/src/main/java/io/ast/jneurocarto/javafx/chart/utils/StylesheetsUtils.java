@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.utils;
+package io.ast.jneurocarto.javafx.chart.utils;
 
 import javafx.scene.Node;
 

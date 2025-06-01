@@ -1,10 +1,13 @@
-package io.ast.jneurocarto.javafx.cli;
+package io.ast.jneurocarto.javafx.chart.cli;
 
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
-import io.ast.jneurocarto.javafx.chart.*;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.Normalize;
+import io.ast.jneurocarto.javafx.chart.XYPath;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -12,17 +15,17 @@ import picocli.CommandLine;
   usageHelpAutoWidth = true,
   description = "show interaction xy chart"
 )
-public class ClickLines implements Application.ApplicationContent, Runnable {
+public class ClickLines implements Main.Content, Runnable {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
     @CommandLine.ParentCommand
-    public Chart parent;
+    public Main parent;
 
     @Override
     public void run() {
-        parent.launch(new Application(this));
+        parent.launch(this);
     }
 
     /*=============*
