@@ -29,7 +29,7 @@ import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart.ChartMouseEvent;
+import io.ast.jneurocarto.javafx.chart.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.Plugin;

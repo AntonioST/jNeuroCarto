@@ -180,8 +180,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         colormap.addColor(0, Color.BLACK);
         colorMapping.put("black", 0);
 
-        canvas.addEventFilter(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_CLICKED, this::onDataTouch);
-        canvas.addEventFilter(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onDataSelect);
+        canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_CLICKED, this::onDataTouch);
+        canvas.addEventFilter(DataSelectEvent.DATA_SELECT, this::onDataSelect);
         // TODO label dragging
     }
 
@@ -195,7 +195,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         evalAndAddLabel(kind, text);
     }
 
-    private void onDataTouch(InteractionXYChart.ChartMouseEvent e) {
+    private void onDataTouch(ChartMouseEvent e) {
         var xy = graphics.touch(e.point);
         if (xy != null) {
             var label = getLabel(xy);
@@ -205,7 +205,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         }
     }
 
-    private void onDataSelect(InteractionXYChart.DataSelectEvent e) {
+    private void onDataSelect(DataSelectEvent e) {
         var selected = graphics.touch(e.bounds).stream()
             .map(this::getLabel)
             .filter(Objects::nonNull)
@@ -217,13 +217,13 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     }
 
 
-    private void onLabelTouch(InteractionXYChart.ChartMouseEvent e, XYLabel label) {
+    private void onLabelTouch(ChartMouseEvent e, XYLabel label) {
         if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
             focusOnLabel(label);
         }
     }
 
-    private void onLabelSelect(InteractionXYChart.DataSelectEvent e, List<XYLabel> labels) {
+    private void onLabelSelect(DataSelectEvent e, List<XYLabel> labels) {
 
     }
 

@@ -5,10 +5,7 @@ import java.util.List;
 
 import javafx.scene.paint.Color;
 
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XY;
-import io.ast.jneurocarto.javafx.chart.XYMarker;
+import io.ast.jneurocarto.javafx.chart.*;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -16,7 +13,7 @@ import picocli.CommandLine;
     usageHelpAutoWidth = true,
     description = "show interaction xy chart for drag-and-drop feature"
 )
-public class DragDrop implements Main.Content, Runnable {
+public class DragDrop implements Main.Content, Runnable, ChartMouseDraggingHandler {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
@@ -36,16 +33,14 @@ public class DragDrop implements Main.Content, Runnable {
     private InteractionXYChart chart;
     private InteractionXYPainter painter;
     private XYMarker markers;
-    private InteractionXYChart.ChartMouseEvent prev;
     private List<XY> selected = new ArrayList<>();
 
     @Override
     public void setup(InteractionXYChart chart) {
         this.chart = chart;
-        chart.addEventHandler(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onSelected);
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_CLICKED, this::onClicked);
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onDragging);
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_RELEASED, this::onDragging);
+        chart.addEventHandler(DataSelectEvent.DATA_SELECT, this::onSelected);
+        chart.addEventHandler(ChartMouseEvent.CHART_MOUSE_CLICKED, this::onClicked);
+        ChartMouseDraggingHandler.setupChartMouseDraggingHandler(chart, this);
 
         painter = chart.getPlotting();
         markers = painter.scatter()
@@ -54,39 +49,42 @@ public class DragDrop implements Main.Content, Runnable {
             .graphics();
     }
 
-    private void onClicked(InteractionXYChart.ChartMouseEvent e) {
+    private void onClicked(ChartMouseEvent e) {
         markers.addData(e.point);
         painter.repaint();
     }
 
-    private void onSelected(InteractionXYChart.DataSelectEvent e) {
+    private void onSelected(DataSelectEvent e) {
         selected.addAll(markers.touch(e.bounds));
         if (!selected.isEmpty()) {
-            System.out.println("select " + selected.stream() + " points");
+            System.out.println("select " + selected.size() + " points");
             e.consume();
         }
     }
 
-    private void onDragging(InteractionXYChart.ChartMouseEvent e) {
-        if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_DRAGGED && !selected.isEmpty()) {
+    @Override
+    public boolean onChartMouseDragDetect(ChartMouseEvent e) {
+        if (!selected.isEmpty()) {
             System.out.println("dragging " + selected.size() + " points");
-            if (prev != null) {
-
-                var dx = e.getChartX() - prev.getChartX();
-                var dy = e.getChartY() - prev.getChartY();
-                for (var xy : selected) {
-                    xy.x(xy.x() + dx);
-                    xy.y(xy.y() + dy);
-                }
-                painter.repaint();
-            }
-            prev = e;
-            e.consume();
-        } else if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_RELEASED && prev != null) {
-            System.out.println("release " + selected.size() + " points");
-            selected.clear();
-            prev = null;
+            return true;
         }
+        return false;
     }
 
+    @Override
+    public void onChartMouseDragging(ChartMouseEvent p, ChartMouseEvent e) {
+        var dx = e.getChartX() - p.getChartX();
+        var dy = e.getChartY() - p.getChartY();
+        for (var xy : selected) {
+            xy.x(xy.x() + dx);
+            xy.y(xy.y() + dy);
+        }
+        painter.repaint();
+    }
+
+    @Override
+    public void onChartMouseDragDone(ChartMouseEvent e) {
+        System.out.println("release " + selected.size() + " points");
+        selected.clear();
+    }
 }

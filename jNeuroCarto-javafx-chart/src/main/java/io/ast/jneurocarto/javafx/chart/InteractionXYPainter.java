@@ -159,7 +159,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      *
      * @param y
      * @return
-     * @see io.ast.jneurocarto.javafx.cli.Bar#setup(InteractionXYChart)
+     * @see io.ast.jneurocarto.javafx.chart.cli.Bar#setup(InteractionXYChart)
      */
     public XYBar.Builder bar(double[] y) {
         return bar(y, XYBar.Orientation.vertical);

@@ -8,10 +8,6 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.event.EventHandler;
-import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
@@ -22,7 +18,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.ScatterChart;
 import javafx.scene.chart.XYChart;
-import javafx.scene.input.InputEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -317,18 +312,18 @@ public class InteractionXYChart extends StackPane {
     }
 
     private void onMouseDragged(MouseEvent e) {
-        mouseMoving = e;
-
         fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_DRAGGED, e);
 
         var start = mousePress;
         if (start != null && !e.isConsumed()) {
             switch (start.getButton()) {
             case MouseButton.PRIMARY -> {
+                mouseMoving = e;
                 onMouseSelecting(start, e);
                 e.consume();
             }
             case MouseButton.SECONDARY -> {
+                mouseMoving = e;
                 if (start.isControlDown()) {
                     onMouseSelecting(start, e);
                 } else {
@@ -351,8 +346,8 @@ public class InteractionXYChart extends StackPane {
         previous = null;
         previousArea = null;
 
-        if (start != null) {
-            if (start.getButton() == MouseButton.PRIMARY && moving != null) {
+        if (start != null && moving != null) {
+            if (start.getButton() == MouseButton.PRIMARY) {
                 onMouseSelected(start, e);
                 e.consume();
             } else if (start.getButton() == MouseButton.SECONDARY && start.isControlDown()) {
@@ -413,7 +408,7 @@ public class InteractionXYChart extends StackPane {
             setAxisBoundary(yAxis, x1 - d1, x2 + d2);
         }
 
-        if (scaleX || scaleY) fireCanvasChange(CanvasChangeEvent.SCALING);
+        if (scaleX || scaleY) fireCanvasChange(ChartChangeEvent.SCALING);
         e.consume();
     }
 
@@ -463,7 +458,7 @@ public class InteractionXYChart extends StackPane {
         dy = -dy * (x2 - x1) / area.getHeight();
         setAxisBoundary(yAxis, x1 - dy, x2 - dy);
 
-        fireCanvasChange(CanvasChangeEvent.MOVING);
+        fireCanvasChange(ChartChangeEvent.MOVING);
     }
 
     /**
@@ -480,71 +475,19 @@ public class InteractionXYChart extends StackPane {
         return new BoundingBox(x1, y1, x2 - x1, y2 - y1);
     }
 
-    /*=====================*
-     * canvas moving event *
-     *=====================*/
+    /*===============*
+     * custom events *
+     *===============*/
 
-
-    public static class CanvasChangeEvent extends InputEvent {
-        public static final EventType<CanvasChangeEvent> ANY = new EventType<>(InputEvent.ANY, "CANVAS_CHANGE");
-        public static final EventType<CanvasChangeEvent> MOVING = new EventType<>(ANY, "CANVAS_MOVING");
-        public static final EventType<CanvasChangeEvent> SCALING = new EventType<>(ANY, "CANVAS_SCALING");
-
-        CanvasChangeEvent(Object source, EventTarget target, EventType<CanvasChangeEvent> type) {
-            super(source, target, type);
-        }
-    }
-
-    private final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasMovingEvent = new SimpleObjectProperty<>(null);
-
-    {
-        addEventHandler(CanvasChangeEvent.MOVING, e -> {
-            var handler = getOnCanvasMoving();
-            if (handler != null) handler.handle(e);
-        });
-    }
-
-    public final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasMovingEventProperty() {
-        return onCanvasMovingEvent;
-    }
-
-    public final void setOnCanvasMoving(EventHandler<CanvasChangeEvent> handler) {
-        onCanvasMovingEvent.set(handler);
-    }
-
-    public final @Nullable EventHandler<CanvasChangeEvent> getOnCanvasMoving() {
-        return onCanvasMovingEvent.get();
-    }
-
-    private final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasScalingEvent = new SimpleObjectProperty<>(null);
-
-    {
-        addEventHandler(CanvasChangeEvent.SCALING, e -> {
-            var handler = getOnCanvasScaling();
-            if (handler != null) handler.handle(e);
-        });
-    }
-
-    public final ObjectProperty<@Nullable EventHandler<CanvasChangeEvent>> onCanvasScalingEventProperty() {
-        return onCanvasScalingEvent;
-    }
-
-    public final void setOnCanvasScaling(EventHandler<CanvasChangeEvent> handler) {
-        onCanvasScalingEvent.set(handler);
-    }
-
-    public final @Nullable EventHandler<CanvasChangeEvent> getOnCanvasScaling() {
-        return onCanvasScalingEvent.get();
-    }
 
     /**
      *
      */
-    private void fireCanvasChange(EventType<CanvasChangeEvent> type) {
+    private void fireCanvasChange(EventType<ChartChangeEvent> type) {
         if (!isDisabled()) {
             try {
                 repaintBlocker = true;
-                fireEvent(new CanvasChangeEvent(this, top, type));
+                fireEvent(new ChartChangeEvent(this, top, type));
             } finally {
                 repaintBlocker = false;
             }
@@ -552,68 +495,6 @@ public class InteractionXYChart extends StackPane {
         }
     }
 
-
-    /*=============*
-     * touch event *
-     *=============*/
-
-    public static class ChartMouseEvent extends InputEvent {
-        public static final EventType<ChartMouseEvent> ANY = new EventType<>(InputEvent.ANY, "CHART_MOUSE_ANY");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_CLICKED = new EventType<>(ANY, "CHART_MOUSE_CLICKED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_PRESSED = new EventType<>(ANY, "CHART_MOUSE_PRESSED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_RELEASED = new EventType<>(ANY, "CHART_MOUSE_RELEASED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_MOVED = new EventType<>(ANY, "CHART_MOUSE_MOVED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_DRAGGED = new EventType<>(ANY, "CHART_MOUSE_DRAGGED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_ENTERED = new EventType<>(ANY, "CHART_MOUSE_ENTERED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_EXITED = new EventType<>(ANY, "CHART_MOUSE_EXITED");
-        public static final EventType<ChartMouseEvent> CHART_MOUSE_OTHER = new EventType<>(ANY, "CHART_MOUSE_OTHER");
-
-        /**
-         * mouse point in chart coordinate.
-         */
-        public final Point2D point;
-
-        /**
-         * origin mouse event
-         */
-        public final MouseEvent mouse;
-
-        public ChartMouseEvent(EventType<ChartMouseEvent> type, Point2D point, MouseEvent e) {
-            super(type);
-            this.point = point;
-            this.mouse = e;
-        }
-
-        public double getChartX() {
-            return point.getX();
-        }
-
-        public double getChartY() {
-            return point.getY();
-        }
-
-        public double getMouseX() {
-            return mouse.getX();
-        }
-
-        public double getMouseY() {
-            return mouse.getY();
-        }
-
-        public MouseButton getButton() {
-            return mouse.getButton();
-        }
-
-        public int getClickCount() {
-            return mouse.getClickCount();
-        }
-
-        @Override
-        public void consume() {
-            super.consume();
-            mouse.consume();
-        }
-    }
 
     /**
      * @param type  chart-mouse event
@@ -627,23 +508,6 @@ public class InteractionXYChart extends StackPane {
         }
     }
 
-    /*==============*
-     * select event *
-     *==============*/
-
-    public static class DataSelectEvent extends InputEvent {
-        public static final EventType<DataSelectEvent> DATA_SELECT = new EventType<>(InputEvent.ANY, "DATA_SELECT");
-
-        /**
-         * a selection boundary in chart coordinate.
-         */
-        public final Bounds bounds;
-
-        public DataSelectEvent(Bounds bounds) {
-            super(DATA_SELECT);
-            this.bounds = bounds;
-        }
-    }
 
     /**
      * @param bounds a boundary in top coordinate system.
@@ -1110,7 +974,7 @@ public class InteractionXYChart extends StackPane {
     public void setAxesBoundaries(double x1, double x2, double y1, double y2) {
         setAxisBoundary(xAxis, x1, x2);
         setAxisBoundary(yAxis, y1, y2);
-        fireCanvasChange(CanvasChangeEvent.SCALING);
+        fireCanvasChange(ChartChangeEvent.SCALING);
     }
 
     public void setAxesEqualRatio() {
@@ -1127,7 +991,7 @@ public class InteractionXYChart extends StackPane {
         y1 = cy - yh / 2;
         y2 = cy + yh / 2;
         setAxisBoundary(yAxis, y1, y2);
-        fireCanvasChange(CanvasChangeEvent.SCALING);
+        fireCanvasChange(ChartChangeEvent.SCALING);
     }
 
     public static void setAxisBoundary(NumberAxis axis, double x1, double x2) {

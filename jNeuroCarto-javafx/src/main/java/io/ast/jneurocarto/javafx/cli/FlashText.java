@@ -9,10 +9,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XY;
-import io.ast.jneurocarto.javafx.chart.XYText;
+import io.ast.jneurocarto.javafx.chart.*;
 import io.ast.jneurocarto.javafx.utils.FlashStringBuffer;
 import picocli.CommandLine;
 
@@ -21,7 +18,7 @@ import picocli.CommandLine;
     usageHelpAutoWidth = true,
     description = "show flash text"
 )
-public class FlashText implements Example.Content, Runnable {
+public class FlashText implements Example.Content, Runnable, ChartMouseDraggingHandler {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
@@ -82,10 +79,7 @@ public class FlashText implements Example.Content, Runnable {
             builder.textEffect(new DropShadow(BlurType.ONE_PASS_BOX, Color.GRAY, 5, 5, 5, 5));
         }
 
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_CLICKED, this::onTouch);
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_PRESSED, this::onDragStart);
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onDragStart);
-        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_RELEASED, this::onDragStart);
+        ChartMouseDraggingHandler.setupChartMouseDraggingHandler(chart, this);
     }
 
     private void onKeyType(KeyEvent e) {
@@ -103,10 +97,11 @@ public class FlashText implements Example.Content, Runnable {
         }
     }
 
-    private XY touched;
-    private InteractionXYChart.ChartMouseEvent prev;
 
-    private void onTouch(InteractionXYChart.ChartMouseEvent e) {
+    private XY touched;
+
+    @Override
+    public boolean onChartMouseDragDetect(ChartMouseEvent e) {
         var xy = builder.graphics().touch(e.point);
         if (xy != null && xy.external() instanceof String text) {
             System.out.println(text);
@@ -114,27 +109,19 @@ public class FlashText implements Example.Content, Runnable {
         } else {
             touched = null;
         }
+        return touched != null;
     }
 
-    private void onDragStart(InteractionXYChart.ChartMouseEvent e) {
-        if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_PRESSED) {
-            var xy = builder.graphics().touch(e.point);
-            if (xy != null && xy.external() instanceof String text) {
-                touched = xy;
-            }
-        } else if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_DRAGGED && touched != null) {
-            if (prev != null) {
-                touched.x(touched.x() + e.getChartX() - prev.getChartX());
-                touched.y(touched.y() + e.getChartY() - prev.getChartY());
-            }
-            painter.repaint();
-            prev = e;
-            e.consume();
-        } else if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_RELEASED && prev != null) {
-            touched = null;
-            prev = null;
-            painter.repaint();
-        }
+    @Override
+    public void onChartMouseDragging(ChartMouseEvent p, ChartMouseEvent e) {
+        touched.x(touched.x() + e.getChartX() - p.getChartX());
+        touched.y(touched.y() + e.getChartY() - p.getChartY());
+        painter.repaint();
     }
 
+    @Override
+    public void onChartMouseDragDone(ChartMouseEvent e) {
+        touched = null;
+        painter.repaint();
+    }
 }
