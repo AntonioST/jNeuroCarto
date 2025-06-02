@@ -15,7 +15,7 @@ import io.ast.jneurocarto.core.Coordinate;
 public class AtlasReferenceState {
 
     @JsonProperty()
-    public Map<String, AtlasReferenceData> references = new HashMap<>();
+    public Map<String, AtlasReferenceData> brains = new HashMap<>();
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
     @JsonSubTypes({
@@ -26,7 +26,7 @@ public class AtlasReferenceState {
     }
 
     public record AtlasReferenceIndirect(
-      @JsonProperty() String refer
+        @JsonProperty() String use
     ) implements AtlasReferenceData {
     }
 
@@ -36,9 +36,9 @@ public class AtlasReferenceState {
     }
 
     public @Nullable AtlasReferenceCoordinate get(String atlas) {
-        var a = references.get(atlas);
-        while (a instanceof AtlasReferenceIndirect(var refer)) {
-            a = references.get(refer);
+        var a = brains.get(atlas);
+        while (a instanceof AtlasReferenceIndirect(var use)) {
+            a = brains.get(use);
         }
         return (AtlasReferenceCoordinate) a;
     }
@@ -55,12 +55,12 @@ public class AtlasReferenceState {
 
     public void add(AtlasReference reference) {
         var atlas = reference.atlasNams();
-        var a = references.get(atlas);
+        var a = brains.get(atlas);
 
         AtlasReferenceCoordinate c;
         if (a == null) {
             c = new AtlasReferenceCoordinate();
-            references.put(atlas, c);
+            brains.put(atlas, c);
         } else {
             if ((c = get(atlas)) == null) throw new RuntimeException("broken structure");
         }

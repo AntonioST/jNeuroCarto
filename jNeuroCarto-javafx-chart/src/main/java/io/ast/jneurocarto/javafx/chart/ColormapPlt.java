@@ -35,7 +35,7 @@ public final class ColormapPlt {
     }
 
     public static void loadMatplotlibColorMapsPyFile() {
-        try (var stream = ColormapPlt.class.getClassLoader().getResourceAsStream("matplotlib_color_maps.py")) {
+        try (var stream = ColormapPlt.class.getResourceAsStream("matplotlib_color_maps.py")) {
             log.debug("open resource matplotlib_color_maps.py");
             loadMatplotlibColorMapsPyFile(stream);
         } catch (IOException e) {

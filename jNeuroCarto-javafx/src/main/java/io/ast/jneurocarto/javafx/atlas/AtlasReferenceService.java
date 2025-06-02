@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.atlas.BrainAtlas;
 import io.ast.jneurocarto.atlas.BrainGlobeDownloader;
 import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.config.JsonConfig;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
 
 @NullMarked
@@ -59,18 +60,37 @@ public final class AtlasReferenceService {
 
                     var state = new AtlasReferenceState();
                     AtlasReferenceState s;
+                    if ((s = loadInternalResource()) != null) {
+                        state.brains.putAll(s.brains);
+                    }
                     if ((s = PluginStateService.loadGlobalState(AtlasReferenceState.class)) != null) {
-                        state.references.putAll(s.references);
+                        state.brains.putAll(s.brains);
                     }
                     if ((s = PluginStateService.loadLocalState(AtlasReferenceState.class)) != null) {
-                        state.references.putAll(s.references);
+                        state.brains.putAll(s.brains);
                     }
 
+                    log.debug("load brain {}", state.brains.keySet());
                     AtlasReferenceService.references = references = state;
                 }
             }
         }
         return references;
+    }
+
+    private static @Nullable AtlasReferenceState loadInternalResource() {
+        var is = AtlasReferenceService.class.getResourceAsStream("DefaultAtlasReferences.json");
+        if (is == null) {
+            log.warn("loadInternalResource, DefaultAtlasReferences.json not find");
+            return null;
+        }
+        try (is) {
+            var config = JsonConfig.load(is);
+            return config.get(AtlasReferenceState.class);
+        } catch (Exception e) {
+            log.warn("loadInternalResource", e);
+            return null;
+        }
     }
 
     public void saveReferences() {

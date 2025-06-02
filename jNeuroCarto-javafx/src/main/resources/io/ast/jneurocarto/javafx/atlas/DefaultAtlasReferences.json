@@ -1,0 +1,22 @@
+{
+  "AtlasReferences": {
+    "brains": {
+      "allen_mouse_10um": {
+        "references": {
+          "bregma": [
+            5400,
+            0,
+            5700,
+            1
+          ]
+        }
+      },
+      "allen_mouse_25um": {
+        "use": "allen_mouse_10um"
+      },
+      "allen_mouse_50um": {
+        "use": "allen_mouse_10um"
+      }
+    }
+  }
+}

@@ -2,6 +2,7 @@ package io.ast.jneurocarto.core.config;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -36,6 +37,11 @@ public class JsonConfig {
     public static JsonConfig load(Path file) throws IOException {
         if (!Files.exists(file)) throw new FileNotFoundException(file.toString());
         var node = mapper.readTree(file.toFile());
+        return asConfig((ObjectNode) node);
+    }
+
+    public static JsonConfig load(InputStream file) throws IOException {
+        var node = mapper.readTree(file);
         return asConfig((ObjectNode) node);
     }
 
@@ -122,8 +128,8 @@ public class JsonConfig {
 
     public Set<Entry> entrySet() {
         return maps.entrySet().stream()
-          .map(Entry::new)
-          .collect(Collectors.toSet());
+            .map(Entry::new)
+            .collect(Collectors.toSet());
     }
 
     public void forEach(Consumer<Entry> consumer) {

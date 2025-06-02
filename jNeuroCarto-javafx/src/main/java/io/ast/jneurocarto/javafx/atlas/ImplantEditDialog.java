@@ -57,9 +57,9 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         layout.add(new Label("ML"), 0, 3);
 
         shank = new FormattedTextField.OfIntField(state.shank);
-        ap = new FormattedTextField.OfDoubleField(state.ap);
-        dv = new FormattedTextField.OfDoubleField(state.dv);
-        ml = new FormattedTextField.OfDoubleField(state.ml);
+        ap = new FormattedTextField.OfDoubleField(state.ap / 1000);
+        dv = new FormattedTextField.OfDoubleField(state.dv / 1000);
+        ml = new FormattedTextField.OfDoubleField(state.ml / 1000);
 
 
         layout.add(shank, 1, 0);
@@ -80,7 +80,7 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         rap = new FormattedTextField.OfDoubleField(state.rap);
         rdv = new FormattedTextField.OfDoubleField(state.rdv);
         rml = new FormattedTextField.OfDoubleField(state.rml);
-        depth = new FormattedTextField.OfDoubleField(state.depth);
+        depth = new FormattedTextField.OfDoubleField(state.depth / 1000);
 
         layout.add(rap, 4, 0);
         layout.add(rdv, 4, 1);
@@ -128,18 +128,22 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         choice.getItems().addAll(refs);
 
         refAP = new FormattedTextField.OfDoubleField(0);
-        refAP.setMaxWidth(70);
+        refAP.setMinWidth(50);
+        refAP.setMaxWidth(120);
         refAP.setEditable(false);
 
         refDV = new FormattedTextField.OfDoubleField(0);
-        refDV.setMaxWidth(70);
+        refDV.setMinWidth(50);
+        refDV.setMaxWidth(120);
         refDV.setEditable(false);
 
         refML = new FormattedTextField.OfDoubleField(0);
-        refML.setMaxWidth(70);
+        refML.setMinWidth(50);
+        refML.setMaxWidth(120);
         refML.setEditable(false);
 
-        var labelAP = new Label("AP");
+        var isApFlap = new CheckBox("AP flipped");
+        isApFlap.setDisable(true);
 
         choice.setOnAction(e -> {
             var name = choice.getValue();
@@ -148,7 +152,7 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
             refML.unsetWarning();
 
             if ("Global".equals(name)) {
-                labelAP.setText("AP");
+                isApFlap.setSelected(false);
                 refAP.setDoubleValue(0);
                 refDV.setDoubleValue(0);
                 refML.setDoubleValue(0);
@@ -163,11 +167,11 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
                     refML.setWarning("");
                 } else {
                     var coor = ref.coordinate();
-                    labelAP.setText(ref.flipAP() ? "AP*" : "AP");
+                    isApFlap.setSelected(ref.flipAP());
 
-                    refAP.setDoubleValue(coor.ap());
-                    refDV.setDoubleValue(coor.dv());
-                    refML.setDoubleValue(coor.ml());
+                    refAP.setDoubleValue(coor.ap() / 1000);
+                    refDV.setDoubleValue(coor.dv() / 1000);
+                    refML.setDoubleValue(coor.ml() / 1000);
                 }
             }
         });
@@ -178,14 +182,25 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
             choice.setValue(state.reference);
         }
 
-        var layout = new HBox(
-            choice,
-            labelAP, refAP,
-            new Label("DV"), refDV,
-            new Label("ML"), refML
+        var controls = new HBox(
+            choice, isApFlap
         );
 
+        controls.setSpacing(5);
+
+        var labels = new HBox(
+            new Label("AP"), refAP,
+            new Label("DV"), refDV,
+            new Label("ML"), refML,
+            new Label("mm"));
+        labels.setSpacing(5);
+        HBox.setHgrow(refAP, Priority.ALWAYS);
+        HBox.setHgrow(refDV, Priority.ALWAYS);
+        HBox.setHgrow(refML, Priority.ALWAYS);
+
+        var layout = new VBox(controls, labels);
         layout.setSpacing(5);
+
         return layout;
     }
 
@@ -194,14 +209,14 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         if (result == ButtonType.APPLY || result == ButtonType.OK) {
 
             var state = new ImplantState();
-            state.ap = ap.getDoubleValue();
-            state.dv = dv.getDoubleValue();
-            state.ml = ml.getDoubleValue();
+            state.ap = ap.getDoubleValue() * 1000;
+            state.dv = dv.getDoubleValue() * 1000;
+            state.ml = ml.getDoubleValue() * 1000;
             state.shank = shank.getValue();
             state.rap = rap.getDoubleValue();
             state.rdv = rdv.getDoubleValue();
             state.rml = rml.getDoubleValue();
-            state.depth = depth.getDoubleValue();
+            state.depth = depth.getDoubleValue() * 1000;
             state.reference = choice.getValue();
 
             implant.set(state);
