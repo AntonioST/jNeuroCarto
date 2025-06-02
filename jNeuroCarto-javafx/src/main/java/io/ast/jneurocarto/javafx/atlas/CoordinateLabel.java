@@ -16,8 +16,8 @@ public record CoordinateLabel(String text, @Nullable LabelPosition position, Str
         atlas("Atlas Coordinate"),
         reference("Atlas Referenced Coordinate"),
         slice("Brain Slice"),
-        chart("Chart"),
-        probe("Probe");
+        probe("Probe"),
+        canvas("Canvas");
 
         public final String kind;
 
@@ -52,10 +52,10 @@ public record CoordinateLabel(String text, @Nullable LabelPosition position, Str
         }
     }
 
-    public record ChartPosition(double x, double y) implements LabelPosition {
+    public record CanvasPosition(double x, double y) implements LabelPosition {
         @Override
         public LabelPositionKind kind() {
-            return LabelPositionKind.chart;
+            return LabelPositionKind.canvas;
         }
     }
 
@@ -107,11 +107,11 @@ public record CoordinateLabel(String text, @Nullable LabelPosition position, Str
                     yield new SlicePosition(projection, new SliceCoordinate(array[0], array[1], array[2]));
                 }
             }
-            case "chart" -> {
+            case "canvas" -> {
                 if (array == null) {
-                    yield new ChartPosition(0, 0);
+                    yield new CanvasPosition(0, 0);
                 } else {
-                    yield new ChartPosition(array[0], array[1]);
+                    yield new CanvasPosition(array[0], array[1]);
                 }
             }
             case "probe" -> {
@@ -164,9 +164,9 @@ public record CoordinateLabel(String text, @Nullable LabelPosition position, Str
             ret.reference = projection.name();
             ret.type = "slice";
         }
-        case ChartPosition(var x, var y) -> {
+        case CanvasPosition(var x, var y) -> {
             ret.position = new double[]{x, y};
-            ret.type = "chart";
+            ret.type = "canvas";
         }
         case ProbePosition(var x, var y) -> {
             ret.position = new double[]{x, y};

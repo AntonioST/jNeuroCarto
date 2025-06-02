@@ -425,7 +425,10 @@ public final class BlueprintScriptHandles {
     }
 
     public static Object[] pairScriptArguments(BlueprintScriptCallable callable, List<PyValue.PyParameter> arguments) {
-        var parameters = callable.parameters();
+        return pairScriptArguments(callable.parameters(), arguments);
+    }
+
+    public static Object[] pairScriptArguments(BlueprintScriptCallable.Parameter[] parameters, List<PyValue.PyParameter> arguments) {
         var ret = new ArrayList<>(parameters.length);
         var defv = new Object();
         for (int i = 0, length = parameters.length; i < length; i++) {
