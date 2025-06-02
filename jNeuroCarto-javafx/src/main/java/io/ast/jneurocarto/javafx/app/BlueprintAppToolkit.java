@@ -12,6 +12,7 @@ import io.ast.jneurocarto.atlas.Structure;
 import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.javafx.atlas.AtlasLabelPlugin;
 import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
@@ -293,26 +294,24 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public @Nullable String atlasGetRegion(int id) {
         return getPlugin(AtlasPlugin.class)
-          .map(p -> p.getRegion(id))
-          .map(Structure::name)
-          .orElse(null);
+            .map(p -> p.getRegion(id))
+            .map(Structure::name)
+            .orElse(null);
     }
 
     public @Nullable String atlasGetRegion(String name) {
         return getPlugin(AtlasPlugin.class)
-          .map(p -> p.getRegion(name))
-          .map(Structure::name)
-          .orElse(null);
+            .map(p -> p.getRegion(name))
+            .map(Structure::name)
+            .orElse(null);
     }
 
     public @Nullable ImageSlice atlasGetSlice() {
-        return getPlugin(AtlasPlugin.class).flatMap(p -> Optional.ofNullable(p.getCurrentSlice())).orElse(null);
+        return getPlugin(AtlasPlugin.class).map(AtlasPlugin::getCurrentSlice).orElse(null);
     }
 
     public void atlasSetSlice(ImageSliceStack.Projection projection) {
-        getPlugin(AtlasPlugin.class).ifPresent(p -> {
-            p.setProjection(projection);
-        });
+        getPlugin(AtlasPlugin.class).ifPresent(p -> p.setProjection(projection));
     }
 
     public void atlasSetSlice(ImageSliceStack.Projection projection, double plane) {
@@ -323,24 +322,44 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public @Nullable CoordinateLabel atlasGetLabel(String text) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasGetLabel
-        throw new UnsupportedOperationException();
+        return getPlugin(AtlasLabelPlugin.class).map(p -> p.getLabel(text)).orElse(null);
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, Coordinate coordinate) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasAddLabel
-        throw new UnsupportedOperationException();
+    public @Nullable CoordinateLabel atlasAddLabel(String text, Coordinate coordinate, String color) {
+        return getPlugin(AtlasLabelPlugin.class).map(p -> {
+            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate), color);
+            p.addLabel(label);
+            return label;
+        }).orElse(null);
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, SliceCoordinate coordinate) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasAddLabel
-        throw new UnsupportedOperationException();
+    public @Nullable CoordinateLabel atlasAddLabel(String text, String reference, Coordinate coordinate, String color) {
+        return getPlugin(AtlasLabelPlugin.class).map(p -> {
+            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasRefPosition(reference, coordinate), color);
+            p.addLabel(label);
+            return label;
+        }).orElse(null);
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y) {
-        var slice = atlasGetSlice();
-        if (slice == null) return null;
-        return atlasAddLabel(text, new SliceCoordinate(slice.plane(), x, y));
+    public @Nullable CoordinateLabel atlasAddLabel(String text, SliceCoordinate coordinate, String color) {
+        var projection = getPlugin(AtlasPlugin.class).map(AtlasPlugin::getProjection).orElse(ImageSliceStack.Projection.coronal);
+        return atlasAddLabel(text, projection, coordinate, color);
+    }
+
+    public @Nullable CoordinateLabel atlasAddLabel(String text, ImageSliceStack.Projection projection, SliceCoordinate coordinate, String color) {
+        return getPlugin(AtlasLabelPlugin.class).map(p -> {
+            var label = new CoordinateLabel(text, new CoordinateLabel.SlicePosition(projection, coordinate), color);
+            p.addLabel(label);
+            return label;
+        }).orElse(null);
+    }
+
+    public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y, String color) {
+        return getPlugin(AtlasLabelPlugin.class).map(p -> {
+            var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(x, y), color);
+            p.addLabel(label);
+            return label;
+        }).orElse(null);
     }
 
     public void atlasFocusLabel(String text) {
@@ -348,9 +367,9 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         if (label != null) atlasFocusLabel(label);
     }
 
-    public void atlasFocusLabel(CoordinateLabel label) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasFocusLabel
-        throw new UnsupportedOperationException();
+    public void atlasFocusLabel(@Nullable CoordinateLabel label) {
+        if (label == null) return;
+        getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.focusOnLabel(label));
     }
 
     public void atlasRemoveLabel(String text) {
@@ -358,14 +377,13 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         if (label != null) atlasRemoveLabel(label);
     }
 
-    public void atlasRemoveLabel(CoordinateLabel label) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasRemoveLabel
-        throw new UnsupportedOperationException();
+    public void atlasRemoveLabel(@Nullable CoordinateLabel label) {
+        if (label == null) return;
+        getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.removeLabel(label));
     }
 
     public void atlasClearLabels() {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasClearLabels
-        throw new UnsupportedOperationException();
+        getPlugin(AtlasLabelPlugin.class).ifPresent(AtlasLabelPlugin::clearLabels);
     }
 
     /*====================*

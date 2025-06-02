@@ -150,7 +150,7 @@ public class InteractionXYChart extends StackPane {
 
     public static Stream<XYChart.Data<Number, Number>> getVisible(XYChart.Series<Number, Number> series) {
         return series.getData().stream()
-          .filter(it -> it.getNode().isVisible());
+            .filter(it -> it.getNode().isVisible());
     }
 
     public static void setVisible(XYChart.Series<Number, Number> series, boolean visible) {
@@ -208,7 +208,7 @@ public class InteractionXYChart extends StackPane {
 
     public static Stream<XYChart.Data<Number, Number>> filterStyleClass(XYChart.Series<Number, Number> series, String css) {
         return series.getData().stream()
-          .filter(it -> hasStyleClass(it, css));
+            .filter(it -> hasStyleClass(it, css));
     }
 
     public static Stream<XYChart.Data<Number, Number>> filterAndRemoveStyleClass(XYChart.Series<Number, Number> series, String css) {
@@ -244,7 +244,7 @@ public class InteractionXYChart extends StackPane {
     public static Stream<XYChart.Data<Number, Number>> filterExtraValue(XYChart.Series<Number, Number> series, Predicate<@Nullable Object> tester) {
         Objects.requireNonNull(tester);
         return series.getData().stream()
-          .filter(it -> tester.test(it.getExtraValue()));
+            .filter(it -> tester.test(it.getExtraValue()));
     }
 
     public static <T> Stream<XYChart.Data<Number, Number>> filterExtraValue(XYChart.Series<Number, Number> series, Class<T> cls, Predicate<T> tester) {
@@ -370,7 +370,7 @@ public class InteractionXYChart extends StackPane {
 
     private void onMouseClicked(MouseEvent e) {
         if (!isMouseMoved) {
-            fireDataTouchEvent(new Point2D(e.getX(), e.getY()), e.getButton());
+            fireDataTouchEvent(new Point2D(e.getX(), e.getY()), e);
         }
     }
 
@@ -563,12 +563,24 @@ public class InteractionXYChart extends StackPane {
          * touch point in chart coordinate.
          */
         public final Point2D point;
-        public final MouseButton button;
 
-        public DataTouchEvent(Point2D point, MouseButton button) {
+        /**
+         * origin mouse event
+         */
+        public final MouseEvent mouse;
+
+        public DataTouchEvent(Point2D point, MouseEvent button) {
             super(DATA_TOUCH);
             this.point = point;
-            this.button = button;
+            this.mouse = button;
+        }
+
+        public MouseButton getButton() {
+            return mouse.getButton();
+        }
+
+        public int getClickCount() {
+            return mouse.getClickCount();
         }
     }
 
@@ -587,13 +599,13 @@ public class InteractionXYChart extends StackPane {
     }
 
     /**
-     * @param point  a touch point in top coordinate system.
-     * @param button
+     * @param point a touch point in top coordinate system.
+     * @param mouse origin mouse event
      */
-    private void fireDataTouchEvent(Point2D point, MouseButton button) {
+    private void fireDataTouchEvent(Point2D point, MouseEvent mouse) {
         if (!isDisabled()) {
             var transform = getChartTransform(getPlottingAreaFromTop());
-            var event = new DataTouchEvent(transform.transform(point), button);
+            var event = new DataTouchEvent(transform.transform(point), mouse);
             fireEvent(event);
         }
     }

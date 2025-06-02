@@ -10,7 +10,7 @@ import io.ast.jneurocarto.atlas.SliceCoordinate;
 import io.ast.jneurocarto.core.Coordinate;
 
 @NullMarked
-public record CoordinateLabel(String text, @Nullable LabelPosition position, String color) {
+public record CoordinateLabel(String text, LabelPosition position, String color) {
 
     public enum LabelPositionKind {
         atlas("Atlas Coordinate"),
@@ -121,7 +121,7 @@ public record CoordinateLabel(String text, @Nullable LabelPosition position, Str
                     yield new ProbePosition(array[0], array[1]);
                 }
             }
-            default -> null;
+            default -> new ProbePosition(0, 0);
         };
 
         return new CoordinateLabel(text, pos, color);
@@ -132,10 +132,6 @@ public record CoordinateLabel(String text, @Nullable LabelPosition position, Str
         ret.text = label.text;
         ret.color = label.color;
         switch (label.position) {
-        case null -> {
-            ret.position = null;
-            ret.type = "";
-        }
         case AtlasPosition(var coor) when coor == null -> {
             ret.position = null;
             ret.type = "atlas";

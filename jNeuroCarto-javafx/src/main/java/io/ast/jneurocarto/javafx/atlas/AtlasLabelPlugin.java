@@ -5,10 +5,12 @@ import java.util.*;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.TextField;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
@@ -25,10 +27,7 @@ import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.*;
-import io.ast.jneurocarto.javafx.chart.DiscreteColormap;
-import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XYText;
+import io.ast.jneurocarto.javafx.chart.*;
 import io.ast.jneurocarto.javafx.script.BlueprintScriptCallable.Parameter;
 import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
@@ -40,13 +39,16 @@ import static io.ast.jneurocarto.javafx.script.BlueprintScriptHandles.parseScrip
 @NullMarked
 public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLabelViewState> {
 
+    private record XYLabel(CoordinateLabel label, XY data) {
+    }
+
     private @Nullable AtlasPlugin atlas;
     private @Nullable AtlasReferenceState references;
     private InteractionXYPainter foreground;
-    private XYText.Builder labelHandle;
+    private XYText graphics;
     private DiscreteColormap colormap;
     private final Map<String, Integer> colorMapping = new HashMap<>();
-    private final List<CoordinateLabel> labels = new ArrayList<>();
+    private final List<XYLabel> labels = new ArrayList<>();
 
     private final Logger log = LoggerFactory.getLogger(AtlasLabelPlugin.class);
 
@@ -82,7 +84,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         }
 
         log.debug("save");
-        return CoordinateLabel.newState(labels);
+        return CoordinateLabel.newState(labels.stream().map(XYLabel::label).toList());
     }
 
     @Override
@@ -93,10 +95,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         }
 
         log.debug("restore");
-        labels.addAll(CoordinateLabel.getAll(state));
-        for (var label : labels) {
-            var color = label.color();
-            colorMapping.computeIfAbsent(color, name -> colormap.addColor(Color.valueOf(name)));
+        for (var label : CoordinateLabel.getAll(state)) {
+            addLabel(label);
         }
     }
 
@@ -166,8 +166,9 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
         var view = service.getProbeView();
         foreground = view.getForegroundPainter();
-        labelHandle = foreground.text();
-        labelHandle.colormap(colormap = new DiscreteColormap());
+        graphics = foreground.text()
+            .colormap(colormap = new DiscreteColormap())
+            .graphics();
         colormap.addColor(0, Color.BLACK);
         colorMapping.put("black", 0);
 
@@ -175,6 +176,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
         view.addEventFilter(InteractionXYChart.DataTouchEvent.DATA_TOUCH, this::onDataTouch);
         view.addEventFilter(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onDataSelect);
+        // TODO label dragging
 
         return ret;
     }
@@ -227,10 +229,36 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         evalAndAddLabel(kind, text);
     }
 
-    public void onDataTouch(InteractionXYChart.DataTouchEvent e) {
+    private void onDataTouch(InteractionXYChart.DataTouchEvent e) {
+        var xy = graphics.touch(e.point);
+        if (xy != null) {
+            var label = getLabel(xy);
+            if (label != null) {
+                onLabelTouch(e, label);
+            }
+        }
     }
 
-    public void onDataSelect(InteractionXYChart.DataSelectEvent e) {
+    private void onDataSelect(InteractionXYChart.DataSelectEvent e) {
+        var selected = graphics.touch(e.bounds).stream()
+            .map(this::getLabel)
+            .filter(Objects::nonNull)
+            .toList();
+
+        if (!selected.isEmpty()) {
+            onLabelSelect(e, selected);
+        }
+    }
+
+
+    private void onLabelTouch(InteractionXYChart.DataTouchEvent e, XYLabel label) {
+        if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+            focusOnLabel(label);
+        }
+    }
+
+    private void onLabelSelect(InteractionXYChart.DataSelectEvent e, List<XYLabel> labels) {
+
     }
 
     private @Nullable String validateLabelInput(String line) {
@@ -309,10 +337,93 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     }
 
     public void evalAndAddLabel(CoordinateLabel.LabelPositionKind kind, String line) {
-        var label = evalLabelInput(kind, line);
+        addLabel(evalLabelInput(kind, line));
+    }
+
+    public void addLabel(CoordinateLabel label) {
         var value = colorMapping.computeIfAbsent(label.color(), name -> colormap.addColor(Color.valueOf(name)));
-        labels.add(label);
-        labelHandle.addText(label.text(), null, value);
+        var xy = new XY(project(label.position()), value, label);
+        graphics.addData(xy);
+        labels.add(new XYLabel(label, xy));
+    }
+
+
+    private Point2D project(@Nullable LabelPosition pos) {
+        return switch (pos) {
+            case AtlasPosition(var coor) when coor == null -> {
+                throw new UnsupportedOperationException();
+            }
+            case AtlasPosition(var coor) -> {
+                throw new UnsupportedOperationException();
+            }
+            case AtlasRefPosition(var reference, var coor) when coor == null -> {
+                throw new UnsupportedOperationException();
+            }
+            case AtlasRefPosition(var reference, var coor) -> {
+                throw new UnsupportedOperationException();
+            }
+            case SlicePosition(var projection, var coor) when coor == null -> {
+                throw new UnsupportedOperationException();
+            }
+            case SlicePosition(var projection, var coor) -> {
+                throw new UnsupportedOperationException();
+            }
+            case CanvasPosition(var x, var y) -> {
+                throw new UnsupportedOperationException();
+            }
+            case ProbePosition(var x, var y) -> new Point2D(x, y);
+        };
+    }
+
+    public @Nullable CoordinateLabel getLabel(String text) {
+        for (var label : labels) {
+            if (label.label.text().equals(text)) {
+                return label.label;
+            }
+        }
+        return null;
+    }
+
+    private @Nullable XYLabel getLabel(CoordinateLabel label) {
+        for (var xyLabel : labels) {
+            if (xyLabel.label == label) {
+                return xyLabel;
+            }
+        }
+        return null;
+    }
+
+    private @Nullable XYLabel getLabel(XY xy) {
+        for (var label : labels) {
+            if (label.data == xy) {
+                return label;
+            }
+        }
+        return null;
+    }
+
+    public void removeLabel(CoordinateLabel label) {
+        var xy = getLabel(label);
+        if (xy != null) removeLabel(xy);
+    }
+
+    private void removeLabel(XYLabel label) {
+        graphics.removeData(d -> label.data == d);
+        labels.remove(label);
+    }
+
+    public void clearLabels() {
+        graphics.clearData();
+        labels.clear();
+    }
+
+    public void focusOnLabel(CoordinateLabel label) {
+        var xy = getLabel(label);
+        if (xy != null) focusOnLabel(xy);
+    }
+
+    private void focusOnLabel(XYLabel label) {
+
     }
 }
 
