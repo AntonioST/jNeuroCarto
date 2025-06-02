@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.blueprint.MinMaxInt;
 
 @NullMarked
-public class XYMatrix extends XYSeries.XYColormapSeries {
+public class XYMatrix extends XYSeries {
 
     protected double x = 0;
     protected double y = 0;
@@ -245,7 +245,7 @@ public class XYMatrix extends XYSeries.XYColormapSeries {
         return new Builder(this);
     }
 
-    public static class Builder extends XYSeries.XYColormapSeriesBuilder<XYMatrix, Builder> {
+    public static class Builder extends XYSeries.Builder<XYMatrix, Builder> {
         public Builder(XYMatrix graphics) {
             super(graphics);
         }
@@ -306,6 +306,11 @@ public class XYMatrix extends XYSeries.XYColormapSeries {
 
         public Builder addData(Point2D p, double v) {
             return addData((int) p.getX(), (int) p.getY(), v);
+        }
+
+        public Builder clearData() {
+            graphics.clearData();
+            return this;
         }
     }
 }

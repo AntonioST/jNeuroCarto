@@ -343,6 +343,7 @@ public class XYText extends XYSeries {
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
         if (color == null) return;
+        var cmap = colormap;
 
         gc.save();
         try {
@@ -364,6 +365,9 @@ public class XYText extends XYSeries {
                         var xy = data.get(i);
                         var o = xy.external;
                         if (o instanceof String text) {
+                            if (cmap != null) {
+                                gc.setFill(cmap.apply(xy.v));
+                            }
                             gc.setEffect(textEffect);
                             gc.fillText(text, x, y);
                             gc.setEffect(null);
@@ -447,8 +451,18 @@ public class XYText extends XYSeries {
             return this;
         }
 
+        public Builder addText(String text, double x, double y, double v) {
+            graphics.addData(new XY(x, y, v, text));
+            return this;
+        }
+
         public Builder addText(String text, Point2D p) {
             graphics.addData(new XY(p, text));
+            return this;
+        }
+
+        public Builder addText(String text, Point2D p, double v) {
+            graphics.addData(new XY(p, v, text));
             return this;
         }
 
@@ -469,6 +483,13 @@ public class XYText extends XYSeries {
             return this;
         }
 
+        public Builder addText(String text, double x, double y, double v, double px, double py) {
+            var data = new XY(x, y, v, text);
+            graphics.addData(data);
+            graphics.addData(new XY(px, py, data));
+            return this;
+        }
+
         /**
          * Create a text with an annotation line.
          *
@@ -481,6 +502,18 @@ public class XYText extends XYSeries {
             var data = new XY(p, text);
             graphics.addData(data);
             graphics.addData(new XY(a, data));
+            return this;
+        }
+
+        public Builder addText(String text, Point2D p, double v, Point2D a) {
+            var data = new XY(p, v, text);
+            graphics.addData(data);
+            graphics.addData(new XY(a, data));
+            return this;
+        }
+
+        public Builder clearTexts() {
+            graphics.clearData();
             return this;
         }
     }

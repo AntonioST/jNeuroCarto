@@ -8,7 +8,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class XYPath extends XYSeries.XYColormapSeries {
+public class XYPath extends XYSeries {
 
     protected double lw = 1;
     protected @Nullable Color line = null;
@@ -44,17 +44,6 @@ public class XYPath extends XYSeries.XYColormapSeries {
         this.line = line;
     }
 
-    /**
-     * set colormap.
-     * <br/>
-     * It is used when {@link #line()} set to {@link Color#TRANSPARENT}.
-     *
-     * @param colormap
-     */
-    public void colormap(Colormap colormap) {
-        this.colormap = colormap;
-    }
-
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
         if (fill == null && line == null && length == 0) return;
@@ -70,7 +59,7 @@ public class XYPath extends XYSeries.XYColormapSeries {
                 paintFill(gc, p, offset, length);
             }
 
-            if (colormap != null && line == Color.TRANSPARENT) {
+            if (colormap != null) {
                 paintLine(gc, p, offset, length, colormap);
             } else if (line != null) {
                 paintLine(gc, p, offset, length);
@@ -112,23 +101,36 @@ public class XYPath extends XYSeries.XYColormapSeries {
     }
 
     private void paintLine(GraphicsContext gc, double[][] p, int offset, int length, Colormap cmap) {
-        assert line == Color.TRANSPARENT;
-
         var x1 = p[0][offset];
         var y1 = p[1][offset];
         var v1 = p[2][offset];
 
-        for (int i = 1; i < length; i++) {
-            var x2 = p[0][i + offset];
-            var y2 = p[1][i + offset];
-            var v2 = p[2][i + offset];
-            if (!Double.isNaN(x1 + y1 + x2 + y2 + v1 + v2)) {
-                gc.setStroke(cmap.gradient(x1, y1, x2, y2, v1, v2));
-                gc.strokeLine(x1, y1, x2, y2);
+        if (cmap instanceof LinearColormap lmap) {
+            for (int i = 1; i < length; i++) {
+                var x2 = p[0][i + offset];
+                var y2 = p[1][i + offset];
+                var v2 = p[2][i + offset];
+                if (!Double.isNaN(x1 + y1 + x2 + y2 + v1 + v2)) {
+                    gc.setStroke(lmap.gradient(x1, y1, x2, y2, v1, v2));
+                    gc.strokeLine(x1, y1, x2, y2);
+                }
+                x1 = x2;
+                y1 = y2;
+                v1 = v2;
             }
-            x1 = x2;
-            y1 = y2;
-            v1 = v2;
+        } else {
+            for (int i = 1; i < length; i++) {
+                var x2 = p[0][i + offset];
+                var y2 = p[1][i + offset];
+                var v2 = p[2][i + offset];
+                if (!Double.isNaN(x1 + y1 + x2 + y2 + v1 + v2)) {
+                    gc.setStroke(cmap.apply(v1));
+                    gc.strokeLine(x1, y1, x2, y2);
+                }
+                x1 = x2;
+                y1 = y2;
+                v1 = v2;
+            }
         }
     }
 
@@ -170,7 +172,7 @@ public class XYPath extends XYSeries.XYColormapSeries {
         return new Builder(this);
     }
 
-    public static class Builder extends XYSeries.XYColormapSeriesBuilder<XYPath, Builder> {
+    public static class Builder extends XYSeries.Builder<XYPath, Builder> {
         public Builder(XYPath graphics) {
             super(graphics);
         }
@@ -250,6 +252,11 @@ public class XYPath extends XYSeries.XYColormapSeries {
             for (int i = 0; i < length; i++) {
                 graphics.addData(x + dx[i], y + dy[i]);
             }
+            return this;
+        }
+
+        public Builder clearPoints() {
+            graphics.clearData();
             return this;
         }
     }

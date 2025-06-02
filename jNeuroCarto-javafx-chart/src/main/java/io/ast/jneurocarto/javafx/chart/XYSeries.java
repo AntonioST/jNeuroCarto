@@ -23,8 +23,10 @@ public abstract class XYSeries implements XYGraphics {
 
     protected double z = 0;
     protected double alpha = 1;
-    protected boolean visible = true;
+    protected @Nullable Colormap colormap = null;
     protected @Nullable Effect effect = null;
+    protected boolean visible = true;
+
     protected List<XY> data = new ArrayList<>();
 
     @Override
@@ -57,12 +59,54 @@ public abstract class XYSeries implements XYGraphics {
         this.effect = effect;
     }
 
-    public static Normalize renormalize(XYColormapSeries[] graphics) {
+    public @Nullable Colormap colormap() {
+        return colormap;
+    }
+
+    /**
+     * set colormap. It may overwrite other color settings in subclasses.
+     *
+     * @param colormap
+     */
+    public void colormap(Colormap colormap) {
+        this.colormap = colormap;
+    }
+
+    public @Nullable Normalize normalize() {
+        var cm = colormap;
+        return (cm instanceof LinearColormap lcm) ? lcm.normalize() : null;
+    }
+
+    public void normalize(Normalize normalize) {
+        var cm = Objects.requireNonNull(colormap, "miss colormap");
+        if (cm instanceof LinearColormap lcm) {
+            colormap = lcm.withNormalize(normalize);
+        } else {
+            throw new RuntimeException("not a LinearColormap : " + cm);
+        }
+    }
+
+    public Normalize renormalize() {
+        if (data.size() < 2) {
+            return Normalize.N01;
+        } else {
+            var result = data.stream()
+                .mapToDouble(XY::v)
+                .boxed()
+                .gather(MinMax.doubleMinmax())
+                .findFirst()
+                .get();
+
+            return new Normalize(result);
+        }
+    }
+
+    public static Normalize renormalize(XYSeries[] graphics) {
         if (graphics.length == 0) throw new RuntimeException();
         if (graphics.length == 1) return graphics[0].renormalize();
 
         var norm = Arrays.stream(graphics)
-          .map(XYColormapSeries::renormalize)
+            .map(XYSeries::renormalize)
           .gather(Normalize.union())
           .findFirst().get();
 
@@ -72,10 +116,10 @@ public abstract class XYSeries implements XYGraphics {
         return norm;
     }
 
-    public static Normalize renormalize(XYColormapSeries[] graphics, Normalize init) {
+    public static Normalize renormalize(XYSeries[] graphics, Normalize init) {
         if (graphics.length == 0) return init;
 
-        var stream = Arrays.stream(graphics).map(XYColormapSeries::renormalize);
+        var stream = Arrays.stream(graphics).map(XYSeries::renormalize);
 
         var norm = Stream.concat(Stream.of(init), stream)
           .gather(Normalize.union())
@@ -283,69 +327,6 @@ public abstract class XYSeries implements XYGraphics {
             return (B) this;
         }
 
-        public B effect(Effect effect) {
-            graphics.effect(effect);
-            return (B) this;
-        }
-
-        public B setVisible(boolean visible) {
-            graphics.setVisible(visible);
-            return (B) this;
-        }
-    }
-
-    /*==========*
-     * subclass *
-     *==========*/
-
-    public static abstract class XYColormapSeries extends XYSeries {
-        protected @Nullable Colormap colormap = null;
-
-        public @Nullable Colormap colormap() {
-            return colormap;
-        }
-
-        /**
-         * set colormap.
-         *
-         * @param colormap
-         */
-        public void colormap(Colormap colormap) {
-            this.colormap = colormap;
-        }
-
-        public @Nullable Normalize normalize() {
-            var cm = colormap;
-            return cm == null ? null : cm.normalize();
-        }
-
-        public void normalize(Normalize normalize) {
-            var cm = Objects.requireNonNull(colormap, "miss colormap");
-            colormap = cm.withNormalize(normalize);
-        }
-
-        public Normalize renormalize() {
-            if (data.size() < 2) {
-                return Normalize.N01;
-            } else {
-                var result = data.stream()
-                  .mapToDouble(XY::v)
-                  .boxed()
-                  .gather(MinMax.doubleMinmax())
-                  .findFirst()
-                  .get();
-
-                return new Normalize(result);
-            }
-        }
-    }
-
-    public static class XYColormapSeriesBuilder<S extends XYColormapSeries, B extends XYColormapSeriesBuilder<S, B>> extends Builder<S, B> {
-
-        public XYColormapSeriesBuilder(S graphics) {
-            super(graphics);
-        }
-
         public B colormap(String colormap) {
             graphics.colormap(Colormap.of(colormap));
             return (B) this;
@@ -365,8 +346,17 @@ public abstract class XYSeries implements XYGraphics {
         }
 
         public B normalize(Normalize normalize) {
-            var colormap = Objects.requireNonNull(graphics.colormap, "miss a colormap");
-            graphics.colormap(colormap.withNormalize(normalize));
+            graphics.normalize(normalize);
+            return (B) this;
+        }
+
+        public B effect(Effect effect) {
+            graphics.effect(effect);
+            return (B) this;
+        }
+
+        public B setVisible(boolean visible) {
+            graphics.setVisible(visible);
             return (B) this;
         }
     }

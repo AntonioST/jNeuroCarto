@@ -8,7 +8,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class XYMarker extends XYSeries.XYColormapSeries {
+public class XYMarker extends XYSeries {
 
     protected double w = 1;
     protected double h = 1;
@@ -62,17 +62,6 @@ public class XYMarker extends XYSeries.XYColormapSeries {
         this.fill = fill;
     }
 
-    /**
-     * set colormap.
-     * <br/>
-     * It is used when {@link #fill()} set to {@link Color#TRANSPARENT}.
-     *
-     * @param colormap
-     */
-    public void colormap(Colormap colormap) {
-        this.colormap = colormap;
-    }
-
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
         if (fill == null && edge == null) return;
@@ -84,7 +73,7 @@ public class XYMarker extends XYSeries.XYColormapSeries {
             gc.setEffect(effect);
             gc.setLineWidth(ew);
 
-            if (colormap != null && fill == Color.TRANSPARENT) {
+            if (colormap != null) {
                 paintMarkers(gc, p, offset, length, colormap);
             } else if (fill != null) {
                 paintMarkers(gc, p, offset, length);
@@ -154,7 +143,7 @@ public class XYMarker extends XYSeries.XYColormapSeries {
         return new Builder(this);
     }
 
-    public static class Builder extends XYSeries.XYColormapSeriesBuilder<XYMarker, Builder> {
+    public static class Builder extends XYSeries.Builder<XYMarker, Builder> {
         public Builder(XYMarker graphics) {
             super(graphics);
         }
@@ -215,6 +204,11 @@ public class XYMarker extends XYSeries.XYColormapSeries {
 
         public Builder addMarker(Point2D p, double v) {
             graphics.addData(p, v);
+            return this;
+        }
+
+        public Builder clearMarkers() {
+            graphics.clearData();
             return this;
         }
     }
