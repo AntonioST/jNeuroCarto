@@ -12,6 +12,7 @@ module io.ast.jneurocarto.core {
     requires static io.github.classgraph;
     requires static org.apache.commons.csv;
     requires static org.jspecify;
+    requires java.desktop;
 
     exports io.ast.jneurocarto.core;
     exports io.ast.jneurocarto.core.blueprint;

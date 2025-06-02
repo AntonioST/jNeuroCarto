@@ -32,12 +32,12 @@ public sealed abstract class Colormap implements DoubleFunction<Color>
         ));
     }
 
-    public static Colormap of(String name) {
+    public static LinearColormap of(String name) {
         var ret = ColormapPlt.COLORMAPS.get(name);
         if (ret != null) return new LinearColormap(name, ret.stops, Normalize.N01);
 
         if (name.endsWith("_r")) {
-            ret = (LinearColormap) of(name.substring(0, name.length() - 2));
+            ret = of(name.substring(0, name.length() - 2));
 
             var stops = Arrays.asList(ret.stops).reversed().stream()
                 .map(stop -> new Stop(1 - stop.getOffset(), stop.getColor()))

@@ -16,6 +16,7 @@ import javafx.scene.layout.VBox;
 import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.javafx.chart.Colormap;
+import io.ast.jneurocarto.javafx.chart.LinearColormap;
 
 @NullMarked
 public class ColormapChooseDialog extends Dialog<ButtonType> {
@@ -30,7 +31,7 @@ public class ColormapChooseDialog extends Dialog<ButtonType> {
     private final FlashStringBuffer buffer = new FlashStringBuffer();
     public final ObjectProperty<Colormap> colormapProperty = new SimpleObjectProperty<>();
 
-    public ColormapChooseDialog(String title, Colormap init) {
+    public ColormapChooseDialog(String title, LinearColormap init) {
         setTitle(title);
         setContentText("Colormap");
 
@@ -109,7 +110,7 @@ public class ColormapChooseDialog extends Dialog<ButtonType> {
         }
     }
 
-    private void updateColormap(Colormap colormap) {
+    private void updateColormap(LinearColormap colormap) {
         var gc = canvas.getGraphicsContext2D();
         var w = canvas.getWidth();
         var h = canvas.getHeight();

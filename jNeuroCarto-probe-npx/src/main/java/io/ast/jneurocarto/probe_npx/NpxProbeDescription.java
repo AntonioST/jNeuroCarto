@@ -11,7 +11,9 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
+import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.ShankCoordinate;
 import io.ast.jneurocarto.core.numpy.Numpy;
 
 @NullMarked
@@ -33,19 +35,19 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     public static final int CATE_QUARTER = 13;
 
     private static final Map<Integer, String> ALL_STATES = Map.of(
-      STATE_UNUSED, "Disable",
-      STATE_USED, "Enable",
-      STATE_DISABLED, "Forbidden"
+        STATE_UNUSED, "Disable",
+        STATE_USED, "Enable",
+        STATE_DISABLED, "Forbidden"
     );
 
     private static final Map<Integer, String> ALL_CATEGORIES = Map.of(
-      CATE_UNSET, "Unset",
-      CATE_SET, "Pre Selected",
-      CATE_FULL, "Full Density",
-      CATE_HALF, "Half Density",
-      CATE_QUARTER, "Quarter Density",
-      CATE_LOW, "Low priority",
-      CATE_EXCLUDED, "Excluded"
+        CATE_UNSET, "Unset",
+        CATE_SET, "Pre Selected",
+        CATE_FULL, "Full Density",
+        CATE_HALF, "Half Density",
+        CATE_QUARTER, "Quarter Density",
+        CATE_LOW, "Low priority",
+        CATE_EXCLUDED, "Excluded"
     );
 
     private static final List<String> STATES = List.of("Enable", "Disable");
@@ -58,11 +60,10 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public String probeTypeDescription(String code) {
-        return switch (code) {
-            case "NP0" -> "Neuropixels probe";
-            case "NP21" -> "Neuropixels probe 2.0";
-            case "NP24" -> "4-Shank Neuropixels probe 2.0";
-            default -> throw new IllegalArgumentException();
+        return switch (channelmapType(code)) {
+            case NpxProbeType.NP1 _ -> "Neuropixels probe";
+            case NpxProbeType.NP21 _ -> "Neuropixels probe 2.0";
+            case NpxProbeType.NP24 _ -> "4-Shank Neuropixels probe 2.0";
         };
     }
 
@@ -111,6 +112,15 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         };
     }
 
+    public NpxProbeType channelmapType(String code) {
+        return NpxProbeType.of(code);
+    }
+
+    public @Nullable NpxProbeType channelmapType(Object chmap) {
+        if (!(chmap instanceof ChannelMap m)) return null;
+        return m.type();
+    }
+
     @Override
     public ChannelMap newChannelmap(String code) {
         return new ChannelMap(NpxProbeType.of(code));
@@ -144,9 +154,9 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         var ret = new ArrayList<ElectrodeDescription>(c.length);
         for (int i = 0, length = c.length; i < length; i++) {
             ret.add(new ElectrodeDescription(
-              sxy[0][i], sxy[1][i], sxy[2][i],
-              new Electrode(scr[0][i], scr[1][i], scr[2][i]),
-              c[i]
+                sxy[0][i], sxy[1][i], sxy[2][i],
+                new Electrode(scr[0][i], scr[1][i], scr[2][i]),
+                c[i]
             ));
         }
         return ret;
@@ -161,8 +171,8 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
                 var sxy = ChannelMapUtil.e2xy(type, electrode);
                 var c = ChannelMapUtil.e2c(type, electrode);
                 ret.add(new ElectrodeDescription(
-                  sxy.s(), sxy.x(), sxy.y(),
-                  electrode, c
+                    sxy.s(), sxy.x(), sxy.y(),
+                    electrode, c
                 ));
             }
         }
@@ -219,10 +229,10 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     @Override
     public ElectrodeDescription copyElectrode(ElectrodeDescription e) {
         return new ElectrodeDescription(
-          e.s(), e.x(), e.y(),
-          new Electrode((Electrode) e.electrode()),
-          e.channel(),
-          e.state(), e.category()
+            e.s(), e.x(), e.y(),
+            new Electrode((Electrode) e.electrode()),
+            e.channel(),
+            e.state(), e.category()
         );
     }
 
@@ -303,5 +313,14 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         }
 
         Numpy.write(file, ret, Numpy.ofD2Int(true));
+    }
+
+    @Override
+    public ShankCoordinate getShankCoordinate(String code) {
+        return switch (channelmapType(code)) {
+            case null -> throw new IllegalArgumentException("unknown channelmap code");
+            case NpxProbeType.NP24 t -> (shank) -> new ProbeCoordinate(shank, shank * t.spacePerShank(), 0, 0);
+            default -> ShankCoordinate.ZERO;
+        };
     }
 }

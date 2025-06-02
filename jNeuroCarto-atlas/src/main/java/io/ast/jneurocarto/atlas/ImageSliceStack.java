@@ -7,7 +7,6 @@ import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
-import io.ast.jneurocarto.core.ImplantCoordinate;
 
 @NullMarked
 public final class ImageSliceStack {
@@ -310,13 +309,6 @@ public final class ImageSliceStack {
 
     public ImageSlice sliceAtPlane(Coordinate coor) {
         return sliceAtPlane(project(coor.toCoorIndex(brainResolution)));
-    }
-
-    public ImageSlice sliceAtPlane(ImplantCoordinate coor) {
-        coor = coor.toOrigin();
-        var rot = coor.rotation();
-        var offset = angle2Offset(rot);
-        return sliceAtPlane(coor).withOffset(offset);
     }
 
     public ImageSlice sliceAtPlane(ImageSlice slice) {

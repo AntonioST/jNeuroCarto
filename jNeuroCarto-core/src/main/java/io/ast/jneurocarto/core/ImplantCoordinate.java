@@ -4,6 +4,8 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
+ * A neural probe implant point, using the coordinate system in the anatomical space.
+ *
  * @param ap        ap insertion position in um
  * @param dv        dv insertion position in um
  * @param ml        ml insertion position in um
@@ -16,15 +18,15 @@ import org.jspecify.annotations.Nullable;
  */
 @NullMarked
 public record ImplantCoordinate(
-  double ap,
-  double dv,
-  double ml,
-  int s,
-  double rap,
-  double rdv,
-  double rml,
-  double depth,
-  @Nullable Coordinate reference
+    double ap,
+    double dv,
+    double ml,
+    int s,
+    double rap,
+    double rdv,
+    double rml,
+    double depth,
+    @Nullable String reference
 ) {
 
     public ImplantCoordinate {
@@ -42,41 +44,89 @@ public record ImplantCoordinate(
         this(ap, 0, ml, 0, 0, 0, 0, depth, null);
     }
 
+    private void checkSourceDomain(ProbeTransform<Coordinate, ?> transform) {
+        if (reference == null) {
+            if (!(transform.sourceDomain() instanceof ProbeTransform.Anatomical)) {
+                throw new RuntimeException("source domain is not a global anatomical space");
+            }
+        } else {
+            if (!(transform.sourceDomain() instanceof ProbeTransform.ReferencedAnatomical(var reference, _, _))) {
+                throw new RuntimeException("source domain is not a referenced anatomical space");
+            } else if (!this.reference.equals(reference)) {
+                throw new RuntimeException("source referenced domain does not match to the " + this.reference + " reference");
+            }
+        }
+    }
+
+    private void checkTargetDomain(ProbeTransform<?, Coordinate> transform) {
+        if (reference == null) {
+            if (!(transform.targetDomain() instanceof ProbeTransform.Anatomical)) {
+                throw new RuntimeException("target domain is not a global anatomical space");
+            }
+        } else {
+            if (!(transform.targetDomain() instanceof ProbeTransform.ReferencedAnatomical(var ref, _, _))) {
+                throw new RuntimeException("target domain is not a referenced anatomical space");
+            } else if (!reference.equals(ref)) {
+                throw new RuntimeException("target referenced domain does not match to the " + reference + " reference");
+            }
+        }
+    }
+
+    public ImplantCoordinate changeReference(ProbeTransform<Coordinate, Coordinate> transform) {
+        checkSourceDomain(transform);
+
+        String target;
+        boolean sfap;
+        boolean tfap;
+
+        switch (transform.sourceDomain()) {
+        case ProbeTransform.Anatomical _ -> sfap = false;
+        case ProbeTransform.ReferencedAnatomical(_, _, var fap) -> sfap = fap;
+        default -> throw new RuntimeException("unknown target domain");
+        }
+
+        switch (transform.targetDomain()) {
+        case ProbeTransform.Anatomical _ -> {
+            target = null;
+            tfap = false;
+        }
+        case ProbeTransform.ReferencedAnatomical(var ref, _, var fap) -> {
+            target = ref;
+            tfap = fap;
+        }
+        default -> throw new RuntimeException("unknown target domain");
+        }
+
+        var p = transform.transform(ap, dv, ml);
+        var rap = this.rap * (tfap ^ sfap ? -1 : 1);
+        var rml = this.rml * (tfap ^ sfap ? -1 : 1);
+        return new ImplantCoordinate(p.getX(), p.getY(), p.getZ(), s, rap, rdv, rml, depth, target);
+    }
+
     public Coordinate insertCoordinate() {
         return new Coordinate(ap, dv, ml);
     }
 
-    public Coordinate tipCoordinate() {
-        return new Coordinate(ap, dv + depth, ml);
-    }
-
-    public Coordinate toCoordinate(double depth) {
-        return new Coordinate(ap, dv + depth, ml);
+    public Coordinate tipCoordinate(ProbeTransform<ProbeCoordinate, Coordinate> transform) {
+        checkTargetDomain(transform);
+        return transform.transform(new ProbeCoordinate(s, 0, 0, 0));
     }
 
 
-    public ImplantCoordinate toOrigin() {
-        if (reference == null) return this;
-
-        return new ImplantCoordinate(
-          reference.ap() - ap,
-          reference.dv() + dv,
-          reference.ml() + ml,
-          s, -rap, -rdv, -rml, depth, null
-        );
+    public Coordinate toCoordinate(ProbeTransform<ProbeCoordinate, Coordinate> transform, double depth) {
+        checkTargetDomain(transform);
+        return transform.transform(new ProbeCoordinate(s, 0, this.depth - depth, 0));
     }
 
-    public ImplantCoordinate toReference(Coordinate reference) {
-        var origin = toOrigin();
-        return new ImplantCoordinate(
-          reference.ap() - origin.ap,
-          origin.dv - reference.dv(),
-          origin.ml - reference.ml(),
-          origin.s,
-          -origin.rap, -origin.rdv, -origin.rml,
-          origin.depth,
-          reference
-        );
+
+    public ImplantCoordinate toShank0(ShankCoordinate coor, ProbeTransform<ProbeCoordinate, Coordinate> transform) {
+        return toShank(0, coor, transform);
+    }
+
+    public ImplantCoordinate toShank(int shank, ShankCoordinate coor, ProbeTransform<ProbeCoordinate, Coordinate> transform) {
+        checkTargetDomain(transform);
+        if (s == shank) return this;
+        return offset(transform.transform(coor.toShank(s, shank)));
     }
 
     /**
@@ -88,15 +138,7 @@ public record ImplantCoordinate(
      * @return new insertion position.
      */
     public ImplantCoordinate offset(double ap, double dv, double ml) {
-        return new ImplantCoordinate(
-          reference == null ? this.ap + ap : this.ap - ap,
-          this.dv + dv,
-          this.ml + ml,
-          s,
-          rap, rdv, rml,
-          depth,
-          reference
-        );
+        return new ImplantCoordinate(this.ap + ap, this.dv + dv, this.ml + ml, s, rap, rdv, rml, depth, reference);
     }
 
     public ImplantCoordinate offset(Coordinate offset) {
@@ -117,7 +159,7 @@ public record ImplantCoordinate(
      * @param rotation Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      * @return
      */
-    public ImplantCoordinate setRotation(Coordinate rotation) {
+    public ImplantCoordinate withRotation(Coordinate rotation) {
         var rap = Math.toDegrees(rotation.ap());
         var rdv = Math.toDegrees(rotation.dv());
         var rml = Math.toDegrees(rotation.ml());
@@ -128,11 +170,14 @@ public record ImplantCoordinate(
      * @param rotation Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      * @return
      */
-    public ImplantCoordinate withRotation(Coordinate rotation) {
+    public ImplantCoordinate rotate(Coordinate rotation) {
         var rap = Math.toDegrees(rotation.ap()) + this.rap;
         var rdv = Math.toDegrees(rotation.dv()) + this.rdv;
         var rml = Math.toDegrees(rotation.ml()) + this.rml;
         return new ImplantCoordinate(ap, dv, ml, s, rap, rdv, rml, depth, reference);
+    }
 
+    public ImplantCoordinate withDepth(double depth) {
+        return new ImplantCoordinate(ap, dv, ml, s, rap, rdv, rml, depth, reference);
     }
 }

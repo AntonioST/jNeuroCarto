@@ -43,6 +43,10 @@ public interface ProbeDescription<T> {
      */
     int CATE_LOW = 3;
 
+    /*===========*
+     * factories *
+     *===========*/
+
     static List<String> listProbeDescriptions() {
         return ProbeProviders.listProbeDescriptions();
     }
@@ -50,6 +54,10 @@ public interface ProbeDescription<T> {
     static @Nullable ProbeDescription<?> getProbeDescription(String family) {
         return ProbeProviders.getProbeDescription(family);
     }
+
+    /*===================*
+     * probe information *
+     *===================*/
 
     /**
      * All supported probe type.
@@ -90,11 +98,19 @@ public interface ProbeDescription<T> {
         return OptionalInt.empty();
     }
 
+    /*====================*
+     * channelmap file IO *
+     *====================*/
+
     List<String> channelMapFileSuffix();
 
     T load(Path file) throws IOException;
 
     void save(Path file, T chmap) throws IOException;
+
+    /*============*
+     * channelmap *
+     *============*/
 
     /**
      * Is the channelmap code supported.
@@ -125,6 +141,22 @@ public interface ProbeDescription<T> {
     T copyChannelmap(T chmap);
 
     String despChannelmap(@Nullable T chmap);
+
+    /// Is it a valid and completed channelmap?
+    ///
+    /// A valid and completed channelmap means:
+    ///
+    /// * This channelmap is able to save into a file
+    /// * no electrode pair will break the probe restriction ({@link #isElectrodeCompatible(Object, ElectrodeDescription, ElectrodeDescription)}}).
+    /// * The saved file can be read by other software or machines without any error or any mis-located electrode.
+    ///
+    /// @param chmap
+    /// @return
+    boolean validateChannelmap(T chmap);
+
+    /*============*
+     * electrodes *
+     *============*/
 
     /**
      * Get all possible electrode set for the given channelmap code.
@@ -163,18 +195,6 @@ public interface ProbeDescription<T> {
      */
     List<ElectrodeDescription> allChannels(T chmap, Collection<ElectrodeDescription> electrodes);
 
-    /// Is it a valid and completed channelmap?
-    ///
-    /// A valid and completed channelmap means:
-    ///
-    /// * This channelmap is able to save into a file
-    /// * no electrode pair will break the probe restriction ({@link #isElectrodeCompatible(Object, ElectrodeDescription, ElectrodeDescription)}}).
-    /// * The saved file can be read by other software or machines without any error or any mis-located electrode.
-    ///
-    /// @param chmap
-    /// @return
-    boolean validateChannelmap(T chmap);
-
     /**
      * Get an electrode from a set with a given identify *e*.
      *
@@ -195,6 +215,10 @@ public interface ProbeDescription<T> {
 
         return Optional.empty();
     }
+
+    /*=====================*
+     * electrode selection *
+     *=====================*/
 
     default @Nullable ElectrodeDescription addElectrode(T chmap, ElectrodeDescription e) {
         return addElectrode(chmap, e, false);
@@ -256,9 +280,13 @@ public interface ProbeDescription<T> {
      */
     default List<ElectrodeDescription> getInvalidElectrodes(T chmap, Collection<ElectrodeDescription> e, Collection<ElectrodeDescription> electrodes) {
         return electrodes.stream()
-          .filter(it -> e.stream().anyMatch(r -> !isElectrodeCompatible(chmap, r, it)))
-          .toList();
+            .filter(it -> e.stream().anyMatch(r -> !isElectrodeCompatible(chmap, r, it)))
+            .toList();
     }
+
+    /*====================*
+     * electrode selector *
+     *====================*/
 
     default List<String> getElectrodeSelectors() {
         return ProbeProviders.getElectrodeSelectors(this);
@@ -268,10 +296,26 @@ public interface ProbeDescription<T> {
         return ProbeProviders.newElectrodeSelector(this, name);
     }
 
+    /*===================*
+     * blueprint file IO *
+     *===================*/
+
     List<ElectrodeDescription> loadBlueprint(Path file) throws IOException;
 
     List<ElectrodeDescription> loadBlueprint(Path file, T chmap) throws IOException;
 
     void saveBlueprint(Path file, List<ElectrodeDescription> electrodes) throws IOException;
 
+    /*================*
+     * probe geometry *
+     *================*/
+
+    default ShankCoordinate getShankCoordinate(String code) {
+        return ShankCoordinate.ZERO;
+    }
+
+    default ShankCoordinate getShankCoordinate(T chmap) {
+        var code = Objects.requireNonNull(channelmapCode(chmap), "unknown probe");
+        return getShankCoordinate(code);
+    }
 }

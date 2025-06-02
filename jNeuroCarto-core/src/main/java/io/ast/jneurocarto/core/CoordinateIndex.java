@@ -1,11 +1,11 @@
 package io.ast.jneurocarto.core;
 
 /**
- * coordinate system in anatomical space.
+ * A point using the coordinate system in the anatomical space.
  *
- * @param ap
- * @param dv
- * @param ml
+ * @param ap ap index
+ * @param dv dv index
+ * @param ml ml index
  */
 public record CoordinateIndex(int ap, int dv, int ml) {
     public Coordinate toCoor(double resolution) {
@@ -13,7 +13,7 @@ public record CoordinateIndex(int ap, int dv, int ml) {
     }
 
     /**
-     * @param resolution int array of {ap, dv, ml}
+     * @param resolution int array[(ap, dv, ml)]
      * @return
      */
     public Coordinate toCoor(double[] resolution) {
