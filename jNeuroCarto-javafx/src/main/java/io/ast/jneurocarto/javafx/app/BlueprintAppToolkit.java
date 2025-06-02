@@ -354,9 +354,17 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         }).orElse(null);
     }
 
+    public @Nullable CoordinateLabel atlasAddLabel(String text, ProbeCoordinate coordinate, String color) {
+        return getPlugin(AtlasLabelPlugin.class).map(p -> {
+            var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(coordinate), color);
+            p.addLabel(label);
+            return label;
+        }).orElse(null);
+    }
+
     public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y, String color) {
         return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(x, y), color);
+            var label = new CoordinateLabel(text, new CoordinateLabel.CanvasPosition(x, y), color);
             p.addLabel(label);
             return label;
         }).orElse(null);

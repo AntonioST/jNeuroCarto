@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
 import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.ProbeCoordinate;
 
 @NullMarked
 public record CoordinateLabel(String text, LabelPosition position, String color) {
@@ -59,7 +60,7 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
         }
     }
 
-    public record ProbePosition(double x, double y) implements LabelPosition {
+    public record ProbePosition(@Nullable ProbeCoordinate coordinate) implements LabelPosition {
         @Override
         public LabelPositionKind kind() {
             return LabelPositionKind.probe;
@@ -107,6 +108,13 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
                     yield new SlicePosition(projection, new SliceCoordinate(array[0], array[1], array[2]));
                 }
             }
+            case "probe" -> {
+                if (array == null) {
+                    yield new ProbePosition(null);
+                } else {
+                    yield new ProbePosition(new ProbeCoordinate((int) array[2], array[0], array[1]));
+                }
+            }
             case "canvas" -> {
                 if (array == null) {
                     yield new CanvasPosition(0, 0);
@@ -114,14 +122,8 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
                     yield new CanvasPosition(array[0], array[1]);
                 }
             }
-            case "probe" -> {
-                if (array == null) {
-                    yield new ProbePosition(0, 0);
-                } else {
-                    yield new ProbePosition(array[0], array[1]);
-                }
-            }
-            default -> new ProbePosition(0, 0);
+
+            default -> new ProbePosition(null);
         };
 
         return new CoordinateLabel(text, pos, color);
@@ -160,13 +162,17 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
             ret.reference = projection.name();
             ret.type = "slice";
         }
+        case ProbePosition(var coor) when coor == null -> {
+            ret.position = null;
+            ret.type = "probe";
+        }
+        case ProbePosition(var coor) -> {
+            ret.position = new double[]{coor.x(), coor.y(), coor.s()};
+            ret.type = "probe";
+        }
         case CanvasPosition(var x, var y) -> {
             ret.position = new double[]{x, y};
             ret.type = "canvas";
-        }
-        case ProbePosition(var x, var y) -> {
-            ret.position = new double[]{x, y};
-            ret.type = "probe";
         }
         }
         return ret;

@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
 import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.*;
@@ -268,7 +269,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
                 case atlas -> "text [,ap, dv, ml, color]";
                 case reference -> "text [,ap, dv, ml, reference, color]";
                 case slice -> "text [,x, y, plane, project, color]";
-                case canvas, probe -> "text [,x, y, color]";
+                case canvas -> "text [,x, y, shank, color]";
+                case probe -> "text [,x, y, color]";
             };
         } else {
             try {
@@ -292,13 +294,14 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     private static final Parameter P_PLANE = new Parameter("plane", double.class, "plane", "0", "slice plane position in um");
     private static final Parameter P_X = new Parameter("x", double.class, "x", "0", "");
     private static final Parameter P_Y = new Parameter("y", double.class, "y", "0", "");
+    private static final Parameter P_S = new Parameter("shank", int.class, "shank", "0", "based on which shank");
     private static final Parameter P_PROJ = new Parameter("project", String.class, "project", "''", "slice projection");
     private static final Parameter P_COLOR = new Parameter("color", String.class, "color", "'black'", "text color");
 
     private static final Parameter[] P_ATLAS = new Parameter[]{P_TEXT, P_AP, P_DV, P_ML, P_COLOR};
     private static final Parameter[] P_ATLAS_REF = new Parameter[]{P_TEXT, P_AP, P_DV, P_ML, P_REF, P_COLOR};
     private static final Parameter[] P_SLICE = new Parameter[]{P_TEXT, P_X.withDescription("slice x position in um"), P_Y.withDescription("slice y position in um"), P_PLANE, P_PROJ, P_COLOR};
-    private static final Parameter[] P_PROBE = new Parameter[]{P_TEXT, P_X.withDescription("x position in probe (um)"), P_Y.withDescription("y position in probe (um)"), P_COLOR};
+    private static final Parameter[] P_PROBE = new Parameter[]{P_TEXT, P_X.withDescription("x position in probe (um)"), P_Y.withDescription("y position in probe (um)"), P_S, P_COLOR};
     private static final Parameter[] P_CANVAS = new Parameter[]{P_TEXT, P_X.withDescription("x position in canvas (px)"), P_Y.withDescription("y position in canvas (px)"), P_COLOR};
 
     private CoordinateLabel evalLabelInput(CoordinateLabel.LabelPositionKind kind, String line) {
@@ -329,10 +332,10 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
                 }
                 yield new CoordinateLabel(text, new SlicePosition(projection, new SliceCoordinate((double) values[3], (double) values[1], (double) values[2])), color);
             }
+            // text ,x, y, shank, color
+            case probe -> new CoordinateLabel(text, new ProbePosition(new ProbeCoordinate((int) values[3], (double) values[1], (double) values[2])), color);
             // text ,x, y, color
             case canvas -> new CoordinateLabel(text, new CanvasPosition((double) values[1], (double) values[2]), color);
-            // text ,x, y, color
-            case probe -> new CoordinateLabel(text, new ProbePosition((double) values[1], (double) values[2]), color);
         };
     }
 
@@ -349,30 +352,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
 
     private Point2D project(@Nullable LabelPosition pos) {
-        return switch (pos) {
-            case AtlasPosition(var coor) when coor == null -> {
-                throw new UnsupportedOperationException();
-            }
-            case AtlasPosition(var coor) -> {
-                throw new UnsupportedOperationException();
-            }
-            case AtlasRefPosition(var reference, var coor) when coor == null -> {
-                throw new UnsupportedOperationException();
-            }
-            case AtlasRefPosition(var reference, var coor) -> {
-                throw new UnsupportedOperationException();
-            }
-            case SlicePosition(var projection, var coor) when coor == null -> {
-                throw new UnsupportedOperationException();
-            }
-            case SlicePosition(var projection, var coor) -> {
-                throw new UnsupportedOperationException();
-            }
-            case CanvasPosition(var x, var y) -> {
-                throw new UnsupportedOperationException();
-            }
-            case ProbePosition(var x, var y) -> new Point2D(x, y);
-        };
+        //XXX Unsupported Operation AtlasLabelPlugin.project
+        throw new UnsupportedOperationException();
     }
 
     public @Nullable CoordinateLabel getLabel(String text) {
