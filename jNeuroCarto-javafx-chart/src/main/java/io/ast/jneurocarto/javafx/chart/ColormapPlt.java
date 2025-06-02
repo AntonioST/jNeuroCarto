@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 public final class ColormapPlt {
 
     private static final Logger log = LoggerFactory.getLogger(ColormapPlt.class);
-    static final Map<String, Colormap> COLORMAPS = new HashMap<>();
+    static final Map<String, LinearColormap> COLORMAPS = new HashMap<>();
 
     static {
         loadMatplotlibColorMapsPyFile();
@@ -72,7 +72,7 @@ public final class ColormapPlt {
             } else if (isInBracket && line.startsWith("]")) {
                 isInBracket = false;
 
-                var colormap = new Colormap(currentStop);
+                var colormap = new LinearColormap(currentStop);
                 for (var name : currentName) {
                     COLORMAPS.put(name, colormap);
                 }
