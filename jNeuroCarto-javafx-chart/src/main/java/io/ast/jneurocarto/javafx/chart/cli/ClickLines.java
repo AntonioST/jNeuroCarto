@@ -6,8 +6,8 @@ import javafx.scene.paint.Color;
 
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.Normalize;
-import io.ast.jneurocarto.javafx.chart.XYPath;
+import io.ast.jneurocarto.javafx.chart.colormap.Normalize;
+import io.ast.jneurocarto.javafx.chart.data.XYPath;
 import picocli.CommandLine;
 
 @CommandLine.Command(

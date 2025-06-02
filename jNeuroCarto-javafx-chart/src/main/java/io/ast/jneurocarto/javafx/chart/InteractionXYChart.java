@@ -31,6 +31,9 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.javafx.chart.event.ChartChangeEvent;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
+import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.chart.utils.StylesheetsUtils;
 
 @NullMarked

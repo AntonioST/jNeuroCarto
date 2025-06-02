@@ -26,7 +26,7 @@ import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XYPath;
+import io.ast.jneurocarto.javafx.chart.data.XYPath;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 

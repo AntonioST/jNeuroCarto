@@ -2,7 +2,7 @@ package io.ast.jneurocarto.javafx.chart.snippets;
 
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XYBar;
+import io.ast.jneurocarto.javafx.chart.data.XYBar;
 
 class BarExample {
 

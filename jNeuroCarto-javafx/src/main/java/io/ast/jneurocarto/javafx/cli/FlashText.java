@@ -9,7 +9,12 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
-import io.ast.jneurocarto.javafx.chart.*;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.data.XY;
+import io.ast.jneurocarto.javafx.chart.data.XYText;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseDraggingHandler;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.utils.FlashStringBuffer;
 import picocli.CommandLine;
 

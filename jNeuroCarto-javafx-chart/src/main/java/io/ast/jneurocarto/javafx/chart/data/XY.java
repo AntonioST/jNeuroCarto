@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.data;
 
 import javafx.geometry.Point2D;
 

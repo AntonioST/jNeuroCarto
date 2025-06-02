@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.event;
 
 import javafx.event.EventType;
 import javafx.geometry.Bounds;

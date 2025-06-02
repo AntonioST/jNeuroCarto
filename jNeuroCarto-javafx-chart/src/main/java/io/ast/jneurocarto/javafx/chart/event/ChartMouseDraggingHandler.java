@@ -1,6 +1,8 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.event;
 
 import javafx.event.EventHandler;
+
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 
 public interface ChartMouseDraggingHandler {
     boolean onChartMouseDragDetect(ChartMouseEvent e);

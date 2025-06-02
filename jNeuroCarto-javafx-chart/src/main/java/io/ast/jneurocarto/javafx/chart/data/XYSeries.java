@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.data;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -14,12 +14,17 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.blueprint.MinMax;
+import io.ast.jneurocarto.javafx.chart.colormap.Colormap;
+import io.ast.jneurocarto.javafx.chart.colormap.LinearColormap;
+import io.ast.jneurocarto.javafx.chart.colormap.Normalize;
 
 /**
  * a {@link XYGraphics} that take {@link XY} as its internal data points.
  */
 @NullMarked
 public abstract class XYSeries implements XYGraphics {
+
+    static final Affine IDENTIFY = new Affine();
 
     protected double z = 0;
     protected double alpha = 1;

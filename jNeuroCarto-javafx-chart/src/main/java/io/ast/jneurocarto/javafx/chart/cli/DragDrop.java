@@ -5,7 +5,13 @@ import java.util.List;
 
 import javafx.scene.paint.Color;
 
-import io.ast.jneurocarto.javafx.chart.*;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.data.XY;
+import io.ast.jneurocarto.javafx.chart.data.XYMarker;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseDraggingHandler;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
+import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import picocli.CommandLine;
 
 @CommandLine.Command(

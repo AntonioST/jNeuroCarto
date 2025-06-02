@@ -12,8 +12,8 @@ import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.NumpyHeader;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.Normalize;
-import io.ast.jneurocarto.javafx.chart.XYMatrix;
+import io.ast.jneurocarto.javafx.chart.colormap.Normalize;
+import io.ast.jneurocarto.javafx.chart.data.XYMatrix;
 import picocli.CommandLine;
 
 @CommandLine.Command(

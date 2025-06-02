@@ -15,6 +15,8 @@ import javafx.scene.transform.Affine;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.javafx.chart.data.*;
+
 @NullMarked
 public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 

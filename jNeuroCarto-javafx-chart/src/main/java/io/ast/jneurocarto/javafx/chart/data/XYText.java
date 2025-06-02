@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.data;
 
 
 import java.util.IdentityHashMap;
@@ -347,7 +347,7 @@ public class XYText extends XYSeries {
 
         gc.save();
         try {
-            gc.setTransform(InteractionXYPainter.IDENTIFY);
+            gc.setTransform(IDENTIFY);
             gc.setGlobalAlpha(alpha);
             gc.setFill(color);
             gc.setStroke(line);

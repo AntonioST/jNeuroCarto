@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.data;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -6,6 +6,8 @@ import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.javafx.chart.colormap.Colormap;
 
 @NullMarked
 public class XYMarker extends XYSeries {
@@ -68,7 +70,7 @@ public class XYMarker extends XYSeries {
 
         gc.save();
         try {
-            gc.setTransform(InteractionXYPainter.IDENTIFY);
+            gc.setTransform(IDENTIFY);
             gc.setGlobalAlpha(alpha);
             gc.setEffect(effect);
             gc.setLineWidth(ew);

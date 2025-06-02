@@ -1,9 +1,9 @@
 package io.ast.jneurocarto.javafx.chart.cli;
 
-import io.ast.jneurocarto.javafx.chart.Colormap;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.chart.Normalize;
-import io.ast.jneurocarto.javafx.chart.XYBar;
+import io.ast.jneurocarto.javafx.chart.colormap.Colormap;
+import io.ast.jneurocarto.javafx.chart.colormap.Normalize;
+import io.ast.jneurocarto.javafx.chart.data.XYBar;
 import picocli.CommandLine;
 
 @CommandLine.Command(

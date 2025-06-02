@@ -1,9 +1,11 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.data;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
+
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 
 @NullMarked
 public interface XYGraphics {

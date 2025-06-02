@@ -15,8 +15,8 @@ import javafx.scene.layout.VBox;
 
 import org.jspecify.annotations.NullMarked;
 
-import io.ast.jneurocarto.javafx.chart.Colormap;
-import io.ast.jneurocarto.javafx.chart.LinearColormap;
+import io.ast.jneurocarto.javafx.chart.colormap.Colormap;
+import io.ast.jneurocarto.javafx.chart.colormap.LinearColormap;
 
 @NullMarked
 public class ColormapChooseDialog extends Dialog<ButtonType> {

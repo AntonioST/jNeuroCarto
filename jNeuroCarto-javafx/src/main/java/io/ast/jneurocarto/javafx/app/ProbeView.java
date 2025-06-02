@@ -18,7 +18,13 @@ import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
-import io.ast.jneurocarto.javafx.chart.*;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.data.XY;
+import io.ast.jneurocarto.javafx.chart.data.XYMarker;
+import io.ast.jneurocarto.javafx.chart.data.XYSeries;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
+import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 @NullMarked

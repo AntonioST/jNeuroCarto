@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart;
+package io.ast.jneurocarto.javafx.chart.colormap;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -14,6 +14,9 @@ module io.ast.jneurocarto.javafx.chart {
 
     exports io.ast.jneurocarto.javafx.chart;
     exports io.ast.jneurocarto.javafx.chart.cli;
+    exports io.ast.jneurocarto.javafx.chart.colormap;
+    exports io.ast.jneurocarto.javafx.chart.data;
+    exports io.ast.jneurocarto.javafx.chart.event;
     exports io.ast.jneurocarto.javafx.chart.utils;
 
     opens io.ast.jneurocarto.javafx.chart.cli to info.picocli;
