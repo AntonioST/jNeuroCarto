@@ -26,7 +26,6 @@ import io.ast.jneurocarto.atlas.SliceCoordinate;
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
-import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.*;
 import io.ast.jneurocarto.javafx.chart.*;
@@ -44,8 +43,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     private record XYLabel(CoordinateLabel label, XY data) {
     }
 
-    private @Nullable AtlasPlugin atlas;
-    private @Nullable AtlasReferenceState references;
+    private final AtlasPlugin atlas;
+    private @Nullable AtlasReferenceService references;
     private InteractionXYPainter foreground;
     private XYText graphics;
     private DiscreteColormap colormap;
@@ -54,6 +53,12 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
     private final Logger log = LoggerFactory.getLogger(AtlasLabelPlugin.class);
 
+    public AtlasLabelPlugin(AtlasPlugin atlas) {
+        this.atlas = atlas;
+        Thread.ofVirtual().name("loadAtlasReferencesData").start(() -> {
+            references = AtlasReferenceService.loadReferences(atlas);
+        });
+    }
 
     @Override
     public String name() {
@@ -106,41 +111,10 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
      * Reference initialization *
      *==========================*/
 
-    private void loadReferences() {
-        log.debug("loadReferences");
-        if (atlas == null) {
-            log.warn("AtlasPlugin is not loaded");
-            return;
-        }
-
-        var state = new AtlasReferenceState();
-        AtlasReferenceState s;
-        if ((s = PluginStateService.loadGlobalState(AtlasReferenceState.class)) != null) {
-            state.references.putAll(s.references);
-        }
-        if ((s = PluginStateService.loadLocalState(AtlasReferenceState.class)) != null) {
-            state.references.putAll(s.references);
-        }
-
-        references = state;
-
-        var data = references.get(atlas.atlasName());
-        if (data == null) {
-            log.warn("missing atlas {} references", atlas.atlasName());
-        }
-    }
-
     private void saveReferences() {
         if (references != null) {
-            PluginStateService.saveLocalState(references);
+            references.saveReferences();
         }
-    }
-
-    public void addReference(AtlasReference reference) {
-        if (references == null) {
-            references = new AtlasReferenceState();
-        }
-        references.add(reference);
     }
 
     public void addReference(String name, Coordinate coordinate) {
@@ -148,9 +122,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     }
 
     public void addReference(String name, Coordinate coordinate, boolean flipAP) {
-        var atlas = this.atlas;
-        if (atlas == null) throw new RuntimeException("AtlasPlugin is not loaded");
-        addReference(new AtlasReference(atlas.atlasName(), name, coordinate, flipAP));
+        var references = Objects.requireNonNull(this.references, "AtlasPlugin is not loaded");
+        references.addReference(name, coordinate, flipAP);
     }
 
     /*===========*
@@ -159,15 +132,6 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
     private ChoiceBox<CoordinateLabel.LabelPositionKind> labelKind;
     private TextField labelText;
-
-    @Override
-    public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup");
-        atlas = service.getPlugin(AtlasPlugin.class);
-        loadReferences();
-
-        return super.setup(service);
-    }
 
     @Override
     protected HBox setupHeading(PluginSetupService service) {
@@ -186,8 +150,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         labelKind.getItems().addAll(Arrays.asList(CoordinateLabel.LabelPositionKind.values()));
         labelKind.setConverter(new StringConverter<>() {
             @Override
-            public String toString(CoordinateLabel.LabelPositionKind object) {
-                return /*object == null ? "" :*/ object.kind;
+            public String toString(CoordinateLabel.@Nullable LabelPositionKind object) {
+                return object == null ? "" : object.kind;
             }
 
             @Override

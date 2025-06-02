@@ -197,8 +197,8 @@ public final class PluginSetupService {
         }
 
         return Arrays.stream(cls.getAnnotationsByType(Provide.class))
-          .map(it -> new PluginInfo(provider, it.value(), it.name()))
-          .toList();
+            .map(it -> new PluginInfo(provider, it.value(), it.name()))
+            .toList();
     }
 
     List<PluginInfo> filterPluginByNameRule(List<PluginInfo> provides, String rule) {
@@ -216,8 +216,8 @@ public final class PluginSetupService {
             var i = rule.indexOf("*!");
             var name = rule.substring(0, i);
             var exclude = Arrays.stream(rule.substring(i + 2).split(","))
-              .map(it -> name + it)
-              .collect(Collectors.toSet());
+                .map(it -> name + it)
+                .collect(Collectors.toSet());
 
             tester = it -> it.startsWith(name) && !exclude.contains(it);
         } else {
@@ -275,6 +275,10 @@ public final class PluginSetupService {
                 } else {
                     os[i] = null;
                 }
+            } else if (Plugin.class.isAssignableFrom(t)) {
+                var plugin = getPlugin((Class<? extends Plugin>) t);
+                if (plugin == null) throw new RuntimeException("plugin " + t.getSimpleName() + " is not loaded");
+                os[i] = plugin;
             } else {
                 throw new RuntimeException("unsupported parameter inject for " + t.getName());
             }
@@ -295,13 +299,13 @@ public final class PluginSetupService {
         var app = checkApplication();
 
         var packages = app.providers.stream()
-          .map(it -> it.getClass().getPackageName())
-          .toArray(String[]::new);
+            .map(it -> it.getClass().getPackageName())
+            .toArray(String[]::new);
 
         var scan = new ClassGraph()
 //          .verbose()
-          .enableAnnotationInfo()
-          .acceptPackages(packages);
+            .enableAnnotationInfo()
+            .acceptPackages(packages);
 
         var ret = new ArrayList<Class<?>>();
         try (var result = scan.scan()) {
@@ -323,13 +327,13 @@ public final class PluginSetupService {
         var app = checkApplication();
 
         var packages = app.providers.stream()
-          .map(it -> it.getClass().getPackageName())
-          .toArray(String[]::new);
+            .map(it -> it.getClass().getPackageName())
+            .toArray(String[]::new);
 
         var scan = new ClassGraph()
 //          .verbose()
-          .enableClassInfo()
-          .acceptPackages(packages);
+            .enableClassInfo()
+            .acceptPackages(packages);
 
         var ret = new ArrayList<Class<T>>();
         try (var result = scan.scan()) {

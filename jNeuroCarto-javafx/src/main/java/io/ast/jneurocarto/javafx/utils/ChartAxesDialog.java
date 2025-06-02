@@ -23,9 +23,6 @@ public class ChartAxesDialog extends Dialog<ButtonType> {
     private final FormattedTextField.OfDoubleField yu;
 
     private final Logger log = LoggerFactory.getLogger(ChartAxesDialog.class);
-    private final ButtonType apply;
-    private final ButtonType done;
-    private final ButtonType cancel;
 
     public ChartAxesDialog(ProbeView<?> view) {
         this.view = view;
@@ -67,10 +64,7 @@ public class ChartAxesDialog extends Dialog<ButtonType> {
 
         getDialogPane().setContent(root);
 
-        apply = new ButtonType("Apply", ButtonBar.ButtonData.APPLY);
-        done = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
-        cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-        getDialogPane().getButtonTypes().addAll(cancel, apply, done);
+        getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.APPLY, ButtonType.OK);
 
         setOnCloseRequest(this::onClose);
     }
@@ -102,11 +96,11 @@ public class ChartAxesDialog extends Dialog<ButtonType> {
 
     private void onClose(Event e) {
         var result = getResult();
-        if (result == done || result == apply) {
+        if (result == ButtonType.OK || result == ButtonType.APPLY) {
             var bounds = getBoundaries();
             log.debug("set chart view axes to {}", bounds);
             view.setAxesBoundaries(bounds);
-            if (result == apply) {
+            if (result == ButtonType.APPLY) {
                 e.consume();
             }
         } else {

@@ -59,6 +59,17 @@ public abstract class FormattedTextField<T> extends TextField {
         }
     }
 
+    public void setWarning(String text) {
+        tooltip.setText(text);
+        Tooltip.install(this, tooltip);
+        setStyle("-fx-control-inner-background: pink;");
+    }
+
+    public void unsetWarning() {
+        Tooltip.uninstall(this, tooltip);
+        setStyle("-fx-control-inner-background: white;");
+    }
+
     public static void install(TextField field, Function<String, @Nullable String> validator) {
         var tooltip = new Tooltip();
         field.textProperty().addListener((_, _, t) -> {

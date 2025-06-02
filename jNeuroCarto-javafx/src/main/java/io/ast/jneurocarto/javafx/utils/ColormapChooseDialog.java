@@ -26,8 +26,6 @@ public class ColormapChooseDialog extends Dialog<ButtonType> {
     private final FormattedTextField.OfDoubleField upper;
     private final CheckBox reverse;
     private final ChoiceBox<String> choice;
-    private final ButtonType done;
-    private final ButtonType cancel;
     private final FlashStringBuffer buffer = new FlashStringBuffer();
     public final ObjectProperty<LinearColormap> colormapProperty = new SimpleObjectProperty<>();
 
@@ -71,9 +69,7 @@ public class ColormapChooseDialog extends Dialog<ButtonType> {
 
         getDialogPane().setContent(root);
 
-        done = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
-        cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-        getDialogPane().getButtonTypes().addAll(cancel, done);
+        getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
 
         var name = init.name();
         if (name == null) {
