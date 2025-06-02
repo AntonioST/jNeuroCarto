@@ -247,6 +247,9 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         state.rml = rml.getDoubleValue();
         state.depth = depth.getDoubleValue() * 1000;
         state.reference = choice.getValue();
+        if ("Global".equals(state.reference)) {
+            state.reference = null;
+        }
 
         implant.set(state);
     }

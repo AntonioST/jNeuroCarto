@@ -10,7 +10,6 @@ import java.util.stream.Stream;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.event.EventType;
@@ -106,6 +105,9 @@ public class InteractionXYChart extends StackPane {
 
         top.setOnMousePressed(this::onMousePressed);
         top.setOnMouseReleased(this::onMouseReleased);
+        top.setOnMouseMoved(this::onMouseMoved);
+        top.setOnMouseEntered(this::onMouseEntered);
+        top.setOnMouseExited(this::onMouseExited);
         top.setOnMouseDragged(this::onMouseDragged);
         top.setOnMouseClicked(this::onMouseClicked);
         top.setOnScroll(this::onMouseWheeled);
@@ -289,7 +291,6 @@ public class InteractionXYChart extends StackPane {
     private @Nullable AxesBounds previous;
     private @Nullable Bounds previousArea;
     private boolean isMouseMoved;
-    private @Nullable List<EventHandler<DataDragEvent>> dragListener;
 
     private void onMousePressed(MouseEvent e) {
         mousePress = e;
@@ -299,35 +300,40 @@ public class InteractionXYChart extends StackPane {
             previous = new AxesBounds(xAxis, yAxis);
             previousArea = getPlottingArea();
         }
+
+        fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_PRESSED, e);
+    }
+
+    private void onMouseMoved(MouseEvent e) {
+        fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_MOVED, e);
+    }
+
+    private void onMouseEntered(MouseEvent e) {
+        fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_ENTERED, e);
+    }
+
+    private void onMouseExited(MouseEvent e) {
+        fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_EXITED, e);
     }
 
     private void onMouseDragged(MouseEvent e) {
-        var previous = mouseMoving;
         mouseMoving = e;
 
-        var start = mousePress;
-        if (start != null) {
-            if (previous == null) previous = start;
+        fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_DRAGGED, e);
 
+        var start = mousePress;
+        if (start != null && !e.isConsumed()) {
             switch (start.getButton()) {
             case MouseButton.PRIMARY -> {
-                if (dragListener == null) {
-                    dragListener = new ArrayList<>();
-                    fireDataDragEvent(DataDragEvent.DRAG_START, start, previous, e, dragListener);
-                    e.consume();
-                } else if (dragListener.isEmpty()) {
-                    onMouseSelecting(start, e);
-                    e.consume();
-                } else {
-                    fireDataDragEvent(DataDragEvent.DRAGGING, start, previous, e, dragListener);
-                    e.consume();
-                }
+                onMouseSelecting(start, e);
+                e.consume();
             }
             case MouseButton.SECONDARY -> {
                 if (start.isControlDown()) {
                     onMouseSelecting(start, e);
                 } else {
                     onMouseDragging(start, e);
+
                 }
                 e.consume();
             }
@@ -347,30 +353,25 @@ public class InteractionXYChart extends StackPane {
 
         if (start != null) {
             if (start.getButton() == MouseButton.PRIMARY && moving != null) {
-                if (dragListener != null && !dragListener.isEmpty()) {
-                    fireDataDragEvent(DataDragEvent.DRAG_DONE, start, moving, e, dragListener);
-                    e.consume();
-                } else {
-                    onMouseSelected(start, e);
-                    e.consume();
-                }
+                onMouseSelected(start, e);
+                e.consume();
             } else if (start.getButton() == MouseButton.SECONDARY && start.isControlDown()) {
                 onMouseSelectZooming(start, e);
                 e.consume();
             }
         }
 
-        dragListener = null;
-
         var gc = top.getGraphicsContext2D();
         var w = top.getWidth();
         var h = top.getHeight();
         gc.clearRect(0, 0, w, h);
+
+        fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_RELEASED, e);
     }
 
     private void onMouseClicked(MouseEvent e) {
         if (!isMouseMoved) {
-            fireDataTouchEvent(new Point2D(e.getX(), e.getY()), e);
+            fireChartMouseEvent(ChartMouseEvent.CHART_MOUSE_CLICKED, e);
         }
     }
 
@@ -556,11 +557,19 @@ public class InteractionXYChart extends StackPane {
      * touch event *
      *=============*/
 
-    public static class DataTouchEvent extends InputEvent {
-        public static final EventType<DataTouchEvent> DATA_TOUCH = new EventType<>(InputEvent.ANY, "DATA_TOUCH");
+    public static class ChartMouseEvent extends InputEvent {
+        public static final EventType<ChartMouseEvent> ANY = new EventType<>(InputEvent.ANY, "CHART_MOUSE_ANY");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_CLICKED = new EventType<>(ANY, "CHART_MOUSE_CLICKED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_PRESSED = new EventType<>(ANY, "CHART_MOUSE_PRESSED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_RELEASED = new EventType<>(ANY, "CHART_MOUSE_RELEASED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_MOVED = new EventType<>(ANY, "CHART_MOUSE_MOVED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_DRAGGED = new EventType<>(ANY, "CHART_MOUSE_DRAGGED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_ENTERED = new EventType<>(ANY, "CHART_MOUSE_ENTERED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_EXITED = new EventType<>(ANY, "CHART_MOUSE_EXITED");
+        public static final EventType<ChartMouseEvent> CHART_MOUSE_OTHER = new EventType<>(ANY, "CHART_MOUSE_OTHER");
 
         /**
-         * touch point in chart coordinate.
+         * mouse point in chart coordinate.
          */
         public final Point2D point;
 
@@ -569,10 +578,26 @@ public class InteractionXYChart extends StackPane {
          */
         public final MouseEvent mouse;
 
-        public DataTouchEvent(Point2D point, MouseEvent button) {
-            super(DATA_TOUCH);
+        public ChartMouseEvent(EventType<ChartMouseEvent> type, Point2D point, MouseEvent e) {
+            super(type);
             this.point = point;
-            this.mouse = button;
+            this.mouse = e;
+        }
+
+        public double getChartX() {
+            return point.getX();
+        }
+
+        public double getChartY() {
+            return point.getY();
+        }
+
+        public double getMouseX() {
+            return mouse.getX();
+        }
+
+        public double getMouseY() {
+            return mouse.getY();
         }
 
         public MouseButton getButton() {
@@ -582,30 +607,22 @@ public class InteractionXYChart extends StackPane {
         public int getClickCount() {
             return mouse.getClickCount();
         }
-    }
 
-    private final ObjectProperty<@Nullable EventHandler<DataTouchEvent>> onDataTouchEvent = new SimpleObjectProperty<>(null);
-
-    public final ObjectProperty<@Nullable EventHandler<DataTouchEvent>> onDataTouchEventProperty() {
-        return onDataTouchEvent;
-    }
-
-    public final void setOnDataTouch(EventHandler<DataTouchEvent> handler) {
-        onDataTouchEvent.set(handler);
-    }
-
-    public final @Nullable EventHandler<DataTouchEvent> getOnDataTouch() {
-        return onDataTouchEvent.get();
+        @Override
+        public void consume() {
+            super.consume();
+            mouse.consume();
+        }
     }
 
     /**
-     * @param point a touch point in top coordinate system.
+     * @param type  chart-mouse event
      * @param mouse origin mouse event
      */
-    private void fireDataTouchEvent(Point2D point, MouseEvent mouse) {
+    private void fireChartMouseEvent(EventType<ChartMouseEvent> type, MouseEvent mouse) {
         if (!isDisabled()) {
             var transform = getChartTransform(getPlottingAreaFromTop());
-            var event = new DataTouchEvent(transform.transform(point), mouse);
+            var event = new ChartMouseEvent(type, transform.transform(mouse.getX(), mouse.getY()), mouse);
             fireEvent(event);
         }
     }
@@ -639,96 +656,6 @@ public class InteractionXYChart extends StackPane {
         }
     }
 
-    /*============*
-     * drag event *
-     *============*/
-
-    /// Data dragging event.
-    ///
-    /// Three phases:
-    ///
-    /// 1.  [DRAG_START][DataDragEvent#DRAG_START] fired when potential drag started. It is the only event type
-    ///     that use [Node.fireEvent][Node#fireEvent(Event)]. The receiver need to setup the listener to listen
-    ///     the following drag events.
-    /// 2.  [DRAGGING][DataDragEvent#DRAGGING] fired when there are registered listener during
-    ///     [DRAG_START][DataDragEvent#DRAG_START]. This event continuous fired when mouse keep moving.
-    /// 3.  [DRAG_DONE][DataDragEvent#DRAG_DONE] fired when there are registered listener during
-    ///     [DRAG_START][DataDragEvent#DRAG_START]. This event fired when mouse release the button.
-    ///
-    /// Examples:
-    ///
-    /// {@snippet file = "InteractionXYChartSnippets.java" region = "drag event setup"}
-    public static class DataDragEvent extends Event {
-        public static final EventType<DataDragEvent> ANY = new EventType<>(Event.ANY, "DATA_DRAG");
-        public static final EventType<DataDragEvent> DRAG_START = new EventType<>(ANY, "DATA_DRAG_START");
-        public static final EventType<DataDragEvent> DRAGGING = new EventType<>(ANY, "DATA_DRAGGING");
-        public static final EventType<DataDragEvent> DRAG_DONE = new EventType<>(ANY, "DATA_DRAG_DONE");
-
-        /**
-         * the start dragging point in chart coordinate.
-         */
-        public final Point2D start;
-
-        /**
-         * the dragging point for the previous moment in chart coordinate.
-         */
-        public final Point2D previous;
-
-        /**
-         * the current dragging point in chart coordinate.
-         */
-        public final Point2D current;
-        private final List<EventHandler<DataDragEvent>> listener;
-
-        DataDragEvent(EventType<DataDragEvent> type,
-                      Point2D start,
-                      Point2D previous,
-                      Point2D current,
-                      List<EventHandler<DataDragEvent>> listener) {
-            super(type);
-            this.start = start;
-            this.previous = previous;
-            this.current = current;
-            this.listener = listener;
-        }
-
-        public Point2D delta() {
-            return new Point2D(current.getX() - previous.getX(), current.getY() - previous.getY());
-        }
-
-        public Point2D deltaFromStart() {
-            return new Point2D(current.getX() - start.getX(), current.getY() - start.getY());
-        }
-
-        public void startListen(EventHandler<DataDragEvent> handler) {
-            if (getEventType() == DRAG_START) {
-                listener.add(handler);
-            } else {
-                throw new IllegalStateException();
-            }
-        }
-    }
-
-    private void fireDataDragEvent(EventType<DataDragEvent> type,
-                                   MouseEvent start,
-                                   MouseEvent previous,
-                                   MouseEvent current,
-                                   List<EventHandler<DataDragEvent>> listener) {
-        if (!isDisabled()) {
-            var transform = getChartTransform(getPlottingAreaFromTop());
-            var p1 = transform.transform(start.getX(), start.getY());
-            var p2 = transform.transform(previous.getX(), previous.getY());
-            var p3 = transform.transform(current.getX(), current.getY());
-            var event = new DataDragEvent(type, p1, p2, p3, listener);
-            if (type == DataDragEvent.DRAG_START) {
-                fireEvent(event);
-            } else {
-                for (var handler : listener) {
-                    handler.handle(event);
-                }
-            }
-        }
-    }
 
     /*================*
      * plotting queue *

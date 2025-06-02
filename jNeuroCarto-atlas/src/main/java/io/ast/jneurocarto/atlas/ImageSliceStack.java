@@ -162,7 +162,11 @@ public final class ImageSliceStack {
     }
 
     public SliceCoordinate project(Coordinate coor) {
-        return project(coor.toCoorIndex(brainResolution)).toCoor(resolution);
+        return new SliceCoordinate(
+            project.get(coor, project.p),
+            project.get(coor, project.x),
+            project.get(coor, project.y)
+        );
     }
 
     /**
@@ -180,7 +184,13 @@ public final class ImageSliceStack {
     }
 
     public Coordinate pullBack(SliceCoordinate coor) {
-        return pullBack(coor.toCoorIndex(resolution)).toCoor(brainResolution);
+        var t = new double[3];
+
+        t[project.p] = coor.p();
+        t[project.x] = coor.x();
+        t[project.y] = coor.y();
+
+        return new Coordinate(t[0], t[1], t[2]);
     }
 
     /**

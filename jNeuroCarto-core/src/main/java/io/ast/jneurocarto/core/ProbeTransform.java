@@ -233,7 +233,7 @@ public final class ProbeTransform<C1, C2> {
      *===========*/
 
     public static <C> ProbeTransform<C, C> identify(Domain<C> domain) {
-        return new ProbeTransform<>(domain, domain, new Affine(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0));
+        return new ProbeTransform<>(domain, domain, new Affine());
     }
 
     /**

@@ -240,7 +240,6 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         if (invertRotation()) r = -r;
 
         var aff = new Affine();
-        // A S T Fx Fy R
         aff.appendScale(sx(), sy());
         aff.appendTranslation(x, y);
         if (flipUD()) {
@@ -300,13 +299,19 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
                 gc.drawImage(image, 0, 0, w, h);
             }
             if (isDrawAtlasBrainBoundary()) {
+                var b = gc.getTransform().transform(new BoundingBox(0, 0, w, h));
+                gc.setTransform(new Affine());
                 gc.setGlobalAlpha(1);
-                gc.setStroke(Color.BLACK);
+                gc.setStroke(Color.RED);
                 gc.setLineWidth(2);
-                gc.strokeRect(0, 0, w, h);
-                gc.strokeLine(0, 0, w, h);
-                gc.strokeLine(0, h, w, 0);
 
+                var x = b.getMinX();
+                var y = b.getMinY();
+                w = b.getWidth();
+                h = b.getHeight();
+                gc.strokeRect(x, y, w, h);
+                gc.strokeLine(x, y, x + w, y + h);
+                gc.strokeLine(x, y + h, x + w, y);
             }
         } finally {
             gc.restore();

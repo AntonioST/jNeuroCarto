@@ -43,6 +43,9 @@ public class AtlasBrainViewState {
     @JsonProperty(value = "show_image", index = 11, defaultValue = "true")
     public boolean showImage = true;
 
+    @JsonProperty(value = "use_reference", index = 12)
+    public String refernce;
+
 //    @JsonProperty(index = 12, defaultValue = "[]")
 //    public List<String> regions = new ArrayList<>();
 //

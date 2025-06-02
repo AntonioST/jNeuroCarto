@@ -180,7 +180,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         colormap.addColor(0, Color.BLACK);
         colorMapping.put("black", 0);
 
-        canvas.addEventFilter(InteractionXYChart.DataTouchEvent.DATA_TOUCH, this::onDataTouch);
+        canvas.addEventFilter(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_CLICKED, this::onDataTouch);
         canvas.addEventFilter(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onDataSelect);
         // TODO label dragging
     }
@@ -195,7 +195,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         evalAndAddLabel(kind, text);
     }
 
-    private void onDataTouch(InteractionXYChart.DataTouchEvent e) {
+    private void onDataTouch(InteractionXYChart.ChartMouseEvent e) {
         var xy = graphics.touch(e.point);
         if (xy != null) {
             var label = getLabel(xy);
@@ -217,7 +217,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     }
 
 
-    private void onLabelTouch(InteractionXYChart.DataTouchEvent e, XYLabel label) {
+    private void onLabelTouch(InteractionXYChart.ChartMouseEvent e, XYLabel label) {
         if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
             focusOnLabel(label);
         }

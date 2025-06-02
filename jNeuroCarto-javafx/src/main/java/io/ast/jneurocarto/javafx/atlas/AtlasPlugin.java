@@ -8,12 +8,13 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 
 import org.jspecify.annotations.NullMarked;
@@ -23,10 +24,12 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.ProbeTransform;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.Plugin;
@@ -38,6 +41,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private BrainGlobeDownloader.DownloadResult download;
     private @Nullable BrainAtlas brain;
     private @Nullable ImageVolume volume;
+    private @Nullable AtlasReferenceService references;
+    private ProbeTransform</*global*/Coordinate, /*reference*/Coordinate> transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
     private ProbeView<?> canvas;
     private SlicePainter painter;
 
@@ -62,6 +67,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     public @Nullable ImageVolume getVolume() {
         return volume;
+    }
+
+    public AtlasReferenceService getReferencesService() {
+        return Objects.requireNonNull(references);
     }
 
     public @Nullable ImageSliceStack getImageSliceStack() {
@@ -90,6 +99,41 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         projection.set(value);
     }
 
+    public final ObjectProperty<@Nullable AtlasReference> reference = new SimpleObjectProperty<>(null);
+    private final StringProperty referenceNameProperty = new SimpleStringProperty("Global");
+
+    {
+        reference.addListener((_, _, ref) -> {
+            var name = ref == null ? "Global" : ref.name();
+            log.debug("set atlas reference to {}", name);
+            referenceNameProperty.set(name);
+        });
+    }
+
+    public final @Nullable String getAtlasReferenceName() {
+        var ret = reference.get();
+        return ret == null ? null : ret.name();
+    }
+
+    public final @Nullable AtlasReference getAtlasReference() {
+        return reference.get();
+    }
+
+    public final void setAtlasReference(@Nullable String reference) {
+        if (reference == null) {
+            this.reference.set(null);
+            return;
+        }
+
+        var ref = references;
+        if (ref == null) return;
+        this.reference.set(ref.getReference(reference));
+    }
+
+    public final void setAtlasReference(@Nullable AtlasReference reference) {
+        this.reference.set(reference);
+    }
+
     /*=================*
      * state load/save *
      *=================*/
@@ -116,6 +160,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         state.imageRoration = painter.r();
         state.imageAlpha = painter.getImageAlpha();
         state.showImage = painter.isVisible();
+        state.refernce = getAtlasReferenceName();
+
         return state;
     }
 
@@ -136,6 +182,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             return;
         }
 
+        setAtlasReference(state.refernce);
         setProjection(state.projection);
 
         assert images != null;
@@ -201,6 +248,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
     }
 
+    private void setupAtlasReferenceService() {
+        references = AtlasReferenceService.loadReferences(download);
+        reference.addListener((_, _, ref) -> onAtlasReferenceUpdate(ref));
+    }
+
     public void setPlane(double plane) {
         sliderPlane.setValue(plane / 1000);
     }
@@ -220,6 +272,15 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var res = images.resolution()[0];
         sliderOffsetWidth.setValue(dw * res);
         sliderOffsetHeight.setValue(dh * res);
+    }
+
+    private void onAtlasReferenceUpdate(@Nullable AtlasReference reference) {
+        if (reference != null) {
+            transform = ProbeTransform.create(reference.name(), reference.coordinate(), reference.flipAP());
+        } else {
+            transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
+        }
+        System.out.println(transform.getTransform());
     }
 
     /*===========*
@@ -243,6 +304,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     @Override
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
+        setupAtlasReferenceService();
         var ret = super.setup(service);
         checkBrainAtlas();
         return ret;
@@ -265,9 +327,32 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     protected void setupMenuItems(PluginSetupService service) {
         // edit
+
+        // edit.Set atlas brain reference
+        var setReference = new Menu("Set atlas brain reference");
+
+        var setGlobalRef = newSetRefMenuItem("Global");
+        setReference.getItems().add(setGlobalRef);
+
+        var references = this.references;
+        if (references != null) {
+            var items = references.getReferenceList().stream()
+                .sorted()
+                .map(name -> newSetRefMenuItem(name))
+                .toList();
+            setReference.getItems().addAll(items);
+        }
+        referenceNameProperty.addListener((_, _, name) -> {
+            for (var item : setReference.getItems()) {
+                ((CheckMenuItem) item).setSelected(item.getText().equals(name));
+            }
+        });
+
+        // edit.Set atlas brain coordinate
         var setCoordinate = new MenuItem("Set atlas brain coordinate");
         setCoordinate.setOnAction(_ -> LogMessageService.printMessage("TODO"));
-        service.addMenuInEdit(List.of(setCoordinate));
+
+        service.addMenuInEdit(setReference, setCoordinate);
 
         // view
         var setImageAlpha = new MenuItem("Set atlas image alpha");
@@ -288,6 +373,15 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             provider by io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.atlas.AtlasPlugin
             """.formatted(download.atlasNameVersion())));
         service.addMenuInHelp(about);
+    }
+
+    private CheckMenuItem newSetRefMenuItem(String name) {
+        var setRef = new CheckMenuItem(name);
+        setRef.setSelected(name.equals("Global"));
+        setRef.selectedProperty().addListener((_, _, e) -> {
+            if (e) setAtlasReference(name);
+        });
+        return setRef;
     }
 
     @Override
@@ -329,10 +423,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         layout.add(sliderOffsetWidth, 1, 3);
         layout.add(sliderOffsetHeight, 1, 4);
 
-        layout.add(sliderBoundLabel(sliderPlane), 2, 1);
-        layout.add(sliderBoundLabel(sliderRotation), 2, 2);
-        layout.add(sliderBoundLabel(sliderOffsetWidth), 2, 3);
-        layout.add(sliderBoundLabel(sliderOffsetHeight), 2, 4);
+        layout.add(sliderBindLabel(sliderPlane), 2, 1);
+        layout.add(sliderBindLabel(sliderRotation), 2, 2);
+        layout.add(sliderBindLabel(sliderOffsetWidth), 2, 3);
+        layout.add(sliderBindLabel(sliderOffsetHeight), 2, 4);
 
         btnResetRotation = new Button("Reset");
         btnResetRotation.setOnAction(_ -> sliderRotation.setValue(0));
@@ -408,11 +502,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         painter.setImageAlpha(0.5);
         canvas.addBackgroundPlotting(painter);
 
-        canvas.addEventFilter(MouseEvent.MOUSE_PRESSED, this::onMouseDragged);
-        canvas.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
-        canvas.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onMouseDragged);
-        canvas.addEventFilter(MouseEvent.MOUSE_MOVED, this::onMouseMoved);
-        canvas.addEventFilter(MouseEvent.MOUSE_EXITED, this::onMouseExited);
+        canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_PRESSED, this::onMouseDragged);
+        canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onMouseDragged);
+        canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_RELEASED, this::onMouseDragged);
+        canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_MOVED, this::onMouseMoved);
+        canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_EXITED, this::onMouseExited);
 
         // toolbar
         //        bindInvisibleNode(setupToolbar(service));
@@ -425,7 +519,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private Node setupInformationBar(PluginSetupService service) {
-        var coorInformation = new Label("(AP, DV, ML) um");
+        var coorInformation = new Label("Global (AP, DV, ML) um");
+        referenceNameProperty.addListener((_, _, name) -> {
+            coorInformation.setText(name + " (AP, DV, ML) um");
+        });
         labelMouseInformation = new Label("");
 
         labelStructure = new Label("");
@@ -443,7 +540,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return layout;
     }
 
-
     private Slider newSlider() {
         var slider = new Slider();
         slider.setShowTickLabels(true);
@@ -451,7 +547,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return slider;
     }
 
-    private Label sliderBoundLabel(Slider slider) {
+    private Label sliderBindLabel(Slider slider) {
         var label = new Label();
 
         slider.valueProperty().addListener((_, _, value) -> {
@@ -481,8 +577,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      * event handle *
      *==============*/
 
-    private @Nullable MouseEvent mousePress;
-    private @Nullable MouseEvent mouseMoved;
+    private @Nullable ChartMouseEvent mousePress;
+    private @Nullable ChartMouseEvent mouseMoved;
 
     private void onSliderMoved() {
         if (images != null) {
@@ -490,42 +586,32 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         }
     }
 
-    private void onMouseDragged(MouseEvent e) {
-        if (e.getEventType() == MouseEvent.MOUSE_PRESSED) {
-            if (e.getButton() == MouseButton.SECONDARY && e.isShiftDown()) {
+    private void onMouseDragged(ChartMouseEvent e) {
+        if (e.getEventType() == ChartMouseEvent.CHART_MOUSE_PRESSED) {
+            if (e.getButton() == MouseButton.SECONDARY && e.mouse.isShiftDown()) {
                 mousePress = e;
             }
-        } else if (e.getEventType() == MouseEvent.MOUSE_RELEASED) {
+        } else if (e.getEventType() == ChartMouseEvent.CHART_MOUSE_RELEASED) {
             mousePress = null;
             mouseMoved = null;
-        } else if (e.getEventType() == MouseEvent.MOUSE_DRAGGED && mousePress != null) {
+        } else if (e.getEventType() == ChartMouseEvent.CHART_MOUSE_DRAGGED && mousePress != null) {
             var prev = mouseMoved == null ? mousePress : mouseMoved;
-            var dx = e.getX() - prev.getX();
-            var dy = e.getY() - prev.getY();
-            var q = canvas.getChartTransformScaling(dx, dy);
-            painter.translate(q.getX(), q.getY());
+            var dx = e.getChartX() - prev.getChartX();
+            var dy = e.getChartY() - prev.getChartY();
+            painter.translate(dx, dy);
             mouseMoved = e;
             e.consume();
             updateSliceImage();
         }
     }
 
-    private void onMouseMoved(MouseEvent e) {
-        updateMouseInformation(new Point2D(e.getX(), e.getY()));
+    private void onMouseMoved(ChartMouseEvent e) {
+        updateMouseInformation(e.point);
     }
 
-    private void onMouseExited(MouseEvent e) {
+    private void onMouseExited(ChartMouseEvent e) {
         labelMouseInformation.setText("");
         labelStructure.setText("");
-    }
-
-    private SliceCoordinate getSliceCoordinate(MouseEvent e) {
-        var mx = e.getX();
-        var my = e.getY();
-        var p = canvas.getChartTransform(mx, my);
-        var x = (p.getX() - painter.x()) / painter.sx();
-        var y = (p.getY() - painter.y()) / painter.sy();
-        return new SliceCoordinate(0, x, y);
     }
 
     /*================*
@@ -608,7 +694,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      *=================*/
 
     /**
-     * @param p point on canvas.
+     * @param p point on chart.
      */
     private void updateMouseInformation(Point2D p) {
         var image = this.image;
@@ -618,12 +704,12 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             return;
         }
 
-        p = canvas.getChartTransform(p); // chart <- canvas
         p = painter.getImageTransform().transform(p); // slice <- chart
         var coor = image.pullBack(p); // coor <- slice
-        var text = String.format("=(%.0f, %.0f, %.0f)", coor.ap(), coor.dv(), coor.ml());
-
+        var local = transform.transform(coor); // reference <- global
+        var text = String.format("=(%.0f, %.0f, %.0f)", local.ap(), local.dv(), local.ml());
         labelMouseInformation.setText(text);
+
         updateStructureInformation(coor);
     }
 

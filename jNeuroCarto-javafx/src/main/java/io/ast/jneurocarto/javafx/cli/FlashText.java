@@ -17,9 +17,9 @@ import io.ast.jneurocarto.javafx.utils.FlashStringBuffer;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "flash",
-  usageHelpAutoWidth = true,
-  description = "show flash text"
+    name = "flash",
+    usageHelpAutoWidth = true,
+    description = "show flash text"
 )
 public class FlashText implements Example.Content, Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
@@ -32,15 +32,15 @@ public class FlashText implements Example.Content, Runnable {
     public boolean showAnchor;
 
     @CommandLine.Option(names = {"-sb", "--show-bounds"},
-      description = "draw text boundary")
+        description = "draw text boundary")
     public boolean showBounds;
 
     @CommandLine.Option(names = {"-e", "--effect"},
-      description = "use a shadow effect")
+        description = "use a shadow effect")
     public boolean useEffect;
 
     @CommandLine.Option(names = {"-n", "--newline"},
-      description = "white space as newline")
+        description = "white space as newline")
     public boolean newline;
 
     @CommandLine.ParentCommand
@@ -59,7 +59,6 @@ public class FlashText implements Example.Content, Runnable {
      * Application *
      *=============*/
 
-    private XY touched;
 
     @Override
     public void setup(Scene scene) {
@@ -72,19 +71,21 @@ public class FlashText implements Example.Content, Runnable {
         painter = chart.getForegroundPainter();
 
         builder = painter.text()
-          .font(Font.font("monospace", fontSize))
-          .align(TextAlignment.LEFT)
-          .baseline(VPos.CENTER)
-          .color(Color.BLACK)
-          .showAnchorPoint(showAnchor)
-          .showTextBounds(showBounds);
+            .font(Font.font("monospace", fontSize))
+            .align(TextAlignment.LEFT)
+            .baseline(VPos.CENTER)
+            .color(Color.BLACK)
+            .showAnchorPoint(showAnchor)
+            .showTextBounds(showBounds);
 
         if (useEffect) {
             builder.textEffect(new DropShadow(BlurType.ONE_PASS_BOX, Color.GRAY, 5, 5, 5, 5));
         }
 
-        chart.addEventHandler(InteractionXYChart.DataTouchEvent.DATA_TOUCH, this::onTouch);
-        chart.addEventHandler(InteractionXYChart.DataDragEvent.DRAG_START, this::onDragStart);
+        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_CLICKED, this::onTouch);
+        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_PRESSED, this::onDragStart);
+        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onDragStart);
+        chart.addEventHandler(InteractionXYChart.ChartMouseEvent.CHART_MOUSE_RELEASED, this::onDragStart);
     }
 
     private void onKeyType(KeyEvent e) {
@@ -102,7 +103,10 @@ public class FlashText implements Example.Content, Runnable {
         }
     }
 
-    private void onTouch(InteractionXYChart.DataTouchEvent e) {
+    private XY touched;
+    private InteractionXYChart.ChartMouseEvent prev;
+
+    private void onTouch(InteractionXYChart.ChartMouseEvent e) {
         var xy = builder.graphics().touch(e.point);
         if (xy != null && xy.external() instanceof String text) {
             System.out.println(text);
@@ -112,27 +116,25 @@ public class FlashText implements Example.Content, Runnable {
         }
     }
 
-    private void onDragStart(InteractionXYChart.DataDragEvent e) {
-        if (touched == null) {
-            var xy = builder.graphics().touch(e.start);
+    private void onDragStart(InteractionXYChart.ChartMouseEvent e) {
+        if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_PRESSED) {
+            var xy = builder.graphics().touch(e.point);
             if (xy != null && xy.external() instanceof String text) {
                 touched = xy;
             }
-        }
-        if (touched != null) {
-            e.startListen(this::onDragging);
+        } else if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_DRAGGED && touched != null) {
+            if (prev != null) {
+                touched.x(touched.x() + e.getChartX() - prev.getChartX());
+                touched.y(touched.y() + e.getChartY() - prev.getChartY());
+            }
+            painter.repaint();
+            prev = e;
+            e.consume();
+        } else if (e.getEventType() == InteractionXYChart.ChartMouseEvent.CHART_MOUSE_RELEASED && prev != null) {
+            touched = null;
+            prev = null;
+            painter.repaint();
         }
     }
 
-    private void onDragging(InteractionXYChart.DataDragEvent e) {
-        if (e.getEventType() == InteractionXYChart.DataDragEvent.DRAGGING) {
-            var p = e.delta();
-            touched.x(touched.x() + p.getX());
-            touched.y(touched.y() + p.getY());
-            painter.repaint();
-        } else {
-            touched = null;
-            painter.repaint();
-        }
-    }
 }

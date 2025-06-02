@@ -13,7 +13,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.MenuItem;
 import javafx.scene.paint.Color;
-import javafx.scene.transform.NonInvertibleTransformException;
+import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -32,7 +32,7 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
 
     private final ProbeDescription<Object> probe;
     private final AtlasPlugin atlas;
-    private @Nullable AtlasReferenceService references;
+    private final AtlasReferenceService references;
 
     private ProbeView<Object> canvas;
     private @Nullable String currentChannelmapCode;
@@ -46,9 +46,7 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
         this.probe = probe;
         this.atlas = atlas;
 
-        Thread.ofVirtual().name("loadAtlasReferencesData").start(() -> {
-            references = AtlasReferenceService.loadReferences(atlas);
-        });
+        references = atlas.getReferencesService();
     }
 
     @Override
@@ -202,12 +200,13 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
             implantTransform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
             implantReference = null;
         }
-
     }
 
     /*==========*
      * plotting *
      *==========*/
+
+    private static final Affine IDENTIFY = new Affine();
 
     @Override
     public double z() {
@@ -239,44 +238,36 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
         try {
             // chart -> image -> slice?
             gc.transform(atlas.painter().getChartTransform());
-
-            double dx, dy;
-            try {
-                var d = gc.getTransform().inverseDeltaTransform(10, 10);
-                dx = Math.abs(d.getX());
-                dy = Math.abs(d.getY());
-            } catch (NonInvertibleTransformException e) {
-                dx = dy = 10;
-            }
+            var aff = gc.getTransform();
+            gc.setTransform(IDENTIFY);
+            gc.setLineWidth(2);
 
             if (showImplant) {
-                System.out.println("dx = " + dx + ", dy = " + dy);
                 var coor = implant.insertCoordinate();
-                System.out.println("coor = " + coor);
                 var point = stack.project(pt.transform(coor));
-                System.out.println("point = " + point);
                 var plantOffset = Math.abs(image.planeDistance() - point.p());
-                System.out.println("plantOffset = " + plantOffset);
-                var alpha = Math.max(0, 1 - plantOffset / 5000);
+                var alpha = Math.max(0, 1 - plantOffset / 2000);
                 gc.setGlobalAlpha(alpha);
-                gc.setStroke(Color.YELLOW);
-                var x = point.x();
-                var y = point.y();
-                gc.strokeLine(x - dx, y - dy, x + dx, y + dy);
-                gc.strokeLine(x - dx, y + dy, x + dx, y - dy);
+                gc.setStroke(Color.GREEN);
+                var p = aff.transform(point.x(), point.y());
+                var x = p.getX();
+                var y = p.getY();
+                gc.strokeLine(x - 5, y - 5, x + 5, y + 5);
+                gc.strokeLine(x - 5, y + 5, x + 5, y - 5);
             }
 
             if (showReference && ref != null) {
                 var coor = ref.coordinate();
                 var point = stack.project(pt.transform(coor));
                 var plantOffset = Math.abs(image.planeDistance() - point.p());
-                var alpha = Math.max(0, 1 - plantOffset / 5000);
+                var alpha = Math.max(0, 1 - plantOffset / 2000);
                 gc.setGlobalAlpha(alpha);
                 gc.setStroke(Color.RED);
-                var x = point.x();
-                var y = point.y();
-                gc.strokeLine(x - dx, y - dy, x + dx, y + dy);
-                gc.strokeLine(x - dx, y + dy, x + dx, y - dy);
+                var p = aff.transform(point.x(), point.y());
+                var x = p.getX();
+                var y = p.getY();
+                gc.strokeLine(x - 5, y, x + 5, y);
+                gc.strokeLine(x, y + 5, x, y - 5);
             }
         } finally {
             gc.restore();
