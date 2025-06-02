@@ -739,6 +739,11 @@ public class InteractionXYChart extends StackPane {
             return 0;
         }
 
+        /**
+         * Drawing your things in chart coordinate.
+         *
+         * @param gc
+         */
         void draw(GraphicsContext gc);
     }
 

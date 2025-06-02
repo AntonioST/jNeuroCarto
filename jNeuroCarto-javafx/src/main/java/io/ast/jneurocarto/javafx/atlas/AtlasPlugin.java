@@ -56,8 +56,24 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return download.atlas();
     }
 
-    public @Nullable BrainAtlas brain() {
+    public @Nullable BrainAtlas getBrainAtlas() {
         return brain;
+    }
+
+    public @Nullable ImageVolume getVolume() {
+        return volume;
+    }
+
+    public @Nullable ImageSliceStack getImageSliceStack() {
+        return images;
+    }
+
+    public @Nullable ImageSlice getImageSlice() {
+        return image;
+    }
+
+    public SlicePainter painter() {
+        return painter;
     }
 
     /*============*

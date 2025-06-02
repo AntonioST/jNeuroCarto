@@ -11,13 +11,13 @@ import org.jspecify.annotations.NullMarked;
 public final class ProbeTransform<C1, C2> {
 
     public interface Domain<C> {
-        Domain<ProbeCoordinate> PROBE = new Probe();
-        Domain<Coordinate> ANATOMICAL = new Anatomical();
-
         C fromPoint(Point3D p);
 
         Point3D toPoint(C coordinate);
     }
+
+    public static final Domain<ProbeCoordinate> PROBE = new Probe();
+    public static final Domain<Coordinate> ANATOMICAL = new Anatomical();
 
 
     public static class Probe implements Domain<ProbeCoordinate> {
@@ -232,6 +232,10 @@ public final class ProbeTransform<C1, C2> {
      * factories *
      *===========*/
 
+    public static <C> ProbeTransform<C, C> identify(Domain<C> domain) {
+        return new ProbeTransform<>(domain, domain, new Affine(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0));
+    }
+
     /**
      * Create a coordinate transformation from {@link ProbeCoordinate} to {@link Coordinate} which
      * the {@code transform} satisfy
@@ -247,7 +251,7 @@ public final class ProbeTransform<C1, C2> {
      * @return
      */
     public static ProbeTransform<ProbeCoordinate, Coordinate> create(Affine transform) {
-        return new ProbeTransform<>(Domain.PROBE, Domain.ANATOMICAL, transform);
+        return new ProbeTransform<>(PROBE, ANATOMICAL, transform);
     }
 
     /**
@@ -269,11 +273,11 @@ public final class ProbeTransform<C1, C2> {
         } else {
             t.appendTranslation(-origin.ap(), -origin.dv(), -origin.ml());
         }
-        return new ProbeTransform<>(Domain.ANATOMICAL, new ReferencedAnatomical(reference, origin, flipAP), t);
+        return new ProbeTransform<>(ANATOMICAL, new ReferencedAnatomical(reference, origin, flipAP), t);
     }
 
     /**
-     * Create a coordinate transform based on the {@code implant}.
+     * Create a coordinate transform based on the {@code implant}. Do not consider implant reference.
      *
      * @param implant
      * @return

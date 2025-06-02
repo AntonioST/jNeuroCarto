@@ -34,6 +34,13 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     }
 
     /**
+     * {@return plane in um}
+     */
+    public double planeDistance() {
+        return plane * resolution()[0];
+    }
+
+    /**
      * {@return width in um.}
      */
     public double width() {

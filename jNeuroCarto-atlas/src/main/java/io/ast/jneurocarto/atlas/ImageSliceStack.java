@@ -327,7 +327,7 @@ public final class ImageSliceStack {
         t[3 + project.y] = 1;
         t[6 + project.p] = 1;
         var a = new Affine(t[0], t[1], t[2], 0, t[3], t[4], t[5], 0, t[6], t[7], t[8], 0);
-        return new ProbeTransform<>(ProbeTransform.Domain.ANATOMICAL, SliceDomain.INSTANCE, a);
+        return new ProbeTransform<>(ProbeTransform.ANATOMICAL, SliceDomain.INSTANCE, a);
     }
 
     @Override

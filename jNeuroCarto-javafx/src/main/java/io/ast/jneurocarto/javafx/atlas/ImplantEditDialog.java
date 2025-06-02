@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.HPos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -15,6 +16,7 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
 
     public ObjectProperty<ImplantState> implant = new SimpleObjectProperty<>();
 
+    private final ImplantState init;
     private FormattedTextField.OfIntField shank;
     private FormattedTextField.OfDoubleField ap;
     private FormattedTextField.OfDoubleField dv;
@@ -29,6 +31,8 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
     private FormattedTextField.OfDoubleField refML;
 
     public ImplantEditDialog(AtlasReferenceService references, ImplantState state) {
+        init = state;
+
         implant.set(state);
 
         setTitle("Implant Coordinate");
@@ -57,9 +61,13 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         layout.add(new Label("ML"), 0, 3);
 
         shank = new FormattedTextField.OfIntField(state.shank);
+        shank.getValueProperty().addListener(this::onUpdate);
         ap = new FormattedTextField.OfDoubleField(state.ap / 1000);
+        ap.getValueProperty().addListener(this::onUpdate);
         dv = new FormattedTextField.OfDoubleField(state.dv / 1000);
+        dv.getValueProperty().addListener(this::onUpdate);
         ml = new FormattedTextField.OfDoubleField(state.ml / 1000);
+        ml.getValueProperty().addListener(this::onUpdate);
 
 
         layout.add(shank, 1, 0);
@@ -78,9 +86,13 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         layout.add(new Label("depth"), 3, 3);
 
         rap = new FormattedTextField.OfDoubleField(state.rap);
+        rap.getValueProperty().addListener(this::onUpdate);
         rdv = new FormattedTextField.OfDoubleField(state.rdv);
+        rdv.getValueProperty().addListener(this::onUpdate);
         rml = new FormattedTextField.OfDoubleField(state.rml);
+        rml.getValueProperty().addListener(this::onUpdate);
         depth = new FormattedTextField.OfDoubleField(state.depth / 1000);
+        depth.getValueProperty().addListener(this::onUpdate);
 
         layout.add(rap, 4, 0);
         layout.add(rdv, 4, 1);
@@ -174,6 +186,8 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
                     refML.setDoubleValue(coor.ml() / 1000);
                 }
             }
+
+            updateImplantState();
         });
 
         if (state.reference == null) {
@@ -208,22 +222,32 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         var result = getResult();
         if (result == ButtonType.APPLY || result == ButtonType.OK) {
 
-            var state = new ImplantState();
-            state.ap = ap.getDoubleValue() * 1000;
-            state.dv = dv.getDoubleValue() * 1000;
-            state.ml = ml.getDoubleValue() * 1000;
-            state.shank = shank.getValue();
-            state.rap = rap.getDoubleValue();
-            state.rdv = rdv.getDoubleValue();
-            state.rml = rml.getDoubleValue();
-            state.depth = depth.getDoubleValue() * 1000;
-            state.reference = choice.getValue();
-
-            implant.set(state);
+            updateImplantState();
 
             if (result == ButtonType.APPLY) {
                 e.consume();
             }
+        } else if (result == ButtonType.CANCEL) {
+            implant.set(init);
         }
+    }
+
+    private void onUpdate(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+        updateImplantState();
+    }
+
+    private void updateImplantState() {
+        var state = new ImplantState();
+        state.ap = ap.getDoubleValue() * 1000;
+        state.dv = dv.getDoubleValue() * 1000;
+        state.ml = ml.getDoubleValue() * 1000;
+        state.shank = shank.getValue();
+        state.rap = rap.getDoubleValue();
+        state.rdv = rdv.getDoubleValue();
+        state.rml = rml.getDoubleValue();
+        state.depth = depth.getDoubleValue() * 1000;
+        state.reference = choice.getValue();
+
+        implant.set(state);
     }
 }

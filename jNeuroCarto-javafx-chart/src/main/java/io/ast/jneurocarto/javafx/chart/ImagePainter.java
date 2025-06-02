@@ -290,12 +290,10 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
 
         var w = width.get();
         var h = height.get();
-        var aff = gc.getTransform();
 
         gc.save();
         try {
-            aff.append(getChartTransform());
-            gc.setTransform(aff);
+            gc.transform(getChartTransform());
 
             if (isDrawAtlasBrainImage()) {
                 gc.setGlobalAlpha(getImageAlpha());
