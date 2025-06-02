@@ -2,6 +2,8 @@ import io.ast.jneurocarto.core.ProbeProvider;
 
 module io.ast.jneurocarto.core {
 
+    requires static javafx.graphics;
+
     requires org.slf4j;
 
     requires static com.fasterxml.jackson.annotation;

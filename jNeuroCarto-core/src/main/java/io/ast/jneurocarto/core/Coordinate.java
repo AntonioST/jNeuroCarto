@@ -1,5 +1,7 @@
 package io.ast.jneurocarto.core;
 
+import javafx.geometry.Point3D;
+
 /**
  * coordinate system in anatomical space.
  *
@@ -8,6 +10,11 @@ package io.ast.jneurocarto.core;
  * @param ml um
  */
 public record Coordinate(double ap, double dv, double ml) {
+
+    public Coordinate(Point3D p) {
+        this(p.getX(), p.getY(), p.getZ());
+    }
+
     public CoordinateIndex toCoorIndex(double resolution) {
         return new CoordinateIndex((int) (ap / resolution), (int) (dv / resolution), (int) (ml / resolution));
     }
