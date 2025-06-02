@@ -24,6 +24,7 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
+import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.XYPath;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
@@ -131,18 +132,6 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
     private HBox legendLayout;
 
     @Override
-    public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup");
-
-        var view = service.getProbeView();
-        foreground = view.getForegroundPainter();
-        painter = (BlueprintPainter<Object>) checkBlueprintPainter(service);
-        if (painter == null) visible.set(false);
-
-        return super.setup(service);
-    }
-
-    @Override
     protected HBox setupHeading(PluginSetupService service) {
         var layout = super.setupHeading(service);
 
@@ -170,6 +159,13 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         legendLayout.setSpacing(5);
         updateCategories();
         return legendLayout;
+    }
+
+    @Override
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+        foreground = canvas.getForegroundPainter();
+        painter = (BlueprintPainter<Object>) checkBlueprintPainter(service);
+        if (painter == null) visible.set(false);
     }
 
     private void updateLegends() {

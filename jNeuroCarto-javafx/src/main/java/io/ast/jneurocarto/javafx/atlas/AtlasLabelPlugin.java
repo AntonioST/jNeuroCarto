@@ -27,6 +27,7 @@ import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
+import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.*;
 import io.ast.jneurocarto.javafx.chart.*;
 import io.ast.jneurocarto.javafx.script.BlueprintScriptCallable.Parameter;
@@ -165,21 +166,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         atlas = service.getPlugin(AtlasPlugin.class);
         loadReferences();
 
-        var view = service.getProbeView();
-        foreground = view.getForegroundPainter();
-        graphics = foreground.text()
-            .colormap(colormap = new DiscreteColormap())
-            .graphics();
-        colormap.addColor(0, Color.BLACK);
-        colorMapping.put("black", 0);
-
-        var ret = super.setup(service);
-
-        view.addEventFilter(InteractionXYChart.DataTouchEvent.DATA_TOUCH, this::onDataTouch);
-        view.addEventFilter(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onDataSelect);
-        // TODO label dragging
-
-        return ret;
+        return super.setup(service);
     }
 
     @Override
@@ -218,6 +205,20 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         HBox.setHgrow(labelText, Priority.ALWAYS);
 
         return layout;
+    }
+
+    @Override
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+        foreground = canvas.getForegroundPainter();
+        graphics = foreground.text()
+            .colormap(colormap = new DiscreteColormap())
+            .graphics();
+        colormap.addColor(0, Color.BLACK);
+        colorMapping.put("black", 0);
+
+        canvas.addEventFilter(InteractionXYChart.DataTouchEvent.DATA_TOUCH, this::onDataTouch);
+        canvas.addEventFilter(InteractionXYChart.DataSelectEvent.DATA_SELECT, this::onDataSelect);
+        // TODO label dragging
     }
 
     /*==============*

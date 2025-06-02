@@ -147,8 +147,6 @@ public class ScriptPlugin extends InvisibleView {
             Platform.runLater(this::updateScriptChoice);
         });
 
-        view = (ProbeView<Object>) service.getProbeView();
-
         return super.setup(service);
     }
 
@@ -200,6 +198,11 @@ public class ScriptPlugin extends InvisibleView {
         root.setSpacing(5);
 
         return root;
+    }
+
+    @Override
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+        view = (ProbeView<Object>) canvas;
     }
 
     /*==============*

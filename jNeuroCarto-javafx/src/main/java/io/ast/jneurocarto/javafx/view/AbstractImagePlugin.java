@@ -75,11 +75,8 @@ public abstract class AbstractImagePlugin extends InvisibleView {
      *===========*/
 
     @Override
-    public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup (AbstractImagePlugin)");
-        canvas = service.getProbeView();
-
-        return super.setup(service);
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+        this.canvas = canvas;
     }
 
     @Override

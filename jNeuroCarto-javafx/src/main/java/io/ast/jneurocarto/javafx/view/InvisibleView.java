@@ -13,8 +13,13 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
+import io.ast.jneurocarto.javafx.app.ProbeView;
 
 public abstract class InvisibleView implements Plugin {
+
+    /*============*
+     * properties *
+     *============*/
 
     public final BooleanProperty visible = new SimpleBooleanProperty(true);
 
@@ -26,36 +31,50 @@ public abstract class InvisibleView implements Plugin {
         visible.set(value);
     }
 
-    protected CheckBox newInvisibleSwitch(String name) {
-        var visibleSwitch = new CheckBox(name);
-        // TODO styling?
-        visibleSwitch.selectedProperty().bindBidirectional(visible);
-        return visibleSwitch;
-    }
+    /*===========*
+     * UI layout *
+     *===========*/
 
     protected void bindInvisibleNode(Node node) {
         node.visibleProperty().bind(visible);
         node.managedProperty().bind(visible);
     }
 
-    protected void setupMenuViewItem(PluginSetupService service, String name) {
-        var item = new CheckMenuItem(name);
-        item.selectedProperty().bindBidirectional(visible);
-        service.addMenuInView(item);
-    }
-
+    /// Set up a common UI layout define by [InvisibleView].
+    ///
+    /// The order of sub-setup process follows the order:
+    ///
+    /// 1. [setupChartContent][#setupChartContent(PluginSetupService, ProbeView)].
+    ///     It usually used to call [PluginSetupService#getProbeView()] to get the
+    ///     [ProbeView][io.ast.jneurocarto.javafx.app.ProbeView]. It also can be used as pre-setup.
+    /// 2. [setupHeading][#setupHeading(PluginSetupService)].
+    ///     Set up the head row beside the visible switch (bind with [visible][InvisibleView#visible]).
+    /// 3. [setupChartContent][#setupChartContent(PluginSetupService, ProbeView)].
+    ///     Set up hidden-able (managed by [visible][InvisibleView#visible]) content.
+    /// 4. [setupMenuItems][#setupMenuItems(PluginSetupService)].
+    ///     Set up the menu items. It also can be used as post-setup.
+    ///
+    /// @param service
+    /// @return
     @Override
     public @Nullable Node setup(PluginSetupService service) {
         var log = LoggerFactory.getLogger(getClass());
-        log.debug("setup (InvisibleView)");
+        log.debug("setup {}", getClass().getSimpleName());
 
+        setupChartContent(service, service.getProbeView());
         var heading = setupHeading(service);
-
         var content = setupContent(service);
-        if (content == null) return heading;
+        if (content != null) {
+            bindInvisibleNode(content);
 
-        bindInvisibleNode(content);
-        setupMenuViewItem(service, name());
+            var item = new CheckMenuItem(name());
+            item.selectedProperty().bindBidirectional(visible);
+            service.addMenuInView(item);
+        }
+
+        setupMenuItems(service);
+
+        if (content == null) return heading;
 
         var root = new VBox(
           heading,
@@ -68,8 +87,20 @@ public abstract class InvisibleView implements Plugin {
     }
 
     protected HBox setupHeading(PluginSetupService service) {
-        return new HBox(newInvisibleSwitch(name()));
+        var visibleSwitch = new CheckBox(name());
+        // TODO styling?
+        visibleSwitch.selectedProperty().bindBidirectional(visible);
+
+        return new HBox(visibleSwitch);
     }
 
-    protected abstract @Nullable Node setupContent(PluginSetupService service);
+    protected @Nullable Node setupContent(PluginSetupService service) {
+        return null;
+    }
+
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+    }
+
+    protected void setupMenuItems(PluginSetupService service) {
+    }
 }

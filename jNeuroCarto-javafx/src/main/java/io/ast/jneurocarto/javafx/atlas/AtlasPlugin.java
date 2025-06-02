@@ -64,7 +64,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      * properties *
      *============*/
 
-    public final ObjectProperty<ImageSliceStack.Projection> projection = new SimpleObjectProperty<>();
+    public final ObjectProperty<ImageSliceStack.Projection> projection = new SimpleObjectProperty<>(ImageSliceStack.Projection.coronal);
 
     public final ImageSliceStack.Projection getProjection() {
         return projection.get();
@@ -227,34 +227,27 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     @Override
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
-        checkBrainAtlas();
-
-        canvas = service.getProbeView();
-
-        painter = new SlicePainter();
-        painter.flipUD(true);
-        painter.flipLR(true);
-        painter.invertRotation(false);
-        painter.setImageAlpha(0.5);
-        canvas.addBackgroundPlotting(painter);
-
         var ret = super.setup(service);
-//        bindInvisibleNode(setupToolbar(service));
-        bindInvisibleNode(setupInformationBar(service));
-        setupMenuItems(service);
-
-        setProjection(ImageSliceStack.Projection.coronal);
-
-        canvas.addEventFilter(MouseEvent.MOUSE_PRESSED, this::onMouseDragged);
-        canvas.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
-        canvas.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onMouseDragged);
-        canvas.addEventFilter(MouseEvent.MOUSE_MOVED, this::onMouseMoved);
-        canvas.addEventFilter(MouseEvent.MOUSE_EXITED, this::onMouseExited);
-
+        checkBrainAtlas();
         return ret;
     }
 
-    private void setupMenuItems(PluginSetupService service) {
+    @Override
+    protected HBox setupHeading(PluginSetupService service) {
+        var layout = super.setupHeading(service);
+
+        var showImageSwitch = new CheckBox("Show image");
+        showImageSwitch.selectedProperty().bindBidirectional(painter.visible);
+        showImageSwitch.selectedProperty().addListener((_, _, _) -> updateSliceImage());
+        visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
+
+        layout.getChildren().add(showImageSwitch);
+        layout.setSpacing(10);
+
+        return layout;
+    }
+
+    protected void setupMenuItems(PluginSetupService service) {
         // edit
         var setCoordinate = new MenuItem("Set atlas brain coordinate");
         setCoordinate.setOnAction(_ -> LogMessageService.printMessage("TODO"));
@@ -275,49 +268,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         // help
         var about = new MenuItem("About - " + name());
         about.setOnAction(e -> LogMessageService.printMessage("""
-          Atlas Brain - %s
-          provider by io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.atlas.AtlasPlugin
-          """.formatted(download.atlasNameVersion())));
+            Atlas Brain - %s
+            provider by io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.atlas.AtlasPlugin
+            """.formatted(download.atlasNameVersion())));
         service.addMenuInHelp(about);
-    }
-
-    private Node setupToolbar(PluginSetupService service) {
-        //XXX Unsupported Operation AtlasPlugin.setupToolbar
-        throw new UnsupportedOperationException();
-    }
-
-    private Node setupInformationBar(PluginSetupService service) {
-        var coorInformation = new Label("(AP, DV, ML) um");
-        labelMouseInformation = new Label("");
-
-        labelStructure = new Label("");
-
-        var infoLayout = new HBox(coorInformation, labelMouseInformation);
-        coorInformation.visibleProperty().bind(labelMouseInformation.visibleProperty());
-        infoLayout.visibleProperty().bind(labelMouseInformation.visibleProperty());
-        infoLayout.managedProperty().bind(labelMouseInformation.visibleProperty());
-
-        var layout = new VBox(infoLayout, labelStructure);
-        labelStructure.managedProperty().bind(labelStructure.visibleProperty());
-
-        service.addBelowProbeView(layout);
-
-        return layout;
-    }
-
-    @Override
-    protected HBox setupHeading(PluginSetupService service) {
-        var layout = super.setupHeading(service);
-
-        var showImageSwitch = new CheckBox("Show image");
-        showImageSwitch.selectedProperty().bindBidirectional(painter.visible);
-        showImageSwitch.selectedProperty().addListener((_, _, _) -> updateSliceImage());
-        visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
-
-        layout.getChildren().add(showImageSwitch);
-        layout.setSpacing(10);
-
-        return layout;
     }
 
     @Override
@@ -426,6 +380,53 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         return layout;
     }
+
+    @Override
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+        this.canvas = canvas;
+
+        painter = new SlicePainter();
+        painter.flipUD(true);
+        painter.flipLR(true);
+        painter.invertRotation(false);
+        painter.setImageAlpha(0.5);
+        canvas.addBackgroundPlotting(painter);
+
+        canvas.addEventFilter(MouseEvent.MOUSE_PRESSED, this::onMouseDragged);
+        canvas.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::onMouseDragged);
+        canvas.addEventFilter(MouseEvent.MOUSE_RELEASED, this::onMouseDragged);
+        canvas.addEventFilter(MouseEvent.MOUSE_MOVED, this::onMouseMoved);
+        canvas.addEventFilter(MouseEvent.MOUSE_EXITED, this::onMouseExited);
+
+        // toolbar
+        //        bindInvisibleNode(setupToolbar(service));
+        bindInvisibleNode(setupInformationBar(service));
+    }
+
+    private Node setupToolbar(PluginSetupService service) {
+        //XXX Unsupported Operation AtlasPlugin.setupToolbar
+        throw new UnsupportedOperationException();
+    }
+
+    private Node setupInformationBar(PluginSetupService service) {
+        var coorInformation = new Label("(AP, DV, ML) um");
+        labelMouseInformation = new Label("");
+
+        labelStructure = new Label("");
+
+        var infoLayout = new HBox(coorInformation, labelMouseInformation);
+        coorInformation.visibleProperty().bind(labelMouseInformation.visibleProperty());
+        infoLayout.visibleProperty().bind(labelMouseInformation.visibleProperty());
+        infoLayout.managedProperty().bind(labelMouseInformation.visibleProperty());
+
+        var layout = new VBox(infoLayout, labelStructure);
+        labelStructure.managedProperty().bind(labelStructure.visibleProperty());
+
+        service.addBelowProbeView(layout);
+
+        return layout;
+    }
+
 
     private Slider newSlider() {
         var slider = new Slider();
@@ -627,8 +628,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
                 text = "";
             } else {
                 text = brain.structures().parents(structure).reversed().stream()
-                  .map(Structure::acronym)
-                  .collect(Collectors.joining(" / "));
+                    .map(Structure::acronym)
+                    .collect(Collectors.joining(" / "));
 
                 var hem = brain.hemisphereFromCoords(coor);
                 if (hem != null) {

@@ -5,7 +5,6 @@ import java.util.Objects;
 
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.scene.Node;
 import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
@@ -25,7 +24,6 @@ import io.ast.jneurocarto.probe_npx.ChannelMaps;
 @NullMarked
 public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin<ChannelMap> {
 
-    private ProbeView<?> canvas;
     private InteractionXYPainter painter;
 
     /**
@@ -91,13 +89,10 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
      *===========*/
 
     @Override
-    protected @Nullable Node setupContent(PluginSetupService service) {
-        canvas = service.getProbeView();
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
         painter = canvas.getForegroundPainter();
         painter.visible.bindBidirectional(visible);
         painter.visible.addListener((_, _, e) -> painter.repaint());
-
-        return null;
     }
 
     /*=============*

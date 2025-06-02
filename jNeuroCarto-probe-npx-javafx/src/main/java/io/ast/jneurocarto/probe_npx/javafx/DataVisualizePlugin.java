@@ -10,7 +10,6 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
-import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.MenuItem;
 import javafx.stage.FileChooser;
@@ -24,10 +23,8 @@ import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
-import io.ast.jneurocarto.javafx.chart.Colormap;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.XYMatrix;
-import io.ast.jneurocarto.javafx.chart.XYSeries;
+import io.ast.jneurocarto.javafx.app.ProbeView;
+import io.ast.jneurocarto.javafx.chart.*;
 import io.ast.jneurocarto.javafx.utils.ColormapChooseDialog;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.AbstractImagePlugin;
@@ -58,7 +55,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
      * properties *
      *============*/
 
-    private @Nullable Colormap colormap;
+    private @Nullable LinearColormap colormap;
     public final StringProperty colormapProperty = new SimpleStringProperty("plasma");
 
     public final String getColormap() {
@@ -113,9 +110,8 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     private InteractionXYPainter foreground;
 
     @Override
-    public @Nullable Node setup(PluginSetupService service) {
-        log.debug("setup");
-        var ret = super.setup(service);
+    protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
+        super.setupChartContent(service, canvas);
 
         foreground = canvas.getForegroundPainter();
         colormapProperty.addListener((_, _, _) -> {
@@ -126,12 +122,13 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
         });
         foreground.visible.bindBidirectional(showImageProperty);
         foreground.visible.addListener((_, _, e) -> foreground.repaint());
+    }
 
+    @Override
+    protected void setupMenuItems(PluginSetupService service) {
         var setColormap = new MenuItem("Set data colormap");
         setColormap.setOnAction(this::onSetColormap);
         service.addMenuInView(setColormap);
-
-        return ret;
     }
 
     @Override
@@ -155,9 +152,9 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
     private void onSetColormap(ActionEvent e) {
         log.debug("onSetColormap");
         var oldColormap = this.colormap;
-        var initcolormap = oldColormap != null ? oldColormap : Colormap.of(colormapProperty.get());
+        var initColormap = oldColormap != null ? oldColormap : Colormap.of(colormapProperty.get());
 
-        var dialog = new ColormapChooseDialog("Data Visualize", initcolormap);
+        var dialog = new ColormapChooseDialog("Data Visualize", initColormap);
         dialog.colormapProperty.addListener((_, _, colormap) -> {
             log.debug("onSetColormap {}", colormap);
             this.colormap = colormap;
@@ -235,7 +232,7 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
 
         var toolkit = BlueprintAppToolkit.newToolkit();
 
-        Colormap colormap;
+        LinearColormap colormap;
         var updateNormalize = false;
         if (this.colormap != null) {
             colormap = this.colormap;

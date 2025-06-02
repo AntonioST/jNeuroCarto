@@ -29,7 +29,7 @@ public class ColormapChooseDialog extends Dialog<ButtonType> {
     private final ButtonType done;
     private final ButtonType cancel;
     private final FlashStringBuffer buffer = new FlashStringBuffer();
-    public final ObjectProperty<Colormap> colormapProperty = new SimpleObjectProperty<>();
+    public final ObjectProperty<LinearColormap> colormapProperty = new SimpleObjectProperty<>();
 
     public ColormapChooseDialog(String title, LinearColormap init) {
         setTitle(title);
