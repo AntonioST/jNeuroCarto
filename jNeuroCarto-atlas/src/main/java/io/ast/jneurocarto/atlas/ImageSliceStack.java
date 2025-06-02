@@ -2,11 +2,14 @@ package io.ast.jneurocarto.atlas;
 
 import java.util.Objects;
 
+import javafx.scene.transform.Affine;
+
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
+import io.ast.jneurocarto.core.ProbeTransform;
 
 @NullMarked
 public final class ImageSliceStack {
@@ -170,9 +173,9 @@ public final class ImageSliceStack {
      */
     public SliceCoordinateIndex project(CoordinateIndex coor) {
         return new SliceCoordinateIndex(
-          project.get(coor, project.p),
-          project.get(coor, project.x),
-          project.get(coor, project.y)
+            project.get(coor, project.p),
+            project.get(coor, project.x),
+            project.get(coor, project.y)
         );
     }
 
@@ -286,7 +289,6 @@ public final class ImageSliceStack {
     }
 
     /**
-     *
      * @param plane um
      * @return
      */
@@ -314,6 +316,18 @@ public final class ImageSliceStack {
     public ImageSlice sliceAtPlane(ImageSlice slice) {
         if (slice.projection() != project) throw new IllegalArgumentException("different projection");
         return new ImageSlice(slice.plane(), slice.ax(), slice.ay(), slice.dw(), slice.dh(), this);
+    }
+
+    public ProbeTransform<Coordinate, SliceCoordinate> getTransform() {
+        var t = new double[9];
+        // [1 0 0] [ap]   [x]
+        // [0 1 0] [dv] = [y]
+        // [0 0 1] [ml]   [p]
+        t[0 + project.x] = 1;
+        t[3 + project.y] = 1;
+        t[6 + project.p] = 1;
+        var a = new Affine(t[0], t[1], t[2], 0, t[3], t[4], t[5], 0, t[6], t[7], t[8], 0);
+        return new ProbeTransform<>(ProbeTransform.Domain.ANATOMICAL, SliceDomain.INSTANCE, a);
     }
 
     @Override

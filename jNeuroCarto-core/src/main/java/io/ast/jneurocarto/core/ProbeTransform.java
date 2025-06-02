@@ -91,7 +91,7 @@ public final class ProbeTransform<C1, C2> {
      */
     private Affine inverse;
 
-    private ProbeTransform(Domain<C1> d1, Domain<C2> d2, Affine transform) {
+    public ProbeTransform(Domain<C1> d1, Domain<C2> d2, Affine transform) {
         this.d1 = d1;
         this.d2 = d2;
         this.transform = transform;
@@ -146,6 +146,10 @@ public final class ProbeTransform<C1, C2> {
     }
 
     public <C3> ProbeTransform<C1, C3> compose(ProbeTransform<C2, C3> transform) {
+        if (!targetDomain().equals(transform.sourceDomain())) {
+            throw new RuntimeException("domain mismatch between " + targetDomain() + " and " + transform.sourceDomain());
+        }
+
         var t = new Affine(this.transform);
         t.append(transform.transform);
         return new ProbeTransform<>(this.d1, transform.d2, t);

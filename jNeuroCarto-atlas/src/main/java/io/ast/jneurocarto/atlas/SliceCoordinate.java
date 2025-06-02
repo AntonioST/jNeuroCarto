@@ -1,7 +1,6 @@
 package io.ast.jneurocarto.atlas;
 
 import javafx.geometry.Point2D;
-import javafx.geometry.Point3D;
 
 /**
  * coordinate system in image volume space.
@@ -14,10 +13,6 @@ public record SliceCoordinate(double p, double x, double y) {
 
     public SliceCoordinate(double plane, Point2D point) {
         this(plane, point.getX(), point.getY());
-    }
-
-    public SliceCoordinate(Point3D point) {
-        this(point.getZ(), point.getX(), point.getY());
     }
 
     public SliceCoordinateIndex toCoorIndex(double resolution) {
