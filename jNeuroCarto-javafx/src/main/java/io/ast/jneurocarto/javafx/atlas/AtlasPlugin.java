@@ -253,14 +253,43 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         reference.addListener((_, _, ref) -> onAtlasReferenceUpdate(ref));
     }
 
-    public void setPlane(double plane) {
-        sliderPlane.setValue(plane / 1000);
+    /**
+     * {@return current plane in um in global anatomical space}
+     */
+    public double getPlane() {
+        var plane = sliderPlane.getValue() * 1000;
+        return switch (projection.get().p) {
+            case 0 -> transform.inverseTransform(plane, 0, 0).getX();
+            case 1 -> transform.inverseTransform(0, plane, 0).getY();
+            case 2 -> transform.inverseTransform(0, 0, plane).getZ();
+            default -> throw new RuntimeException();
+        };
     }
 
+    /**
+     * @param plane plane in um in global anatomical space
+     */
+    public void setPlane(double plane) {
+        sliderPlane.setValue(getPlaneRef(plane) / 1000);
+    }
+
+    private double getPlaneRef(double plane) {
+        return switch (projection.get().p) {
+            case 0 -> transform.transform(plane, 0, 0).getX();
+            case 1 -> transform.transform(0, plane, 0).getY();
+            case 2 -> transform.transform(0, 0, plane).getZ();
+            default -> throw new RuntimeException();
+        };
+    }
+
+    /**
+     * @param plane plane index in global anatomical space
+     */
     private void setPlaneIndex(int plane) {
         assert images != null;
-        sliderPlane.setValue(plane * images.resolution()[0] / 1000);
+        setPlane(plane * images.resolution()[0] / 1000);
     }
+
 
     public void setOffsetWidthHeight(double dw, double dh) {
         sliderOffsetWidth.setValue(dw);
@@ -280,7 +309,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         } else {
             transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
         }
-        System.out.println(transform.getTransform());
+//        System.out.println(transform.getTransform());
+        updateProjection(projection.get());
     }
 
     /*===========*
@@ -325,26 +355,60 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return layout;
     }
 
+    private class SetRefMenuItem extends CheckMenuItem {
+        private final @Nullable AtlasReference ref;
+
+        SetRefMenuItem(@Nullable AtlasReference ref) {
+            String text;
+            if (ref == null) {
+                text = "Global [0,0,0]";
+            } else {
+                var coor = ref.coordinate();
+                text = "%s [%.1f,%.1f,%.1f]".formatted(ref.name(), coor.ap() / 1000, coor.dv() / 1000, coor.ml() / 1000);
+            }
+
+            super(text);
+            this.ref = ref;
+            selectedProperty().addListener((_, _, e) -> {
+                if (e) {
+                    setAtlasReference(this.ref);
+                }
+            });
+        }
+
+        void setSelected(@Nullable AtlasReference ref) {
+            if (this.ref == null) {
+                super.setSelected(ref == null);
+            } else {
+                super.setSelected(Objects.equals(this.ref.name(), ref.name()));
+            }
+        }
+    }
+
     protected void setupMenuItems(PluginSetupService service) {
         // edit
 
         // edit.Set atlas brain reference
         var setReference = new Menu("Set atlas brain reference");
 
-        var setGlobalRef = newSetRefMenuItem("Global");
+        var setGlobalRef = new SetRefMenuItem(null);
         setReference.getItems().add(setGlobalRef);
 
         var references = this.references;
         if (references != null) {
             var items = references.getReferenceList().stream()
                 .sorted()
-                .map(name -> newSetRefMenuItem(name))
+                .map(references::getReference)
+                .filter(Objects::nonNull)
+                .map(SetRefMenuItem::new)
                 .toList();
             setReference.getItems().addAll(items);
         }
-        referenceNameProperty.addListener((_, _, name) -> {
+        reference.addListener((_, _, ref) -> {
             for (var item : setReference.getItems()) {
-                ((CheckMenuItem) item).setSelected(item.getText().equals(name));
+                if (item instanceof SetRefMenuItem setRef) {
+                    setRef.setSelected(ref);
+                }
             }
         });
 
@@ -373,15 +437,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             provider by io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.atlas.AtlasPlugin
             """.formatted(download.atlasNameVersion())));
         service.addMenuInHelp(about);
-    }
-
-    private CheckMenuItem newSetRefMenuItem(String name) {
-        var setRef = new CheckMenuItem(name);
-        setRef.setSelected(name.equals("Global"));
-        setRef.selectedProperty().addListener((_, _, e) -> {
-            if (e) setAtlasReference(name);
-        });
-        return setRef;
     }
 
     @Override
@@ -662,8 +717,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         canvas.resetAxesBoundaries();
         canvas.setAxesEqualRatio();
 
-        var maxPlaneLength = images.planeUm() / 1000;
-        sliderPlane.setMax(maxPlaneLength);
+        var c1 = getPlaneRef(0);
+        var c2 = getPlaneRef(images.planeUm());
+        sliderPlane.setMin(Math.min(c1, c2) / 1000);
+        sliderPlane.setMax(Math.max(c1, c2) / 1000);
 
         sliderRotation.setValue(0);
         sliderOffsetWidth.setValue(0);
@@ -677,7 +734,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private void updateSliceImage() {
         if (images == null) return;
 
-        var plane = sliderPlane.getValue() * 1000;
+        var plane = getPlane();
+
         var dw = sliderOffsetWidth.getValue();
         var dh = sliderOffsetHeight.getValue();
 

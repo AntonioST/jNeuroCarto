@@ -245,7 +245,7 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
             if (showImplant) {
                 var coor = implant.insertCoordinate();
                 var point = stack.project(pt.transform(coor));
-                var plantOffset = Math.abs(image.planeDistance() - point.p());
+                var plantOffset = Math.abs(image.planeLength() - point.p());
                 var alpha = Math.max(0, 1 - plantOffset / 2000);
                 gc.setGlobalAlpha(alpha);
                 gc.setStroke(Color.GREEN);
@@ -259,7 +259,7 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
             if (showReference && ref != null) {
                 var coor = ref.coordinate();
                 var point = stack.project(pt.transform(coor));
-                var plantOffset = Math.abs(image.planeDistance() - point.p());
+                var plantOffset = Math.abs(image.planeLength() - point.p());
                 var alpha = Math.max(0, 1 - plantOffset / 2000);
                 gc.setGlobalAlpha(alpha);
                 gc.setStroke(Color.RED);
