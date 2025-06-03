@@ -15,6 +15,39 @@ import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.config.JsonConfig;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
 
+/// A service that read/write the [AtlasReferenceState].
+///
+/// ### Example config
+///
+/// Use class [AtlasReferenceState].
+///
+/// {@snippet lang = "JSON":
+///     "AtlasReferences": {
+///       "brains" : {
+///         "allen_mouse_10um": {
+///           "references": {
+///             "bregma": [5400, 0, 5700, 1]
+///           },
+///         },
+///         "allen_mouse_25um": {
+///           "use" : "allen_mouse_10um"
+///         }
+///       }
+///     }
+///}
+///
+/// In this example, brain "allen_mouse_25um" use the same references as "allen_mouse_10um",
+/// so it declared it use "allen_mouse_10um". brain "allen_mouse_10um" has one reference point
+/// called "bregma", which located at `(5400, 0, 5700)` (`(AP, DL, ML)` in um) with `AP`-axis flipped.
+///
+/// ### File Source
+///
+/// The following files are reading in the order if they are presented,
+/// and the latter one overwrite the former one.
+///
+/// 1. The builtin config put in the classpath (`DefaultAtlasReferences.json`).
+/// 2. The global config (user config).
+/// 3. The local config (probe config).
 @NullMarked
 public final class AtlasReferenceService {
 

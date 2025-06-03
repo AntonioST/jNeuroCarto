@@ -17,6 +17,11 @@ public class AtlasReferenceState {
     @JsonProperty()
     public Map<String, AtlasReferenceData> brains = new HashMap<>();
 
+    /**
+     * The internal data structure for mapping json object.
+     * Do not use it directly but through {@link #get(String)},
+     * {@link #get(String, String)} and {@link #add(AtlasReference)} instead.
+     */
     @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
     @JsonSubTypes({
       @JsonSubTypes.Type(value = AtlasReferenceIndirect.class),

@@ -28,6 +28,7 @@ import io.ast.jneurocarto.core.ProbeTransform;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
+import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.utils.IOAction;
@@ -35,6 +36,41 @@ import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.StateView;
 
+/// Plug for support showing [BrainAtlas] in the background.
+///
+/// ### Features
+///
+/// * showing brain atlas [ImageVolume] image in the background.
+/// * project volume image in slice image, and allow to travel in different slices.
+/// * image transformation like translate, rotation and Shearing
+/// * display the structure on mouse position
+///
+/// ### Required by
+///
+/// This plugin is the base plugin of atlas related supporting plugins.
+///
+/// * [AtlasLabelPlugin] display labels in the chart that supporting different coordinate system.
+/// * [ImplantPlugin] probe implant supporting.
+///
+/// ### Config
+///
+/// * (local) [AtlasBrainViewState] stores the position information automatically for each channelmap file.
+///
+/// * (global) [AtlasBrainGlobalViewState] store the default used reference.
+/// It does not store automatically. User have to manually add the information in user config.
+/// Example:
+///
+/// {@snippet lang = "JSON":
+///     "AtlasBrainView": {
+///       "default_use": "bregma",
+///       "use_reference": {
+///         "allen_mouse_10um": "bregma"
+///       }
+///     }
+///}
+///
+/// * (global) [AtlasReferenceState] store the atlas reference information.
+/// Check [AtlasReferenceService] for more details.
 @NullMarked
 public class AtlasPlugin extends InvisibleView implements Plugin, StateView<AtlasBrainViewState> {
 
@@ -199,6 +235,24 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         canvas.repaintBackground();
     }
 
+    public void restoreGlobalState() {
+        var state = PluginStateService.loadGlobalState(AtlasBrainGlobalViewState.class);
+        if (state == null || brain == null) return;
+
+        log.debug("restore global");
+        var reference = state.use_reference.get(brain.name());
+        if (reference == null) {
+            reference = state.default_use;
+        }
+
+        if (reference == null || reference.isEmpty() || reference.equals("Global")) {
+            reference = null;
+        }
+
+        log.debug("use reference {}", reference == null ? "Global" : reference);
+        setAtlasReference(reference);
+    }
+
     /*===========================*
      * BrainAtlas initialization *
      *===========================*/
@@ -239,6 +293,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var brain = this.brain;
         if (brain == null) return;
 
+        restoreGlobalState();
         IOAction.measure(log, "load reference", () -> {
             volume = new ImageVolume(brain.reference());
             volume.normalizeGrayLevel();
