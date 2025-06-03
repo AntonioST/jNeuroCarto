@@ -137,14 +137,19 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
         this.canvas = (ProbeView<Object>) service.getProbeView();
         canvas.addBackgroundPlotting(this);
 
-        // menu items
+        // edit menu items
         var openImplant = new MenuItem("Edit implant coordinate");
         openImplant.setOnAction(this::openImplantDialog);
         service.addMenuInEdit(openImplant);
 
+        // view menu items
         var showImplantCoor = new CheckMenuItem("show implant coordinate");
         showImplantCoor.selectedProperty().bindBidirectional(showImplantCoordinateProperty);
-        service.addMenuInView(showImplantCoor);
+
+        var focusImplantCoor = new MenuItem("focus on implant coordinate");
+        focusImplantCoor.setOnAction(this::onFocusImplantCoordinate);
+
+        service.addMenuInView(showImplantCoor, focusImplantCoor);
 
         //
         implantCoordinateProperty.addListener((_, _, _) -> updateImage());
@@ -209,6 +214,16 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
             implantReference = null;
         }
     }
+
+    private void onFocusImplantCoordinate(ActionEvent e) {
+
+    }
+
+    /*===========================*
+     * implant coordinate handle *
+     *===========================*/
+
+
 
     /*==========*
      * plotting *

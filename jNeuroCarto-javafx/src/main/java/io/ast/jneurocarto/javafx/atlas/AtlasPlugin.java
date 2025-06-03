@@ -89,6 +89,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         references = AtlasReferenceService.loadReferences(download);
     }
 
+    /*========*
+     * getter *
+     *========*/
+
     @Override
     public String name() {
         return "Brain Atlas";
@@ -102,6 +106,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return brain;
     }
 
+    /**
+     * The current used volume image which has renormalized from origin for visualization purpose.
+     *
+     * @return current used volume image.
+     */
     public @Nullable ImageVolume getVolume() {
         return volume;
     }
@@ -110,10 +119,16 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return references;
     }
 
+    /**
+     * {@return current used slice stack in particular projection.}
+     */
     public @Nullable ImageSliceStack getImageSliceStack() {
         return images;
     }
 
+    /**
+     * {@return current drew image slice}
+     */
     public @Nullable ImageSlice getImageSlice() {
         return image;
     }
@@ -127,6 +142,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      *============*/
 
     public final ObjectProperty<ImageSliceStack.Projection> projection = new SimpleObjectProperty<>(ImageSliceStack.Projection.coronal);
+
+    {
+        projection.addListener((_, _, proj) -> updateProjection(proj));
+    }
 
     public final ImageSliceStack.Projection getProjection() {
         return projection.get();
@@ -300,56 +319,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         });
         IOAction.measure(log, "pre load annotation", brain::annotation);
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
-    }
-
-    /**
-     * {@return current plane in um in global anatomical space}
-     */
-    public double getPlane() {
-        var plane = sliderPlane.getValue() * 1000;
-        return switch (projection.get().p) {
-            case 0 -> transform.inverseTransform(plane, 0, 0).getX();
-            case 1 -> transform.inverseTransform(0, plane, 0).getY();
-            case 2 -> transform.inverseTransform(0, 0, plane).getZ();
-            default -> throw new RuntimeException();
-        };
-    }
-
-    /**
-     * @param plane plane in um in global anatomical space
-     */
-    public void setPlane(double plane) {
-        sliderPlane.setValue(getPlaneRef(plane) / 1000);
-    }
-
-    private double getPlaneRef(double plane) {
-        return switch (projection.get().p) {
-            case 0 -> transform.transform(plane, 0, 0).getX();
-            case 1 -> transform.transform(0, plane, 0).getY();
-            case 2 -> transform.transform(0, 0, plane).getZ();
-            default -> throw new RuntimeException();
-        };
-    }
-
-    /**
-     * @param plane plane index in global anatomical space
-     */
-    private void setPlaneIndex(int plane) {
-        assert images != null;
-        setPlane(plane * images.resolution()[0] / 1000);
-    }
-
-
-    public void setOffsetWidthHeight(double dw, double dh) {
-        sliderOffsetWidth.setValue(dw);
-        sliderOffsetHeight.setValue(dh);
-    }
-
-    private void setOffsetWidthHeightIndex(int dw, int dh) {
-        assert images != null;
-        var res = images.resolution()[0];
-        sliderOffsetWidth.setValue(dw * res);
-        sliderOffsetHeight.setValue(dh * res);
     }
 
     private void onAtlasReferenceUpdate(@Nullable AtlasReference reference) {
@@ -589,8 +558,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             case sagittal -> groupProjection.selectToggle(btnSagittal);
             case transverse -> groupProjection.selectToggle(btnTransverse);
             }
-
-            updateProjection(proj);
         });
 
         return layout;
@@ -745,8 +712,153 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return null;
     }
 
-    public @Nullable ImageSlice getCurrentSlice() {
-        return image;
+    /**
+     * project a global coordinate to referenced coordinate.
+     *
+     * @param coordinate global anatomical coordinate
+     * @return referenced anatomical coordinate
+     */
+    public Coordinate project(Coordinate coordinate) {
+        return transform.transform(coordinate);
+    }
+
+    /**
+     * project a referenced coordinate to global coordinate.
+     *
+     * @param coordinate referenced anatomical coordinate
+     * @return global anatomical coordinate
+     */
+    public Coordinate pullback(Coordinate coordinate) {
+        return transform.inverseTransform(coordinate);
+    }
+
+
+    /**
+     * {@return current plane (um) in referenced anatomical space}
+     */
+    public double getPlane() {
+        return sliderPlane.getValue() * 1000;
+    }
+
+    /**
+     * {@return current plane (um) in global anatomical space}
+     */
+    public double getPlaneGlobal() {
+        return pullbackPlane(sliderPlane.getValue() * 1000);
+    }
+
+    /**
+     * @param plane plane (um) in referenced anatomical space
+     */
+    public void setPlane(double plane) {
+        sliderPlane.setValue(plane / 1000);
+    }
+
+    /**
+     * @param plane plane (um) in global anatomical space
+     */
+    public void setPlaneGlobal(double plane) {
+        sliderPlane.setValue(projectPlane(plane) / 1000);
+    }
+
+    /**
+     * @param plane plane (um) in global anatomical space
+     * @return plane (um) in referenced anatomical space
+     */
+    public double projectPlane(double plane) {
+        return switch (projection.get().p) {
+            case 0 -> transform.transform(plane, 0, 0).getX();
+            case 1 -> transform.transform(0, plane, 0).getY();
+            case 2 -> transform.transform(0, 0, plane).getZ();
+            default -> throw new RuntimeException();
+        };
+    }
+
+    /**
+     * @param plane plane (um) in referenced anatomical space
+     * @return plane (um) in global anatomical space
+     */
+    public double pullbackPlane(double plane) {
+        return switch (projection.get().p) {
+            case 0 -> transform.inverseTransform(plane, 0, 0).getX();
+            case 1 -> transform.inverseTransform(0, plane, 0).getY();
+            case 2 -> transform.inverseTransform(0, 0, plane).getZ();
+            default -> throw new RuntimeException();
+        };
+    }
+
+    /**
+     * @param plane plane index in global anatomical space
+     */
+    private void setPlaneIndex(int plane) {
+        assert images != null;
+        setPlaneGlobal(plane * images.resolution()[0]);
+    }
+
+
+    public void setOffsetWidthHeight(double dw, double dh) {
+        sliderOffsetWidth.setValue(dw);
+        sliderOffsetHeight.setValue(dh);
+    }
+
+    private void setOffsetWidthHeightIndex(int dw, int dh) {
+        assert images != null;
+        var res = images.resolution()[0];
+        sliderOffsetWidth.setValue(dw * res);
+        sliderOffsetHeight.setValue(dh * res);
+    }
+
+    /**
+     * Move the slice to the {@code coordinate}.
+     *
+     * @param coordinate anatomical coordinate, follow current atlas reference
+     */
+    public void anchorImageTo(Coordinate coordinate) {
+        if (images == null) return;
+        setPlaneGlobal(images.project(coordinate).p());
+    }
+
+    /**
+     * Move the slice to the {@code coordinate},
+     * and move the {@code coordinate} to given position {@code p} on chart.
+     *
+     * @param coordinate anatomical coordinate, follow current atlas reference
+     * @param p          chart position
+     */
+    public void anchorImageTo(Coordinate coordinate, Point2D p) {
+        if (images == null) return;
+        var coor = images.project(coordinate);
+        setPlaneGlobal(coor.p());
+        // q: coordinate (x, y) on chart
+        var q = painter.getChartTransform().transform(coor.x(), coor.y());
+        var dx = p.getX() - q.getX();
+        var dy = p.getY() - q.getY();
+        painter.x(painter.x() + dx);
+        painter.y(painter.y() + dy);
+    }
+
+    /**
+     * Move the slice to the {@code coordinate} with given {@code projection}.
+     *
+     * @param projection slice project.
+     * @param coordinate anatomical coordinate, follow current atlas reference
+     */
+    public void anchorImageTo(ImageSliceStack.Projection projection, Coordinate coordinate) {
+        updateProjection(projection);
+        anchorImageTo(coordinate);
+    }
+
+    /**
+     * Move the slice to the {@code coordinate} with given {@code projection},
+     * then move the {@code coordinate} to given position {@code p} on chart.
+     *
+     * @param projection slice project.
+     * @param coordinate anatomical coordinate, follow current atlas reference
+     * @param p          chart position
+     */
+    public void anchorImageTo(ImageSliceStack.Projection projection, Coordinate coordinate, Point2D p) {
+        updateProjection(projection);
+        anchorImageTo(coordinate, p);
     }
 
     /*=====================*
@@ -762,13 +874,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         if (brain == null || volume == null) return;
 
         log.debug("updateProjection({})", projection);
+        this.projection.set(projection);
         images = new ImageSliceStack(brain, volume, projection);
         canvas.setResetAxesBoundaries(0, images.widthUm(), 0, images.heightUm());
         canvas.resetAxesBoundaries();
         canvas.setAxesEqualRatio();
 
-        var c1 = getPlaneRef(0);
-        var c2 = getPlaneRef(images.planeUm());
+        var c1 = projectPlane(0);
+        var c2 = projectPlane(images.planeUm());
         sliderPlane.setMin(Math.min(c1, c2) / 1000);
         sliderPlane.setMax(Math.max(c1, c2) / 1000);
 
@@ -878,13 +991,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         dialog.getDialogPane().setContent(layout);
 
-        var okay = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
-        var cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-        dialog.getDialogPane().getButtonTypes().addAll(cancel, okay);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
 
         dialog.setOnCloseRequest(_ -> {
             var result = dialog.getResult();
-            if (result != okay) {
+            if (result != ButtonType.OK) {
                 painter.setImageAlpha(oldAlpha);
             }
             canvas.repaintBackground();

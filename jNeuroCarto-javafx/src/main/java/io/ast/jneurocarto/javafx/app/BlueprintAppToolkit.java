@@ -307,13 +307,17 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public @Nullable ImageSlice atlasGetSlice() {
-        return getPlugin(AtlasPlugin.class).map(AtlasPlugin::getCurrentSlice).orElse(null);
+        return getPlugin(AtlasPlugin.class).map(AtlasPlugin::getImageSlice).orElse(null);
     }
 
     public void atlasSetSlice(ImageSliceStack.Projection projection) {
         getPlugin(AtlasPlugin.class).ifPresent(p -> p.setProjection(projection));
     }
 
+    /**
+     * @param projection
+     * @param plane      plane (um) in referenced anatomical space
+     */
     public void atlasSetSlice(ImageSliceStack.Projection projection, double plane) {
         getPlugin(AtlasPlugin.class).ifPresent(p -> {
             p.setProjection(projection);
