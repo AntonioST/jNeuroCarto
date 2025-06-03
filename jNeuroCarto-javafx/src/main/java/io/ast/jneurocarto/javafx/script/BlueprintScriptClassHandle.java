@@ -8,14 +8,13 @@ import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.RequestChannelmap;
 import io.ast.jneurocarto.core.RequestChannelmapInfo;
-import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.view.Plugin;
 
 @NullMarked
 public final class BlueprintScriptClassHandle extends BlueprintScriptHandle {
 
     public final Class<Runnable> declaredInner;
-    private final @Nullable Class<?> blueprint;
     private final MethodHandle constructor;
     private final MethodHandle[] fields;
 
@@ -24,14 +23,14 @@ public final class BlueprintScriptClassHandle extends BlueprintScriptHandle {
                                       String name,
                                       String description,
                                       @Nullable Class<?> blueprint,
+                                      Class<? extends Plugin>[] plugins,
                                       Parameter[] parameters,
                                       boolean isAsync,
                                       MethodHandle constructor,
                                       MethodHandle[] fields) {
         if (parameters.length != fields.length) throw new RuntimeException();
-        super(declaredClass, name, description, parameters, isAsync);
+        super(declaredClass, name, description, blueprint, plugins, parameters, isAsync);
         this.declaredInner = declaredInner;
-        this.blueprint = blueprint;
         this.constructor = constructor;
         this.fields = fields;
     }
@@ -45,15 +44,17 @@ public final class BlueprintScriptClassHandle extends BlueprintScriptHandle {
 
     @Override
     public void invoke(BlueprintAppToolkit<?> toolkit, Object... arguments) throws Throwable {
-        Runnable instance;
-        if (blueprint == null) {
-            instance = (Runnable) constructor.invoke();
-        } else if (blueprint == Blueprint.class) {
-            instance = (Runnable) constructor.invoke(toolkit.blueprint());
-        } else {
-            instance = (Runnable) constructor.invoke(toolkit);
-        }
+        var instance = newInstance(toolkit);
+        initFields(instance, arguments);
+        instance.run();
+    }
 
+    private Runnable newInstance(BlueprintAppToolkit<?> toolkit) throws Throwable {
+        MethodHandle h = prependParameters(constructor, toolkit);
+        return (Runnable) h.invoke();
+    }
+
+    private void initFields(Runnable instance, Object[] arguments) throws Throwable {
         for (int i = 0, length = parameters.length; i < length; i++) {
             var para = parameters[i];
             var field = fields[i];
@@ -67,8 +68,6 @@ public final class BlueprintScriptClassHandle extends BlueprintScriptHandle {
 
             field.bindTo(instance).invoke(value);
         }
-
-        instance.run();
     }
 
 }

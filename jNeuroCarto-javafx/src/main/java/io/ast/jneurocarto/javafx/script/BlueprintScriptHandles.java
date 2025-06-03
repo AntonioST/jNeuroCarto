@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
-import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.view.Plugin;
 
 @NullMarked
 public final class BlueprintScriptHandles {
@@ -121,11 +121,12 @@ public final class BlueprintScriptHandles {
             return null;
         }
 
-        Class<?> blueprint = checkMethodParameter(method.getParameters()[0]);
+        Class<?> blueprint = checkMethodBlueprintParameter(parameters[0]);
         if (blueprint == null) {
             log.warn("method {}.{} signature does not to (Blueprint, ...)", clazz.getSimpleName(), method.getName());
             return null;
         }
+        Class<? extends Plugin>[] plugins = checkMethodPluginParameter(parameters, 1);
 
         MethodHandle handle;
 
@@ -144,26 +145,38 @@ public final class BlueprintScriptHandles {
 
         var description = ann.description();
 
-        var ps = lookupMethodParameter(method).toArray(BlueprintScriptCallable.Parameter[]::new);
+        var ps = lookupMethodParameter(method, parameters, 1 + plugins.length);
 
         if (instance != null && !is_static) {
             handle = handle.bindTo(instance);
         }
 
-        return new BlueprintScriptMethodHandle(clazz, method, name, description, blueprint, ps, ann.async(), handle);
+        return new BlueprintScriptMethodHandle(clazz, method, name, description, blueprint, plugins, ps, ann.async(), handle);
     }
 
-    private static @Nullable Class<?> checkMethodParameter(Parameter parameter) {
+    private static @Nullable Class<?> checkMethodBlueprintParameter(Parameter parameter) {
         var type = parameter.getType();
         if (type == Blueprint.class) return type;
         if (BlueprintToolkit.class.isAssignableFrom(type)) return type;
         return null;
     }
 
-    private static List<BlueprintScriptCallable.Parameter> lookupMethodParameter(Method method) {
+    private static Class<? extends Plugin>[] checkMethodPluginParameter(Parameter[] parameters, int start) {
+        var ret = new ArrayList<Class<? extends Plugin>>();
+        for (int i = start, length = parameters.length; i < length; i++) {
+            var t = parameters[i].getType();
+            if (Plugin.class.isAssignableFrom(t)) {
+                ret.add((Class<? extends Plugin>) t);
+            } else {
+                break;
+            }
+        }
+        return ret.toArray(new Class[0]);
+    }
+
+    private static BlueprintScriptCallable.Parameter[] lookupMethodParameter(Method method, Parameter[] parameters, int start) {
         var ret = new ArrayList<BlueprintScriptCallable.Parameter>();
-        Parameter[] parameters = method.getParameters();
-        for (int i = 1, length = parameters.length; i < length; i++) {
+        for (int i = start, length = parameters.length; i < length; i++) {
             var parameter = parameters[i];
             var ann = parameter.getAnnotation(ScriptParameter.class);
             log.trace("method {} find parameter {}", method.getName(), parameter.getName());
@@ -182,7 +195,7 @@ public final class BlueprintScriptHandles {
                 ret.add(newParameter(type, ann, isVarArg));
             }
         }
-        return ret;
+        return ret.toArray(BlueprintScriptCallable.Parameter[]::new);
     }
 
     /*====================*
@@ -207,23 +220,30 @@ public final class BlueprintScriptHandles {
         }
         Class<Runnable> runnable = (Class<Runnable>) inner;
 
-        Class<?> blueprint;
+
+        var constructors = inner.getConstructors();
+        if (constructors.length == 0) {
+            log.warn("class {}.{} has no constructor", clazz.getSimpleName(), inner.getName());
+            return null;
+        } else if (constructors.length > 1) {
+            log.warn("class {}.{} has multiple constructor", clazz.getSimpleName(), inner.getName());
+            return null;
+        }
+
+        var parameters = constructors[0].getParameters();
+        @Nullable Class<?> blueprint = parameters.length > 0 ? checkMethodBlueprintParameter(parameters[0]) : null;
+        var pc = blueprint == null ? 0 : 1;
+        Class<? extends Plugin>[] plugins = checkMethodPluginParameter(parameters, pc);
+        pc += plugins.length;
+        if (pc != parameters.length) {
+            var p = parameters[pc];
+            log.warn("class {}.{}'s constructor has unsupported parameter {}", clazz.getSimpleName(), inner.getName(), p.getType().getSimpleName());
+            return null;
+        }
+
         MethodHandle constructor;
         try {
-            blueprint = checkInnerConstructor(inner);
-
-            Constructor<?> ctor;
-            if (blueprint == null) {
-                log.trace("class {} use ctor()", inner.getSimpleName());
-                ctor = inner.getConstructor();
-            } else {
-                log.trace("class {} use ctor({})", inner.getSimpleName(), blueprint.getSimpleName());
-                ctor = inner.getConstructor(blueprint);
-            }
-            constructor = lookup.unreflectConstructor(ctor);
-        } catch (NoSuchMethodException e) {
-            log.warn("class {}.{} does not have a constructor(Blueprint)", clazz.getSimpleName(), inner.getName());
-            return null;
+            constructor = lookup.unreflectConstructor(constructors[0]);
         } catch (IllegalAccessException e) {
             log.warn("lookupInnerClass for constructor", e);
             return null;
@@ -269,32 +289,7 @@ public final class BlueprintScriptHandles {
             }
         }
 
-        return new BlueprintScriptClassHandle(clazz, runnable, name, description, blueprint, ps, ann.async(), constructor, handles);
-    }
-
-    private static @Nullable Class<?> checkInnerConstructor(Class<?> inner) throws NoSuchMethodException {
-        try {
-            inner.getConstructor(BlueprintAppToolkit.class);
-            return BlueprintAppToolkit.class;
-        } catch (NoSuchMethodException e) {
-        }
-        try {
-            inner.getConstructor(BlueprintToolkit.class);
-            return BlueprintToolkit.class;
-        } catch (NoSuchMethodException e) {
-        }
-        try {
-            inner.getConstructor(Blueprint.class);
-            return Blueprint.class;
-        } catch (NoSuchMethodException e) {
-        }
-        try {
-            inner.getConstructor();
-            return null;
-        } catch (NoSuchMethodException e) {
-        }
-
-        throw new NoSuchMethodException(inner.getSimpleName() + "(Blueprint)");
+        return new BlueprintScriptClassHandle(clazz, runnable, name, description, blueprint, plugins, ps, ann.async(), constructor, handles);
     }
 
     private record FoundParameter(Member member, ScriptParameter ann, BlueprintScriptCallable.Parameter parameter) {
@@ -342,7 +337,7 @@ public final class BlueprintScriptHandles {
 
         if (log.isTraceEnabled()) {
             log.trace("resolved parameter order {}",
-              unindexed.stream().map(it -> it.parameter.name()).toList()
+                unindexed.stream().map(it -> it.parameter.name()).toList()
             );
         }
 
@@ -378,24 +373,24 @@ public final class BlueprintScriptHandles {
     public static String getScriptSignature(BlueprintScriptCallable callable) {
         var name = callable.name();
         var para = Arrays.stream(callable.parameters())
-          .map(BlueprintScriptCallable.Parameter::name)
-          .collect(Collectors.joining(", ", "(", ")"));
+            .map(BlueprintScriptCallable.Parameter::name)
+            .collect(Collectors.joining(", ", "(", ")"));
         return name + para;
     }
 
     public static String buildScriptDocument(BlueprintScriptCallable callable) {
         var doc = callable.description();
         var para = Arrays.stream(callable.parameters())
-          .map(it -> {
-              var name = it.name();
-              var type = it.typeDesp();
-              var defv = it.defaultValue();
-              if (defv != null) {
-                  type = type + "=" + defv;
-              }
-              var desp = it.description();
-              return name + " : (" + type + ") " + desp;
-          }).collect(Collectors.joining("\n"));
+            .map(it -> {
+                var name = it.name();
+                var type = it.typeDesp();
+                var defv = it.defaultValue();
+                if (defv != null) {
+                    type = type + "=" + defv;
+                }
+                var desp = it.description();
+                return name + " : (" + type + ") " + desp;
+            }).collect(Collectors.joining("\n"));
 
         return doc + "\n" + para;
     }

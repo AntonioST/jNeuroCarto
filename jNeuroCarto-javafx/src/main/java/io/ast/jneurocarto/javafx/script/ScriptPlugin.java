@@ -64,7 +64,7 @@ public class ScriptPlugin extends InvisibleView {
 
         if (config.debug) {
             for (var handle : BlueprintScriptHandles.lookupClass(lookup, DebugScript.class)) {
-                initBlueprintScript(handle);
+                initBlueprintScript(service, handle);
             }
         }
 
@@ -72,7 +72,7 @@ public class ScriptPlugin extends InvisibleView {
             var coll = new ArrayList<>(BlueprintScriptHandles.lookupClass(lookup, clazz));
             coll.sort(Comparator.comparing(BlueprintScriptCallable::name));
             for (var callable : coll) {
-                initBlueprintScript(callable);
+                initBlueprintScript(service, callable);
             }
         }
     }
@@ -109,7 +109,14 @@ public class ScriptPlugin extends InvisibleView {
         return true;
     }
 
-    private void initBlueprintScript(BlueprintScriptCallable callable) {
+    private void initBlueprintScript(PluginSetupService service, BlueprintScriptCallable callable) {
+        for (var plugin : callable.requestPlugins()) {
+            if (service.getPlugin(plugin) == null) {
+                log.info("reject {}, because plugin {} is not load.", callable.name(), plugin.getSimpleName());
+                return;
+            }
+        }
+
         if (callable instanceof BlueprintScriptMethodHandle handle) {
             log.debug("init {} = {}.{}()", handle.name, handle.declaredClass.getSimpleName(), handle.declaredMethod.getName());
         } else if (callable instanceof BlueprintScriptClassHandle handle) {
@@ -263,8 +270,8 @@ public class ScriptPlugin extends InvisibleView {
             LogMessageService.printMessage("script \"" + callable.name() + "\" interrupted");
         } else {
             LogMessageService.printMessage(List.of(
-              "script \"" + callable.name() + "\" failed with",
-              error.toString()
+                "script \"" + callable.name() + "\" failed with",
+                error.toString()
             ));
             log.warn("evalScript", error);
         }
