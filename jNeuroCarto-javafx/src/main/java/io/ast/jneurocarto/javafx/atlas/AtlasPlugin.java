@@ -520,6 +520,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         btnCoronal = new RadioButton("Coronal");
         btnCoronal.setToggleGroup(groupProjection);
         btnCoronal.setOnAction(e -> projection.set(ImageSliceStack.Projection.coronal));
+        groupProjection.selectToggle(btnCoronal);
 
         btnSagittal = new RadioButton("Sagittal");
         btnSagittal.setToggleGroup(groupProjection);

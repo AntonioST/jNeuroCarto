@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 
 import javafx.geometry.Point2D;
 import javafx.scene.image.Image;
+import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 
 import org.jspecify.annotations.NullMarked;
@@ -229,7 +230,62 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         return new ImageSlice(plane, ax, ay, (int) (dw / res), (int) (dh / res), stack);
     }
 
-    public BufferedImage image() {
+    /*===============*
+     * image writing *
+     *===============*/
+
+    public static final ImageWriter<BufferedImage> AWT_IMAGE = new BufferedImageWriter();
+    public static final ImageWriter<Image> JFX_IMAGE = new JavaFxImageWriter();
+
+    public sealed interface ImageWriter<T> {
+        void create(int w, int h);
+
+        void set(int w, int h, int v);
+
+        T get();
+    }
+
+    private static final class BufferedImageWriter implements ImageWriter<BufferedImage> {
+        private BufferedImage image;
+
+        @Override
+        public void create(int w, int h) {
+            image = new BufferedImage(w, h, BufferedImage.TYPE_4BYTE_ABGR);
+        }
+
+        @Override
+        public void set(int w, int h, int v) {
+            image.setRGB(w, h, v);
+        }
+
+        @Override
+        public BufferedImage get() {
+            return image;
+        }
+    }
+
+    private static final class JavaFxImageWriter implements ImageWriter<Image> {
+        private WritableImage image;
+        private PixelWriter writer;
+
+        @Override
+        public void create(int w, int h) {
+            image = new WritableImage(w, h);
+            writer = image.getPixelWriter();
+        }
+
+        @Override
+        public void set(int w, int h, int v) {
+            writer.setArgb(w, h, v);
+        }
+
+        @Override
+        public Image get() {
+            return image;
+        }
+    }
+
+    public <T> T image(ImageWriter<T> writer) {
         var resolution = resolution();
         var rp = resolution[0];
         var rx = resolution[1];
@@ -243,7 +299,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         var cy = height * ry / 2;
 
         var volume = stack.getVolume();
-        var image = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR);
+        writer.create(width, height);
 
         var dw = new int[width];
         var dh = new int[height];
@@ -262,59 +318,45 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
 
         var project = projection();
         var q = new int[3];
-        for (int h = 0; h < height; h++) {
+
+        q[project.p] = 0;
+        q[project.x] = 1;
+        q[project.y] = 0;
+
+        var dx = volume.index(q[0], q[2], q[1]);
+
+        q[project.p] = 0;
+        q[project.x] = 0;
+        q[project.y] = 1;
+
+        var dy = volume.index(q[0], q[2], q[1]);
+
+        /*
+        coronal     dx = 456,   dy = 1
+        transverse  dx = 456,   dy = 145920
+        sagittal    dx = 145920, dy = 1
+         */
+
+        if (dx < dy) { // transverse
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
+                    q[project.x] = w;
+                    q[project.y] = h;
+                    writer.set(w, h, volume.get(q[0], q[2], q[1]));
+                }
+            }
+        } else { // coronal, sagittal
             for (int w = 0; w < width; w++) {
-                q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
-                q[project.x] = w;
-                q[project.y] = h;
-                image.setRGB(w, h, volume.get(q[0], q[2], q[1]));
+                for (int h = 0; h < height; h++) {
+                    q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
+                    q[project.x] = w;
+                    q[project.y] = h;
+                    writer.set(w, h, volume.get(q[0], q[2], q[1]));
+                }
             }
         }
-        return image;
-    }
 
-    public Image imageFx() {
-        var resolution = resolution();
-        var rp = resolution[0];
-        var rx = resolution[1];
-        var ry = resolution[2];
-
-        var plane = this.plane;
-        var width = stack.width();
-        var height = stack.height();
-
-        var cx = width * rx / 2;
-        var cy = height * ry / 2;
-
-        var volume = stack.getVolume();
-        var image = new WritableImage(width, height);
-        var writer = image.getPixelWriter();
-
-        var dw = new int[width];
-        var dh = new int[height];
-
-        var fw = this.dw * rx / cx;
-        var fh = this.dh * ry / cy;
-        for (int w = 0; w < width; w++) {
-            dw[w] = (int) (fw * (w * rx - cx) / rp);
-        }
-        for (int h = 0; h < height; h++) {
-            dh[h] = (int) (fh * (h * ry - cy) / rp);
-        }
-        var dp = dw[ax] + dh[ay];
-
-        var px = stack.plane() - 1;
-
-        var project = projection();
-        var q = new int[3];
-        for (int h = 0; h < height; h++) {
-            for (int w = 0; w < width; w++) {
-                q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
-                q[project.x] = w;
-                q[project.y] = h;
-                writer.setArgb(w, h, volume.get(q[0], q[2], q[1]));
-            }
-        }
-        return image;
+        return writer.get();
     }
 }

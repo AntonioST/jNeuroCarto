@@ -94,10 +94,14 @@ public class ImageVolume {
         return new int[]{page, height, width};
     }
 
-    private int index(int page, int y, int x) {
+    public int index(int page, int y, int x) {
         if (page < 0 || page >= this.page) throw new IndexOutOfBoundsException("page (%d) over boundary (%d).".formatted(page, this.page));
         if (x < 0 || x >= width) throw new IndexOutOfBoundsException("x (%d) over width (%d).".formatted(x, width));
         if (y < 0 || y >= height) throw new IndexOutOfBoundsException("y (%d) over height (%d).".formatted(y, height));
+        return page * (height * width) + y * width + x;
+    }
+
+    private int indexFast(int page, int y, int x) {
         return page * (height * width) + y * width + x;
     }
 
@@ -177,10 +181,11 @@ public class ImageVolume {
 
     public BufferedImage image(int page) {
         if (!colored) throw new IllegalArgumentException("not a colored image.");
+        if (page < 0 || page >= this.page) throw new IndexOutOfBoundsException("page (%d) over boundary (%d).".formatted(page, this.page));
         var ret = new BufferedImage(width, height, BufferedImage.TYPE_4BYTE_ABGR);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                ret.setRGB(x, y, data[index(page, y, x)]);
+                ret.setRGB(x, y, data[indexFast(page, y, x)]);
             }
         }
         return ret;

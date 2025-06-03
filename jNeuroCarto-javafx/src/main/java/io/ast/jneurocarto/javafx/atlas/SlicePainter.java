@@ -18,7 +18,7 @@ public class SlicePainter extends ImagePainter {
             sliceCache = slice;
             width(slice.width());
             height(slice.height());
-            setImage(slice.imageFx());
+            setImage(slice.image(ImageSlice.JFX_IMAGE));
         }
     }
 }
