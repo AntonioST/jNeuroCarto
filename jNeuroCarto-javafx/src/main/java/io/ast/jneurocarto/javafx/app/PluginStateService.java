@@ -15,6 +15,10 @@ public final class PluginStateService {
         throw new RuntimeException();
     }
 
+    public static <S> void restoreState(StateView<S> view) {
+        view.restoreState(loadState(view));
+    }
+
     public static <S> @Nullable S loadState(StateView<S> plugin) {
         log.debug("loadState({})", plugin.getClass().getSimpleName());
 
@@ -36,6 +40,13 @@ public final class PluginStateService {
     public static <S> @Nullable S loadGlobalState(Class<S> state) {
         log.debug("loadGlobalState({})", state.getSimpleName());
         return Application.getInstance().getRepository().getGlobalConfig(state);
+    }
+
+    public static <S> void saveState(StateView<S> plugin) {
+        var state = plugin.getState();
+        if (state != null) {
+            saveState(plugin, state);
+        }
     }
 
     public static <S> void saveState(StateView<S> plugin, S state) {
@@ -68,7 +79,7 @@ public final class PluginStateService {
 
         for (var plugin : application.plugins) {
             if (plugin.instance() instanceof StateView<?> view) {
-                view.restoreState();
+                restoreState(view);
             }
         }
     }
@@ -80,9 +91,8 @@ public final class PluginStateService {
 
         for (var plugin : application.plugins) {
             if (plugin.instance() instanceof StateView<?> view) {
-                view.saveState();
+                saveState(view);
             }
         }
     }
-
 }
