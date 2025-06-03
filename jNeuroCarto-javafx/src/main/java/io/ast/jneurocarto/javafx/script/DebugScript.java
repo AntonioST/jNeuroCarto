@@ -92,13 +92,35 @@ public class DebugScript {
     public void atlasAnchorImageTo(
         BlueprintAppToolkit<Object> toolkit,
         AtlasPlugin atlas,
-        @ScriptParameter(value = "coor", label = "(Ap,DV,ML)",
-            description = "referenced anatomical coordinate") double[] coordinate,
+        @ScriptParameter(value = "coor", label = "(AP,DV,ML)", defaultValue = "(0,0,0)",
+            description = "referenced anatomical coordinate (mm)") double[] coordinate,
         @ScriptParameter(value = "onto", label = "(X,Y)", defaultValue = "None",
-            description = "move coor onto point") double @Nullable [] point,
+            description = "move coor onto point (mm)") double @Nullable [] point,
         @ScriptParameter(value = "proj", defaultValue = "None",
             description = "change projection") ImageSliceStack.@Nullable Projection projection,
         @ScriptParameter(value = "global", defaultValue = "False",
             description = "change coor to global anatomical coordinate") boolean global) {
+        if (coordinate.length != 3) throw new RuntimeException("not (AP,DV,ML), but " + Arrays.toString(coordinate));
+        if (point != null && point.length != 2) throw new RuntimeException("not (XY), but " + Arrays.toString(point));
+
+        var c = new Coordinate(coordinate[0] * 1000, coordinate[1] * 1000, coordinate[2] * 1000);
+        if (global) {
+            c = atlas.project(c);
+        }
+
+        if (point == null) {
+            if (projection == null) {
+                atlas.anchorImageTo(c);
+            } else {
+                atlas.anchorImageTo(projection, c);
+            }
+        } else {
+            var p = new Point2D(point[0] * 1000, point[1] * 1000);
+            if (projection == null) {
+                atlas.anchorImageTo(c, p);
+            } else {
+                atlas.anchorImageTo(projection, c, p);
+            }
+        }
     }
 }

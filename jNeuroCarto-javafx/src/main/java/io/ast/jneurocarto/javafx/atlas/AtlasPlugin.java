@@ -163,6 +163,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             var name = ref == null ? "Global" : ref.name();
             log.debug("set atlas reference to {}", name);
             referenceNameProperty.set(name);
+            onAtlasReferenceUpdate(ref);
         });
     }
 
@@ -178,13 +179,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     public final void setAtlasReference(@Nullable String reference) {
         if (reference == null) {
             this.reference.set(null);
-            return;
+        } else {
+            this.reference.set(references.getReference(reference));
         }
 
-        this.reference.set(references.getReference(reference));
     }
 
-    public final void setAtlasReference(@Nullable AtlasReference reference) {
+    public final void setAtlasReference(AtlasReference reference) {
         this.reference.set(reference);
     }
 
@@ -255,10 +256,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     public void restoreGlobalState() {
         var state = PluginStateService.loadGlobalState(AtlasBrainGlobalViewState.class);
-        if (state == null || brain == null) return;
+        if (state == null) return;
 
         log.debug("restore global");
-        var reference = state.use_reference.get(brain.name());
+        var reference = state.use_reference.get(download.atlas());
         if (reference == null) {
             reference = state.default_use;
         }
@@ -311,7 +312,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var brain = this.brain;
         if (brain == null) return;
 
-        restoreGlobalState();
         IOAction.measure(log, "load reference", () -> {
             volume = new ImageVolume(brain.reference());
             volume.normalizeGrayLevel();
@@ -353,8 +353,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
         var ret = super.setup(service);
+        restoreGlobalState();
         checkBrainAtlas();
-        reference.addListener((_, _, ref) -> onAtlasReferenceUpdate(ref));
         return ret;
     }
 
@@ -815,7 +815,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      */
     public void anchorImageTo(Coordinate coordinate) {
         if (images == null) return;
-        setPlaneGlobal(images.project(coordinate).p());
+        setPlaneGlobal(images.project(transform.inverseTransform(coordinate)).p());
     }
 
     /**
@@ -827,7 +827,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      */
     public void anchorImageTo(Coordinate coordinate, Point2D p) {
         if (images == null) return;
-        var coor = images.project(coordinate);
+        var coor = images.project(transform.inverseTransform(coordinate));
         setPlaneGlobal(coor.p());
         // q: coordinate (x, y) on chart
         var q = painter.getChartTransform().transform(coor.x(), coor.y());
@@ -835,6 +835,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var dy = p.getY() - q.getY();
         painter.x(painter.x() + dx);
         painter.y(painter.y() + dy);
+        canvas.repaintBackground();
     }
 
     /**
@@ -897,7 +898,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private void updateSliceImage() {
         if (images == null) return;
 
-        var plane = getPlane();
+        var plane = getPlaneGlobal();
 
         var dw = sliderOffsetWidth.getValue();
         var dh = sliderOffsetHeight.getValue();

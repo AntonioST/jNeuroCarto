@@ -562,8 +562,9 @@ public final class BlueprintScriptHandles {
         } else if (target.isEnum()) {
             return switch (value) {
                 case PyValue.PyInt(int ret) -> target.getEnumConstants()[ret];
-                case PyValue.PyStr(String ret) -> Enum.valueOf((Class<Enum>) target, ret);
-                case PyValue.PySymbol(String ret) -> Enum.valueOf((Class<Enum>) target, ret);
+                case PyValue.PyStr(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
+                case PyValue.PySymbol(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
+                case PyValue.PyNone _ -> null;
                 case null, default -> throwCCE(rawString, target.getSimpleName());
             };
         } else if (target == PyValue.class) {
@@ -573,6 +574,21 @@ public final class BlueprintScriptHandles {
         }
 
         return throwCCE(rawString, target.getSimpleName());
+    }
+
+    public static <E extends Enum<E>> E castScriptArgumentForEnum(Class<E> target, String value) {
+        try {
+            return Enum.valueOf(target, value);
+        } catch (IllegalArgumentException e) {
+            var start = value.toLowerCase();
+            for (var c : target.getEnumConstants()) {
+                if (c.name().toLowerCase().startsWith(start)) {
+                    return c;
+                }
+            }
+
+            throw new IllegalArgumentException("mismatch " + target.getSimpleName() + " constant: " + value, e);
+        }
     }
 
     public static Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,

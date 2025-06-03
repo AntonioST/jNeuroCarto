@@ -551,6 +551,7 @@ public class Application<T> {
         logMessageArea.setPrefColumnCount(100);
         logMessageArea.setMinHeight(300);
         logMessageArea.setPrefHeight(500);
+        logMessageArea.setWrapText(true);
 
         var root = new VBox(
             stateLabel,

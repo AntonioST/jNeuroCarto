@@ -271,7 +271,7 @@ public class ScriptPlugin extends InvisibleView {
         } else {
             LogMessageService.printMessage(List.of(
                 "script \"" + callable.name() + "\" failed with",
-                error.toString()
+                error.getMessage()
             ));
             log.warn("evalScript", error);
         }
