@@ -171,6 +171,14 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
         var state = getState();
         if (state == null) {
             state = new ImplantState();
+            if (implantReference != null) {
+                state.reference = implantReference.name();
+            } else {
+                var ref = atlas.reference.get();
+                if (ref != null) {
+                    state.reference = ref.name();
+                }
+            }
         }
         openImplantDialog(state);
     }

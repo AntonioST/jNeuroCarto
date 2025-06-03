@@ -77,7 +77,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private BrainGlobeDownloader.DownloadResult download;
     private @Nullable BrainAtlas brain;
     private @Nullable ImageVolume volume;
-    private @Nullable AtlasReferenceService references;
+    private final AtlasReferenceService references;
     private ProbeTransform</*global*/Coordinate, /*reference*/Coordinate> transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
     private ProbeView<?> canvas;
     private SlicePainter painter;
@@ -86,6 +86,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     public AtlasPlugin(CartoConfig config) {
         download = AtlasBrainService.loadAtlas(config);
+        references = AtlasReferenceService.loadReferences(download);
     }
 
     @Override
@@ -106,7 +107,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     public AtlasReferenceService getReferencesService() {
-        return Objects.requireNonNull(references);
+        return references;
     }
 
     public @Nullable ImageSliceStack getImageSliceStack() {
@@ -161,9 +162,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             return;
         }
 
-        var ref = references;
-        if (ref == null) return;
-        this.reference.set(ref.getReference(reference));
+        this.reference.set(references.getReference(reference));
     }
 
     public final void setAtlasReference(@Nullable AtlasReference reference) {
@@ -303,11 +302,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         IOAction.measure(log, "pre load hemispheres", brain::hemispheres);
     }
 
-    private void setupAtlasReferenceService() {
-        references = AtlasReferenceService.loadReferences(download);
-        reference.addListener((_, _, ref) -> onAtlasReferenceUpdate(ref));
-    }
-
     /**
      * {@return current plane in um in global anatomical space}
      */
@@ -389,9 +383,9 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     @Override
     public @Nullable Node setup(PluginSetupService service) {
         log.debug("setup");
-        setupAtlasReferenceService();
         var ret = super.setup(service);
         checkBrainAtlas();
+        reference.addListener((_, _, ref) -> onAtlasReferenceUpdate(ref));
         return ret;
     }
 

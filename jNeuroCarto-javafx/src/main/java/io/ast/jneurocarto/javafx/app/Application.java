@@ -308,10 +308,10 @@ public class Application<T> {
 
     private MenuBar rootMenu() {
         menuBar = new MenuBar(
-          menuFile(),
-          menuEdit(),
-          menuView(),
-          menuHelp()
+            menuFile(),
+            menuEdit(),
+            menuView(),
+            menuHelp()
         );
         return menuBar;
     }
@@ -321,8 +321,8 @@ public class Application<T> {
 
         var newProbeMenu = new Menu("_New");
         var newProbeMenuItems = probe.supportedProbeType().stream()
-          .map(code -> new CodedMenuItem(code, probe.probeTypeDescription(code), this::onNewChannelmap))
-          .toList();
+            .map(code -> new CodedMenuItem(code, probe.probeTypeDescription(code), this::onNewChannelmap))
+            .toList();
         newProbeMenu.getItems().addAll(newProbeMenuItems);
 
         var open = new MenuItem("_Open");
@@ -347,11 +347,11 @@ public class Application<T> {
 
         var otherProbeMenu = new Menu("Open Other Probe _Family");
         var otherProbeMenuItems = ProbeDescription.listProbeDescriptions().stream()
-          .map(family -> {
-              var title = ProbeProviders.getProbeDescriptionText(family);
-              return new CodedMenuItem(family, title, this::openOtherProbeFamily);
-          })
-          .toList();
+            .map(family -> {
+                var title = ProbeProviders.getProbeDescriptionText(family);
+                return new CodedMenuItem(family, title, this::openOtherProbeFamily);
+            })
+            .toList();
         otherProbeMenu.getItems().addAll(otherProbeMenuItems);
 
         var exit = new MenuItem("_Exit");
@@ -359,17 +359,17 @@ public class Application<T> {
         exit.setOnAction(this::checkBeforeClosing);
 
         menuFile.getItems().addAll(
-          newProbeMenu,
-          open,
-          save,
-          saveAs,
-          new SeparatorMenuItem(),
-          loadBlueprint,
-          saveBlueprint,
-          new SeparatorMenuItem(),
-          otherProbeMenu,
-          new SeparatorMenuItem(),
-          exit
+            newProbeMenu,
+            open,
+            save,
+            saveAs,
+            new SeparatorMenuItem(),
+            loadBlueprint,
+            saveBlueprint,
+            new SeparatorMenuItem(),
+            otherProbeMenu,
+            new SeparatorMenuItem(),
+            exit
         );
 
         return menuFile;
@@ -395,12 +395,12 @@ public class Application<T> {
 
         var selectMethodMenu = new Menu("Selection method");
         var selectMethodMenuItems = probe.getElectrodeSelectors().stream()
-          .map(method -> {
-              var item = new CheckMenuItem(method);
-              item.selectedProperty().bind(selectMethod.isEqualTo(method));
-              item.setOnAction(e -> selectMethod.set(method));
-              return item;
-          }).toList();
+            .map(method -> {
+                var item = new CheckMenuItem(method);
+                item.selectedProperty().bind(selectMethod.isEqualTo(method));
+                item.setOnAction(e -> selectMethod.set(method));
+                return item;
+            }).toList();
         selectMethodMenu.getItems().addAll(selectMethodMenuItems);
 
         var clearLog = new MenuItem("Clear log messages");
@@ -410,17 +410,17 @@ public class Application<T> {
         editUserConfig.setOnAction(_ -> printMessage("TODO"));
 
         menuEdit.getItems().addAll(
-          clear,
-          clearBlueprint,
-          new SeparatorMenuItem(),
-          refresh,
-          selectMethodMenu,
-          autoFresh,
-          new SeparatorMenuItem(),
-          new ProbePluginSeparatorMenuItem(),
-          new PluginSeparatorMenuItem(),
-          editUserConfig,
-          clearLog
+            clear,
+            clearBlueprint,
+            new SeparatorMenuItem(),
+            refresh,
+            selectMethodMenu,
+            autoFresh,
+            new SeparatorMenuItem(),
+            new ProbePluginSeparatorMenuItem(),
+            new PluginSeparatorMenuItem(),
+            editUserConfig,
+            clearLog
         );
 
         return menuEdit;
@@ -446,13 +446,13 @@ public class Application<T> {
         clearLog.setOnAction(_ -> clearMessages());
 
         menuView.getItems().addAll(
-          resetProbeViewAxes,
-          resetProbeViewAxesRatio,
-          showChartAxesDialog,
-          new SeparatorMenuItem(),
-          new ProbePluginSeparatorMenuItem(),
-          new PluginSeparatorMenuItem(),
-          clearLog
+            resetProbeViewAxes,
+            resetProbeViewAxesRatio,
+            showChartAxesDialog,
+            new SeparatorMenuItem(),
+            new ProbePluginSeparatorMenuItem(),
+            new PluginSeparatorMenuItem(),
+            clearLog
         );
 
         return menuView;
@@ -465,8 +465,8 @@ public class Application<T> {
         about.setOnAction(this::showAbout);
 
         menuHelp.getItems().addAll(
-          new PluginSeparatorMenuItem(),
-          about
+            new PluginSeparatorMenuItem(),
+            about
         );
 
         return menuHelp;
@@ -553,12 +553,12 @@ public class Application<T> {
         logMessageArea.setPrefHeight(500);
 
         var root = new VBox(
-          stateLabel,
-          layoutState,
-          categoryLabel,
-          layoutCate,
-          new Label("Log"),
-          logMessageArea
+            stateLabel,
+            layoutState,
+            categoryLabel,
+            layoutCate,
+            new Label("Log"),
+            logMessageArea
         );
 
         root.setMinWidth(300);
@@ -616,7 +616,16 @@ public class Application<T> {
 
     private void setupPlugins() {
         log.debug("setup plugins");
+        var start = System.currentTimeMillis();
+        try {
+            setupPlugins0();
+        } finally {
+            var cost = System.currentTimeMillis() - start;
+            log.debug("setup {} plugins, cost {} ms", plugins.size(), cost);
+        }
+    }
 
+    private void setupPlugins0() {
         {
             var plugin = new ChannelmapStateListener();
             log.debug("add ChannelmapStateListener");
@@ -671,10 +680,15 @@ public class Application<T> {
         extra.addAll(config.extraViewList);
 
         for (var rule : extra) {
-            for (var provide : service.filterPluginByNameRule(found, rule)) {
-                var info = initPlugin(service, provide);
-                if (info != null) {
-                    plugins.add(info);
+            var provides = service.filterPluginByNameRule(found, rule);
+            if (provides.isEmpty()) {
+                log.info("no suitable plugin found by rule : {}", rule);
+            } else {
+                for (var provide : provides) {
+                    var info = initPlugin(service, provide);
+                    if (info != null) {
+                        plugins.add(info);
+                    }
                 }
             }
         }
@@ -699,8 +713,11 @@ public class Application<T> {
 
         try {
             instance = initPlugin(service, provide.plugin());
+        } catch (PluginSetupService.PluginRequirePluginNotSatisfyException e) {
+            log.debug("init plugin fail: {}", e.getMessage());
+            return null;
         } catch (Throwable e) {
-            log.warn("init fail", e);
+            log.warn("init plugin fail", e);
             return null;
         }
 
@@ -1025,8 +1042,8 @@ public class Application<T> {
 
         var suffixes = probe.channelMapFileSuffix();
         var exts = suffixes.stream()
-          .map(it -> "*" + it)
-          .collect(Collectors.toList());
+            .map(it -> "*" + it)
+            .collect(Collectors.toList());
 
         if (!save) {
             exts.add("*.config.json");
@@ -1164,6 +1181,9 @@ public class Application<T> {
      * event on probe *
      *================*/
 
+    /**
+     * saving probe file information in probe config.
+     */
     class ChannelmapStateListener implements StateView<ChannelmapState> {
         @Override
         public ChannelmapState getState() {
@@ -1386,9 +1406,9 @@ public class Application<T> {
 
     private void showAbout(ActionEvent e) {
         printMessage(List.of(
-          "jNeuroCarto - version 0.0.0",
-          "Author: XXX",
-          "Github: XXX"
+            "jNeuroCarto - version 0.0.0",
+            "Author: XXX",
+            "Github: XXX"
         ));
     }
 
@@ -1430,7 +1450,7 @@ public class Application<T> {
         if (area != null) {
             var content = area.getText();
             var updated = Stream.concat(message.stream(), Stream.of(content))
-              .collect(Collectors.joining("\n"));
+                .collect(Collectors.joining("\n"));
             area.setText(updated);
         }
     }

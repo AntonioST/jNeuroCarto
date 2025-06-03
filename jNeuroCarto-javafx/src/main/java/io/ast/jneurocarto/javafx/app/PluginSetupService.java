@@ -184,6 +184,18 @@ public final class PluginSetupService {
      * plugin *
      *========*/
 
+    public static class PluginRequirePluginNotSatisfyException extends RuntimeException {
+        public final Class<? extends Plugin> plugin;
+        public final Class<? extends Plugin> require;
+
+        public PluginRequirePluginNotSatisfyException(Class<? extends Plugin> plugin, Class<? extends Plugin> require) {
+            var message = "plugin %s require %s.".formatted(plugin.getSimpleName(), require.getSimpleName());
+            super(message);
+            this.plugin = plugin;
+            this.require = require;
+        }
+    }
+
     record PluginInfo(PluginProvider provider, Class<? extends Plugin> plugin, String[] name) {
     }
 
@@ -229,31 +241,37 @@ public final class PluginSetupService {
     }
 
     <P extends Plugin> P loadPlugin(Class<P> plugin) throws Throwable {
+        var log = LoggerFactory.getLogger(PluginSetupService.class);
 
         Constructor<P> ctor = null;
 
         try {
             ctor = plugin.getConstructor(PluginSetupService.class);
         } catch (NoSuchMethodException e) {
+            log.trace("plugin {} no no-arg constructor", plugin.getSimpleName());
         }
 
         if (ctor != null) {
-            return loadPlugin(ctor);
+            return loadPlugin(plugin, ctor);
         }
 
         for (var c : plugin.getConstructors()) {
             try {
-                return loadPlugin((Constructor<P>) c);
+                return loadPlugin(plugin, (Constructor<P>) c);
+            } catch (PluginRequirePluginNotSatisfyException e) {
+                throw e;
             } catch (Throwable e) {
+                log.debug("plugin {} initialize fail by {}", plugin.getSimpleName(), e.getMessage());
             }
         }
 
         throw new RuntimeException("cannot initialize plugin : " + plugin.getName());
     }
 
-    <P extends Plugin> P loadPlugin(Constructor<P> ctor) throws Throwable {
+    <P extends Plugin> P loadPlugin(Class<P> plugin, Constructor<P> ctor) throws Throwable {
         var ps = ctor.getParameters();
         var os = new Object[ps.length];
+
         for (int i = 0, length = ps.length; i < length; i++) {
             var t = ps[i].getType();
             if (t == PluginSetupService.class) {
@@ -276,9 +294,9 @@ public final class PluginSetupService {
                     os[i] = null;
                 }
             } else if (Plugin.class.isAssignableFrom(t)) {
-                var plugin = getPlugin((Class<? extends Plugin>) t);
-                if (plugin == null) throw new RuntimeException("plugin " + t.getSimpleName() + " is not loaded");
-                os[i] = plugin;
+                var require = getPlugin((Class<? extends Plugin>) t);
+                if (require == null) throw new PluginRequirePluginNotSatisfyException(plugin, (Class<? extends Plugin>) t);
+                os[i] = require;
             } else {
                 throw new RuntimeException("unsupported parameter inject for " + t.getName());
             }
