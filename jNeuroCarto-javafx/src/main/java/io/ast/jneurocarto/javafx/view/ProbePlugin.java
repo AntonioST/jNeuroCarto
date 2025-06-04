@@ -7,7 +7,7 @@ import org.jspecify.annotations.NullMarked;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 
 @NullMarked
-public interface ProbePlugin<T> extends Plugin {
+public interface ProbePlugin<T> extends Plugin, ProbeUpdateHandler<T> {
 
     default String description() {
         return name();

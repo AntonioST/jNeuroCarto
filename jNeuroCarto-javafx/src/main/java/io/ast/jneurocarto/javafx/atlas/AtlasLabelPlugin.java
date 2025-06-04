@@ -49,14 +49,14 @@ import io.ast.jneurocarto.javafx.script.BlueprintScriptCallable.Parameter;
 import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 import io.ast.jneurocarto.javafx.utils.Result;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
-import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.ProbeUpdateHandler;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 import static io.ast.jneurocarto.javafx.script.BlueprintScriptHandles.pairScriptArguments;
 import static io.ast.jneurocarto.javafx.script.BlueprintScriptHandles.parseScriptInputLine;
 
 @NullMarked
-public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLabelViewState>, ProbePlugin<Object> {
+public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLabelViewState>, ProbeUpdateHandler<Object> {
 
     private final ProbeDescription<Object> probe;
     private ShankCoordinate shankTransform = ShankCoordinate.ZERO;

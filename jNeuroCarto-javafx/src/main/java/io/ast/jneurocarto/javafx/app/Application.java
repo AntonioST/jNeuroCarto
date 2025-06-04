@@ -43,7 +43,7 @@ import io.ast.jneurocarto.core.config.Repository;
 import io.ast.jneurocarto.javafx.utils.ChartAxesDialog;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
-import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.ProbeUpdateHandler;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 public class Application<T> {
@@ -1385,9 +1385,9 @@ public class Application<T> {
         view.updateElectrode();
 
         for (var plugin : plugins) {
-            if (plugin.instance() instanceof ProbePlugin<?> p) {
+            if (plugin.instance() instanceof ProbeUpdateHandler<?> p) {
                 log.debug("onProbeUpdate for {}", p.getClass().getSimpleName());
-                ((ProbePlugin<T>) p).onProbeUpdate(chmap, blueprint);
+                ((ProbeUpdateHandler<T>) p).onProbeUpdate(chmap, blueprint);
             }
         }
     }

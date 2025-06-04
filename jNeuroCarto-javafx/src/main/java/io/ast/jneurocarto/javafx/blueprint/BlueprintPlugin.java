@@ -28,9 +28,9 @@ import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.data.XYPath;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
-import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.ProbeUpdateHandler;
 
-public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object> {
+public class BlueprintPlugin extends InvisibleView implements ProbeUpdateHandler<Object> {
 
     private final ProbeDescription<Object> probe;
     private InteractionXYPainter foreground;

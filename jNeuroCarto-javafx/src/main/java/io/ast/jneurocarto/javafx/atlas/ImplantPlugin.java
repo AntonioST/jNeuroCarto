@@ -24,11 +24,12 @@ import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
-import io.ast.jneurocarto.javafx.view.ProbePlugin;
+import io.ast.jneurocarto.javafx.view.Plugin;
+import io.ast.jneurocarto.javafx.view.ProbeUpdateHandler;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 @NullMarked
-public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantState>, InteractionXYChart.PlottingJob {
+public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateView<ImplantState>, InteractionXYChart.PlottingJob {
 
     private final ProbeDescription<Object> probe;
     private final AtlasPlugin atlas;
