@@ -197,6 +197,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         graphics = foreground.text()
             .colormap(colormap = new DiscreteColormap())
             .font(Font.font(10))
+            .line(Color.BLACK)
+            .showAnchorPoint(true)
             .graphics();
         colormap.addColor(0, Color.BLACK);
         colorMapping.put("black", 0);
@@ -205,8 +207,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             graphics.font(Font.font(size.doubleValue()));
         });
 
-        // TODO listen atlas image change event.
-
+        canvas.addEventFilter(AtlasUpdateEvent.POSITION, _ -> updateLabelPosition());
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_CLICKED, this::onDataTouch);
 //        canvas.addEventFilter(DataSelectEvent.DATA_SELECT, this::onDataSelect);
         // TODO label dragging
@@ -358,7 +359,6 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             log.debug("update {}", label);
             found.label = label;
             updateLabelPosition(found);
-            foreground.repaint();
         }
     }
 
@@ -373,7 +373,6 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         var ret = new XYLabel(label, xy);
         labels.add(ret);
         updateLabelPosition(ret);
-        foreground.repaint();
     }
 
     public @Nullable CoordinateLabel getLabel(String text) {
@@ -507,6 +506,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             log.trace("update label \"{}\" to {}", label.text(), pos);
             label.setChartPosition(pos);
         }
+        foreground.repaint();
     }
 
     private void updateLabelPosition(XYLabel label) {
@@ -514,6 +514,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         var pos = transform.projectToChart(label.position());
         log.debug("update label \"{}\" to {}", label.text(), pos);
         label.setChartPosition(pos);
+        foreground.repaint();
     }
 
     public void changeLabelPosition(XYLabel label, Point2D offset) {

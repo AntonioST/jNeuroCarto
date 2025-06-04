@@ -10,6 +10,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.event.EventType;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
@@ -164,6 +165,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             log.debug("set atlas reference to {}", name);
             referenceNameProperty.set(name);
             onAtlasReferenceUpdate(ref);
+            fireAtlasImageUpdateEvent(AtlasUpdateEvent.REFERENCE);
         });
     }
 
@@ -188,6 +190,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     public final void setAtlasReference(AtlasReference reference) {
         this.reference.set(reference);
     }
+
 
     /*=================*
      * state load/save *
@@ -312,6 +315,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var brain = this.brain;
         if (brain == null) return;
 
+        fireAtlasImageUpdateEvent(AtlasUpdateEvent.LOADED);
         IOAction.measure(log, "load reference", () -> {
             volume = new ImageVolume(brain.reference());
             volume.normalizeGrayLevel();
@@ -412,16 +416,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var setGlobalRef = new SetRefMenuItem(null);
         setReference.getItems().add(setGlobalRef);
 
-        var references = this.references;
-        if (references != null) {
-            var items = references.getReferenceList().stream()
-                .sorted()
-                .map(references::getReference)
-                .filter(Objects::nonNull)
-                .map(SetRefMenuItem::new)
-                .toList();
-            setReference.getItems().addAll(items);
-        }
+        var items = references.getReferenceList().stream()
+            .sorted()
+            .map(references::getReference)
+            .filter(Objects::nonNull)
+            .map(SetRefMenuItem::new)
+            .toList();
+
+        setReference.getItems().addAll(items);
         reference.addListener((_, _, ref) -> {
             for (var item : setReference.getItems()) {
                 if (item instanceof SetRefMenuItem setRef) {
@@ -615,7 +617,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private Slider newSlider() {
         var slider = new Slider();
         slider.setShowTickLabels(true);
-        slider.valueProperty().addListener((_, _, _) -> onSliderMoved());
+        slider.valueProperty().addListener((_, _, _) -> onSliderMoved(slider));
         return slider;
     }
 
@@ -652,9 +654,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private @Nullable ChartMouseEvent mousePress;
     private @Nullable ChartMouseEvent mouseMoved;
 
-    private void onSliderMoved() {
+    private void onSliderMoved(Slider source) {
         if (images != null) {
             updateSliceImage();
+            if (source == sliderRotation) {
+                fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+            } else {
+                fireAtlasImageUpdateEvent(AtlasUpdateEvent.SLICING);
+            }
         }
     }
 
@@ -674,6 +681,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             mouseMoved = e;
             e.consume();
             updateSliceImage();
+            fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
         }
     }
 
@@ -928,7 +936,9 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
         sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
 
+        fireAtlasImageUpdateEvent(AtlasUpdateEvent.PROJECTION);
         updateSliceImage();
+        fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
     }
 
     private void updateSliceImage() {
@@ -945,6 +955,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         this.image = image = image.withOffset(dw, dh);
         painter.update(image);
         canvas.repaintBackground();
+    }
+
+    /*====================*
+     * Image update event *
+     *====================*/
+
+    private void fireAtlasImageUpdateEvent(EventType<AtlasUpdateEvent> event) {
+        canvas.fireEvent(new AtlasUpdateEvent(event, this));
     }
 
     /*=================*
