@@ -161,6 +161,10 @@ public final class ImageSliceStack {
         return volumeShape[i] * brainResolution[i];
     }
 
+    /**
+     * @param coor global anatomical coordinate
+     * @return slice coordinate
+     */
     public SliceCoordinate project(Coordinate coor) {
         return new SliceCoordinate(
             project.get(coor, project.p),
@@ -172,7 +176,7 @@ public final class ImageSliceStack {
     /**
      * project coordinate (AP, DV, ML) into (p, x, y)
      *
-     * @param coor coordinate (AP, DV, ML)
+     * @param coor global anatomical coordinate index (AP, DV, ML)
      * @return coordinate (p, x, y)
      */
     public SliceCoordinateIndex project(CoordinateIndex coor) {
@@ -183,6 +187,10 @@ public final class ImageSliceStack {
         );
     }
 
+    /**
+     * @param coor slice coordinate
+     * @return global anatomical coordinate
+     */
     public Coordinate pullBack(SliceCoordinate coor) {
         var t = new double[3];
 
@@ -197,7 +205,7 @@ public final class ImageSliceStack {
      * project coordinate (p, x, y) into (AP, DV, ML)
      *
      * @param coor coordinate (p, x, y)
-     * @return coordinate (AP, DV, ML)
+     * @return global anatomical coordinate (AP, DV, ML)
      */
     public CoordinateIndex pullBack(SliceCoordinateIndex coor) {
         var t = new int[3];
@@ -337,7 +345,7 @@ public final class ImageSliceStack {
         t[3 + project.y] = 1;
         t[6 + project.p] = 1;
         var a = new Affine(t[0], t[1], t[2], 0, t[3], t[4], t[5], 0, t[6], t[7], t[8], 0);
-        return new ProbeTransform<>(ProbeTransform.ANATOMICAL, SliceDomain.INSTANCE, a);
+        return ProbeTransform.create(ProbeTransform.ANATOMICAL, SliceDomain.INSTANCE, a);
     }
 
     @Override
