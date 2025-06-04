@@ -57,6 +57,14 @@ public class ChartMouseEvent extends InputEvent {
         return mouse.getClickCount();
     }
 
+    /**
+     * @param p previous event
+     * @return mouse movement in chart coordinate
+     */
+    public Point2D delta(ChartMouseEvent p) {
+        return new Point2D(getChartX() - p.getChartX(), getChartY() - p.getChartY());
+    }
+
     @Override
     public void consume() {
         super.consume();

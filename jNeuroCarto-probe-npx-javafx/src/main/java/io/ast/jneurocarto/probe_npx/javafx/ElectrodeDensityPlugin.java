@@ -92,7 +92,6 @@ public class ElectrodeDensityPlugin extends InvisibleView implements ProbePlugin
     protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
         painter = canvas.getForegroundPainter();
         painter.visible.bindBidirectional(visible);
-        painter.visible.addListener((_, _, e) -> painter.repaint());
     }
 
     /*=============*

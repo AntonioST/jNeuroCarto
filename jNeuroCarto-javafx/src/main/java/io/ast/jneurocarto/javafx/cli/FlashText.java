@@ -119,8 +119,9 @@ public class FlashText implements Example.Content, Runnable, ChartMouseDraggingH
 
     @Override
     public void onChartMouseDragging(ChartMouseEvent p, ChartMouseEvent e) {
-        touched.x(touched.x() + e.getChartX() - p.getChartX());
-        touched.y(touched.y() + e.getChartY() - p.getChartY());
+        var d = e.delta(p);
+        touched.x(touched.x() + d.getX());
+        touched.y(touched.y() + d.getY());
         painter.repaint();
     }
 

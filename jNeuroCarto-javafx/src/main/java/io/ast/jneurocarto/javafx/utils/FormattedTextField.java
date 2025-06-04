@@ -70,23 +70,39 @@ public abstract class FormattedTextField<T> extends TextField {
         setStyle("-fx-control-inner-background: white;");
     }
 
-    public static void install(TextField field, Function<String, @Nullable String> validator) {
+    /// fast install validator onto the `field`.
+    ///
+    /// ### validator result
+    ///
+    /// * `null` normal.
+    /// * `String` normal, but jump tooltip.
+    /// * `Throwable` fail, and jump tooltip.
+    ///
+    /// @param field
+    /// @param validator
+    public static Tooltip install(TextField field, Function<String, @Nullable Result<String, Throwable>> validator) {
         var tooltip = new Tooltip();
         field.textProperty().addListener((_, _, t) -> {
-            var message = validator.apply(t);
-            if (message == null) {
+            var result = validator.apply(t);
+            if (result == null) {
                 Tooltip.uninstall(field, tooltip);
                 field.setStyle("-fx-control-inner-background: white;");
-            } else {
+            } else if (result instanceof Result.Success(var message)) {
                 if (!message.isEmpty()) {
                     tooltip.setText(message);
                     Tooltip.install(field, tooltip);
-                } else {
-                    Tooltip.uninstall(field, tooltip);
+                }
+                field.setStyle("-fx-control-inner-background: white;");
+            } else if (result instanceof Result.Failure(var error)) {
+                var message = error.getMessage();
+                if (message != null && !message.isEmpty()) {
+                    tooltip.setText(message);
+                    Tooltip.install(field, tooltip);
                 }
                 field.setStyle("-fx-control-inner-background: pink;");
             }
         });
+        return tooltip;
     }
 
     public static class OfIntField extends FormattedTextField<Number> {

@@ -45,6 +45,10 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
     public final BooleanProperty visible = new SimpleBooleanProperty(true);
 
+    {
+        visible.addListener((_, _, _) -> repaint());
+    }
+
     public boolean isVisible() {
         return visible.get();
     }

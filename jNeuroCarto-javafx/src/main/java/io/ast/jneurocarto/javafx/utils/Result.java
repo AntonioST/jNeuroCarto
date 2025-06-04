@@ -39,6 +39,14 @@ public sealed interface Result<V, X extends Throwable> {
         }
     }
 
+    default boolean isSuccess() {
+        return this instanceof Result.Success<V, X>;
+    }
+
+    default boolean isFailure() {
+        return this instanceof Result.Failure<V, X>;
+    }
+
     default <R> Result<R, Throwable> then(Function<V, R> mapper) {
         return switch (this) {
             case Success(var value) -> success(mapper.apply(value));

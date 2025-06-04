@@ -91,7 +91,9 @@ public abstract class InvisibleView implements Plugin {
         // TODO styling?
         visibleSwitch.selectedProperty().bindBidirectional(visible);
 
-        return new HBox(visibleSwitch);
+        var layout = new HBox(visibleSwitch);
+        layout.setSpacing(10);
+        return layout;
     }
 
     protected @Nullable Node setupContent(PluginSetupService service) {

@@ -125,7 +125,6 @@ public class DataVisualizePlugin extends AbstractImagePlugin implements ProbePlu
             }
         });
         foreground.visible.bindBidirectional(showImageProperty);
-        foreground.visible.addListener((_, _, e) -> foreground.repaint());
     }
 
     @Override

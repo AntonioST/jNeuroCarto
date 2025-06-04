@@ -372,7 +372,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
 
         layout.getChildren().add(showImageSwitch);
-        layout.setSpacing(10);
 
         return layout;
     }

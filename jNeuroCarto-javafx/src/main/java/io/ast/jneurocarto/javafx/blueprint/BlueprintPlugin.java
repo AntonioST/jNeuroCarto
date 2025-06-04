@@ -139,7 +139,6 @@ public class BlueprintPlugin extends InvisibleView implements ProbePlugin<Object
         if (painter != null) {
             var features = painter.supportedFeatures();
             if (!features.isEmpty()) {
-                layout.setSpacing(5);
                 layout.getChildren().add(new Label("Features:"));
 
                 if (features.contains(BlueprintPainter.Feature.conflict)) {

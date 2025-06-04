@@ -79,8 +79,9 @@ public class DragDrop implements Main.Content, Runnable, ChartMouseDraggingHandl
 
     @Override
     public void onChartMouseDragging(ChartMouseEvent p, ChartMouseEvent e) {
-        var dx = e.getChartX() - p.getChartX();
-        var dy = e.getChartY() - p.getChartY();
+        var d = e.delta(p);
+        var dx = d.getX();
+        var dy = d.getY();
         for (var xy : selected) {
             xy.x(xy.x() + dx);
             xy.y(xy.y() + dy);

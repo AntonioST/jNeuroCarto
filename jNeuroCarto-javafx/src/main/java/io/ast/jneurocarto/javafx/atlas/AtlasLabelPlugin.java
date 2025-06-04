@@ -19,6 +19,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import org.jspecify.annotations.NullMarked;
@@ -30,6 +31,7 @@ import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
 import io.ast.jneurocarto.atlas.SliceDomain;
 import io.ast.jneurocarto.core.*;
+import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.AtlasPosition;
@@ -40,10 +42,12 @@ import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.colormap.DiscreteColormap;
 import io.ast.jneurocarto.javafx.chart.data.XY;
 import io.ast.jneurocarto.javafx.chart.data.XYText;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseDraggingHandler;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.script.BlueprintScriptCallable.Parameter;
 import io.ast.jneurocarto.javafx.utils.FormattedTextField;
+import io.ast.jneurocarto.javafx.utils.Result;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
 import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.StateView;
@@ -53,7 +57,6 @@ import static io.ast.jneurocarto.javafx.script.BlueprintScriptHandles.parseScrip
 
 @NullMarked
 public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLabelViewState>, ProbePlugin<Object> {
-
 
     private final ProbeDescription<Object> probe;
     private ShankCoordinate shankTransform = ShankCoordinate.ZERO;
@@ -95,6 +98,16 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
     public void setShowLabels(boolean value) {
         showLabels.set(value);
+    }
+
+    public final BooleanProperty allowLabelDragging = new SimpleBooleanProperty(false);
+
+    public boolean isAllowLabelDragging() {
+        return allowLabelDragging.get();
+    }
+
+    public void setAllowLabelDragging(boolean allow) {
+        allowLabelDragging.set(allow);
     }
 
     public final DoubleProperty fontSize = new SimpleDoubleProperty(12);
@@ -149,6 +162,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         var showLabelSwitch = new CheckBox("Show labels");
         showLabelSwitch.selectedProperty().bindBidirectional(showLabels);
         showLabelSwitch.selectedProperty().bindBidirectional(foreground.visible);
+        layout.getChildren().add(showLabelSwitch);
 
         return layout;
     }
@@ -176,7 +190,9 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         });
 
         labelText = new TextField();
-        FormattedTextField.install(labelText, this::validateLabelInput);
+        var tooltip = FormattedTextField.install(labelText, this::validateLabelInput);
+        tooltip.setShowDelay(Duration.ZERO);
+        tooltip.setHideDelay(Duration.seconds(10));
 
         var add = new Button("Add");
         add.setOnAction(this::onLabelAdd);
@@ -209,13 +225,15 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
         canvas.addEventFilter(AtlasUpdateEvent.POSITION, _ -> updateLabelPosition());
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_CLICKED, this::onDataTouch);
-//        canvas.addEventFilter(DataSelectEvent.DATA_SELECT, this::onDataSelect);
-        // TODO label dragging
+        canvas.addEventFilter(DataSelectEvent.DATA_SELECT, this::onDataSelect);
+        ChartMouseDraggingHandler.setupChartMouseDraggingHandler(canvas, new LabelDraggingHandler());
     }
 
     /*==============*
      * event handle *
      *==============*/
+
+    private @Nullable List<XYLabel> selected;
 
     private void onLabelAdd(ActionEvent e) {
         var kind = labelKinds.getValue();
@@ -257,30 +275,86 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     private void onLabelTouch(ChartMouseEvent e, XYLabel label) {
         if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
             focusOnLabel(label);
-        } else {
-            log.debug("touch label = {}", label.text());
+            LogMessageService.printMessage("focus on " + label.text());
+            e.consume();
+        } else if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 1) {
+            printLabelInformation(label.label);
+            e.consume();
+        } else if (e.getButton() == MouseButton.MIDDLE && e.getClickCount() == 1) {
+            var text = label.text();
+            labelText.setText(text);
+            labelText.positionCaret(text.length());
+            e.consume();
         }
     }
 
     private void onLabelSelect(DataSelectEvent e, List<XYLabel> labels) {
-
+        if (isAllowLabelDragging()) {
+            selected = labels;
+        }
+        log.debug("selected {} labels", labels.size());
     }
 
-    private @Nullable String validateLabelInput(String line) {
+    private class LabelDraggingHandler implements ChartMouseDraggingHandler {
+        @Override
+        public boolean onChartMouseDragDetect(ChartMouseEvent e) {
+            if (!isAllowLabelDragging()) return false;
+
+            if (selected == null) {
+                var xy = graphics.touch(e.point);
+                if (xy != null) {
+                    var label = findLabel(xy);
+                    if (label != null) {
+                        selected = List.of(label);
+                    }
+                }
+            }
+            return selected != null;
+        }
+
+        @Override
+        public void onChartMouseDragging(ChartMouseEvent p, ChartMouseEvent e) {
+            if (selected == null) return;
+
+            var transform = new LabelPositionTransformer();
+            var offset = e.delta(p);
+            for (var label : selected) {
+                var pos = transform.offset(label.position(), offset);
+                if (pos != null) {
+                    var x = label.data.x() + offset.getX();
+                    var y = label.data.y() + offset.getY();
+                    label.data.x(x);
+                    label.data.y(y);
+                    label.updatePosition(pos);
+                }
+            }
+
+            foreground.repaint();
+        }
+
+        @Override
+        public void onChartMouseDragDone(ChartMouseEvent e) {
+            if (selected == null) return;
+
+            selected = null;
+        }
+    }
+
+    private @Nullable Result<String, Throwable> validateLabelInput(String line) {
         var kind = labelKinds.getValue();
         if (line.isEmpty()) {
-            return switch (kind) {
+            return Result.success(switch (kind) {
                 case atlas -> "text [,ap, dv, ml, color]";
                 case reference -> "text [,ap, dv, ml, reference, color]";
                 case slice -> "text [,x, y, plane, project, color]";
                 case probe -> "text [,x, y, shank, color]";
-            };
+            });
         } else {
             try {
                 evalLabelInput(kind, line);
                 return null;
             } catch (RuntimeException e) {
-                return e.getMessage();
+                return Result.fail(e);
             }
         }
     }
@@ -445,6 +519,31 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         log.debug("focus label = {}", label.text());
         var pos = new LabelPositionTransformer().projectToAnatomical(label.position());
         if (pos != null) atlas.anchorImageTo(atlas.project(pos));
+    }
+
+    public void printLabelInformation(CoordinateLabel label) {
+        var transform = new LabelPositionTransformer();
+
+        var messages = new ArrayList<String>();
+        messages.add(label.text());
+
+        var coor = transform.projectToAnatomical(label.position());
+        if (coor != null) {
+            coor = atlas.project(coor);
+            String ref = "";
+            if (transform.reference != null) {
+                ref = " to " + transform.reference;
+            }
+
+            messages.add("(AP,DV,ML)=(%.1f,%.1f,%.1f)mm%s".formatted(coor.ap() / 1000, coor.dv() / 1000, coor.ml() / 1000, ref));
+        }
+
+        var p = projectToChart(label.position());
+        if (p != null) {
+            messages.add("(X,Y)=(%.0f,%.0f)um".formatted(p.getX(), p.getY()));
+        }
+
+        LogMessageService.printMessage(messages);
     }
 
     /*===============================*

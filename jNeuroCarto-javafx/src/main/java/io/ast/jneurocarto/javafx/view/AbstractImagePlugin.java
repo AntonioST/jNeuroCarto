@@ -89,7 +89,6 @@ public abstract class AbstractImagePlugin extends InvisibleView {
         visible.addListener((_, _, e) -> showImageSwitch.setSelected(e));
 
         ret.getChildren().add(showImageSwitch);
-        ret.setSpacing(10);
 
         return ret;
     }

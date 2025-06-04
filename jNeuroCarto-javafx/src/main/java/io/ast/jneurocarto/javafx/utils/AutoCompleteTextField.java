@@ -192,16 +192,16 @@ public class AutoCompleteTextField extends TextField {
             }
 
             return ret.map(p -> {
-                  if (Files.isDirectory(p)) {
-                      return p.getFileName().toString() + "/";
-                  } else {
-                      return p.getFileName().toString();
-                  }
-              })
-              .filter(it -> filename == null || it.startsWith(filename))
-              .sorted(String::compareToIgnoreCase)
-              .map(it -> dirname + it)
-              .onClose(ret::close);
+                    if (Files.isDirectory(p)) {
+                        return p.getFileName().toString() + "/";
+                    } else {
+                        return p.getFileName().toString();
+                    }
+                })
+                .filter(it -> filename == null || it.startsWith(filename))
+                .sorted(String::compareToIgnoreCase)
+                .map(it -> dirname + it)
+                .onClose(ret::close);
         }
     }
 
@@ -302,39 +302,40 @@ public class AutoCompleteTextField extends TextField {
             FormattedTextField.install(this, this::validate);
         }
 
-        protected @Nullable String validate(String content) {
+        protected @Nullable Result<String, Throwable> validate(String content) {
             if (!isValidateContent() || content.isEmpty()) return null;
 
-            var root = getRoot();
-            if (isAllowMultipleFile()) {
-                for (var file : content.split(" +")) {
-                    var message = validate(root.resolve(file));
-                    if (message != null) return message;
+            try {
+                var root = getRoot();
+                if (isAllowMultipleFile()) {
+                    for (var file : content.split(" +")) {
+                        validate(root.resolve(file));
+                    }
+                } else {
+                    validate(root.resolve(content));
                 }
-            } else {
-                return validate(root.resolve(content));
+            } catch (Exception e) {
+                return Result.fail(e);
             }
 
             return null;
         }
 
-        public @Nullable String validate(Path file) {
+        public void validate(Path file) {
             if (isOnlyDirectory() && !Files.isDirectory(file)) {
-                return file + " is not a directory";
+                throw new RuntimeException(file + " is not a directory");
             }
 
             var pm = getFileMatcher();
             if (pm != null) {
                 if (Files.isDirectory(file)) {
-                    return file + " is a directory";
+                    throw new RuntimeException(file + " is a directory");
                 }
 
                 if (!pm.matches(file.getFileName())) {
-                    return "";
+                    throw new RuntimeException();
                 }
             }
-
-            return null;
         }
     }
 }
