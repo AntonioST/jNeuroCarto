@@ -331,7 +331,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public @Nullable CoordinateLabel atlasAddLabel(String text, Coordinate coordinate, String color) {
         return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate), color);
+            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate, null), color);
             p.addLabel(label);
             return label;
         }).orElse(null);
@@ -339,7 +339,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public @Nullable CoordinateLabel atlasAddLabel(String text, String reference, Coordinate coordinate, String color) {
         return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasRefPosition(reference, coordinate), color);
+            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate, reference), color);
             p.addLabel(label);
             return label;
         }).orElse(null);
@@ -368,7 +368,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
 
     public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y, String color) {
         return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.CanvasPosition(x, y), color);
+            var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(new ProbeCoordinate(0, x, y)), color);
             p.addLabel(label);
             return label;
         }).orElse(null);

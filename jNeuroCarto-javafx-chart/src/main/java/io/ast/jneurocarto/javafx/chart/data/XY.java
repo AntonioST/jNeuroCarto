@@ -12,7 +12,8 @@ public final class XY {
     double x;
     double y;
     double v;
-    final @Nullable Object external;
+    @Nullable
+    Object external;
 
     public XY(Point2D p) {
         this(p.getX(), p.getY(), 0, null);
@@ -79,6 +80,10 @@ public final class XY {
 
     public @Nullable Object external() {
         return external;
+    }
+
+    public void external(Object external) {
+        this.external = external;
     }
 
     @Override

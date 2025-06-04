@@ -358,7 +358,7 @@ public class XYText extends XYSeries {
 
     @Override
     public void paint(GraphicsContext gc, double[][] p, int offset, int length) {
-        if (color == null) return;
+        if (color == null && colormap == null) return;
         var cmap = colormap;
 
         gc.save();
