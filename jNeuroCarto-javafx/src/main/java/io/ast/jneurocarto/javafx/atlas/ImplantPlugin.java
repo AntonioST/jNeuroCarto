@@ -216,7 +216,8 @@ public class ImplantPlugin implements ProbePlugin<Object>, StateView<ImplantStat
     }
 
     private void onFocusImplantCoordinate(ActionEvent e) {
-
+        //XXX Unsupported Operation ImplantPlugin.onFocusImplantCoordinate
+        throw new UnsupportedOperationException();
     }
 
     /*===========================*

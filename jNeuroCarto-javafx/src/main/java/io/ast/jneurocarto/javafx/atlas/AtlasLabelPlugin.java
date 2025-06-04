@@ -6,6 +6,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
 import javafx.geometry.Point2D;
+import javafx.geometry.Point3D;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
@@ -23,11 +24,14 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
-import io.ast.jneurocarto.core.Coordinate;
-import io.ast.jneurocarto.core.ProbeCoordinate;
+import io.ast.jneurocarto.atlas.SliceDomain;
+import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
-import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.*;
+import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.AtlasPosition;
+import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.LabelPosition;
+import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.ProbePosition;
+import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.SlicePosition;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.colormap.DiscreteColormap;
 import io.ast.jneurocarto.javafx.chart.data.XY;
@@ -37,32 +41,37 @@ import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.script.BlueprintScriptCallable.Parameter;
 import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
+import io.ast.jneurocarto.javafx.view.ProbePlugin;
 import io.ast.jneurocarto.javafx.view.StateView;
 
 import static io.ast.jneurocarto.javafx.script.BlueprintScriptHandles.pairScriptArguments;
 import static io.ast.jneurocarto.javafx.script.BlueprintScriptHandles.parseScriptInputLine;
 
 @NullMarked
-public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLabelViewState> {
+public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLabelViewState>, ProbePlugin<Object> {
 
-    private record XYLabel(CoordinateLabel label, XY data) {
-    }
+
+    private final ProbeDescription<Object> probe;
+    private ShankCoordinate shankTransform = ShankCoordinate.ZERO;
+    private static final ProbeTransform.Domain<Point2D> CHART_DOMAIN = new ProbeTransform.Project2D("chart");
 
     private final AtlasPlugin atlas;
-    private @Nullable AtlasReferenceService references;
+    private final AtlasReferenceService references;
+
     private InteractionXYPainter foreground;
     private XYText graphics;
     private DiscreteColormap colormap;
     private final Map<String, Integer> colorMapping = new HashMap<>();
+
     private final List<XYLabel> labels = new ArrayList<>();
 
     private final Logger log = LoggerFactory.getLogger(AtlasLabelPlugin.class);
 
-    public AtlasLabelPlugin(AtlasPlugin atlas) {
+    public AtlasLabelPlugin(ProbeDescription<Object> probe, AtlasPlugin atlas) {
+        this.probe = probe;
         this.atlas = atlas;
-        Thread.ofVirtual().name("loadAtlasReferencesData").start(() -> {
-            references = AtlasReferenceService.loadReferences(atlas);
-        });
+
+        references = atlas.getReferencesService();
     }
 
     @Override
@@ -110,25 +119,6 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         for (var label : CoordinateLabel.getAll(state)) {
             addLabel(label);
         }
-    }
-
-    /*==========================*
-     * Reference initialization *
-     *==========================*/
-
-    private void saveReferences() {
-        if (references != null) {
-            references.saveReferences();
-        }
-    }
-
-    public void addReference(String name, Coordinate coordinate) {
-        addReference(name, coordinate, true);
-    }
-
-    public void addReference(String name, Coordinate coordinate, boolean flipAP) {
-        var references = Objects.requireNonNull(this.references, "AtlasPlugin is not loaded");
-        references.addReference(name, coordinate, flipAP);
     }
 
     /*===========*
@@ -239,8 +229,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
                 case atlas -> "text [,ap, dv, ml, color]";
                 case reference -> "text [,ap, dv, ml, reference, color]";
                 case slice -> "text [,x, y, plane, project, color]";
-                case canvas -> "text [,x, y, shank, color]";
-                case probe -> "text [,x, y, color]";
+                case probe -> "text [,x, y, shank, color]";
             };
         } else {
             try {
@@ -250,6 +239,15 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
                 return e.getMessage();
             }
         }
+    }
+
+    /*=============*
+     * probe event *
+     *=============*/
+
+    @Override
+    public void onProbeUpdate(Object chmap, List<ElectrodeDescription> blueprint) {
+        shankTransform = probe.getShankCoordinate(chmap);
     }
 
     /*==============*
@@ -265,48 +263,43 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     private static final Parameter P_X = new Parameter("x", double.class, "x", "0", "");
     private static final Parameter P_Y = new Parameter("y", double.class, "y", "0", "");
     private static final Parameter P_S = new Parameter("shank", int.class, "shank", "0", "based on which shank");
-    private static final Parameter P_PROJ = new Parameter("project", String.class, "project", "''", "slice projection");
+    private static final Parameter P_PROJ = new Parameter("project", ImageSliceStack.Projection.class, "project", "''", "slice projection");
     private static final Parameter P_COLOR = new Parameter("color", String.class, "color", "'black'", "text color");
 
     private static final Parameter[] P_ATLAS = new Parameter[]{P_TEXT, P_AP, P_DV, P_ML, P_COLOR};
     private static final Parameter[] P_ATLAS_REF = new Parameter[]{P_TEXT, P_AP, P_DV, P_ML, P_REF, P_COLOR};
     private static final Parameter[] P_SLICE = new Parameter[]{P_TEXT, P_X.withDescription("slice x position in um"), P_Y.withDescription("slice y position in um"), P_PLANE, P_PROJ, P_COLOR};
     private static final Parameter[] P_PROBE = new Parameter[]{P_TEXT, P_X.withDescription("x position in probe (um)"), P_Y.withDescription("y position in probe (um)"), P_S, P_COLOR};
-    private static final Parameter[] P_CANVAS = new Parameter[]{P_TEXT, P_X.withDescription("x position in canvas (px)"), P_Y.withDescription("y position in canvas (px)"), P_COLOR};
 
     private CoordinateLabel evalLabelInput(CoordinateLabel.LabelPositionKind kind, String line) {
         var values = pairScriptArguments(switch (kind) {
             case atlas -> P_ATLAS;
             case reference -> P_ATLAS_REF;
             case slice -> P_SLICE;
-            case canvas -> P_PROBE;
-            case probe -> P_CANVAS;
+            case probe -> P_PROBE;
         }, parseScriptInputLine(line));
 
         var text = (String) values[0];
         var color = ((String) values[values.length - 1]).toLowerCase();
 
-        return switch (kind) {
+        LabelPosition pos = switch (kind) {
             // text ,ap, dv, ml, color
-            case atlas -> new CoordinateLabel(text, new AtlasPosition(new Coordinate((double) values[1], (double) values[2], (double) values[3])), color);
+            case atlas -> new AtlasPosition(new Coordinate((double) values[1], (double) values[2], (double) values[3]), null);
             // text ,ap, dv, ml, reference, color
-            case reference -> new CoordinateLabel(text, new AtlasRefPosition((String) values[4], new Coordinate((double) values[1], (double) values[2], (double) values[3])), color);
+            case reference -> new AtlasPosition(new Coordinate((double) values[1], (double) values[2], (double) values[3]), (String) values[4]);
             // text ,x, y, plane, project, color
             case slice -> {
-                var project = (String) values[4];
-                ImageSliceStack.Projection projection;
-                if (project.isEmpty()) {
-                    projection = (atlas == null) ? ImageSliceStack.Projection.coronal : atlas.getProjection();
-                } else {
-                    projection = ImageSliceStack.Projection.valueOf(project);
+                var project = (ImageSliceStack.Projection) values[4];
+                if (project == null) {
+                    project = atlas.getProjection();
                 }
-                yield new CoordinateLabel(text, new SlicePosition(projection, new SliceCoordinate((double) values[3], (double) values[1], (double) values[2])), color);
+                yield new SlicePosition(project, new SliceCoordinate((double) values[3], (double) values[1], (double) values[2]));
             }
             // text ,x, y, shank, color
-            case probe -> new CoordinateLabel(text, new ProbePosition(new ProbeCoordinate((int) values[3], (double) values[1], (double) values[2])), color);
-            // text ,x, y, color
-            case canvas -> new CoordinateLabel(text, new CanvasPosition((double) values[1], (double) values[2]), color);
+            case probe -> new ProbePosition(new ProbeCoordinate((int) values[3], (double) values[1], (double) values[2]));
         };
+
+        return new CoordinateLabel(text, pos, color);
     }
 
     public void evalAndAddLabel(CoordinateLabel.LabelPositionKind kind, String line) {
@@ -315,16 +308,11 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
     public void addLabel(CoordinateLabel label) {
         var value = colorMapping.computeIfAbsent(label.color(), name -> colormap.addColor(Color.valueOf(name)));
-        var xy = new XY(project(label.position()), value, label);
+        var xy = new XY(projectToChart(label.position()), value, label);
         graphics.addData(xy);
         labels.add(new XYLabel(label, xy));
     }
 
-
-    private Point2D project(@Nullable LabelPosition pos) {
-        //XXX Unsupported Operation AtlasLabelPlugin.project
-        throw new UnsupportedOperationException();
-    }
 
     public @Nullable CoordinateLabel getLabel(String text) {
         for (var label : labels) {
@@ -374,7 +362,228 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     }
 
     private void focusOnLabel(XYLabel label) {
+        var pos = new LabelPositionTransformer().projectToAnatomical(label.position());
+        if (pos != null) atlas.anchorImageTo(atlas.project(pos));
+    }
 
+    /*===============================*
+     * label position transformation *
+     *===============================*/
+
+    private static final class XYLabel {
+        private CoordinateLabel label;
+        private final XY data;
+
+        private XYLabel(CoordinateLabel label, XY data) {
+            this.label = label;
+            this.data = data;
+        }
+
+        public CoordinateLabel label() {
+            return label;
+        }
+
+        public String text() {
+            return label.text();
+        }
+
+        public LabelPosition position() {
+            return label.position();
+        }
+
+        public void setChartPosition(@Nullable Point2D p) {
+            if (p == null) {
+                data.x(Double.NaN);
+            } else {
+                data.x(p.getX());
+                data.y(p.getY());
+            }
+        }
+    }
+
+    private @Nullable Point2D projectToChart(LabelPosition pos) {
+        return new LabelPositionTransformer().projectToChart(pos);
+    }
+
+    private @Nullable Coordinate projectToAnatomical(LabelPosition pos) {
+        return new LabelPositionTransformer().projectToAnatomical(pos);
+    }
+
+    private void updateLabelPosition() {
+        var transform = new LabelPositionTransformer();
+        for (var label : labels) {
+            label.setChartPosition(transform.projectToChart(label.position()));
+        }
+    }
+
+    public void changeLabelPosition(XYLabel label, Point2D offset) {
+        var transform = new LabelPositionTransformer();
+        var pos = transform.offset(label.position(), offset);
+        if (pos == null) return;
+
+        var x = label.data.x() + offset.getX();
+        var y = label.data.y() + offset.getY();
+        label.data.x(x);
+        label.data.y(y);
+        label.label = label.label.withPosition(pos);
+    }
+
+    private class LabelPositionTransformer {
+        private final @Nullable String reference;
+        private final ImageSliceStack.Projection projection;
+
+        /**
+         * slice coordinate to chart coordinate
+         */
+        private @Nullable ProbeTransform<SliceCoordinate, Point2D> cs;
+
+        /**
+         * chart coordinate to slice coordinate
+         */
+        private @Nullable ProbeTransform<Point2D, SliceCoordinate> sc;
+
+        /**
+         * probe coordinate to slice coordinate
+         */
+        private @Nullable ProbeTransform<ProbeCoordinate, SliceCoordinate> sp;
+
+        /**
+         * global anatomical coordinate to slice coordinate
+         */
+        private @Nullable ProbeTransform<Coordinate, SliceCoordinate> sg;
+
+        /**
+         * slice coordinate to global anatomical coordinate
+         */
+        private @Nullable ProbeTransform<SliceCoordinate, Coordinate> gs;
+
+        /**
+         * zero-z slice coordinate to slice coordinate
+         */
+        private @Nullable ProbeTransform<SliceCoordinate, SliceCoordinate> ss;
+
+        LabelPositionTransformer() {
+            reference = atlas.getAtlasReferenceName();
+            projection = atlas.getProjection();
+        }
+
+        private Coordinate gr(Coordinate c) {
+            return atlas.pullback(c);
+        }
+
+        private @Nullable Coordinate gr(String reference, Coordinate c) {
+            var ref = references.getReference(reference);
+            if (ref == null) return null;
+            return ref.getTransform().inverseTransform(c);
+        }
+
+        private @Nullable Point2D cs(@Nullable SliceCoordinate c) {
+            if (c == null) return null;
+            if (cs == null) {
+                cs = ProbeTransform.create(SliceDomain.INSTANCE, CHART_DOMAIN, atlas.painter().getChartTransform());
+            }
+            return cs.transform(c);
+        }
+
+        private Point3D scd(Point2D c) {
+            if (sc == null) {
+                sc = ProbeTransform.create(CHART_DOMAIN, SliceDomain.INSTANCE, atlas.painter().getImageTransform());
+            }
+            return sc.deltaTransform(c);
+        }
+
+        private @Nullable SliceCoordinate sp(@Nullable ProbeCoordinate c) {
+            if (c == null) return null;
+            if (sp == null) {
+                sp = ProbeTransform.create(ProbeTransform.PROBE, SliceDomain.INSTANCE, atlas.painter().getImageTransform());
+            }
+            return sp.transform(c);
+        }
+
+        private @Nullable SliceCoordinate sg(@Nullable Coordinate c) {
+            if (c == null) return null;
+            if (sg == null) {
+                var image = atlas.getImageSliceStack();
+                if (image == null) return null;
+                sg = image.getTransform();
+            }
+            return sg.transform(c);
+        }
+
+        private @Nullable Coordinate gs(@Nullable SliceCoordinate c) {
+            if (c == null) return null;
+            if (gs == null) {
+                var image = atlas.getImageSliceStack();
+                if (image == null) return null;
+                gs = image.getTransform().inverted();
+            }
+            return gs.transform(c);
+        }
+
+        private @Nullable Point3D gsd(@Nullable Point3D c) {
+            if (c == null) return null;
+            if (gs == null) {
+                var image = atlas.getImageSliceStack();
+                if (image == null) return null;
+                gs = image.getTransform().inverted();
+            }
+            return gs.deltaTransform(c);
+        }
+
+        private @Nullable SliceCoordinate ss(@Nullable SliceCoordinate c) {
+            if (c == null) return null;
+            if (ss == null) {
+                var image = atlas.getImageSlice();
+                if (image == null) return null;
+                ss = image.getPlaneAtTransform();
+            }
+            return ss.transform(c);
+        }
+
+        @Nullable
+        Point2D projectToChart(LabelPosition pos) {
+            return switch (pos) {
+                case AtlasPosition(var coor, var ref) when ref == null -> cs(sg(coor));
+                case AtlasPosition(var coor, var ref) when ref.equals(reference) -> cs(sg(gr(coor)));
+                case AtlasPosition(var coor, var ref) -> cs(sg(gr(ref, coor)));
+                case SlicePosition(var proj, var _) when proj != projection -> null;
+                case SlicePosition(var _, var coor) -> cs(coor);
+                case ProbePosition(var coor) -> {
+                    var c = shankTransform.toShank(coor, 0);
+                    yield new Point2D(c.x(), c.y());
+                }
+            };
+        }
+
+        @Nullable
+        Coordinate projectToAnatomical(LabelPosition pos) {
+            return switch (pos) {
+                case AtlasPosition(var coor, var ref) when ref == null -> coor;
+                case AtlasPosition(var coor, var ref) when ref.equals(reference) -> gr(coor);
+                case AtlasPosition(var coor, var ref) -> gr(ref, coor);
+                case SlicePosition(var proj, var _) when proj != projection -> null;
+                case SlicePosition(var _, var coor) -> gs(coor);
+                case ProbePosition(var coor) -> gs(ss(sp(shankTransform.toShank(coor, 0))));
+            };
+        }
+
+        @Nullable
+        LabelPosition offset(LabelPosition pos, Point2D offset) {
+            return switch (pos) {
+                case AtlasPosition(Coordinate(var ap, var dv, var ml), var ref) -> {
+                    var o = gsd(scd(offset)); // TODO AP flipped?
+                    yield new AtlasPosition(new Coordinate(ap + o.getX(), dv + o.getY(), ml + o.getZ()), ref);
+                }
+                case SlicePosition(var proj, var _) when proj != projection -> null;
+                case SlicePosition(var proj, SliceCoordinate(var p, var x, var y)) -> {
+                    var o = scd(offset);
+                    yield new SlicePosition(proj, new SliceCoordinate(p + o.getZ(), x + o.getX(), y + o.getY()));
+                }
+                case ProbePosition(ProbeCoordinate(var s, var x, var y, var z)) -> {
+                    yield new ProbePosition(new ProbeCoordinate(s, x + offset.getX(), y + offset.getY(), z));
+                }
+            };
+        }
     }
 }
 

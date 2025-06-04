@@ -6,11 +6,13 @@ import javafx.geometry.Point2D;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
+import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
+import io.ast.jneurocarto.core.ProbeTransform;
 
 /**
  * @param plane
@@ -111,6 +113,24 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     public SliceCoordinate planeAt(Point2D coor) {
         var p = planeAt(coor.getX(), coor.getY());
         return new SliceCoordinate(p, coor);
+    }
+
+    public Affine planeAtTransform() {
+        var p = plane * resolution()[0];
+        var cx = width() / 2;
+        var cy = height() / 2;
+        var dw = this.dw * resolution()[1] / cx;
+        var dh = this.dh * resolution()[2] / cy;
+
+        return new Affine(
+            /*x*/ 1, 0, 0, 0,
+            /*y*/ 0, 1, 0, 0,
+            /*p*/ dw, dh, 0, p - dw * cx - dh * cy
+        );
+    }
+
+    public ProbeTransform<SliceCoordinate, SliceCoordinate> getPlaneAtTransform() {
+        return ProbeTransform.create(SliceDomain.INSTANCE, SliceDomain.INSTANCE, planeAtTransform());
     }
 
     /**

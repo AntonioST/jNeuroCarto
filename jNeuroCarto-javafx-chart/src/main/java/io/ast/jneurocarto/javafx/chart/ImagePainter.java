@@ -216,8 +216,6 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         visible.set(value);
     }
 
-
-
     /*===========*
      * transform *
      *===========*/

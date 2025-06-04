@@ -40,6 +40,7 @@ public interface ShankCoordinate extends IntFunction<ProbeCoordinate> {
      * @return a new coordinate on {@code shank}.
      */
     default ProbeCoordinate toShank(ProbeCoordinate coor, int shank) {
+        if (coor.s() == shank) return coor;
         var offset = toShank(coor.s(), shank);
         return new ProbeCoordinate(shank, coor.x() + offset.x(), coor.y() + offset.y(), coor.z() + offset.z());
     }

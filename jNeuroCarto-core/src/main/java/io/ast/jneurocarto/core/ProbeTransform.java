@@ -18,9 +18,27 @@ public sealed abstract class ProbeTransform<C1, C2> {
         Point3D toPoint(C coordinate);
     }
 
+    /**
+     * A chart space, used by a probe coordinate
+     */
     public static final Domain<ProbeCoordinate> PROBE = new Probe();
+
+    /**
+     * A global anatomical space, used by a volume image.
+     */
     public static final Domain<Coordinate> ANATOMICAL = new Anatomical();
 
+    public record Project2D(String name) implements Domain<Point2D> {
+        @Override
+        public Point2D fromPoint(Point3D p) {
+            return new Point2D(p.getX(), p.getY());
+        }
+
+        @Override
+        public Point3D toPoint(Point2D coordinate) {
+            return new Point3D(coordinate.getX(), coordinate.getY(), 0);
+        }
+    }
 
     public static class Probe implements Domain<ProbeCoordinate> {
         private Probe() {
@@ -197,6 +215,22 @@ public sealed abstract class ProbeTransform<C1, C2> {
      */
     public C1 inverseTransform(C2 coordinate) {
         return d1.fromPoint(inverse().transform(d2.toPoint(coordinate)));
+    }
+
+    public Point3D deltaTransform(double x, double y) {
+        return transform().deltaTransform(x, y, 0);
+    }
+
+    public Point3D deltaTransform(double x, double y, double z) {
+        return transform().deltaTransform(x, y, z);
+    }
+
+    public Point3D deltaTransform(Point2D p) {
+        return transform().deltaTransform(p.getX(), p.getY(), 0);
+    }
+
+    public Point3D deltaTransform(Point3D p) {
+        return transform().deltaTransform(p);
     }
 
     /*===========*

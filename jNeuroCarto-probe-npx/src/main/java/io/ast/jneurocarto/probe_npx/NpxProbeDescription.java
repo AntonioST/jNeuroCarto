@@ -11,7 +11,6 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
-import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.ShankCoordinate;
 import io.ast.jneurocarto.core.numpy.Numpy;
@@ -319,7 +318,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     public ShankCoordinate getShankCoordinate(String code) {
         return switch (channelmapType(code)) {
             case null -> throw new IllegalArgumentException("unknown channelmap code");
-            case NpxProbeType.NP24 t -> (shank) -> new ProbeCoordinate(shank, shank * t.spacePerShank(), 0, 0);
+            case NpxProbeType.NP24 t -> ShankCoordinate.linear(t.spacePerShank());
             default -> ShankCoordinate.ZERO;
         };
     }

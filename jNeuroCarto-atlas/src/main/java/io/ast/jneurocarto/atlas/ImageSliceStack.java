@@ -336,6 +336,9 @@ public final class ImageSliceStack {
         return new ImageSlice(slice.plane(), slice.ax(), slice.ay(), slice.dw(), slice.dh(), this);
     }
 
+    /**
+     * {@return a transformation from global anatomical space to slice space}
+     */
     public ProbeTransform<Coordinate, SliceCoordinate> getTransform() {
         var t = new double[9];
         // [1 0 0] [ap]   [x]

@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.javafx.atlas;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -17,8 +18,7 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
         atlas("Atlas Coordinate"),
         reference("Atlas Referenced Coordinate"),
         slice("Brain Slice"),
-        probe("Probe"),
-        canvas("Canvas");
+        probe("Probe");
 
         public final String kind;
 
@@ -31,36 +31,26 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
         LabelPositionKind kind();
     }
 
-
-    public record AtlasPosition(@Nullable Coordinate coordinate) implements LabelPosition {
+    /**
+     * @param coordinate anatomical coordinate
+     * @param reference  reference name
+     */
+    public record AtlasPosition(Coordinate coordinate, @Nullable String reference) implements LabelPosition {
         @Override
         public LabelPositionKind kind() {
             return LabelPositionKind.atlas;
         }
     }
 
-    public record AtlasRefPosition(String reference, @Nullable Coordinate coordinate) implements LabelPosition {
-        @Override
-        public LabelPositionKind kind() {
-            return LabelPositionKind.reference;
-        }
-    }
-
-    public record SlicePosition(ImageSliceStack.Projection projection, @Nullable SliceCoordinate coordinate) implements LabelPosition {
+    public record SlicePosition(ImageSliceStack.Projection projection,
+                                SliceCoordinate coordinate) implements LabelPosition {
         @Override
         public LabelPositionKind kind() {
             return LabelPositionKind.slice;
         }
     }
 
-    public record CanvasPosition(double x, double y) implements LabelPosition {
-        @Override
-        public LabelPositionKind kind() {
-            return LabelPositionKind.canvas;
-        }
-    }
-
-    public record ProbePosition(@Nullable ProbeCoordinate coordinate) implements LabelPosition {
+    public record ProbePosition(ProbeCoordinate coordinate) implements LabelPosition {
         @Override
         public LabelPositionKind kind() {
             return LabelPositionKind.probe;
@@ -87,43 +77,33 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
         var array = label.position;
         var pos = switch (label.type) {
             case "atlas" -> {
+                Coordinate coor;
                 if (array == null) {
-                    yield new AtlasPosition(null);
+                    coor = new Coordinate(0, 0, 0);
                 } else {
-                    yield new AtlasPosition(new Coordinate(array[0], array[1], array[2]));
+                    coor = new Coordinate(array[0], array[1], array[2]);
                 }
-            }
-            case "reference" -> {
-                if (array == null) {
-                    yield new AtlasRefPosition(label.reference, null);
-                } else {
-                    yield new AtlasRefPosition(label.reference, new Coordinate(array[0], array[1], array[2]));
-                }
+                yield new AtlasPosition(coor, label.reference);
             }
             case "slice" -> {
-                var projection = ImageSliceStack.Projection.valueOf(label.reference);
+                var projection = ImageSliceStack.Projection.valueOf(label.projection);
+                SliceCoordinate coor;
                 if (array == null) {
-                    yield new SlicePosition(projection, null);
+                    coor = new SliceCoordinate(0, 0, 0);
                 } else {
-                    yield new SlicePosition(projection, new SliceCoordinate(array[0], array[1], array[2]));
+                    coor = new SliceCoordinate(array[0], array[1], array[2]);
                 }
+
+                yield new SlicePosition(projection, coor);
             }
             case "probe" -> {
                 if (array == null) {
-                    yield new ProbePosition(null);
+                    yield new ProbePosition(new ProbeCoordinate(0, 0, 0));
                 } else {
                     yield new ProbePosition(new ProbeCoordinate((int) array[2], array[0], array[1]));
                 }
             }
-            case "canvas" -> {
-                if (array == null) {
-                    yield new CanvasPosition(0, 0);
-                } else {
-                    yield new CanvasPosition(array[0], array[1]);
-                }
-            }
-
-            default -> new ProbePosition(null);
+            default -> new ProbePosition(new ProbeCoordinate(0, 0, 0));
         };
 
         return new CoordinateLabel(text, pos, color);
@@ -134,48 +114,43 @@ public record CoordinateLabel(String text, LabelPosition position, String color)
         ret.text = label.text;
         ret.color = label.color;
         switch (label.position) {
-        case AtlasPosition(var coor) when coor == null -> {
-            ret.position = null;
-            ret.type = "atlas";
-        }
-        case AtlasPosition(var coor) -> {
+        case AtlasPosition(var coor, var reference) -> {
             ret.position = new double[]{coor.ap(), coor.dv(), coor.ml()};
             ret.type = "atlas";
-        }
-        case AtlasRefPosition(var reference, var coor) when coor == null -> {
-            ret.position = null;
             ret.reference = reference;
-            ret.type = "reference";
-        }
-        case AtlasRefPosition(var reference, var coor) -> {
-            ret.position = new double[]{coor.ap(), coor.dv(), coor.ml()};
-            ret.reference = reference;
-            ret.type = "reference";
-        }
-        case SlicePosition(var projection, var coor) when coor == null -> {
-            ret.position = null;
-            ret.reference = projection.name();
-            ret.type = "slice";
         }
         case SlicePosition(var projection, var coor) -> {
             ret.position = new double[]{coor.p(), coor.x(), coor.y()};
-            ret.reference = projection.name();
+            ret.projection = projection.name();
             ret.type = "slice";
-        }
-        case ProbePosition(var coor) when coor == null -> {
-            ret.position = null;
-            ret.type = "probe";
         }
         case ProbePosition(var coor) -> {
             ret.position = new double[]{coor.x(), coor.y(), coor.s()};
             ret.type = "probe";
         }
-        case CanvasPosition(var x, var y) -> {
-            ret.position = new double[]{x, y};
-            ret.type = "canvas";
-        }
         }
         return ret;
+    }
+
+    public CoordinateLabel withPosition(LabelPosition position) {
+        switch (this.position) {
+        case AtlasPosition(_, var ref) -> {
+            if (position instanceof AtlasPosition(_, var other) && Objects.equals(ref, other)) {
+                return new CoordinateLabel(text, position, color);
+            }
+        }
+        case SlicePosition(var proj, _) -> {
+            if (position instanceof SlicePosition(var other, _) && proj == other) {
+                return new CoordinateLabel(text, position, color);
+            }
+        }
+        case ProbePosition _ -> {
+            if (position instanceof ProbePosition) {
+                return new CoordinateLabel(text, position, color);
+            }
+        }
+        }
+        throw new IllegalArgumentException("new position do not have same the kind position");
     }
 
 }

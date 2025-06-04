@@ -22,11 +22,23 @@ import org.jspecify.annotations.Nullable;
 
 /// Text graphics.
 ///
-/// The {@link XY} carried by this should follow the rule of:
-/// the {@link XY#external()} object should be either
-/// 1.  {@link String}. The {@link XY} is a text carried that display the text, or
-/// 2.  {@link XY}. The {@link XY} is an annotation line point from carried {@link XY} (usually a text carrier) to itself.
+/// The [XY] carried by this should follow the rule of:
+/// the [XY.external][XY#external] object should be either
+/// 1.  [String]. The [XY] is a text carried that display the text, or
+/// 2.  [XY]. The [XY] is an annotation line point from carried [XY] (usually a text carrier) to itself.
 /// 3.  Otherwise, ignored.
+///
+/// ### Color
+///
+/// For a text, if [colormap][#colormap] is not set, use [color][#color]. Otherwise, the color is based on
+/// the [XY.v][XY#v] in the [colormap][#colormap].
+/// If [XY.v][XY#v] is [Double.NaN][Double#NaN], then always use [color][#color].
+///
+/// For an annotation, its color is [line][#line].
+///
+/// To hide text, set [XY.v][XY#x] or [XY.v][XY#y] to [Double.NaN][Double#NaN].
+///
+/// ### Effect
 @NullMarked
 public class XYText extends XYSeries {
 
@@ -303,12 +315,16 @@ public class XYText extends XYSeries {
 
             switch (xy.external) {
             case String s -> {
-                var q = aff.transform(xy.x, xy.y);
+                if (!Double.isNaN(xy.x + xy.v)) {
+                    var q = aff.transform(xy.x, xy.y);
 
-                p[0][i] = q.getX();
-                p[1][i] = q.getY();
-                p[2][i] = -1;
-                index.put(xy, i);
+                    p[0][i] = q.getX();
+                    p[1][i] = q.getY();
+                    p[2][i] = -1;
+                    index.put(xy, i);
+                } else {
+                    p[0][i] = Double.NaN;
+                }
             }
             case XY prev -> {
                 var k = index.getOrDefault(prev, -1);
@@ -365,9 +381,12 @@ public class XYText extends XYSeries {
                         var xy = data.get(i);
                         var o = xy.external;
                         if (o instanceof String text) {
-                            if (cmap != null) {
+                            if (cmap != null && !Double.isNaN(xy.v)) {
                                 gc.setFill(cmap.apply(xy.v));
+                            } else {
+                                gc.setFill(color);
                             }
+
                             gc.setEffect(textEffect);
                             gc.fillText(text, x, y);
                             gc.setEffect(null);

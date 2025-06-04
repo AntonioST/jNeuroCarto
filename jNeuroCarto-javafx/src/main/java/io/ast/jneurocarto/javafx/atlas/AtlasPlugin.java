@@ -323,7 +323,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     private void onAtlasReferenceUpdate(@Nullable AtlasReference reference) {
         if (reference != null) {
-            transform = ProbeTransform.create(reference.name(), reference.coordinate(), reference.flipAP());
+            transform = reference.getTransform();
         } else {
             transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
         }
@@ -732,6 +732,24 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return transform.inverseTransform(coordinate);
     }
 
+    /**
+     * @param coordinate referenced anatomical coordinate
+     * @return slice coordinate
+     */
+    public SliceCoordinate projectSlice(Coordinate coordinate) {
+        var images = Objects.requireNonNull(image, "projection not set");
+        return images.project(pullback(coordinate));
+    }
+
+    /**
+     * @param coordinate slice coordinate
+     * @return referenced anatomical coordinate
+     */
+    public Coordinate pullbackSlice(SliceCoordinate coordinate) {
+        var images = Objects.requireNonNull(image, "projection not set");
+        return project(images.pullBack(coordinate));
+    }
+
 
     /**
      * {@return current plane (um) in referenced anatomical space}
@@ -862,6 +880,24 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         anchorImageTo(coordinate, p);
     }
 
+    /**
+     * @param name       name of reference
+     * @param coordinate global anatomical coordinate
+     */
+    public void addReference(String name, Coordinate coordinate) {
+        addReference(name, coordinate, true);
+    }
+
+    /**
+     * @param name       name of reference
+     * @param coordinate global anatomical coordinate
+     * @param flipAP
+     */
+    public void addReference(String name, Coordinate coordinate, boolean flipAP) {
+        var references = Objects.requireNonNull(this.references, "AtlasPlugin is not loaded");
+        references.addReference(name, coordinate, flipAP);
+    }
+
     /*=====================*
      * atlas brain drawing *
      *=====================*/
@@ -928,13 +964,16 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         p = painter.getImageTransform().transform(p); // slice <- chart
         var coor = image.pullBack(p); // coor <- slice
-        var local = transform.transform(coor); // reference <- global
+        var local = project(coor); // reference <- global
         var text = String.format("=(%.0f, %.0f, %.0f)", local.ap(), local.dv(), local.ml());
         labelMouseInformation.setText(text);
 
         updateStructureInformation(coor);
     }
 
+    /**
+     * @param coor global anatomical coordinate
+     */
     private void updateStructureInformation(Coordinate coor) {
         var brain = this.brain;
         if (brain == null) return;
