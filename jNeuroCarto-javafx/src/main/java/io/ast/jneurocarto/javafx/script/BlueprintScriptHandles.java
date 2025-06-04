@@ -490,11 +490,10 @@ public final class BlueprintScriptHandles {
     public static @Nullable Object castScriptArgument(BlueprintScriptCallable.Parameter parameter,
                                                       PyValue.PyParameter token) {
         var value = token.value();
-        var rawString = token.text();
 
         var converter = parameter.converter();
         if (converter == ScriptParameter.RawString.class) {
-            return rawString;
+            return token.text();
         } else if (converter != ScriptParameter.AutoCasting.class) {
             return castScriptArgument(parameter, converter, value);
         }
@@ -508,56 +507,56 @@ public final class BlueprintScriptHandles {
                 case PyValue.PyDict ret -> ret.asBool().value();
                 case PyValue.PyStr ret -> ret.asBool().value();
                 case PyValue.PyNone _ -> false;
-                case null, default -> throwCCE(rawString, "bool");
+                case null, default -> throwCCE(parameter, token, "bool");
             };
         } else if (target == int.class || target == Integer.class) {
             return switch (value) {
                 case PyValue.PyInt(var ret) -> ret;
                 case PyValue.PyNone _ when target == Integer.class -> null;
-                case null, default -> throwCCE(rawString, "int");
+                case null, default -> throwCCE(parameter, token, "int");
             };
         } else if (target == double.class || target == Double.class) {
             return switch (value) {
                 case PyValue.PyInt(var ret) -> (double) ret;
                 case PyValue.PyFloat(double ret) -> ret;
                 case PyValue.PyNone _ when target == Double.class -> null;
-                case null, default -> throwCCE(rawString, "double");
+                case null, default -> throwCCE(parameter, token, "double");
             };
         } else if (target == int[].class) {
             return switch (value) {
                 case PyValue.PyList list -> list.toIntArray();
                 case PyValue.PyTuple tuple -> tuple.toIntArray();
                 case PyValue.PyNone _ -> null;
-                case null, default -> throwCCE(rawString, "int[]");
+                case null, default -> throwCCE(parameter, token, "int[]");
             };
         } else if (target == double[].class) {
             return switch (value) {
                 case PyValue.PyList list -> list.toDoubleArray();
                 case PyValue.PyTuple tuple -> tuple.toDoubleArray();
                 case PyValue.PyNone _ -> null;
-                case null, default -> throwCCE(rawString, "double[]");
+                case null, default -> throwCCE(parameter, token, "double[]");
             };
         } else if (target == String.class) {
             return switch (value) {
-                case PyValue.PyInt _, PyValue.PyFloat _ -> rawString;
+                case PyValue.PyInt _, PyValue.PyFloat _ -> token.text();
                 case PyValue.PyStr(String ret) -> ret;
                 case PyValue.PySymbol(String ret) -> ret;
                 case PyValue.PyNone _ -> null;
-                case null, default -> throwCCE(rawString, "String");
+                case null, default -> throwCCE(parameter, token, "String");
             };
         } else if (target == File.class) {
             return switch (value) {
                 case PyValue.PyStr(String ret) -> new File(ret);
                 case PyValue.PySymbol(String ret) -> new File(ret);
                 case PyValue.PyNone _ -> null;
-                case null, default -> throwCCE(rawString, "File");
+                case null, default -> throwCCE(parameter, token, "File");
             };
         } else if (target == Path.class) {
             return switch (value) {
                 case PyValue.PyStr(String ret) -> Path.of(ret);
                 case PyValue.PySymbol(String ret) -> Path.of(ret);
                 case PyValue.PyNone _ -> null;
-                case null, default -> throwCCE(rawString, "Path");
+                case null, default -> throwCCE(parameter, token, "Path");
             };
         } else if (target.isEnum()) {
             return switch (value) {
@@ -565,15 +564,15 @@ public final class BlueprintScriptHandles {
                 case PyValue.PyStr(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
                 case PyValue.PySymbol(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
                 case PyValue.PyNone _ -> null;
-                case null, default -> throwCCE(rawString, target.getSimpleName());
+                case null, default -> throwCCE(parameter, token, target.getSimpleName());
             };
         } else if (target == PyValue.class) {
             return value;
         } else if (PyValue.class.isAssignableFrom(value.getClass())) {
-            throwCCE(rawString, target.getSimpleName() + ", use PyValue or java primitive type instead");
+            throwCCE(parameter, token, target.getSimpleName() + ", use PyValue or java primitive type instead");
         }
 
-        return throwCCE(rawString, target.getSimpleName());
+        return throwCCE(parameter, token, target.getSimpleName());
     }
 
     public static <E extends Enum<E>> E castScriptArgumentForEnum(Class<E> target, String value) {
@@ -603,7 +602,8 @@ public final class BlueprintScriptHandles {
         return function.apply(value);
     }
 
-    private static Object throwCCE(@Nullable String rawString, String target) {
-        throw new ClassCastException("cannot cast '" + rawString + "' to " + target + ".");
+    private static Object throwCCE(BlueprintScriptCallable.Parameter parameter, PyValue.PyParameter token, String target) {
+        var raw = token.text();
+        throw new ClassCastException(parameter.name() + " need " + target + " but '" + raw + "'.");
     }
 }

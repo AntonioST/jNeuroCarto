@@ -343,20 +343,24 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     private @Nullable Result<String, Throwable> validateLabelInput(String line) {
         var kind = labelKinds.getValue();
         if (line.isEmpty()) {
-            return Result.success(switch (kind) {
-                case atlas -> "text [,ap, dv, ml, color]";
-                case reference -> "text [,ap, dv, ml, reference, color]";
-                case slice -> "text [,x, y, plane, project, color]";
-                case probe -> "text [,x, y, shank, color]";
-            });
+            return Result.success(getInputSignature(kind));
         } else {
             try {
                 evalLabelInput(kind, line);
                 return null;
             } catch (RuntimeException e) {
-                return Result.fail(e);
+                return Result.fail(new RuntimeException(e.getMessage() + "; " + getInputSignature(kind), e));
             }
         }
+    }
+
+    private String getInputSignature(CoordinateLabel.LabelPositionKind kind) {
+        return switch (kind) {
+            case atlas -> "text [,ap, dv, ml, color]";
+            case reference -> "text [,ap, dv, ml, reference, color]";
+            case slice -> "text [,x, y, plane, project, color]";
+            case probe -> "text [,x, y, shank, color]";
+        };
     }
 
     /*=============*
@@ -373,11 +377,11 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
      *==============*/
 
     private static final Parameter P_TEXT = new Parameter("text", String.class, "text", "label text");
-    private static final Parameter P_AP = new Parameter("ap", double.class, "ap", "0", "AP position in um");
-    private static final Parameter P_DV = new Parameter("dv", double.class, "dv", "0", "DV position in um");
-    private static final Parameter P_ML = new Parameter("ml", double.class, "ml", "0", "ML position in um");
+    private static final Parameter P_AP = new Parameter("ap", double.class, "ap", "0", "AP position in mm");
+    private static final Parameter P_DV = new Parameter("dv", double.class, "dv", "0", "DV position in mm");
+    private static final Parameter P_ML = new Parameter("ml", double.class, "ml", "0", "ML position in mm");
     private static final Parameter P_REF = new Parameter("reference", String.class, "ref", "''", "reference name");
-    private static final Parameter P_PLANE = new Parameter("plane", double.class, "plane", "0", "slice plane position in um");
+    private static final Parameter P_PLANE = new Parameter("plane", double.class, "plane", "0", "slice plane position in mm");
     private static final Parameter P_X = new Parameter("x", double.class, "x", "0", "");
     private static final Parameter P_Y = new Parameter("y", double.class, "y", "0", "");
     private static final Parameter P_S = new Parameter("shank", int.class, "shank", "0", "based on which shank");
@@ -386,8 +390,8 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
     private static final Parameter[] P_ATLAS = new Parameter[]{P_TEXT, P_AP, P_DV, P_ML, P_COLOR};
     private static final Parameter[] P_ATLAS_REF = new Parameter[]{P_TEXT, P_AP, P_DV, P_ML, P_REF, P_COLOR};
-    private static final Parameter[] P_SLICE = new Parameter[]{P_TEXT, P_X.withDescription("slice x position in um"), P_Y.withDescription("slice y position in um"), P_PLANE, P_PROJ, P_COLOR};
-    private static final Parameter[] P_PROBE = new Parameter[]{P_TEXT, P_X.withDescription("x position in probe (um)"), P_Y.withDescription("y position in probe (um)"), P_S, P_COLOR};
+    private static final Parameter[] P_SLICE = new Parameter[]{P_TEXT, P_X.withDescription("slice x position in mm"), P_Y.withDescription("slice y position in mm"), P_PLANE, P_PROJ, P_COLOR};
+    private static final Parameter[] P_PROBE = new Parameter[]{P_TEXT, P_X.withDescription("x position in probe (mm)"), P_Y.withDescription("y position in probe (mm)"), P_S, P_COLOR};
 
     private CoordinateLabel evalLabelInput(CoordinateLabel.LabelPositionKind kind, String line) {
         var values = pairScriptArguments(switch (kind) {
@@ -402,12 +406,20 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
         LabelPosition pos = switch (kind) {
             // text ,ap, dv, ml, color
-            case atlas -> new AtlasPosition(new Coordinate((double) values[1], (double) values[2], (double) values[3]), null);
+            case atlas -> {
+                var ap = (double) values[1] * 1000;
+                var dv = (double) values[2] * 1000;
+                var ml = (double) values[3] * 1000;
+                yield new AtlasPosition(new Coordinate(ap, dv, ml), null);
+            }
             // text ,ap, dv, ml, reference, color
             case reference -> {
                 var ref = (String) values[4];
                 if (ref.isEmpty()) ref = atlas.getAtlasReferenceName();
-                yield new AtlasPosition(new Coordinate((double) values[1], (double) values[2], (double) values[3]), ref);
+                var ap = (double) values[1] * 1000;
+                var dv = (double) values[2] * 1000;
+                var ml = (double) values[3] * 1000;
+                yield new AtlasPosition(new Coordinate(ap, dv, ml), ref);
             }
             // text ,x, y, plane, project, color
             case slice -> {
@@ -415,10 +427,18 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
                 if (project == null) {
                     project = atlas.getProjection();
                 }
-                yield new SlicePosition(project, new SliceCoordinate((double) values[3], (double) values[1], (double) values[2]));
+                var x = (double) values[1] * 1000;
+                var y = (double) values[2] * 1000;
+                var p = (double) values[3] * 1000;
+                yield new SlicePosition(project, new SliceCoordinate(p, x, y));
             }
             // text ,x, y, shank, color
-            case probe -> new ProbePosition(new ProbeCoordinate((int) values[3], (double) values[1], (double) values[2]));
+            case probe -> {
+                var x = (double) values[1] * 1000;
+                var y = (double) values[2] * 1000;
+                var s = (int) values[3];
+                yield new ProbePosition(new ProbeCoordinate(s, x, y));
+            }
         };
 
         return new CoordinateLabel(text, pos, color);
