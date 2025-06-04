@@ -844,6 +844,21 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     /**
+     * Move the slice to make the {@code coordinate} on chart point {@code p}.
+     *
+     * @param coordinate slice coordinate, {@link SliceCoordinate#p} follow current atlas reference.
+     *                   If it is {@link Double#NaN}, then skip plane adjusting.
+     * @param p          chart position
+     */
+    public void anchorImageTo(SliceCoordinate coordinate, Point2D p) {
+        if (images == null) return;
+
+        var plane = coordinate.p();
+        if (!Double.isNaN(plane)) setPlane(plane);
+        anchorImageToXY(coordinate, p);
+    }
+
+    /**
      * Move the slice to the {@code coordinate},
      * and move the {@code coordinate} to given position {@code p} on chart.
      *
@@ -854,8 +869,19 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         if (images == null) return;
         var coor = images.project(transform.inverseTransform(coordinate));
         setPlaneGlobal(coor.p());
+        anchorImageToXY(coor, p);
+    }
+
+    /**
+     * Move the slice to make the {@code coordinate} on chart point {@code p},
+     * but ignore plane adjusting.
+     *
+     * @param coordinate slice coordinate
+     * @param p          chart position
+     */
+    private void anchorImageToXY(SliceCoordinate coordinate, Point2D p) {
         // q: coordinate (x, y) on chart
-        var q = painter.getChartTransform().transform(coor.x(), coor.y());
+        var q = painter.getChartTransform().transform(coordinate.x(), coordinate.y());
         var dx = p.getX() - q.getX();
         var dy = p.getY() - q.getY();
         painter.x(painter.x() + dx);

@@ -33,6 +33,7 @@ import io.ast.jneurocarto.atlas.SliceDomain;
 import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
+import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.AtlasPosition;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.LabelPosition;
@@ -148,12 +149,29 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         }
     }
 
+    private void restoreState() {
+        var state = PluginStateService.loadGlobalState(AtlasLabelGlobalViewState.class);
+        if (state == null) state = new AtlasLabelGlobalViewState();
+        restoreState(state);
+    }
+
+    private void restoreState(AtlasLabelGlobalViewState state) {
+        fontSize.set(state.fontSize);
+    }
+
     /*===========*
      * UI layout *
      *===========*/
 
     private ChoiceBox<CoordinateLabel.LabelPositionKind> labelKinds;
     private TextField labelText;
+
+    @Override
+    public @Nullable Node setup(PluginSetupService service) {
+        var layout = super.setup(service);
+        restoreState();
+        return layout;
+    }
 
     @Override
     protected HBox setupHeading(PluginSetupService service) {
@@ -212,7 +230,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         foreground = canvas.getForegroundPainter();
         graphics = foreground.text()
             .colormap(colormap = new DiscreteColormap())
-            .font(Font.font(10))
+            .font(Font.font(15))
             .line(Color.BLACK)
             .showAnchorPoint(true)
             .graphics();
@@ -270,7 +288,6 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             onLabelSelect(e, selected);
         }
     }
-
 
     private void onLabelTouch(ChartMouseEvent e, XYLabel label) {
         if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
@@ -505,6 +522,26 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         return null;
     }
 
+    public boolean isVisible(String label) {
+        var xy = findLabel(label);
+        return xy != null && xy.visible;
+    }
+
+    public boolean isVisible(CoordinateLabel label) {
+        var xy = findLabel(label);
+        return xy != null && xy.visible;
+    }
+
+    public void setVisible(String label, boolean visible) {
+        var xy = findLabel(label);
+        if (xy != null) xy.visible = visible;
+    }
+
+    public void setVisible(CoordinateLabel label, boolean visible) {
+        var xy = findLabel(label);
+        if (xy != null) xy.visible = visible;
+    }
+
     public void removeLabel(String label) {
         log.debug("remove label \"{}\"", label);
         var xy = findLabel(label);
@@ -573,6 +610,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     private static final class XYLabel {
         private CoordinateLabel label;
         private final XY data;
+        boolean visible;
 
         private XYLabel(CoordinateLabel label, XY data) {
             this.label = label;
@@ -601,7 +639,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
         }
 
         public void setChartPosition(@Nullable Point2D p) {
-            if (p == null) {
+            if (p == null || !visible) {
                 data.x(Double.NaN);
             } else {
                 data.x(p.getX());

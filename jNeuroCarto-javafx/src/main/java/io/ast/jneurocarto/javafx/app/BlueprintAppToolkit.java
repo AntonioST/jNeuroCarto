@@ -2,6 +2,8 @@ package io.ast.jneurocarto.javafx.app;
 
 import java.util.*;
 
+import javafx.geometry.Point2D;
+
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -380,8 +382,29 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     }
 
     public void atlasFocusLabel(@Nullable CoordinateLabel label) {
-        if (label == null) return;
-        getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.focusOnLabel(label));
+        if (label != null) {
+            getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.focusOnLabel(label));
+        }
+    }
+
+    public boolean atlasIsLabelVisible(String text) {
+        var label = atlasGetLabel(text);
+        return label != null && atlasIsLabelVisible(label);
+    }
+
+    public boolean atlasIsLabelVisible(@Nullable CoordinateLabel label) {
+        return label != null && getPlugin(AtlasLabelPlugin.class).map(p -> p.isVisible(label)).orElse(false);
+    }
+
+    public void atlasSetLabelVisible(String text, boolean visible) {
+        var label = atlasGetLabel(text);
+        if (label != null) atlasSetLabelVisible(label, visible);
+    }
+
+    public void atlasSetLabelVisible(@Nullable CoordinateLabel label, boolean visible) {
+        if (label != null) {
+            getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.setVisible(label, visible));
+        }
     }
 
     public void atlasRemoveLabel(String text) {
@@ -402,18 +425,39 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * probe coordination *
      *====================*/
 
-    public void atlasSetTransform(SliceCoordinate coordinate, double rotation) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasSetTransform
-        throw new UnsupportedOperationException();
-    }
-
+    /**
+     * Move atlas image coordinate {@code (x, y)} to chart origin.
+     *
+     * @param x slice coordinate
+     * @param y slice coordinate
+     */
     public void atlasSetAnchor(double x, double y) {
         atlasSetAnchor(x, y, 0, 0);
     }
 
+    /**
+     * Move the slice to make the {@code coordinate} on chart point {@code p},
+     * but ignore plane adjusting.
+     *
+     * @param x  slice coordinate
+     * @param y  slice coordinate
+     * @param ax chart position
+     * @param ay chart position
+     */
     public void atlasSetAnchor(double x, double y, double ax, double ay) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasSetAnchor
-        throw new UnsupportedOperationException();
+        getPlugin(AtlasPlugin.class).ifPresent(p -> p.anchorImageTo(new SliceCoordinate(Double.NaN, x, y), new Point2D(ax, ay)));
+    }
+
+    /**
+     * Move the slice to make the {@code coordinate} on chart point {@code p}.
+     *
+     * @param coordinate slice coordinate, {@link SliceCoordinate#p} follow current atlas reference.
+     *                   If it is {@link Double#NaN}, then skip plane adjusting.
+     * @param ax         chart position
+     * @param ay         chart position
+     */
+    public void atlasSetAnchor(SliceCoordinate coordinate, double ax, double ay) {
+        getPlugin(AtlasPlugin.class).ifPresent(p -> p.anchorImageTo(coordinate, new Point2D(ax, ay)));
     }
 
     public @Nullable ProbeCoordinate atlasNewProbeCoordinate() {
