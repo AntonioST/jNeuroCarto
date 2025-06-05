@@ -308,6 +308,15 @@ public class BlueprintToolkit<T> {
         merge(blueprint.blueprint);
     }
 
+    public final void apply(int[] blueprint) {
+        var src = this.blueprint.blueprint;
+        var length = src.length;
+        if (length != blueprint.length) throw new IllegalArgumentException();
+        if (src != blueprint) {
+            System.arraycopy(src, 0, blueprint, 0, length);
+        }
+    }
+
     public final void apply(List<ElectrodeDescription> electrodes) {
         blueprint.applyBlueprint(electrodes);
     }

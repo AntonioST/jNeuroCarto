@@ -101,6 +101,54 @@ public class XYMatrix extends XYSeries {
         return 0;
     }
 
+    public void addData(int[] data) {
+        addData(data, 1);
+    }
+
+    public void addData(int[] data, int row) {
+        addData(data, row, true);
+    }
+
+    /**
+     * @param data a 2d-flatten double array.
+     * @param row  number of row
+     * @param flip flip y direction. If {@code true}, the first row has largest y pos.
+     */
+    public void addData(int[] data, int row, boolean flip) {
+        if (row <= 0) throw new IllegalArgumentException();
+
+        int column = (int) (Math.ceil((double) data.length / row));
+        for (int r = 0; r < row; r++) {
+            var y = flip ? row - r - 1 : r;
+
+            for (int c = 0; c < column; c++) {
+                var i = r * column + c;
+                if (i < data.length) {
+                    addData(c, y, data[i]);
+                }
+            }
+        }
+
+        nx = column;
+        ny = row;
+    }
+
+    public void addData(int[][] data, boolean flip) {
+        ny = data.length;
+        nx = 0;
+
+        for (int r = 0, nr = data.length; r < nr; r++) {
+            var y = flip ? nr - r - 1 : r;
+
+            var row = data[r];
+            nx = Math.max(nx, row.length);
+
+            for (int c = 0, nc = row.length; c < nc; c++) {
+                addData(c, y, row[c]);
+            }
+        }
+    }
+
     public void addData(double[] data) {
         addData(data, 1);
     }
@@ -177,10 +225,10 @@ public class XYMatrix extends XYSeries {
 
     private @Nullable MinMaxInt minmax(ToDoubleFunction<XY> f) {
         return data.stream().mapToDouble(f)
-          .mapToInt(x -> (int) x)
-          .boxed()
-          .gather(MinMaxInt.intMinmax())
-          .findFirst().orElse(null);
+            .mapToInt(x -> (int) x)
+            .boxed()
+            .gather(MinMaxInt.intMinmax())
+            .findFirst().orElse(null);
     }
 
     @Override

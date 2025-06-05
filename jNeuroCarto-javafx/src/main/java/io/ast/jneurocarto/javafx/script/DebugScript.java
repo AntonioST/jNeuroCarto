@@ -149,12 +149,14 @@ public class DebugScript {
         BlueprintAppToolkit<Object> toolkit,
         AtlasPlugin atlas,
         @ScriptParameter(value = "filename", label = "FILE.npy", defaultValue = "snapshot.npy",
-            description = "output filename") Path file
+            description = "output filename") Path file,
+        @ScriptParameter(value = "annotation",
+            description = "snapshot on annotation image") boolean annotation
     ) throws InterruptedException {
         var selection = ScriptThread.listenOnDataSelectEvent(toolkit);
         var bounds = atlas.painter().getImageTransform().transform(selection.bounds);
 
-        var image = atlas.getImageSlice();
+        var image = annotation ? atlas.getAnnotationImageSlice() : atlas.getImageSlice();
         if (image == null) {
             toolkit.printLogMessage("nothing can be select");
             return;

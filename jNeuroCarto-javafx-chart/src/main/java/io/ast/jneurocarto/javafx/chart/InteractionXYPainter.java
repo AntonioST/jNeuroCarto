@@ -260,6 +260,28 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         return ret.builder();
     }
 
+    public XYMatrix.Builder imshow(int[][] mat) {
+        return imshow(mat, false);
+    }
+
+    public XYMatrix.Builder imshow(int[][] mat, boolean flip) {
+        var ret = new XYMatrix();
+        ret.addData(mat, flip);
+        addGraphics(ret);
+        return ret.builder().extent(0, 0, ret.nx(), ret.ny());
+    }
+
+    public XYMatrix.Builder imshow(int[] mat, int row) {
+        return imshow(mat, row, false);
+    }
+
+    public XYMatrix.Builder imshow(int[] mat, int row, boolean flip) {
+        var ret = new XYMatrix();
+        ret.addData(mat, row, flip);
+        addGraphics(ret);
+        return ret.builder().extent(0, 0, ret.nx(), ret.ny());
+    }
+
     public XYMatrix.Builder imshow(double[][] mat) {
         return imshow(mat, false);
     }
@@ -268,7 +290,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         var ret = new XYMatrix();
         ret.addData(mat, flip);
         addGraphics(ret);
-        return ret.builder();
+        return ret.builder().extent(0, 0, ret.nx(), ret.ny());
     }
 
     public XYMatrix.Builder imshow(double[] mat, int row) {
@@ -279,7 +301,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         var ret = new XYMatrix();
         ret.addData(mat, row, flip);
         addGraphics(ret);
-        return ret.builder();
+        return ret.builder().extent(0, 0, ret.nx(), ret.ny());
     }
 
     public XYText.Builder text() {

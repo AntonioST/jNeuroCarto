@@ -147,6 +147,20 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return image;
     }
 
+    public @Nullable ImageSlice getAnnotationImageSlice() {
+        var image = this.image;
+        if (image == null) return null;
+        var annotations = getAnnotationImageStack();
+        if (annotations == null) return null;
+        return annotations.sliceAtPlane(image);
+    }
+
+    public @Nullable ImageSlice getAnnotationImageSlice(ImageSlice image) {
+        var annotations = getAnnotationImageStack();
+        if (annotations == null) return null;
+        return annotations.sliceAtPlane(image);
+    }
+
     public SlicePainter painter() {
         return painter;
     }
@@ -1122,6 +1136,19 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         updateMaskedRegion(maskedRegions);
     }
 
+    private @Nullable ImageSliceStack getAnnotationImageStack() {
+        var brain = this.brain;
+        if (brain == null) return null;
+        if (annotations == null || annotations.projection() != getProjection()) {
+            try {
+                annotations = new ImageSliceStack(brain, brain.annotation(), getProjection());
+            } catch (IOException e) {
+                return null;
+            }
+        }
+        return annotations;
+    }
+
     private void updateMaskedRegion(List<RegionMask> masks) {
         var size = maskPath.size();
         maskPath.clearPoints();
@@ -1133,18 +1160,12 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         //
         var brain = this.brain;
-        var stack = this.images;
         var image = this.image;
-        if (brain == null || stack == null || image == null) return;
+        if (brain == null || image == null) return;
 
         // init annotations
-        if (annotations == null || annotations.projection() != stack.projection()) {
-            try {
-                annotations = new ImageSliceStack(brain, brain.annotation(), getProjection());
-            } catch (IOException e) {
-                return;
-            }
-        }
+        var annotations = getAnnotationImageStack();
+        if (annotations == null) return;
 
         var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image)
             .image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
@@ -1160,6 +1181,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             }
         }
         if (set.isEmpty()) return;
+//        System.out.println(set);
+        // HP: [484682470, 139, 843, 909, 1037, 526, 463, 10703, 10704, 19, 20, 726, 982, 918, 727, 664, 28, 926, 543, 1121, 423, 743, 484682508, 52, 822, 502, 375, 1080, 632, 1084, 589508447, 382]
         toolkit.set(0, e -> !set.contains(e.c()));
         toolkit.set(1, e -> set.contains(e.c()));
 

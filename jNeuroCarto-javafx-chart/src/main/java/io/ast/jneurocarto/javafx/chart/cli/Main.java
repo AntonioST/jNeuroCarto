@@ -18,6 +18,7 @@ import picocli.CommandLine;
     Bar.class,
     Colorbar.class,
     Matrix.class,
+      Image.class,
     DragDrop.class
   }
 )
