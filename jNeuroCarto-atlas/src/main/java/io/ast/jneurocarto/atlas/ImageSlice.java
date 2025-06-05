@@ -158,9 +158,20 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     /**
      * project coordinate (x, y) into (AP, DV, ML)
      *
+     * @param x slice coordinate (um).
+     * @param y slice coordinate (um).
+     * @return global anatomical coordinate
+     */
+    public Coordinate pullBack(double x, double y) {
+        return stack.pullBack(new SliceCoordinate(planeAt(x, y), x, y));
+    }
+
+    /**
+     * project coordinate (x, y) into (AP, DV, ML)
+     *
      * @param coor coordinate (p, x, y),
-     *             where {@link SliceCoordinate#p()} will be replaced by {@link #planeAt(SliceCoordinate)}.
-     * @return coordinate (AP, DV, ML)
+     *             where {@link SliceCoordinate#p()} is ignored and will be replaced by {@link #planeAt(SliceCoordinate)}.
+     * @return global anatomical coordinate
      */
     public Coordinate pullBack(SliceCoordinate coor) {
         return stack.pullBack(planeAt(coor));

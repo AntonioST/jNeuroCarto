@@ -1080,7 +1080,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         Thread.ofVirtual().name("updateStructureInformation").start(() -> {
             Structure structure = null;
             try {
-                structure = brain.structureFromCoords(coor);
+                structure = brain.structureAt(coor);
             } catch (Exception e) {
                 log.warn("updateStructureInformation fail", e);
             }
@@ -1093,7 +1093,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
                     .map(Structure::acronym)
                     .collect(Collectors.joining(" / "));
 
-                var hem = brain.hemisphereFromCoords(coor);
+                var hem = brain.hemisphereAt(coor);
                 if (hem != null) {
                     text += " [" + hem.name() + "]";
                 }

@@ -24,10 +24,14 @@ public record Structure(
     }
 
     public boolean hasParent(int id) {
-        for (int i = 0, length = structurePath.length; i < length; i++) {
-            if (structurePath[i] == id) return true;
+        for (int j : structurePath) {
+            if (j == id) return true;
         }
         return false;
+    }
+
+    public boolean hasParent(Structure parent) {
+        return hasParent(parent.id);
     }
 
     @Override

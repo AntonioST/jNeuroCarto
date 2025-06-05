@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.atlas.ImageSlice;
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
+import io.ast.jneurocarto.atlas.Structure;
 import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
@@ -222,8 +223,30 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return true;
     }
 
-    public void setCaptureElectrodesInRegion(int region, CaptureMode mode) {
+    public void setCaptureElectrodesInRegion(int region, CaptureMode mode) throws PluginNotLoadException {
+        var atlas = getPlugin(AtlasPlugin.class);
+        var structure = atlas.getRegion(region);
+        if (structure == null) throw new RuntimeException("structure with id " + region + " not found.");
+        setCaptureElectrodesInRegion(atlas, structure, mode);
+    }
 
+    public void setCaptureElectrodesInRegion(String region, CaptureMode mode) throws PluginNotLoadException {
+        var atlas = getPlugin(AtlasPlugin.class);
+        var structure = atlas.getRegion(region);
+        if (structure == null) throw new RuntimeException("structure with name " + region + " not found.");
+        setCaptureElectrodesInRegion(atlas, structure, mode);
+    }
+
+    private void setCaptureElectrodesInRegion(AtlasPlugin atlas, Structure structure, CaptureMode mode) {
+        var brain = atlas.getBrainAtlas();
+        var image = atlas.getImageSlice();
+        if (brain == null || image == null) return;
+
+        var mask = mask(e -> {
+            var s = brain.structureAt(image.pullBack(e.x(), e.y()));
+            return s != null && s.hasParent(structure);
+        });
+        setCaptureElectrodes(mask, mode);
     }
 
     public void clearCaptureElectrodes() {

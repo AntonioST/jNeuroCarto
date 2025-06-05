@@ -183,11 +183,11 @@ public class BrainAtlas {
         }
     }
 
-    public @Nullable Structure structureFromCoords(Coordinate coor) {
-        return structureFromCoords(coor.toCoorIndex(resolution()));
+    public @Nullable Structure structureAt(Coordinate coor) {
+        return structureAt(coor.toCoorIndex(resolution()));
     }
 
-    public @Nullable Structure structureFromCoords(CoordinateIndex coor) {
+    public @Nullable Structure structureAt(CoordinateIndex coor) {
         ImageVolume volume;
         try {
             volume = annotation();
@@ -256,8 +256,8 @@ public class BrainAtlas {
     /**
      * @return {@link AnatomicalSpace.Labels#left} or {@link AnatomicalSpace.Labels#right}
      */
-    public AnatomicalSpace.@Nullable Labels hemisphereFromCoords(Coordinate coor) {
-        return hemisphereFromCoords(coor.toCoorIndex(resolution()));
+    public AnatomicalSpace.@Nullable Labels hemisphereAt(Coordinate coor) {
+        return hemisphereAt(coor.toCoorIndex(resolution()));
     }
 
     private volatile @Nullable Hemispheres hemispheres;
@@ -265,7 +265,7 @@ public class BrainAtlas {
     /**
      * @return {@link AnatomicalSpace.Labels#left} or {@link AnatomicalSpace.Labels#right}
      */
-    public AnatomicalSpace.@Nullable Labels hemisphereFromCoords(CoordinateIndex coor) {
+    public AnatomicalSpace.@Nullable Labels hemisphereAt(CoordinateIndex coor) {
         Hemispheres hem;
         try {
             hem = initHemisphere();

@@ -385,7 +385,7 @@ public class Application {
         Thread.ofVirtual().name("updateStructureInformation").start(() -> {
             Structure structure = null;
             try {
-                structure = brain.structureFromCoords(coor);
+                structure = brain.structureAt(coor);
             } catch (Exception e) {
                 log.warn("updateStructureInformation fail", e);
             }
@@ -398,7 +398,7 @@ public class Application {
                   .map(Structure::acronym)
                   .collect(Collectors.joining(" / "));
 
-                var hem = brain.hemisphereFromCoords(coor);
+                var hem = brain.hemisphereAt(coor);
                 if (hem != null) {
                     text += " [" + hem.name() + "]";
                 }
