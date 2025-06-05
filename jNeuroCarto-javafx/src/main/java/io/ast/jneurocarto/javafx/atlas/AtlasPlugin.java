@@ -1161,12 +1161,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         }
         if (set.isEmpty()) return;
         toolkit.set(0, e -> !set.contains(e.c()));
+        toolkit.set(1, e -> set.contains(e.c()));
 
         // edge detection
         var points = cacheMaskBoundaries = new ArrayList<>();
         cacheAnnImageBlueprint.getClusteringEdges().forEach(clustering -> {
             if (!points.isEmpty()) points.add(new Point2D(Double.NaN, Double.NaN));
-            clustering.setCorner(0.5, 0.5).edges().forEach(it -> {
+            clustering.smallCornerRemoving(1, 1).setCorner(0.5, 0.5).edges().forEach(it -> {
                 points.add(new Point2D(it.x(), it.y()));
             });
         });

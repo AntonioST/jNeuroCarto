@@ -2,8 +2,10 @@ package io.ast.jneurocarto.core.blueprint;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Gatherer;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public record ClusteringEdges(int category, int shank, List<Corner> edges) {
@@ -47,17 +49,17 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
 
     public ClusteringEdges setCorner(double dx, double dy) {
         if (dx < 0 || dy < 0) throw new IllegalArgumentException();
-        var dx2 = new double[]{0, dx, 0, -dx, 0, -dx, 0, dx, 0};
-        var dy2 = new double[]{0, dy, 0, dy, 0, -dy, 0, -dy, 0};
-        var edges1 = this.edges.stream().filter(corner -> {
+        var dxx = new double[]{0, dx, 0, -dx, 0, -dx, 0, dx, 0};
+        var dyy = new double[]{0, dy, 0, dy, 0, -dy, 0, -dy, 0};
+        var edges = this.edges.stream().filter(corner -> {
             var c = corner.corner;
             // corner at 0, 2, 4, 6 are removed
-            return c == 1 || c == 3 || c == 5 || c == 7;
+            return c == 1 || c == 3 || c == 5 || c == 7 || c == 8;
         }).map(corner -> {
             var c = corner.corner;
-            return new Corner(corner.x + dx2[c], corner.y + dy2[c], 8);
+            return new Corner(corner.x + dxx[c], corner.y + dyy[c], 8);
         }).toList();
-        return new ClusteringEdges(category, shank, edges1);
+        return new ClusteringEdges(category, shank, edges);
     }
 
     private Corner setCorner(Corner corner, double dx, double dy) {
@@ -75,6 +77,77 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
             case 8 -> corner;
             default -> throw new IllegalArgumentException();
         };
+    }
+
+    public ClusteringEdges smallCornerRemoving(double dx, double dy) {
+        if (dx < 0 || dy < 0) throw new IllegalArgumentException();
+        var edges = this.edges.stream().gather(Gatherer.<Corner, @Nullable Corner[], Corner>ofSequential(
+            () -> new Corner[3], // [0, n-2, n-1]
+            (state, element, downstream) -> {
+                if (state[0] == null) {
+                    state[0] = element;
+                    state[1] = element;
+                    return !downstream.isRejecting();
+                } else if (state[2] == null) {
+                    state[2] = element;
+                    return !downstream.isRejecting();
+                } else if (smallCornerRemovingPushing(state[1], state[2], element, dx, dy)) {
+                    var push = state[1];
+                    state[1] = state[2];
+                    state[2] = element;
+                    return downstream.push(push);
+                } else {
+                    state[2] = element;
+                    return !downstream.isRejecting();
+                }
+            },
+            (state, downstream) -> {
+                if (state[0] != null) {
+                    assert state[1] != null;
+                    if (state[2] == null) {
+                        downstream.push(state[0]);
+                    } else if (smallCornerRemovingPushing(state[1], state[2], state[0], dx, dy)) {
+                        downstream.push(state[1]);
+                        downstream.push(state[2]);
+                    } else {
+                        downstream.push(state[1]);
+                    }
+                }
+            }
+        )).toList();
+        return new ClusteringEdges(category, shank, edges);
+    }
+
+    private boolean smallCornerRemovingPushing(Corner e0, Corner e1, Corner e2, double dx, double dy) {
+        var x0 = e0.x;
+        var y0 = e0.y;
+//        var c0 = e0.corner;
+        var x1 = e1.x;
+        var y1 = e1.y;
+        var c1 = e1.corner;
+        var x2 = e2.x;
+        var y2 = e2.y;
+//        var c2 = e2.corner;
+
+        if (x0 == x1 && x1 == x2) {
+            return false;
+        } else if (y0 == y1 && y1 == y2) {
+            return false;
+        } else if (x0 == x1 && y1 == y2 && Math.abs(y1 - y0) <= dy && Math.abs(x2 - x1) <= dx) {
+            if (y0 < y1 && (c1 == 5 || c1 == 7)) {
+                return false;
+            } else if (y0 > y1 && (c1 == 1 || c1 == 3)) {
+                return false;
+            }
+        } else if (y0 == y1 && x1 == x2 && Math.abs(x1 - x0) <= dx && Math.abs(y2 - y1) <= dy) {
+            if (x0 < x1 && (c1 == 3 || c1 == 5)) {
+                return false;
+            } else if (x0 > x1 && (c1 == 1 || c1 == 7)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public double area() {
@@ -102,10 +175,10 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
         var y2 = edges.stream().mapToDouble(Corner::y).max().getAsDouble();
 
         return new ClusteringEdges(category, shank, List.of(
-          new Corner(x1, y1, 5),
-          new Corner(x2, y1, 7),
-          new Corner(x2, y2, 1),
-          new Corner(x1, y2, 3)
+            new Corner(x1, y1, 5),
+            new Corner(x2, y1, 7),
+            new Corner(x2, y2, 1),
+            new Corner(x1, y2, 3)
         ));
     }
 

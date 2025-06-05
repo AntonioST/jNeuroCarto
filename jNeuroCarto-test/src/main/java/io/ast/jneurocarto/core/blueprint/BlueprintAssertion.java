@@ -1,5 +1,8 @@
 package io.ast.jneurocarto.core.blueprint;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.opentest4j.AssertionFailedError;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -113,7 +116,7 @@ public class BlueprintAssertion {
         }
 
         message.append("%%-%ds".formatted(expLen).formatted("exp")).append("  ")
-          .append("%%-%ds".formatted(actLen).formatted("act")).append('\n');
+            .append("%%-%ds".formatted(actLen).formatted("act")).append('\n');
 
         return message.toString();
     }
@@ -136,5 +139,74 @@ public class BlueprintAssertion {
         for (var j : i) {
             clustering[j] = group;
         }
+    }
+
+    public static void assertClusteringEdgeEquals(List<ClusteringEdges> expect, List<ClusteringEdges> actual) {
+        var size = expect.size();
+        assertEquals(size, actual.size(), "different edges list size");
+        for (int i = 0; i < size; i++) {
+            assertClusteringEdgeEquals(expect.get(i), actual.get(i));
+        }
+    }
+
+    public static void assertClusteringEdgeEquals(ClusteringEdges expect, List<ClusteringEdges> actual) {
+        assertEquals(1, actual.size(), "different edges list size");
+        assertClusteringEdgeEquals(expect, actual.get(0));
+    }
+
+    public static void assertClusteringEdgeEquals(ClusteringEdges expect, ClusteringEdges actual) {
+        assertEquals(expect.category(), actual.category(), "different category");
+        assertEquals(expect.shank(), actual.shank(), "different shank");
+        var size = expect.edges().size();
+        try {
+            assertEquals(size, actual.edges().size(), "different edges size");
+        } catch (AssertionFailedError e) {
+            var message = buildClusteringEdgesComparingMessage(expect, actual);
+            throw new AssertionFailedError(message, e.getExpected(), e.getActual(), e);
+        }
+
+        try {
+            for (int i = 0; i < size; i++) {
+                assertEquals(expect.edges().get(i), actual.edges().get(i), "different edge at " + i);
+            }
+        } catch (AssertionFailedError e) {
+            var message = buildClusteringEdgesComparingMessage(expect, actual);
+            throw new AssertionFailedError(message, e.getExpected(), e.getActual(), e);
+        }
+    }
+
+    private static String buildClusteringEdgesComparingMessage(ClusteringEdges expect, ClusteringEdges actual) {
+        var sb = new StringBuilder();
+        sb.append('\n');
+
+        var exit = expect.edges().iterator();
+        var acit = actual.edges().iterator();
+        String expt;
+        String actt;
+        var i = 0;
+
+        while (exit.hasNext() && acit.hasNext()) {
+            var ex = exit.next();
+            var ac = acit.next();
+            var t = ex.equals(ac);
+            expt = Objects.toString(ex);
+            actt = Objects.toString(ac);
+            sb.append("%2d ".formatted(i++)).append(expt).append(t ? " == " : " != ").append(actt).append('\n');
+        }
+
+        if (exit.hasNext()) {
+            while (exit.hasNext()) {
+                var ex = exit.next();
+                expt = Objects.toString(ex);
+                sb.append("%2d ".formatted(i++)).append(expt).append(" != \n");
+            }
+        } else if (acit.hasNext()) {
+            while (acit.hasNext()) {
+                var ac = acit.next();
+                actt = Objects.toString(ac);
+                sb.append("%2d ".formatted(i++)).append(" ".repeat(actt.length())).append(" != ").append(actt).append('\n');
+            }
+        }
+        return sb.toString();
     }
 }
