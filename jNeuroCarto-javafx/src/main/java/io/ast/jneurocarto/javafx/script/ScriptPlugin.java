@@ -14,6 +14,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -166,6 +168,8 @@ public class ScriptPlugin extends InvisibleView {
 
         line = new TextField();
         line.setFont(Font.font("monospace"));
+        line.setOnAction(this::onScriptRun);
+        line.addEventFilter(KeyEvent.KEY_PRESSED, this::onInputKeyPressed);
 
         run = new Button("Run");
         run.setOnAction(this::onScriptRun);
@@ -243,6 +247,26 @@ public class ScriptPlugin extends InvisibleView {
 
         information.setText(BlueprintScriptHandles.getScriptSignature(script));
         document.setText(BlueprintScriptHandles.buildScriptDocument(script));
+    }
+
+    private void onInputKeyPressed(KeyEvent e) {
+        if (e.getCode() == KeyCode.UP) {
+            onInputKeySelect(-1);
+            e.consume();
+        } else if (e.getCode() == KeyCode.DOWN) {
+            onInputKeySelect(1);
+            e.consume();
+        }
+    }
+
+    private void onInputKeySelect(int d) {
+        var value = script.getValue();
+        var index = script.getItems().indexOf(value);
+        try {
+            var next = script.getItems().get(index + d);
+            script.setValue(next);
+        } catch (IndexOutOfBoundsException e) {
+        }
     }
 
     private void onScriptRun(ActionEvent e) {
