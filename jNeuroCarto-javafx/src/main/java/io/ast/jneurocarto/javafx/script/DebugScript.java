@@ -52,9 +52,8 @@ public class DebugScript {
      */
     //    @BlueprintScript(value = "count-echo", description = "count and echo", async = true)
     public void countEcho(BlueprintAppToolkit<Object> toolkit,
+                          ScriptPlugin plugin,
                           @ScriptParameter("n") int n) throws InterruptedException {
-        var plugin = toolkit.getPlugin(ScriptPlugin.class).orElseThrow(RuntimeException::new);
-
         var success = ScriptThread.awaitFxApplicationThread(() -> {
             if (plugin.selectScript("echo")) {
                 plugin.setScriptInputLine("");
@@ -88,7 +87,7 @@ public class DebugScript {
     /**
      * Test {@link io.ast.jneurocarto.javafx.atlas.AtlasPlugin#anchorImageTo(ImageSliceStack.Projection, Coordinate, Point2D)}
      */
-    @BlueprintScript(value = "anchor")
+//    @BlueprintScript(value = "anchor")
     public void atlasAnchorImageTo(
         BlueprintAppToolkit<Object> toolkit,
         AtlasPlugin atlas,

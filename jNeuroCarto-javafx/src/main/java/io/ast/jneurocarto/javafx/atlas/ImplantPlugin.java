@@ -288,6 +288,11 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         return newImplantCoordinate(s, r);
     }
 
+    public @Nullable ImplantCoordinate newImplantCoordinate(int shank) {
+        var r = atlas.getAtlasReferenceName();
+        return newImplantCoordinate(shank, r);
+    }
+
     public @Nullable ImplantCoordinate newImplantCoordinate(int shank, @Nullable String reference) {
         var stack = atlas.getImageSliceStack();
         var image = atlas.getImageSlice();
@@ -335,14 +340,8 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
 
         log.debug("focus {}", implant);
         implant = toGlobalCoordinate(implant);
-        log.trace("focus {}", implant);
-
         var coor = implant.insertCoordinate();
-        log.trace("insert at {}", coor);
-
         var drwh = stack.angle2Offset(implant.rotation());
-        log.trace("rotate {}", drwh);
-
         var slice = stack.sliceAtPlane(coor).withOffset(drwh.x(), drwh.y());
 
         atlas.setImageSlice(slice, drwh.p());
@@ -355,7 +354,6 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         }
 
         probe = new ProbeCoordinate(0, probe.x(), probe.y() + implant.depth());
-        log.trace("anchor to {}", probe);
         atlas.anchorImageTo(atlas.project(coor), new Point2D(probe.x(), probe.y()));
     }
 

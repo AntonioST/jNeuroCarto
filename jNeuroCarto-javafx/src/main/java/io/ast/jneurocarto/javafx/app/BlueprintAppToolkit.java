@@ -10,13 +10,11 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.atlas.ImageSlice;
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.atlas.SliceCoordinate;
-import io.ast.jneurocarto.atlas.Structure;
 import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
-import io.ast.jneurocarto.javafx.atlas.AtlasLabelPlugin;
-import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
-import io.ast.jneurocarto.javafx.atlas.CoordinateLabel;
+import io.ast.jneurocarto.javafx.atlas.*;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
 import io.ast.jneurocarto.javafx.view.Plugin;
 
@@ -192,10 +190,10 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return index(application.view.getCaptured(false));
     }
 
-    public void setCaptureElectrodes(int[] index, CaptureMode mode) {
+    public boolean setCaptureElectrodes(int[] index, CaptureMode mode) {
         var view = application.view;
         var electrodes = view.getBlueprint();
-        if (electrodes == null) return;
+        if (electrodes == null) return false;
 
         switch (mode) {
         case replace -> {
@@ -205,6 +203,27 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         case append -> view.setCaptured(pick(electrodes, index));
         case exclude -> view.unsetCaptured(pick(electrodes, index));
         }
+        return true;
+    }
+
+    public boolean setCaptureElectrodes(BlueprintMask mask, CaptureMode mode) {
+        var view = application.view;
+        var electrodes = view.getBlueprint();
+        if (electrodes == null) return false;
+
+        switch (mode) {
+        case replace -> {
+            view.clearCaptured();
+            view.setCaptured(pick(electrodes, mask));
+        }
+        case append -> view.setCaptured(pick(electrodes, mask));
+        case exclude -> view.unsetCaptured(pick(electrodes, mask));
+        }
+        return true;
+    }
+
+    public void setCaptureElectrodesInRegion(int region, CaptureMode mode) {
+
     }
 
     public void clearCaptureElectrodes() {
@@ -252,173 +271,174 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return Optional.ofNullable(application.getPlugin(name));
     }
 
-    public <P extends Plugin> Optional<P> getPlugin(Class<P> cls) {
-        return Optional.ofNullable(application.getPlugin(cls));
+    public <P extends Plugin> P getPlugin(Class<P> cls) throws PluginNotLoadException {
+        var ret = application.getPlugin(cls);
+        if (ret == null) throw new PluginNotLoadException(cls);
+        return ret;
     }
 
     /*==================*
      * blueprint script *
      *==================*/
 
-    public boolean hasScript(String name) {
-        return getPlugin(ScriptPlugin.class).map(p -> p.hasScript(name)).orElse(false);
+    public boolean hasScript(String name) throws PluginNotLoadException {
+        return getPlugin(ScriptPlugin.class).hasScript(name);
     }
 
-    public void runScript(String name, String... args) {
+    public void runScript(String name, String... args) throws PluginNotLoadException {
         runScript(name, Arrays.asList(args));
     }
 
-    public void runScript(String name, List<String> args) {
+    public void runScript(String name, List<String> args) throws PluginNotLoadException {
         runScript(name, args, Map.of());
     }
 
-    public void runScript(String name, List<String> args, Map<String, String> kwargs) {
-        getPlugin(ScriptPlugin.class).ifPresent(p -> p.runScript(name, args, kwargs));
+    public void runScript(String name, List<String> args, Map<String, String> kwargs) throws PluginNotLoadException {
+        getPlugin(ScriptPlugin.class).runScript(name, args, kwargs);
     }
 
-    public boolean interruptScript(String name) {
-        return getPlugin(ScriptPlugin.class).map(p -> p.interruptScript(name)).orElse(false);
+    public boolean interruptScript(String name) throws PluginNotLoadException {
+        return getPlugin(ScriptPlugin.class).interruptScript(name);
     }
 
-    public void setScriptInput(String name, String... args) {
-        getPlugin(ScriptPlugin.class).ifPresent(p -> {
-            if (p.selectScript(name)) {
-                for (var arg : args) {
-                    p.appendScriptInputValueText(arg);
-                }
+    public void setScriptInput(String name, String... args) throws PluginNotLoadException {
+        var p = getPlugin(ScriptPlugin.class);
+        if (p.selectScript(name)) {
+            for (var arg : args) {
+                p.appendScriptInputValueText(arg);
             }
-        });
+        }
     }
 
     /*=============*
      * atlas brain *
      *=============*/
 
-    public @Nullable String atlasGetRegion(int id) {
-        return getPlugin(AtlasPlugin.class)
-            .map(p -> p.getRegion(id))
-            .map(Structure::name)
-            .orElse(null);
+    public @Nullable String atlasGetRegion(int id) throws PluginNotLoadException {
+        var p = getPlugin(AtlasPlugin.class);
+        var r = p.getRegion(id);
+        return r == null ? null : r.name();
     }
 
-    public @Nullable String atlasGetRegion(String name) {
-        return getPlugin(AtlasPlugin.class)
-            .map(p -> p.getRegion(name))
-            .map(Structure::name)
-            .orElse(null);
+    public @Nullable String atlasGetRegion(String name) throws PluginNotLoadException {
+        var p = getPlugin(AtlasPlugin.class);
+        var r = p.getRegion(name);
+        return r == null ? null : r.name();
     }
 
-    public @Nullable ImageSlice atlasGetSlice() {
-        return getPlugin(AtlasPlugin.class).map(AtlasPlugin::getImageSlice).orElse(null);
+    public ImageSliceStack.@Nullable Projection atlasGetProjection() throws PluginNotLoadException {
+        return getPlugin(AtlasPlugin.class).getProjection();
     }
 
-    public void atlasSetSlice(ImageSliceStack.Projection projection) {
-        getPlugin(AtlasPlugin.class).ifPresent(p -> p.setProjection(projection));
+    public @Nullable AtlasReference atlasGetReference() throws PluginNotLoadException {
+        return getPlugin(AtlasPlugin.class).getAtlasReference();
+    }
+
+    public @Nullable ImageSlice atlasGetSlice() throws PluginNotLoadException {
+        return getPlugin(AtlasPlugin.class).getImageSlice();
+    }
+
+    public void atlasSetSlice(ImageSliceStack.Projection projection) throws PluginNotLoadException {
+        getPlugin(AtlasPlugin.class).setProjection(projection);
     }
 
     /**
      * @param projection
      * @param plane      plane (um) in referenced anatomical space
      */
-    public void atlasSetSlice(ImageSliceStack.Projection projection, double plane) {
-        getPlugin(AtlasPlugin.class).ifPresent(p -> {
-            p.setProjection(projection);
-            p.setPlane(plane);
-        });
+    public void atlasSetSlice(ImageSliceStack.Projection projection, double plane) throws PluginNotLoadException {
+        var p = getPlugin(AtlasPlugin.class);
+        p.setProjection(projection);
+        p.setPlane(plane);
     }
 
-    public @Nullable CoordinateLabel atlasGetLabel(String text) {
-        return getPlugin(AtlasLabelPlugin.class).map(p -> p.getLabel(text)).orElse(null);
+    public @Nullable CoordinateLabel atlasGetLabel(String text) throws PluginNotLoadException {
+        return getPlugin(AtlasLabelPlugin.class).getLabel(text);
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, Coordinate coordinate, String color) {
-        return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate, null), color);
-            p.addLabel(label);
-            return label;
-        }).orElse(null);
+    public @Nullable CoordinateLabel atlasAddLabel(String text, Coordinate coordinate, String color) throws PluginNotLoadException {
+        var p = getPlugin(AtlasLabelPlugin.class);
+        var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate, null), color);
+        p.addLabel(label);
+        return label;
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, String reference, Coordinate coordinate, String color) {
-        return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate, reference), color);
-            p.addLabel(label);
-            return label;
-        }).orElse(null);
+    public @Nullable CoordinateLabel atlasAddLabel(String text, String reference, Coordinate coordinate, String color) throws PluginNotLoadException {
+        var p = getPlugin(AtlasLabelPlugin.class);
+        var label = new CoordinateLabel(text, new CoordinateLabel.AtlasPosition(coordinate, reference), color);
+        p.addLabel(label);
+        return label;
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, SliceCoordinate coordinate, String color) {
-        var projection = getPlugin(AtlasPlugin.class).map(AtlasPlugin::getProjection).orElse(ImageSliceStack.Projection.coronal);
+    public @Nullable CoordinateLabel atlasAddLabel(String text, SliceCoordinate coordinate, String color) throws PluginNotLoadException {
+        var projection = getPlugin(AtlasPlugin.class).getProjection();
         return atlasAddLabel(text, projection, coordinate, color);
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, ImageSliceStack.Projection projection, SliceCoordinate coordinate, String color) {
-        return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.SlicePosition(projection, coordinate), color);
-            p.addLabel(label);
-            return label;
-        }).orElse(null);
+    public @Nullable CoordinateLabel atlasAddLabel(String text, ImageSliceStack.Projection projection, SliceCoordinate coordinate, String color) throws PluginNotLoadException {
+        var p = getPlugin(AtlasLabelPlugin.class);
+        var label = new CoordinateLabel(text, new CoordinateLabel.SlicePosition(projection, coordinate), color);
+        p.addLabel(label);
+        return label;
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, ProbeCoordinate coordinate, String color) {
-        return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(coordinate), color);
-            p.addLabel(label);
-            return label;
-        }).orElse(null);
+    public @Nullable CoordinateLabel atlasAddLabel(String text, ProbeCoordinate coordinate, String color) throws PluginNotLoadException {
+        var p = getPlugin(AtlasLabelPlugin.class);
+        var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(coordinate), color);
+        p.addLabel(label);
+        return label;
     }
 
-    public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y, String color) {
-        return getPlugin(AtlasLabelPlugin.class).map(p -> {
-            var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(new ProbeCoordinate(0, x, y)), color);
-            p.addLabel(label);
-            return label;
-        }).orElse(null);
+    public @Nullable CoordinateLabel atlasAddLabel(String text, double x, double y, String color) throws PluginNotLoadException {
+        var p = getPlugin(AtlasLabelPlugin.class);
+        var label = new CoordinateLabel(text, new CoordinateLabel.ProbePosition(new ProbeCoordinate(0, x, y)), color);
+        p.addLabel(label);
+        return label;
     }
 
-    public void atlasFocusLabel(String text) {
+    public void atlasFocusLabel(String text) throws PluginNotLoadException {
         var label = atlasGetLabel(text);
         if (label != null) atlasFocusLabel(label);
     }
 
-    public void atlasFocusLabel(@Nullable CoordinateLabel label) {
+    public void atlasFocusLabel(@Nullable CoordinateLabel label) throws PluginNotLoadException {
         if (label != null) {
-            getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.focusOnLabel(label));
+            getPlugin(AtlasLabelPlugin.class).focusOnLabel(label);
         }
     }
 
-    public boolean atlasIsLabelVisible(String text) {
+    public boolean atlasIsLabelVisible(String text) throws PluginNotLoadException {
         var label = atlasGetLabel(text);
         return label != null && atlasIsLabelVisible(label);
     }
 
-    public boolean atlasIsLabelVisible(@Nullable CoordinateLabel label) {
-        return label != null && getPlugin(AtlasLabelPlugin.class).map(p -> p.isVisible(label)).orElse(false);
+    public boolean atlasIsLabelVisible(@Nullable CoordinateLabel label) throws PluginNotLoadException {
+        return label != null && getPlugin(AtlasLabelPlugin.class).isVisible(label);
     }
 
-    public void atlasSetLabelVisible(String text, boolean visible) {
+    public void atlasSetLabelVisible(String text, boolean visible) throws PluginNotLoadException {
         var label = atlasGetLabel(text);
         if (label != null) atlasSetLabelVisible(label, visible);
     }
 
-    public void atlasSetLabelVisible(@Nullable CoordinateLabel label, boolean visible) {
+    public void atlasSetLabelVisible(@Nullable CoordinateLabel label, boolean visible) throws PluginNotLoadException {
         if (label != null) {
-            getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.setVisible(label, visible));
+            getPlugin(AtlasLabelPlugin.class).setVisible(label, visible);
         }
     }
 
-    public void atlasRemoveLabel(String text) {
+    public void atlasRemoveLabel(String text) throws PluginNotLoadException {
         var label = atlasGetLabel(text);
         if (label != null) atlasRemoveLabel(label);
     }
 
-    public void atlasRemoveLabel(@Nullable CoordinateLabel label) {
+    public void atlasRemoveLabel(@Nullable CoordinateLabel label) throws PluginNotLoadException {
         if (label == null) return;
-        getPlugin(AtlasLabelPlugin.class).ifPresent(p -> p.removeLabel(label));
+        getPlugin(AtlasLabelPlugin.class).removeLabel(label);
     }
 
-    public void atlasClearLabels() {
-        getPlugin(AtlasLabelPlugin.class).ifPresent(AtlasLabelPlugin::clearLabels);
+    public void atlasClearLabels() throws PluginNotLoadException {
+        getPlugin(AtlasLabelPlugin.class).clearLabels();
     }
 
     /*====================*
@@ -431,7 +451,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * @param x slice coordinate
      * @param y slice coordinate
      */
-    public void atlasSetAnchor(double x, double y) {
+    public void atlasSetAnchor(double x, double y) throws PluginNotLoadException {
         atlasSetAnchor(x, y, 0, 0);
     }
 
@@ -444,8 +464,8 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * @param ax chart position
      * @param ay chart position
      */
-    public void atlasSetAnchor(double x, double y, double ax, double ay) {
-        getPlugin(AtlasPlugin.class).ifPresent(p -> p.anchorImageTo(new SliceCoordinate(Double.NaN, x, y), new Point2D(ax, ay)));
+    public void atlasSetAnchor(double x, double y, double ax, double ay) throws PluginNotLoadException {
+        getPlugin(AtlasPlugin.class).anchorImageTo(new SliceCoordinate(Double.NaN, x, y), new Point2D(ax, ay));
     }
 
     /**
@@ -456,23 +476,24 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * @param ax         chart position
      * @param ay         chart position
      */
-    public void atlasSetAnchor(SliceCoordinate coordinate, double ax, double ay) {
-        getPlugin(AtlasPlugin.class).ifPresent(p -> p.anchorImageTo(coordinate, new Point2D(ax, ay)));
+    public void atlasSetAnchor(SliceCoordinate coordinate, double ax, double ay) throws PluginNotLoadException {
+        getPlugin(AtlasPlugin.class).anchorImageTo(coordinate, new Point2D(ax, ay));
     }
 
-    public @Nullable ProbeCoordinate atlasNewProbeCoordinate() {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasNewProbeCoordinate
-        throw new UnsupportedOperationException();
+    public @Nullable ImplantCoordinate atlasCurrentProbeCoordinate() throws PluginNotLoadException {
+        return getPlugin(ImplantPlugin.class).getImplantCoordinate();
     }
 
-    public @Nullable ProbeCoordinate atlasCurrentProbeCoordinate() {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasCurrentProbeCoordinate
-        throw new UnsupportedOperationException();
+    public @Nullable ImplantCoordinate atlasNewProbeCoordinate() throws PluginNotLoadException {
+        return atlasNewProbeCoordinate(0);
     }
 
-    public void atlasSetAnchorOnProbe(ProbeCoordinate coordinate) {
-        //XXX Unsupported Operation BlueprintAppToolkit.atlasCurrentProbeCoordinate
-        throw new UnsupportedOperationException();
+    public @Nullable ImplantCoordinate atlasNewProbeCoordinate(int shank) throws PluginNotLoadException {
+        return getPlugin(ImplantPlugin.class).newImplantCoordinate(shank);
+    }
+
+    public void atlasSetAnchorOnProbe(ImplantCoordinate coordinate) throws PluginNotLoadException {
+        getPlugin(ImplantPlugin.class).focusImplantCoordinate(coordinate);
     }
 
     /*==========*
