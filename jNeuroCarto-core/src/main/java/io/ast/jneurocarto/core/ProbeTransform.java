@@ -134,9 +134,16 @@ public sealed abstract class ProbeTransform<C1, C2> {
         return new Affine(transform());
     }
 
-    public abstract <C3> ProbeTransform<C1, C3> compose(Domain<C3> domain, Affine transform);
+    public abstract <C3> ProbeTransform<C1, C3> then(Domain<C3> domain, Affine transform);
 
-    public abstract <C3> ProbeTransform<C1, C3> compose(ProbeTransform<C2, C3> transform);
+    /**
+     * compose {@code transform} and form {@code transform(this(.))} or {@code transform ∘ this}.
+     *
+     * @param transform
+     * @param <C3>      final target domain.
+     * @return
+     */
+    public abstract <C3> ProbeTransform<C1, C3> then(ProbeTransform<C2, C3> transform);
 
     protected void checkComposeDomain(ProbeTransform<?, ?> transform) {
         if (!targetDomain().equals(transform.sourceDomain())) {
@@ -315,7 +322,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
 
         FixedTransform(Domain<C1> d1, Domain<C2> d2, Affine transform) {
             super(d1, d2);
-            this.transform = transform;
+            this.transform = new Affine(transform);
 
             try {
                 this.inverse = transform.createInverse();
@@ -324,7 +331,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
             }
         }
 
-        FixedTransform(Domain<C1> d1, Domain<C2> d2, Affine transform, Affine inverse) {
+        private FixedTransform(Domain<C1> d1, Domain<C2> d2, Affine transform, Affine inverse) {
             super(d1, d2);
             this.transform = transform;
             this.inverse = inverse;
@@ -344,28 +351,28 @@ public sealed abstract class ProbeTransform<C1, C2> {
             return new FixedTransform<>(d2, d1, inverse, transform);
         }
 
-        public <C3> ProbeTransform<C1, C3> compose(Domain<C3> domain, Affine transform) {
+        public <C3> ProbeTransform<C1, C3> then(Domain<C3> domain, Affine transform) {
             var t = new Affine(transform);
-            t.append(transform);
+            t.prepend(transform);
             return new FixedTransform<>(this.d1, domain, t);
         }
 
-        public <C3> ProbeTransform<C1, C3> compose(ProbeTransform<C2, C3> transform) {
+        public <C3> ProbeTransform<C1, C3> then(ProbeTransform<C2, C3> transform) {
             checkComposeDomain(transform);
             if (transform instanceof ProbeTransform.FixedTransform<C2, C3> f) {
                 var t = new Affine(this.transform);
-                t.append(f.transform());
+                t.prepend(f.transform());
                 return new FixedTransform<>(this.d1, transform.d2, t);
             } else if (transform instanceof ProbeTransform.ComposedTransform<C2, ?, C3> f) {
-                return compose(f);
+                return then(f);
             } else {
                 return new ComposedTransform<>(this, transform);
             }
         }
 
-        public <C3, C4> ProbeTransform<C1, C4> compose(ComposedTransform<C2, C3, C4> transform) {
+        public <C3, C4> ProbeTransform<C1, C4> then(ComposedTransform<C2, C3, C4> transform) {
             if (transform.f instanceof ProbeTransform.FixedTransform<C2, C3> f) {
-                return new ComposedTransform<>(compose(f), transform.g);
+                return new ComposedTransform<>(then(f), transform.g);
             } else {
                 return new ComposedTransform<>(this, transform);
             }
@@ -407,12 +414,12 @@ public sealed abstract class ProbeTransform<C1, C2> {
         }
 
         @Override
-        public <C3> ProbeTransform<C1, C3> compose(Domain<C3> domain, Affine transform) {
+        public <C3> ProbeTransform<C1, C3> then(Domain<C3> domain, Affine transform) {
             return new ComposedTransform<>(this, new FixedTransform<>(targetDomain(), domain, transform));
         }
 
         @Override
-        public <C3> ProbeTransform<C1, C3> compose(ProbeTransform<C2, C3> transform) {
+        public <C3> ProbeTransform<C1, C3> then(ProbeTransform<C2, C3> transform) {
             checkComposeDomain(transform);
             return new ComposedTransform<>(this, transform);
         }
@@ -436,15 +443,19 @@ public sealed abstract class ProbeTransform<C1, C2> {
 
         @Override
         protected Affine transform() {
+            // (T1, (T2 ...(Tn)))
+            // [Tn]...[T2][T1]
             var t = new Affine(f.transform());
-            t.append(g.transform());
+            t.prepend(g.transform());
             return t;
         }
 
         @Override
         protected Affine inverse() {
+            // (T1, (T2 ...(Tn)))
+            // [T1'][T2']...[Tn']
             var t = new Affine(g.inverse());
-            t.append(f.inverse());
+            t.prepend(f.inverse());
             return t;
         }
 
@@ -458,16 +469,16 @@ public sealed abstract class ProbeTransform<C1, C2> {
         inverted(T)
         | S -> S'
         | (S1, S2) -> (S2', S1')
-        | (S, C) -> compose(inverted(C) , S')
+        | (S, C) -> then(inverted(C) , S')
         e.g. inverted((S1, (S2, S3))) = (S3', (S2', S1'))
         e.g. inverted((S1, (S2, (... (Sn))))) = (Sn', (..., (S2', S1')))
 
-        compose(T, T)
+        then(T, T)
         | (F, F) -> F
-        | (F, (F, C)) -> (compose(F, F), C)
+        | (F, (F, C)) -> (then(F, F), C)
         | (S, T) -> (S, T)
-        | ((S, T1), T2) -> (S, compose(T1, T2))
-        e.g. compose((S1, (S2, S3)), S4) = (S1, (S2, (S3, S4)))
+        | ((S, T1), T2) -> (S, then(T1, T2))
+        e.g. then((S1, (S2, S3)), S4) = (S1, (S2, (S3, S4)))
          */
 
         @Override
@@ -478,31 +489,31 @@ public sealed abstract class ProbeTransform<C1, C2> {
         private static <C1, C2, C3> ProbeTransform<C3, C1> inverted(ProbeTransform<C1, C2> f, ProbeTransform<C2, C3> g) {
             assert !(f instanceof ProbeTransform.ComposedTransform<C1, ?, C2>);
             if (g instanceof ProbeTransform.ComposedTransform<C2, ?, C3> gg) {
-                return composeInvert(gg, f.inverted());
+                return thenInvert(gg, f.inverted());
             } else {
                 return new ComposedTransform<>(g.inverted(), f.inverted());
             }
         }
 
-        private static <C1, C2, C3, C4> ProbeTransform<C4, C1> composeInvert(ComposedTransform<C2, C3, C4> c, ProbeTransform<C2, C1> r) {
+        private static <C1, C2, C3, C4> ProbeTransform<C4, C1> thenInvert(ComposedTransform<C2, C3, C4> c, ProbeTransform<C2, C1> r) {
             var rr = new ComposedTransform<>(c.f.inverted(), r);
 
             if (c.g instanceof ProbeTransform.ComposedTransform<C3, ?, C4> cg) {
-                return composeInvert(cg, rr);
+                return thenInvert(cg, rr);
             } else {
                 return new ComposedTransform<>(c.g.inverted(), rr);
             }
         }
 
         @Override
-        public <C4> ProbeTransform<C1, C4> compose(Domain<C4> domain, Affine transform) {
-            return compose(new FixedTransform<>(targetDomain(), domain, transform));
+        public <C4> ProbeTransform<C1, C4> then(Domain<C4> domain, Affine transform) {
+            return then(new FixedTransform<>(targetDomain(), domain, transform));
         }
 
         @Override
-        public <C4> ProbeTransform<C1, C4> compose(ProbeTransform<C3, C4> transform) {
+        public <C4> ProbeTransform<C1, C4> then(ProbeTransform<C3, C4> transform) {
             checkComposeDomain(transform);
-            return new ComposedTransform<>(f, g.compose(transform));
+            return new ComposedTransform<>(f, g.then(transform));
         }
     }
 }

@@ -108,16 +108,20 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
 
     private ImplantState getState(ImplantCoordinate implant) {
         var state = new ImplantState();
-        state.ap = implant.ap();
-        state.dv = implant.dv();
-        state.ml = implant.ml();
+        state.ap = r2(implant.ap() / 1000);
+        state.dv = r2(implant.dv() / 1000);
+        state.ml = r2(implant.ml() / 1000);
         state.shank = implant.s();
-        state.rap = implant.rap();
-        state.rdv = implant.rdv();
-        state.rml = implant.rml();
-        state.depth = implant.depth();
+        state.rap = r2(implant.rap());
+        state.rdv = r2(implant.rdv());
+        state.rml = r2(implant.rml());
+        state.depth = r2(implant.depth() / 1000);
         state.reference = implant.reference();
         return state;
+    }
+
+    private static double r2(double v) {
+        return (double) ((int) (v * 100)) / 100;
     }
 
     @Override
@@ -125,8 +129,8 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         if (state == null) return;
 
         var implant = new ImplantCoordinate(
-            state.ap, state.dv, state.ml, state.shank,
-            state.rap, state.rdv, state.rml, state.depth,
+            state.ap * 1000, state.dv * 1000, state.ml * 1000, state.shank,
+            state.rap, state.rdv, state.rml, state.depth * 1000,
             state.reference
         );
         log.debug("restore {}", implant);
@@ -226,20 +230,22 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         if (implant == null) {
             implantTransform = null;
             implantReference = null;
-        } else if (implant.reference() != null) {
-            assert references != null;
-            var ref = references.getReference(implant.reference());
-            if (ref != null) {
-                implantTransform = ProbeTransform.create(implant.reference(), ref.coordinate(), ref.flipAP());
-                implantReference = ref;
+        } else if (implantReference == null || !Objects.equals(implant.reference(), implantReference.name())) {
+            if (implant.reference() != null) {
+                assert references != null;
+                var ref = references.getReference(implant.reference());
+                if (ref != null) {
+                    implantTransform = ProbeTransform.create(implant.reference(), ref.coordinate(), ref.flipAP());
+                    implantReference = ref;
+                } else {
+                    log.warn("reference {} not found", implant.reference());
+                    implantTransform = null;
+                    implantReference = null;
+                }
             } else {
-                log.warn("reference {} not found", implant.reference());
-                implantTransform = null;
+                implantTransform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
                 implantReference = null;
             }
-        } else {
-            implantTransform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
-            implantReference = null;
         }
     }
 
@@ -277,7 +283,7 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
 
     public @Nullable ImplantCoordinate newImplantCoordinate() {
         var implant = getImplantCoordinate();
-        var s = implant == null ? 0 : implant.s();
+        var s = implant != null ? implant.s() : 0;
         var r = implant != null ? implant.reference() : atlas.getAtlasReferenceName();
         return newImplantCoordinate(s, r);
     }
@@ -293,26 +299,30 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         } else {
             probe = shankCoor.apply(shank);
         }
+        // restore plane information at z
+        probe = new ProbeCoordinate(probe.s(), probe.x(), probe.y(), image.planeLength());
 
         var tsp = atlas.getChartTransform();
         var tcs = atlas.getSliceTransform();
         assert tcs != null;
-        var tpc = tcs.compose(tsp).inverted();
+        var tpc = tcs.then(tsp).inverted();
 
         var tip = tpc.transform(probe);
+
         var dxy = tpc.deltaTransform(0, 1); // 1 depth = dxy = (dap,ddv,dml)
-        // depth * ddv = tip.dv
-        var depth = Math.abs(tip.dv() / dxy.getY());
+        var depth = -tip.dv() / dxy.getY();
 
         var rot = stack.offset2Angle(image.dw(), image.dh(), atlas.painter().r());
 
         var implant = new ImplantCoordinate(
-            tip.ap() - depth * dxy.getX(),
-            tip.dv() - depth * dxy.getY(),
-            tip.ml() - depth * dxy.getZ(),
+            tip.ap() + depth * dxy.getX(),
+            tip.dv() + depth * dxy.getY(),
+            tip.ml() + depth * dxy.getZ(),
             shank,
-            rot.ap(), rot.dv(), rot.ml(),
-            Math.abs(depth),
+            Math.toDegrees(rot.ap()),
+            Math.toDegrees(rot.dv()),
+            Math.toDegrees(rot.ml()),
+            depth,
             null
         );
 

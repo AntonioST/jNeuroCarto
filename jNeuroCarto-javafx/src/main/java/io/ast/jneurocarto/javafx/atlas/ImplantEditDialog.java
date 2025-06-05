@@ -48,6 +48,7 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
             if (e.getCode() == KeyCode.ENTER) {
                 if (e.getTarget() instanceof TextField) {
                     e.consume(); // block enter on textfield cause dialog close.
+                    updateImplantState();
                 }
             }
         });
@@ -70,11 +71,11 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
 
         shank = new FormattedTextField.OfIntField(state.shank);
         shank.getValueProperty().addListener(this::onUpdate);
-        ap = new FormattedTextField.OfDoubleField(state.ap / 1000);
+        ap = new FormattedTextField.OfDoubleField(state.ap);
         ap.getValueProperty().addListener(this::onUpdate);
-        dv = new FormattedTextField.OfDoubleField(state.dv / 1000);
+        dv = new FormattedTextField.OfDoubleField(state.dv);
         dv.getValueProperty().addListener(this::onUpdate);
-        ml = new FormattedTextField.OfDoubleField(state.ml / 1000);
+        ml = new FormattedTextField.OfDoubleField(state.ml);
         ml.getValueProperty().addListener(this::onUpdate);
 
 
@@ -99,7 +100,7 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         rdv.getValueProperty().addListener(this::onUpdate);
         rml = new FormattedTextField.OfDoubleField(state.rml);
         rml.getValueProperty().addListener(this::onUpdate);
-        depth = new FormattedTextField.OfDoubleField(state.depth / 1000);
+        depth = new FormattedTextField.OfDoubleField(state.depth);
         depth.getValueProperty().addListener(this::onUpdate);
 
         layout.add(rap, 4, 0);
@@ -249,14 +250,14 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
     public void updateImplantState(ImplantState state) {
         blockUpdate = true;
         try {
-            ap.setDoubleValue(state.ap / 1000);
-            dv.setDoubleValue(state.dv / 1000);
-            ml.setDoubleValue(state.ml / 1000);
+            ap.setDoubleValue(state.ap);
+            dv.setDoubleValue(state.dv);
+            ml.setDoubleValue(state.ml);
             shank.setValue(state.shank);
             rap.setDoubleValue(state.rap);
             rdv.setDoubleValue(state.rdv);
             rml.setDoubleValue(state.rml);
-            depth.setDoubleValue(state.depth / 1000);
+            depth.setDoubleValue(state.depth);
             choice.setValue(state.reference);
         } finally {
             blockUpdate = false;
@@ -265,14 +266,14 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
 
     private void updateImplantState() {
         var state = new ImplantState();
-        state.ap = ap.getDoubleValue() * 1000;
-        state.dv = dv.getDoubleValue() * 1000;
-        state.ml = ml.getDoubleValue() * 1000;
+        state.ap = ap.getDoubleValue();
+        state.dv = dv.getDoubleValue();
+        state.ml = ml.getDoubleValue();
         state.shank = shank.getValue();
         state.rap = rap.getDoubleValue();
         state.rdv = rdv.getDoubleValue();
         state.rml = rml.getDoubleValue();
-        state.depth = depth.getDoubleValue() * 1000;
+        state.depth = depth.getDoubleValue();
         state.reference = choice.getValue();
         if ("Global".equals(state.reference)) {
             state.reference = null;

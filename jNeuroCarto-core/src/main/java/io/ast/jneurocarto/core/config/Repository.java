@@ -187,7 +187,7 @@ public class Repository {
         if (ret == null) {
             ret = Path.of(".");
         }
-        return ret.toAbsolutePath();
+        return ret.toAbsolutePath().normalize();
     }
 
     public void changeResourceRoot(Path root) throws IOException {
@@ -236,6 +236,8 @@ public class Repository {
      * @return
      */
     public String getChannelmapName(ProbeDescription<?> probe, String name) {
+        if (name.endsWith(".blueprint.npy")) name = name.substring(0, name.length() - 14);
+        if (name.endsWith(".config.json")) name = name.substring(0, name.length() - 12);
         var suffix = probe.channelMapFileSuffix();
         if (suffix.isEmpty()) {
             return name;

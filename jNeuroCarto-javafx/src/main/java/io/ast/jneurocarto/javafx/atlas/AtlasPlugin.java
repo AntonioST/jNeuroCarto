@@ -956,7 +956,12 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     /**
-     * {@return a transform from slice coordinate to chart (probe) coordinate}
+     * A transform from slice coordinate to chart (probe) coordinate.
+     * <br/>
+     * To get correct result of inverted transform ({@code ProbeTransform<ProbeCoordinate, SliceCoordinate>}),
+     * remember to restore plane location at {@link ProbeCoordinate#z()} before doing {@link ProbeTransform#transform()}.
+     *
+     * @return a transform from slice coordinate to chart (probe) coordinate
      */
     public ProbeTransform<SliceCoordinate, ProbeCoordinate> getChartTransform() {
         return ProbeTransform.create(SliceDomain.INSTANCE, ProbeTransform.PROBE, painter.getChartTransform());
