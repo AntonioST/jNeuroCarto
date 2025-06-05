@@ -340,13 +340,13 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     public @Nullable String atlasGetRegion(int id) throws PluginNotLoadException {
         var p = getPlugin(AtlasPlugin.class);
         var r = p.getRegion(id);
-        return r == null ? null : r.name();
+        return r == null ? null : r.acronym();
     }
 
     public @Nullable String atlasGetRegion(String name) throws PluginNotLoadException {
         var p = getPlugin(AtlasPlugin.class);
         var r = p.getRegion(name);
-        return r == null ? null : r.name();
+        return r == null ? null : r.acronym();
     }
 
     public ImageSliceStack.@Nullable Projection atlasGetProjection() throws PluginNotLoadException {

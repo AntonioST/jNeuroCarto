@@ -1,8 +1,7 @@
 package io.ast.jneurocarto.javafx.atlas;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
@@ -32,6 +31,8 @@ import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.data.XYPath;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
@@ -83,6 +84,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private ProbeTransform</*global*/Coordinate, /*reference*/Coordinate> transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
     private ProbeView<?> canvas;
     private SlicePainter painter;
+    private InteractionXYPainter maskPainter;
+    private XYPath.Builder maskPath;
 
     private final Logger log = LoggerFactory.getLogger(AtlasPlugin.class);
 
@@ -199,6 +202,15 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         this.reference.set(reference);
     }
 
+    public record RegionMask(Structure structure, boolean exclude) {
+        public int id() {
+            return structure.id();
+        }
+
+        public String name() {
+            return structure.name();
+        }
+    }
 
     /*=================*
      * state load/save *
@@ -577,17 +589,27 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         this.canvas = canvas;
 
         painter = new SlicePainter();
+        painter.z(-50);
         painter.flipUD(true);
         painter.flipLR(true);
         painter.invertRotation(false);
         painter.setImageAlpha(0.5);
         canvas.addBackgroundPlotting(painter);
 
+        maskPainter = canvas.getBackgroundPainter();
+        maskPath = maskPainter.lines()
+            .alpha(0.5)
+            .z(-10)
+            .fill("white");
+
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_PRESSED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_RELEASED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_MOVED, this::onMouseMoved);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_EXITED, this::onMouseExited);
+        canvas.addEventFilter(AtlasUpdateEvent.POSITION, this::onAtlasImageUpdate);
+        canvas.addEventFilter(AtlasUpdateEvent.SLICING, this::onAtlasImageUpdate);
+        canvas.addEventFilter(AtlasUpdateEvent.PROJECTION, this::onAtlasImageUpdate);
 
         // toolbar
         //        bindInvisibleNode(setupToolbar(service));
@@ -699,6 +721,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private void onMouseExited(ChartMouseEvent e) {
         labelMouseInformation.setText("");
         labelStructure.setText("");
+    }
+
+    private void onAtlasImageUpdate(AtlasUpdateEvent e) {
+        if (e.getEventType() == AtlasUpdateEvent.POSITION) {
+            updateMaskedRegionBoundaries();
+        } else {
+            updateMaskedRegion();
+        }
     }
 
     /*================*
@@ -1036,6 +1066,127 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         sliderRotation.setValue(rotation);
         sliderOffsetWidth.setValue(slice.dw() * resolution[1]);
         sliderOffsetHeight.setValue(slice.dh() * resolution[2]);
+    }
+
+    /*=============================*
+     * atlas region masking handle *
+     *=============================*/
+
+    private @Nullable ImageSliceStack annotations;
+    private @Nullable ImageArray cacheAnnImage;
+    private @Nullable List<Point2D> cacheMaskBoundaries;
+
+    private final List<RegionMask> maskedRegions = new ArrayList<>();
+
+    public List<RegionMask> getMaskedRegions() {
+        return Collections.unmodifiableList(maskedRegions);
+    }
+
+    public void setMaskedRegions(List<RegionMask> masks) {
+        maskedRegions.clear();
+        maskedRegions.addAll(masks);
+        updateMaskedRegion(maskedRegions);
+    }
+
+    public void addMaskedRegion(String name) {
+        addMaskedRegion(name, false);
+    }
+
+    public void addMaskedRegion(String name, boolean exclude) {
+        var brain = this.brain;
+        if (brain == null) return;
+        var structure = brain.structures().get(name).orElseThrow(() -> new RuntimeException("structure " + name + " not found"));
+        addMaskedRegion(new RegionMask(structure, exclude));
+    }
+
+    public void addMaskedRegion(RegionMask mask) {
+        maskedRegions.add(mask);
+        updateMaskedRegion(maskedRegions);
+    }
+
+    public void addMaskedRegion(List<RegionMask> mask) {
+        maskedRegions.addAll(mask);
+        updateMaskedRegion(maskedRegions);
+    }
+
+    public void clearMaskedRegions() {
+        maskedRegions.clear();
+        updateMaskedRegion(maskedRegions);
+    }
+
+    private void updateMaskedRegion() {
+        updateMaskedRegion(maskedRegions);
+    }
+
+    private void updateMaskedRegion(List<RegionMask> masks) {
+        var size = maskPath.size();
+        maskPath.clearPoints();
+        if (masks.isEmpty()) {
+            if (size > 0) canvas.repaintBackground();
+            cacheAnnImage = null;
+            return;
+        }
+
+        //
+        var brain = this.brain;
+        var stack = this.images;
+        var image = this.image;
+        if (brain == null || stack == null || image == null) return;
+
+        // init annotations
+        if (annotations == null || annotations.projection() != stack.projection()) {
+            try {
+                annotations = new ImageSliceStack(brain, brain.annotation(), getProjection());
+            } catch (IOException e) {
+                return;
+            }
+        }
+
+        // fetch masked stricture ids
+        var root = brain.structures();
+        var set = new HashSet<Integer>();
+        for (var mask : masks) {
+            if (mask.exclude) {
+                root.forAllChildren(mask.structure, s -> set.remove(s.id()));
+            } else {
+                root.forAllChildren(mask.structure, s -> set.add(s.id()));
+            }
+        }
+        var values = set.stream().mapToInt(Integer::intValue).toArray();
+        if (values.length == 0) return;
+
+        // edge detection
+        cacheAnnImage = annotations.sliceAtPlane(image).image(ImageSlice.INT_IMAGE, cacheAnnImage);
+        cacheMaskBoundaries = EdgeDetection.detect(cacheAnnImage, values);
+        updateMaskedRegionBoundaries(cacheMaskBoundaries);
+    }
+
+    private void updateMaskedRegionBoundaries() {
+        var points = cacheMaskBoundaries;
+        if (points != null) updateMaskedRegionBoundaries(points);
+    }
+
+    private void updateMaskedRegionBoundaries(List<Point2D> points) {
+        var image = this.image;
+        var size = maskPath.size();
+        maskPath.clearPoints();
+
+        if (image == null || points.isEmpty()) {
+            if (size > 0) canvas.repaintBackground();
+            cacheAnnImage = null;
+            return;
+        }
+
+        // create transform
+        var transform = painter.getChartTransform(); // slice -> chart
+        var resolution = image.resolution();
+        transform.appendScale(resolution[1], resolution[2]); // px -> um
+
+        // append data
+        for (var p : points) {
+            maskPath.addPoint(transform.transform(p));
+        }
+        canvas.repaintBackground();
     }
 
     /*====================*

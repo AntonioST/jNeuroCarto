@@ -9,6 +9,7 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.transform.Affine;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
@@ -265,28 +266,52 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
      * image writing *
      *===============*/
 
+    public static final ImageWriter<ImageArray> INT_IMAGE = new ArrayImageWriter();
     public static final ImageWriter<BufferedImage> AWT_IMAGE = new BufferedImageWriter();
     public static final ImageWriter<Image> JFX_IMAGE = new JavaFxImageWriter();
 
     public sealed interface ImageWriter<T> {
-        void create(int w, int h);
+        void create(int w, int h, @Nullable T init);
 
-        void set(int w, int h, int v);
+        void set(int x, int y, int v);
 
         T get();
+    }
+
+    public static final class ArrayImageWriter implements ImageWriter<ImageArray> {
+        private ImageArray image;
+
+        @Override
+        public void create(int w, int h, @Nullable ImageArray init) {
+            if (init != null && init.w() == w && init.h() == h) {
+                image = init;
+            } else {
+                image = new ImageArray(w, h, new int[w * h]);
+            }
+        }
+
+        @Override
+        public void set(int x, int y, int v) {
+            image.image()[image.index(x, y)] = v;
+        }
+
+        @Override
+        public ImageArray get() {
+            return image;
+        }
     }
 
     private static final class BufferedImageWriter implements ImageWriter<BufferedImage> {
         private BufferedImage image;
 
         @Override
-        public void create(int w, int h) {
+        public void create(int w, int h, @Nullable BufferedImage init) {
             image = new BufferedImage(w, h, BufferedImage.TYPE_4BYTE_ABGR);
         }
 
         @Override
-        public void set(int w, int h, int v) {
-            image.setRGB(w, h, v);
+        public void set(int x, int y, int v) {
+            image.setRGB(x, y, v);
         }
 
         @Override
@@ -300,14 +325,14 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         private PixelWriter writer;
 
         @Override
-        public void create(int w, int h) {
+        public void create(int w, int h, @Nullable Image init) {
             image = new WritableImage(w, h);
             writer = image.getPixelWriter();
         }
 
         @Override
-        public void set(int w, int h, int v) {
-            writer.setArgb(w, h, v);
+        public void set(int x, int y, int v) {
+            writer.setArgb(x, y, v);
         }
 
         @Override
@@ -317,6 +342,10 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     }
 
     public <T> T image(ImageWriter<T> writer) {
+        return image(writer, null);
+    }
+
+    public <T> T image(ImageWriter<T> writer, @Nullable T init) {
         var resolution = resolution();
         var rp = resolution[0];
         var rx = resolution[1];
@@ -330,7 +359,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         var cy = height * ry / 2;
 
         var volume = stack.getVolume();
-        writer.create(width, height);
+        writer.create(width, height, init);
 
         var dw = new int[width];
         var dh = new int[height];

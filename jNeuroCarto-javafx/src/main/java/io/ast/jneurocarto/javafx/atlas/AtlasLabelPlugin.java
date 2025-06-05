@@ -1,6 +1,9 @@
 package io.ast.jneurocarto.javafx.atlas;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -40,13 +43,13 @@ import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.LabelPosition;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.ProbePosition;
 import io.ast.jneurocarto.javafx.atlas.CoordinateLabel.SlicePosition;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.colormap.DiscreteColormap;
 import io.ast.jneurocarto.javafx.chart.data.XY;
 import io.ast.jneurocarto.javafx.chart.data.XYText;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseDraggingHandler;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.script.BlueprintScriptCallable.Parameter;
+import io.ast.jneurocarto.javafx.utils.DiscreteColorMapping;
 import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 import io.ast.jneurocarto.javafx.utils.Result;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
@@ -68,8 +71,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
 
     private InteractionXYPainter foreground;
     private XYText graphics;
-    private DiscreteColormap colormap;
-    private final Map<String, Integer> colorMapping = new HashMap<>();
+    private DiscreteColorMapping colormap = new DiscreteColorMapping();
 
     private final List<XYLabel> labels = new ArrayList<>();
 
@@ -229,13 +231,12 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     protected void setupChartContent(PluginSetupService service, ProbeView<?> canvas) {
         foreground = canvas.getForegroundPainter();
         graphics = foreground.text()
-            .colormap(colormap = new DiscreteColormap())
+            .colormap(colormap.colormap)
             .font(Font.font(15))
             .line(Color.BLACK)
             .showAnchorPoint(true)
             .graphics();
-        colormap.addColor(0, Color.BLACK);
-        colorMapping.put("black", 0);
+        colormap.put("black", Color.BLACK);
 
         fontSize.addListener((_, _, size) -> {
             graphics.font(Font.font(size.doubleValue()));
@@ -476,7 +477,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
     public void addLabel(CoordinateLabel label) {
         log.debug("add {}", label);
 
-        var value = colorMapping.computeIfAbsent(label.color(), name -> colormap.addColor(Color.valueOf(name)));
+        var value = colormap.applyAsDouble(label.color());
         log.debug("use color {} = {}", label.color(), value);
         var xy = new XY(0, 0, value, label.text());
         graphics.addData(xy);

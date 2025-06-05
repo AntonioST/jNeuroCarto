@@ -66,6 +66,17 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         y.set(y.get() + dy);
     }
 
+    private double z;
+
+    @Override
+    public double z() {
+        return z;
+    }
+
+    public void z(double z) {
+        this.z = z;
+    }
+
     /**
      * image width in chart.
      */

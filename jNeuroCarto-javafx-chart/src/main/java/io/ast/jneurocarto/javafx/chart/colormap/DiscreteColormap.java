@@ -28,8 +28,11 @@ public final class DiscreteColormap extends Colormap {
     }
 
     public int addColor(Color color) {
-        var last = stops.getLast();
-        var offset = (int) last.getOffset() + 1;
+        int offset = 0;
+        if (!stops.isEmpty()) {
+            var last = stops.getLast();
+            offset = (int) last.getOffset() + 1;
+        }
         stops.add(new Stop(offset, color));
         return offset;
     }

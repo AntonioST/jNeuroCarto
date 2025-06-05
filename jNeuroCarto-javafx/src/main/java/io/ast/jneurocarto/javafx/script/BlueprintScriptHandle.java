@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.app.PluginNotLoadException;
 import io.ast.jneurocarto.javafx.view.Plugin;
 
 @NullMarked
@@ -80,8 +81,14 @@ public sealed abstract class BlueprintScriptHandle implements BlueprintScriptCal
         }
 
         for (var plugin : plugins) {
-            var instance = toolkit.getPlugin(plugin)
-                .orElseThrow(() -> new RuntimeException("plugin " + plugin.getSimpleName() + " not found."));
+            Plugin instance;
+
+            try {
+                instance = toolkit.getPlugin(plugin);
+            } catch (PluginNotLoadException e) {
+                throw new RuntimeException(e);
+            }
+
             handle = MethodHandles.insertArguments(handle, 0, instance);
         }
 

@@ -149,8 +149,10 @@ public class XYPath extends XYSeries {
 
             var x = p[0][j];
             var y = p[1][j];
-            if (Double.isNaN(x) || Double.isNaN(y)) {
+
+            if (Double.isNaN(x + y)) {
                 counter = 0;
+                gc.closePath();
                 gc.fill();
             } else if (counter == 0) {
                 gc.beginPath();
@@ -163,6 +165,7 @@ public class XYPath extends XYSeries {
         }
 
         if (counter > 1) {
+            gc.closePath();
             gc.fill();
         }
     }

@@ -322,6 +322,10 @@ public abstract class XYSeries implements XYGraphics {
             return graphics;
         }
 
+        public int size() {
+            return graphics.size();
+        }
+
         public B z(double z) {
             graphics.z(z);
             return (B) this;

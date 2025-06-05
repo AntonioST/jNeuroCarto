@@ -12,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.atlas.ImageSliceStack;
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.app.PluginNotLoadException;
 import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 
 @NullMarked
@@ -87,7 +88,7 @@ public class DebugScript {
     /**
      * Test {@link io.ast.jneurocarto.javafx.atlas.AtlasPlugin#anchorImageTo(ImageSliceStack.Projection, Coordinate, Point2D)}
      */
-//    @BlueprintScript(value = "anchor")
+//    @BlueprintScript("anchor")
     public void atlasAnchorImageTo(
         BlueprintAppToolkit<Object> toolkit,
         AtlasPlugin atlas,
@@ -119,6 +120,29 @@ public class DebugScript {
                 atlas.anchorImageTo(c, p);
             } else {
                 atlas.anchorImageTo(projection, c, p);
+            }
+        }
+    }
+
+    /**
+     * test {@link AtlasPlugin#updateMaskedRegion()}
+     */
+    @BlueprintScript("mask")
+    public void atlasMaskRegion(
+        BlueprintAppToolkit<Object> toolkit,
+        ScriptPlugin script,
+        AtlasPlugin atlas,
+        @ScriptParameter(value = "name", label = "NAME|clear",
+            description = "structure name") String name
+    ) throws PluginNotLoadException {
+        if ("clear".equals(name)) {
+            atlas.clearMaskedRegions();
+            script.setScriptInputLine("");
+        } else {
+            var n = toolkit.atlasGetRegion(name);
+            if (n != null) {
+                toolkit.printLogMessage(n);
+                atlas.addMaskedRegion(n);
             }
         }
     }

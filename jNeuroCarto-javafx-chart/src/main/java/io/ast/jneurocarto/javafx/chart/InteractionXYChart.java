@@ -136,12 +136,26 @@ public class InteractionXYChart extends StackPane {
         return ret;
     }
 
+    /**
+     * Return a {@link InteractionXYPainter} that paint at foreground canvas.
+     * <br/>
+     * Make sure keep the reference, because it is wrap by a {@link WeakReference}.
+     *
+     * @return
+     */
     public InteractionXYPainter getForegroundPainter() {
         var ret = new InteractionXYPainter(this, foreground, 1);
         addForegroundPlotting(new WeakRefPlottingJob(ret));
         return ret;
     }
 
+    /**
+     * Return a {@link InteractionXYPainter} that paint at background canvas.
+     * <br/>
+     * Make sure keep the reference, because it is wrap by a {@link WeakReference}.
+     *
+     * @return
+     */
     public InteractionXYPainter getBackgroundPainter() {
         var ret = new InteractionXYPainter(this, background, -1);
         addBackgroundPlotting(new WeakRefPlottingJob(ret));
@@ -542,10 +556,31 @@ public class InteractionXYChart extends StackPane {
     }
 
     private static class WeakRefPlottingJob implements PlottingJob {
+        private static final Logger log = LoggerFactory.getLogger(WeakRefPlottingJob.class);
+
         private final WeakReference<PlottingJob> reference;
+        private @Nullable String message;
 
         WeakRefPlottingJob(PlottingJob plotting) {
             reference = new WeakReference<>(plotting);
+            message = getCaller(Objects.toString(plotting));
+        }
+
+        private static String getCaller(String message) {
+            return StackWalker.getInstance().walk(s -> {
+                var found = s.dropWhile(f -> f.getClassName().startsWith("io.ast.jneurocarto.javafx.chart.InteractionXYChart"))
+                    .findFirst();
+
+                if (found.isEmpty()) return message;
+
+                var frame = found.get();
+                var name = frame.getClassName();
+                var i = name.lastIndexOf(".");
+                name = name.substring(i);
+                var method = frame.getMethodName();
+                var line = frame.getLineNumber();
+                return name + "." + method + "@" + line + ":painter";
+            });
         }
 
         @Override
@@ -555,13 +590,23 @@ public class InteractionXYChart extends StackPane {
         }
 
         boolean isInvalid() {
-            return reference.get() == null;
+            var ret = reference.get() == null;
+            if (ret && message != null) {
+                log.debug("{} got gc", message);
+                message = null;
+            }
+            return ret;
         }
 
         @Override
         public void draw(GraphicsContext gc) {
             var plotting = reference.get();
-            if (plotting != null) plotting.draw(gc);
+            if (plotting != null) {
+                plotting.draw(gc);
+            } else if (message != null) {
+                isInvalid();
+            }
+
         }
     }
 
