@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.core.Coordinate;
+import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.core.ProbeTransform;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
@@ -125,6 +126,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      */
     public @Nullable ImageSliceStack getImageSliceStack() {
         return images;
+    }
+
+    public @Nullable ImageSliceStack getImageSliceStack(ImageSliceStack.Projection projection) {
+        var brain = this.brain;
+        var volume = this.volume;
+        if (brain == null || volume == null) return null;
+        return new ImageSliceStack(brain, volume, projection);
     }
 
     /**
@@ -840,7 +848,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      */
     public void anchorImageTo(Coordinate coordinate) {
         if (images == null) return;
-        setPlaneGlobal(images.project(transform.inverseTransform(coordinate)).p());
+        setPlaneGlobal(images.project(pullback(coordinate)).p());
     }
 
     /**
@@ -867,7 +875,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      */
     public void anchorImageTo(Coordinate coordinate, Point2D p) {
         if (images == null) return;
-        var coor = images.project(transform.inverseTransform(coordinate));
+        var coor = images.project(pullback(coordinate));
         setPlaneGlobal(coor.p());
         anchorImageToXY(coor, p);
     }
@@ -931,6 +939,29 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         references.addReference(name, coordinate, flipAP);
     }
 
+    /**
+     * {@return a transform from global anatomical space to reference anatomical space}
+     */
+    public ProbeTransform<Coordinate, Coordinate> getReferenceTransform() {
+        return transform;
+    }
+
+    /**
+     * {@return a transform from global anatomical coordinate to slice coordinate}
+     */
+    public @Nullable ProbeTransform<Coordinate, SliceCoordinate> getSliceTransform() {
+        var image = images;
+        if (image == null) return null;
+        return image.getTransform();
+    }
+
+    /**
+     * {@return a transform from slice coordinate to chart (probe) coordinate}
+     */
+    public ProbeTransform<SliceCoordinate, ProbeCoordinate> getChartTransform() {
+        return ProbeTransform.create(SliceDomain.INSTANCE, ProbeTransform.PROBE, painter.getChartTransform());
+    }
+
     /*=====================*
      * atlas brain drawing *
      *=====================*/
@@ -980,6 +1011,26 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         this.image = image = image.withOffset(dw, dh);
         painter.update(image);
         canvas.repaintBackground();
+    }
+
+    public void setImageSlice(ImageSlice slice) {
+        setImageSlice(slice, 0);
+    }
+
+    /**
+     * @param slice
+     * @param rotation rotate in degree
+     */
+    public void setImageSlice(ImageSlice slice, double rotation) {
+        if (getProjection() != slice.projection()) {
+            updateProjection(slice.projection());
+        }
+
+        var resolution = slice.resolution();
+        setPlaneIndex(slice.plane());
+        sliderRotation.setValue(rotation);
+        sliderOffsetWidth.setValue(slice.dw() * resolution[1]);
+        sliderOffsetHeight.setValue(slice.dh() * resolution[2]);
     }
 
     /*====================*

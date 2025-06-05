@@ -8,15 +8,19 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.HPos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 
+import org.jspecify.annotations.Nullable;
+
+import io.ast.jneurocarto.javafx.utils.DialogUtils;
 import io.ast.jneurocarto.javafx.utils.FormattedTextField;
 
 public class ImplantEditDialog extends Dialog<ButtonType> {
 
-    public ObjectProperty<ImplantState> implant = new SimpleObjectProperty<>();
+    public ObjectProperty<@Nullable ImplantState> implant = new SimpleObjectProperty<>(null);
 
-    private final ImplantState init;
     private FormattedTextField.OfIntField shank;
     private FormattedTextField.OfDoubleField ap;
     private FormattedTextField.OfDoubleField dv;
@@ -31,10 +35,6 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
     private FormattedTextField.OfDoubleField refML;
 
     public ImplantEditDialog(AtlasReferenceService references, ImplantState state) {
-        init = state;
-
-        implant.set(state);
-
         setTitle("Implant Coordinate");
         var c1 = setupCenter(state);
         var c2 = setupButton(references, state);
@@ -44,8 +44,16 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
         getDialogPane().setContent(layout);
 
         getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.APPLY, ButtonType.OK);
+        getDialogPane().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.ENTER) {
+                if (e.getTarget() instanceof TextField) {
+                    e.consume(); // block enter on textfield cause dialog close.
+                }
+            }
+        });
 
         setOnCloseRequest(this::onClose);
+        DialogUtils.setAlwaysOnTop(this);
     }
 
     private Node setupCenter(ImplantState state) {
@@ -228,12 +236,31 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
                 e.consume();
             }
         } else if (result == ButtonType.CANCEL) {
-            implant.set(init);
+            implant.set(null);
         }
     }
 
     private void onUpdate(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
         updateImplantState();
+    }
+
+    private boolean blockUpdate;
+
+    public void updateImplantState(ImplantState state) {
+        blockUpdate = true;
+        try {
+            ap.setDoubleValue(state.ap / 1000);
+            dv.setDoubleValue(state.dv / 1000);
+            ml.setDoubleValue(state.ml / 1000);
+            shank.setValue(state.shank);
+            rap.setDoubleValue(state.rap);
+            rdv.setDoubleValue(state.rdv);
+            rml.setDoubleValue(state.rml);
+            depth.setDoubleValue(state.depth / 1000);
+            choice.setValue(state.reference);
+        } finally {
+            blockUpdate = false;
+        }
     }
 
     private void updateImplantState() {
@@ -251,6 +278,6 @@ public class ImplantEditDialog extends Dialog<ButtonType> {
             state.reference = null;
         }
 
-        implant.set(state);
+        if (!blockUpdate) implant.set(state);
     }
 }

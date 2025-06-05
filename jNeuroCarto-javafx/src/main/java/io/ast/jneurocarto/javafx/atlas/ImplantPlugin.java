@@ -8,6 +8,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.CheckMenuItem;
@@ -65,7 +66,7 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         implantCoordinateProperty.addListener((_, _, im) -> onImplantCoordinateUpdate(im));
     }
 
-    public @Nullable ImplantCoordinate getImplantcoordinate() {
+    public @Nullable ImplantCoordinate getImplantCoordinate() {
         return implantCoordinateProperty.get();
     }
 
@@ -102,6 +103,10 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         var implant = implantCoordinateProperty.get();
         if (implant == null) return null;
 
+        return getState(implant);
+    }
+
+    private ImplantState getState(ImplantCoordinate implant) {
         var state = new ImplantState();
         state.ap = implant.ap();
         state.dv = implant.dv();
@@ -137,6 +142,7 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         // chart
         this.canvas = (ProbeView<Object>) service.getProbeView();
         canvas.addBackgroundPlotting(this);
+        canvas.addEventFilter(AtlasUpdateEvent.POSITION, this::onAtlasImagePositionChanged);
 
         // edit menu items
         var openImplant = new MenuItem("Edit implant coordinate");
@@ -164,12 +170,26 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
      * event handle *
      *==============*/
 
+    private @Nullable ImplantEditDialog dialog;
+
     @Override
     public void onProbeUpdate(Object chmap, List<ElectrodeDescription> blueprint) {
         var code = probe.channelmapCode(chmap);
         if (code != null && !Objects.equals(code, currentChannelmapCode)) {
             currentChannelmapCode = code;
             shankCoor = probe.getShankCoordinate(code);
+        }
+    }
+
+    private void onAtlasImagePositionChanged(AtlasUpdateEvent e) {
+        var dialog = this.dialog;
+        if (dialog != null && dialog.isShowing()) {
+            var implant = newImplantCoordinate();
+            if (implant != null) {
+                dialog.updateImplantState(getState(implant));
+            }
+        } else {
+            this.dialog = null;
         }
     }
 
@@ -191,8 +211,15 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
 
     private void openImplantDialog(ImplantState state) {
         var dialog = new ImplantEditDialog(references, state);
-        dialog.implant.addListener((_, _, newState) -> restoreState(newState));
+        dialog.implant.addListener((_, _, newState) -> {
+            restoreState(newState);
+            if (newState != null) {
+                var implant = implantCoordinateProperty.get();
+                if (implant != null) focusImplantCoordinate(implant);
+            }
+        });
         dialog.show();
+        this.dialog = dialog;
     }
 
     private void onImplantCoordinateUpdate(@Nullable ImplantCoordinate implant) {
@@ -217,15 +244,110 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
     }
 
     private void onFocusImplantCoordinate(ActionEvent e) {
-        //XXX Unsupported Operation ImplantPlugin.onFocusImplantCoordinate
-        throw new UnsupportedOperationException();
+        var implant = implantCoordinateProperty.get();
+        if (implant != null) focusImplantCoordinate(implant);
     }
 
     /*===========================*
      * implant coordinate handle *
      *===========================*/
 
+    private ImplantCoordinate toGlobalCoordinate(ImplantCoordinate coordinate) {
+        var reference = coordinate.reference();
+        if (reference != null) {
+            var ref = references.getReference(reference);
+            if (ref == null) throw new RuntimeException("unknown reference : " + reference);
+            coordinate = coordinate.changeReference(ref.getTransform().inverted());
+        }
+        return coordinate;
+    }
 
+    private ImplantCoordinate toReferenceCoordinate(ImplantCoordinate coordinate, @Nullable String reference) {
+        if (coordinate.reference() != null) {
+            coordinate = toGlobalCoordinate(coordinate);
+        }
+
+        if (reference == null) return coordinate;
+
+        var ref = references.getReference(reference);
+        if (ref == null) throw new RuntimeException("unknown reference : " + reference);
+        coordinate = coordinate.changeReference(ref.getTransform());
+        return coordinate;
+    }
+
+    public @Nullable ImplantCoordinate newImplantCoordinate() {
+        var implant = getImplantCoordinate();
+        var s = implant == null ? 0 : implant.s();
+        var r = implant != null ? implant.reference() : atlas.getAtlasReferenceName();
+        return newImplantCoordinate(s, r);
+    }
+
+    public @Nullable ImplantCoordinate newImplantCoordinate(int shank, @Nullable String reference) {
+        var stack = atlas.getImageSliceStack();
+        var image = atlas.getImageSlice();
+        if (stack == null || image == null) return null;
+
+        ProbeCoordinate probe;
+        if (shankCoor == null) {
+            probe = new ProbeCoordinate(0, 0, 0);
+        } else {
+            probe = shankCoor.apply(shank);
+        }
+
+        var tsp = atlas.getChartTransform();
+        var tcs = atlas.getSliceTransform();
+        assert tcs != null;
+        var tpc = tcs.compose(tsp).inverted();
+
+        var tip = tpc.transform(probe);
+        var dxy = tpc.deltaTransform(0, 1); // 1 depth = dxy = (dap,ddv,dml)
+        // depth * ddv = tip.dv
+        var depth = Math.abs(tip.dv() / dxy.getY());
+
+        var rot = stack.offset2Angle(image.dw(), image.dh(), atlas.painter().r());
+
+        var implant = new ImplantCoordinate(
+            tip.ap() - depth * dxy.getX(),
+            tip.dv() - depth * dxy.getY(),
+            tip.ml() - depth * dxy.getZ(),
+            shank,
+            rot.ap(), rot.dv(), rot.ml(),
+            Math.abs(depth),
+            null
+        );
+
+        return toReferenceCoordinate(implant, reference);
+    }
+
+    public void focusImplantCoordinate(ImplantCoordinate implant) {
+        var stack = atlas.getImageSliceStack();
+        if (stack == null) return;
+
+        log.debug("focus {}", implant);
+        implant = toGlobalCoordinate(implant);
+        log.trace("focus {}", implant);
+
+        var coor = implant.insertCoordinate();
+        log.trace("insert at {}", coor);
+
+        var drwh = stack.angle2Offset(implant.rotation());
+        log.trace("rotate {}", drwh);
+
+        var slice = stack.sliceAtPlane(coor).withOffset(drwh.x(), drwh.y());
+
+        atlas.setImageSlice(slice, drwh.p());
+
+        ProbeCoordinate probe;
+        if (shankCoor == null) {
+            probe = new ProbeCoordinate(0, 0, 0);
+        } else {
+            probe = shankCoor.apply(implant.s());
+        }
+
+        probe = new ProbeCoordinate(0, probe.x(), probe.y() + implant.depth());
+        log.trace("anchor to {}", probe);
+        atlas.anchorImageTo(atlas.project(coor), new Point2D(probe.x(), probe.y()));
+    }
 
     /*==========*
      * plotting *

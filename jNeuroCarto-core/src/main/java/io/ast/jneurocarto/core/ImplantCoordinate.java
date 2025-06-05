@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
  * @param rap       rotation along ap-axis in degree
  * @param rdv       rotation along dv-axis in degree
  * @param rml       rotation along ml-axis in degree
- * @param depth     insert depth
+ * @param depth     insert depth in um
  * @param reference insertion position reference.
  */
 @NullMarked
@@ -72,6 +72,10 @@ public record ImplantCoordinate(
         }
     }
 
+    /**
+     * @param transform a {@link ProbeTransform}, which its source domain should match to {@link #reference}.
+     * @return a new implant coordinate with the reference match to {@code transform}'s target domain.
+     */
     public ImplantCoordinate changeReference(ProbeTransform<Coordinate, Coordinate> transform) {
         checkSourceDomain(transform);
 

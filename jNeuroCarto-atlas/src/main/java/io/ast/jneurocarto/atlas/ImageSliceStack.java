@@ -218,29 +218,43 @@ public final class ImageSliceStack {
     }
 
     /**
-     * @param rotate rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
-     * @return offset on (x, y). Reuse {@link SliceCoordinate} but changing fields' meaning to offset. {@link SliceCoordinate#p()} is not used.
+     * Calculate the x, y-axis rotation.
+     *
+     * @param rotate rotation on (ap, dv, ml) in radian. Reuse {@link Coordinate} but changing fields' meaning to roration radians.
+     * @return offset on (x, y). Reuse {@link SliceCoordinate} but changing fields' meaning to offset (um).
+     * {@link SliceCoordinate#p()} is used to store z-axis rotation in degree.
      */
     public SliceCoordinate angle2Offset(Coordinate rotate) {
+        var rp = Math.toDegrees(project.get(rotate, project.p));
         var rx = project.get(rotate, project.x);
         var ry = project.get(rotate, project.y);
 
         var dw = -lengthOnAxes(project.x) * Math.tan(ry) / 2;
         var dh = lengthOnAxes(project.y) * Math.tan(rx) / 2;
-        return new SliceCoordinate(0, dw, dh);
+        return new SliceCoordinate(rp, dw, dh);
     }
 
     /**
      * @param dw offset on width-side edge
      * @param dh offset on height-side edge
-     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
+     * @return rotation on (ap, dv, ml) radian. Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
     public Coordinate offset2Angle(int dw, int dh) {
+        return offset2Angle(dw, dh, 0);
+    }
+
+    /**
+     * @param dw  offset on width-side edge
+     * @param dh  offset on height-side edge
+     * @param rot rotation on plane (degree).
+     * @return rotation on (ap, dv, ml) radian. Reuse {@link Coordinate} but changing fields' meaning to roration radians.
+     */
+    public Coordinate offset2Angle(int dw, int dh, double rot) {
         var ry = Math.atan(-(double) dw * 2 / dimensionOnAxes(project.x));
         var rx = Math.atan((double) dh * 2 / dimensionOnAxes(project.y));
 
         var t = new double[3];
-        t[project.p] = 0;
+        t[project.p] = Math.toRadians(rot);
         t[project.x] = rx;
         t[project.y] = ry;
 
@@ -250,14 +264,24 @@ public final class ImageSliceStack {
     /**
      * @param dw offset (um) on width-side edge
      * @param dh offset (um) on height-side edge
-     * @return rotation on (ap, dv, ml). Reuse {@link Coordinate} but changing fields' meaning to roration radians.
+     * @return rotation on (ap, dv, ml) radian. Reuse {@link Coordinate} but changing fields' meaning to roration radians.
      */
     public Coordinate offset2Angle(double dw, double dh) {
+        return offset2Angle(dw, dh, 0);
+    }
+
+    /**
+     * @param dw  offset (um) on width-side edge
+     * @param dh  offset (um) on height-side edge
+     * @param rot rotation on plane (degree).
+     * @return rotation on (ap, dv, ml) radian. Reuse {@link Coordinate} but changing fields' meaning to roration radians.
+     */
+    public Coordinate offset2Angle(double dw, double dh, double rot) {
         var ry = Math.atan(-dw * 2 / lengthOnAxes(project.x));
         var rx = Math.atan(dh * 2 / lengthOnAxes(project.y));
 
         var t = new double[3];
-        t[project.p] = 0;
+        t[project.p] = Math.toRadians(rot);
         t[project.x] = rx;
         t[project.y] = ry;
 
