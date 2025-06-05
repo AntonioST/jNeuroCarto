@@ -1,19 +1,12 @@
 package io.ast.jneurocarto.javafx.script;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import module io.ast.jneurocarto.atlas;
+import module io.ast.jneurocarto.core;
+import module io.ast.jneurocarto.javafx;
+import module java.base;
+import module javafx.graphics;
+import module org.jspecify;
 
-import javafx.geometry.Point2D;
-
-import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
-
-import io.ast.jneurocarto.atlas.ImageSliceStack;
-import io.ast.jneurocarto.core.Coordinate;
-import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
-import io.ast.jneurocarto.javafx.app.PluginNotLoadException;
-import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 
 @NullMarked
 @BlueprintScript("debug")
