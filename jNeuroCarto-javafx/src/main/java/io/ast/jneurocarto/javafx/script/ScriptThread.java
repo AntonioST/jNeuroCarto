@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.utils.Result;
 
 @NullMarked
@@ -147,5 +148,33 @@ public class ScriptThread implements Runnable {
 
         current.log.trace("{} awaitFxApplicationThread (return)", current.name());
         return ret.get();
+    }
+
+    public static DataSelectEvent listenOnDataSelectEvent(BlueprintAppToolkit<?> toolkit) throws InterruptedException {
+        if (Thread.currentThread().isInterrupted()) {
+            Thread.currentThread().interrupt();
+            throw new InterruptedException();
+        }
+
+        var current = current();
+        if (current == null) throw new IllegalStateException("not in a script thread");
+
+        if (Platform.isFxApplicationThread()) {
+            throw new IllegalStateException("cannot call this in Fx application thread");
+        }
+
+        var selection = new AtomicReference<DataSelectEvent>();
+        var latch = new CountDownLatch(1);
+
+        var keep = toolkit.listenOnSelect(e -> {
+            selection.set(e);
+            e.consume();
+            latch.countDown();
+        });
+
+        latch.await();
+        keep.clean();
+
+        return selection.get();
     }
 }

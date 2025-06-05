@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
 import io.ast.jneurocarto.core.ProbeTransform;
+import io.ast.jneurocarto.core.numpy.Numpy;
 
 /**
  * @param plane
@@ -266,7 +267,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
      * image writing *
      *===============*/
 
-    public static final ImageWriter<ImageArray> INT_IMAGE = new ArrayImageWriter();
+    public static final ImageWriter<Numpy.FlattenIntArray> INT_IMAGE = new ArrayImageWriter();
     public static final ImageWriter<BufferedImage> AWT_IMAGE = new BufferedImageWriter();
     public static final ImageWriter<Image> JFX_IMAGE = new JavaFxImageWriter();
 
@@ -278,25 +279,33 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         T get();
     }
 
-    public static final class ArrayImageWriter implements ImageWriter<ImageArray> {
-        private ImageArray image;
+    public static final class ArrayImageWriter implements ImageWriter<Numpy.FlattenIntArray> {
+        private Numpy.FlattenIntArray image;
+        private int w;
+        private int h;
 
         @Override
-        public void create(int w, int h, @Nullable ImageArray init) {
-            if (init != null && init.w() == w && init.h() == h) {
+        public void create(int w, int h, Numpy.@Nullable FlattenIntArray init) {
+            this.w = w;
+            this.h = h;
+            if (init != null && !checkShape(init.shape())) {
                 image = init;
             } else {
-                image = new ImageArray(w, h, new int[w * h]);
+                image = new Numpy.FlattenIntArray(new int[]{h, w}, new int[w * h]);
             }
+        }
+
+        private boolean checkShape(int[] shape) {
+            return shape.length == 2 && shape[0] == h && shape[1] == w;
         }
 
         @Override
         public void set(int x, int y, int v) {
-            image.image()[image.index(x, y)] = v;
+            image.array()[y * w + x] = v;
         }
 
         @Override
-        public ImageArray get() {
+        public Numpy.FlattenIntArray get() {
             return image;
         }
     }
@@ -346,6 +355,12 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     }
 
     public <T> T image(ImageWriter<T> writer, @Nullable T init) {
+        var w = stack.width();
+        var h = stack.height();
+        return image(writer, 0, 0, w, h, init);
+    }
+
+    public <T> T image(ImageWriter<T> writer, int x, int y, int w, int h, @Nullable T init) {
         var resolution = resolution();
         var rp = resolution[0];
         var rx = resolution[1];
@@ -354,23 +369,26 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         var plane = this.plane;
         var width = stack.width();
         var height = stack.height();
+        if (x < 0 || y < 0 || w > width || h > height || x + w > width || y + h > height) {
+            throw new IllegalArgumentException();
+        }
 
         var cx = width * rx / 2;
         var cy = height * ry / 2;
 
         var volume = stack.getVolume();
-        writer.create(width, height, init);
+        writer.create(w, h, init);
 
         var dw = new int[width];
         var dh = new int[height];
 
         var fw = this.dw * rx / cx;
         var fh = this.dh * ry / cy;
-        for (int w = 0; w < width; w++) {
-            dw[w] = (int) (fw * (w * rx - cx) / rp);
+        for (int xx = 0; xx < width; xx++) {
+            dw[xx] = (int) (fw * (xx * rx - cx) / rp);
         }
-        for (int h = 0; h < height; h++) {
-            dh[h] = (int) (fh * (h * ry - cy) / rp);
+        for (int yy = 0; yy < height; yy++) {
+            dh[yy] = (int) (fh * (yy * ry - cy) / rp);
         }
         var dp = dw[ax] + dh[ay];
 
@@ -398,21 +416,25 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
          */
 
         if (dx < dy) { // transverse
-            for (int h = 0; h < height; h++) {
-                for (int w = 0; w < width; w++) {
-                    q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
-                    q[project.x] = w;
-                    q[project.y] = h;
-                    writer.set(w, h, volume.get(q[0], q[2], q[1]));
+            for (int y0 = 0; y0 < h; y0++) {
+                for (int x0 = 0; x0 < w; x0++) {
+                    var x1 = x0 + x;
+                    var y1 = y0 + y;
+                    q[project.p] = Math.clamp(plane + dw[x1] + dh[y1] - dp, 0, px);
+                    q[project.x] = x1;
+                    q[project.y] = y1;
+                    writer.set(x0, y0, volume.get(q[0], q[2], q[1]));
                 }
             }
         } else { // coronal, sagittal
-            for (int w = 0; w < width; w++) {
-                for (int h = 0; h < height; h++) {
-                    q[project.p] = Math.clamp(plane + dw[w] + dh[h] - dp, 0, px);
-                    q[project.x] = w;
-                    q[project.y] = h;
-                    writer.set(w, h, volume.get(q[0], q[2], q[1]));
+            for (int x0 = 0; x0 < w; x0++) {
+                for (int y0 = 0; y0 < h; y0++) {
+                    var x1 = x0 + x;
+                    var y1 = y0 + y;
+                    q[project.p] = Math.clamp(plane + dw[x1] + dh[y1] - dp, 0, px);
+                    q[project.x] = x1;
+                    q[project.y] = y1;
+                    writer.set(x0, y0, volume.get(q[0], q[2], q[1]));
                 }
             }
         }

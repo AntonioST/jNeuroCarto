@@ -2,6 +2,7 @@ package io.ast.jneurocarto.javafx.app;
 
 import java.util.*;
 
+import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
 
 import org.jspecify.annotations.NullMarked;
@@ -16,7 +17,9 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.atlas.*;
+import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
+import io.ast.jneurocarto.javafx.utils.OnceForget;
 import io.ast.jneurocarto.javafx.view.Plugin;
 
 @NullMarked
@@ -522,4 +525,12 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
     /*==========*
      * plotting *
      *==========*/
+
+    public OnceForget listenOnSelect(EventHandler<DataSelectEvent> handle) {
+        var ret = new OnceForget(() -> application.view.removeEventHandler(DataSelectEvent.DATA_SELECT, handle));
+        application.view.addEventHandler(DataSelectEvent.DATA_SELECT, handle);
+        return ret;
+    }
+
+//    public void listerOnAtlas(EventType<AtlasUpdateEvent> type, EventHandler<AtlasUpdateEvent> handle) {}
 }

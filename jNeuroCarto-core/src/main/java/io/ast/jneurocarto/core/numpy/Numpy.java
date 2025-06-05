@@ -975,6 +975,18 @@ public final class Numpy {
         write(file, array, of);
     }
 
+    public static void write(Path file, FlattenIntArray array) throws IOException {
+        var of = new OfFlattenInt();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, FlattenDoubleArray array) throws IOException {
+        var of = new OfFlattenDouble();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
     public static <T> void write(Path file, T array, ValueArray<T> of) throws IOException {
         of.checkFor(array);
         try (var channel = Files.newByteChannel(file, CREATE, TRUNCATE_EXISTING, WRITE)) {
@@ -1027,6 +1039,18 @@ public final class Numpy {
 
     public static void write(OutputStream out, boolean[] array) throws IOException {
         var of = new OfBoolean();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, FlattenIntArray array) throws IOException {
+        var of = new OfFlattenInt();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, FlattenDoubleArray array) throws IOException {
+        var of = new OfFlattenDouble();
         of.checkFor(array);
         write(out, array, of);
     }

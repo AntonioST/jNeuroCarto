@@ -6,6 +6,7 @@ import module io.ast.jneurocarto.javafx;
 import module java.base;
 import module javafx.graphics;
 import module org.jspecify;
+import java.nio.file.Path;
 
 
 @NullMarked
@@ -137,6 +138,44 @@ public class DebugScript {
                 toolkit.printLogMessage(n);
                 atlas.addMaskedRegion(n);
             }
+        }
+    }
+
+    /**
+     * test temporary add event handle on canvas
+     */
+    @BlueprintScript(value = "snapshot", async = true)
+    public void snapshot(
+        BlueprintAppToolkit<Object> toolkit,
+        AtlasPlugin atlas,
+        @ScriptParameter(value = "filename", label = "FILE.npy", defaultValue = "snapshot.npy",
+            description = "output filename") Path file
+    ) throws InterruptedException {
+        var selection = ScriptThread.listenOnDataSelectEvent(toolkit);
+        var bounds = atlas.painter().getImageTransform().transform(selection.bounds);
+
+        var image = atlas.getImageSlice();
+        if (image == null) {
+            toolkit.printLogMessage("nothing can be select");
+            return;
+        }
+
+        var res = image.resolution();
+        int x0 = (int) (bounds.getMinX() / res[1]);
+        int y0 = (int) (bounds.getMinY() / res[2]);
+        int x1 = (int) (bounds.getMaxX() / res[1]);
+        int y1 = (int) (bounds.getMaxY() / res[2]);
+        int w = x1 - x0;
+        int h = y1 - y0;
+
+        // FIXME why left-right-flipped
+        var arr = image.image(ImageSlice.INT_IMAGE, x0, y0, w, h, null);
+
+        try {
+            Numpy.write(file, arr);
+            toolkit.printLogMessage("save to " + file);
+        } catch (IOException e) {
+            toolkit.printLogMessage("fail save to " + file);
         }
     }
 }

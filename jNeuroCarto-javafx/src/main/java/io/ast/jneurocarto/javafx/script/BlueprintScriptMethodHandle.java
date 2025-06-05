@@ -42,9 +42,11 @@ public final class BlueprintScriptMethodHandle extends BlueprintScriptHandle {
     public void invoke(BlueprintAppToolkit<?> toolkit, Object... arguments) throws Throwable {
         MethodHandle h = prependParameters(handle, toolkit);
 
-        var last = parameters[parameters.length - 1];
-        if (last.isVarArg()) {
-            h = h.asVarargsCollector(last.type().arrayType());
+        if (parameters.length > 0) {
+            var last = parameters[parameters.length - 1];
+            if (last.isVarArg()) {
+                h = h.asVarargsCollector(last.type().arrayType());
+            }
         }
 
         h.invokeWithArguments(arguments);

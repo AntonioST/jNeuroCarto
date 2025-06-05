@@ -117,10 +117,16 @@ public final class ImageSliceStack {
         return dimensionOnAxes(0);
     }
 
+    /**
+     * {@return width in px}
+     */
     public int width() {
         return dimensionOnAxes(1);
     }
 
+    /**
+     * {@return height in px}
+     */
     public int height() {
         return dimensionOnAxes(2);
     }
