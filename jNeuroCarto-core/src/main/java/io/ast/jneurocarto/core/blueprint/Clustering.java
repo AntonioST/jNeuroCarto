@@ -43,22 +43,22 @@ public record Clustering(int[] clustering) {
 
     public int groupNumber() {
         return (int) Arrays.stream(clustering)
-          .filter(group -> group > 0)
-          .distinct()
-          .count();
+            .filter(group -> group > 0)
+            .distinct()
+            .count();
     }
 
     public int[] groups() {
         return Arrays.stream(clustering)
-          .filter(group -> group > 0)
-          .distinct()
-          .toArray();
+            .filter(group -> group > 0)
+            .distinct()
+            .toArray();
     }
 
     public int groupCount(int group) {
         return (int) Arrays.stream(clustering)
-          .filter(it -> it == group)
-          .count();
+            .filter(it -> it == group)
+            .count();
     }
 
     public int[] indexGroup() {
@@ -97,6 +97,37 @@ public record Clustering(int[] clustering) {
         return BlueprintMask.eq(clustering, group);
     }
 
+    /**
+     * create a mask on group and write result into {@code mask}.
+     *
+     * @param mask output mask
+     * @return {@code mask}
+     */
+    public BlueprintMask maskGroup(BlueprintMask mask) {
+        var length = clustering.length;
+        if (length != mask.length()) throw new IllegalArgumentException();
+        for (int i = 0; i < length; i++) {
+            mask.set(i, clustering[i] > 0);
+        }
+        return mask;
+    }
+
+    /**
+     * create a mask on group and write result into {@code mask}.
+     *
+     * @param mask  output mask
+     * @param group
+     * @return {@code mask}
+     */
+    public BlueprintMask maskGroup(BlueprintMask mask, int group) {
+        var length = clustering.length;
+        if (length != mask.length()) throw new IllegalArgumentException();
+        for (int i = 0; i < length; i++) {
+            mask.set(i, clustering[i] == group);
+        }
+        return mask;
+    }
+
     public void removeGroup(int group) {
         for (int i = 0, length = clustering.length; i < length; i++) {
             if (clustering[i] == group) clustering[i] = 0;
@@ -130,17 +161,17 @@ public record Clustering(int[] clustering) {
 
     public Mode modeGroup() {
         return Arrays.stream(clustering)
-          .filter(group -> group > 0)
-          .mapToObj(group -> new Mode(group, 1))
-          .gather(Gatherer.<Mode, HashMap<Integer, Mode>, Mode>ofSequential(
-            HashMap::new,
-            Gatherer.Integrator.ofGreedy((state, element, _) -> {
-                state.merge(element.group, element, Mode::add);
-                return true;
-            }),
-            (state, downstream) -> state.values().forEach(downstream::push)
-          )).max(Comparator.comparingInt(Mode::count))
-          .orElse(new Mode(0, groupCount(0)));
+            .filter(group -> group > 0)
+            .mapToObj(group -> new Mode(group, 1))
+            .gather(Gatherer.<Mode, HashMap<Integer, Mode>, Mode>ofSequential(
+                HashMap::new,
+                Gatherer.Integrator.ofGreedy((state, element, _) -> {
+                    state.merge(element.group, element, Mode::add);
+                    return true;
+                }),
+                (state, downstream) -> state.values().forEach(downstream::push)
+            )).max(Comparator.comparingInt(Mode::count))
+            .orElse(new Mode(0, groupCount(0)));
     }
 
 

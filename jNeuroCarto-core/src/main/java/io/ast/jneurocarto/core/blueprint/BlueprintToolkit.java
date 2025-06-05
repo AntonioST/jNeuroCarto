@@ -133,16 +133,16 @@ public class BlueprintToolkit<T> {
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index) {
         if (length() != electrodes.size()) throw new RuntimeException();
         return Arrays.stream(index)
-          .mapToObj(electrodes::get)
-          .toList();
+            .mapToObj(electrodes::get)
+            .toList();
     }
 
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index, int offset, int length) {
         if (length() != electrodes.size()) throw new RuntimeException();
         return IntStream.range(0, length)
-          .map(i -> index[i + offset])
-          .mapToObj(electrodes::get)
-          .toList();
+            .map(i -> index[i + offset])
+            .mapToObj(electrodes::get)
+            .toList();
     }
 
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, BlueprintMask mask) {
@@ -396,9 +396,9 @@ public class BlueprintToolkit<T> {
         var posx = posx();
 
         return IntStream.range(0, shank.length)
-          .filter(i -> shank[i] == s)
-          .map(i -> posx[i])
-          .min();
+            .filter(i -> shank[i] == s)
+            .map(i -> posx[i])
+            .min();
     }
 
     /*===========================*
@@ -406,12 +406,18 @@ public class BlueprintToolkit<T> {
      *===========================*/
 
     public int index(int s, int x, int y) {
-        var shank = shank();
-        var posx = posx();
-        var posy = posy();
-        for (int i = 0, length = length(); i < length; i++) {
-            // posy has move unique value in general, so we test first for shortcut fail earlier.
-            if (posy[i] == y && shank[i] == s && posx[i] == x) return i;
+        if (probe() instanceof DummyProbe dummy) {
+            if (0 <= s && s < dummy.nShanks && 0 <= x && x < dummy.nColumns && 0 <= y && y < dummy.nRows) {
+                return s * dummy.nColumns * dummy.nRows + y * dummy.nColumns + x;
+            }
+        } else {
+            var shank = shank();
+            var posx = posx();
+            var posy = posy();
+            for (int i = 0, length = length(); i < length; i++) {
+                // posy has move unique value in general, so we test first for shortcut fail earlier.
+                if (posy[i] == y && shank[i] == s && posx[i] == x) return i;
+            }
         }
         return -1;
     }
@@ -1083,8 +1089,8 @@ public class BlueprintToolkit<T> {
         if (length == 0) return Clustering.EMPTY;
 
         var n = (int) IntStream.range(0, length)
-          .filter(i -> tester.applyAsInt(i, blueprint[i]) > 0)
-          .count();
+            .filter(i -> tester.applyAsInt(i, blueprint[i]) > 0)
+            .count();
 
         var ret = new Clustering(length);
         if (n == 0) {
@@ -1094,17 +1100,29 @@ public class BlueprintToolkit<T> {
             return ret;
         }
 
+        var clustering = ret.clustering();
+        for (int i = 0; i < length; i++) {
+            if (tester.applyAsInt(i, blueprint[i]) > 0) {
+                clustering[i] = 1;
+            }
+        }
+
         var surr = new int[8];
         var group = 1;
         for (int i = 0; i < length; i++) {
-            int cate = blueprint[i];
-            if (tester.applyAsInt(i, cate) > 0) {
-                ret.set(i, group++);
-
+            if (clustering[i] > 0) {
+                int cate = blueprint[i];
                 surrounding(i, diagonal, surr);
+                var g = ++group;
                 for (var j : surr) {
-                    if (j >= 0 && blueprint[j] == cate) {
-                        ret.unionClusteringGroup(i, j);
+                    if (j >= 0 && clustering[j] > 1 && blueprint[j] == cate) {
+                        g = Math.min(g, clustering[j]);
+                    }
+                }
+                ret.set(i, g);
+                for (var j : surr) {
+                    if (j >= 0 && clustering[j] > 0 && blueprint[j] == cate) {
+                        clustering[j] = g;
                     }
                 }
             }
@@ -1146,23 +1164,24 @@ public class BlueprintToolkit<T> {
         var posx = posx();
         var posy = posy();
 
+        var mask = new BlueprintMask(length());
         var ret = new ArrayList<ClusteringEdges>();
 
-        var index = new int[mode.count()];
-
         for (var g : clustering.groups()) {
-            var size = clustering.indexGroup(g, index);
-            if (size == 0) continue;
+            clustering.maskGroup(mask, g);
+            var count = mask.count();
+            if (count == 0) continue;
 
-            int s = shank[index[0]];
-            int c = src[index[0]];
+            var i = mask.nextSetIndex(0);
+            int s = shank[i];
+            int c = src[i];
 
-            if (size == 1) {
-                var x = posx[index[0]];
-                var y = posy[index[0]];
+            if (count == 1) {
+                var x = posx[i];
+                var y = posy[i];
                 ret.add(ClusteringUtils.pointClustering(c, s, x, y));
             } else {
-                ret.add(ClusteringUtils.areaClustering(this, c, s, Arrays.copyOfRange(index, 0, size)));
+                ret.add(ClusteringUtils.areaClustering(this, c, s, mask));
             }
         }
 
@@ -1352,10 +1371,10 @@ public class BlueprintToolkit<T> {
                 var y = Arrays.stream(index).map(i -> posy[i]).boxed().gather(MinMaxInt.intMinmax()).findFirst().get();
 
                 fillClusteringEdges(blueprint, new ClusteringEdges(c, s, List.of(
-                  new ClusteringEdges.Corner(x.max(), y.max(), 1),
-                  new ClusteringEdges.Corner(x.min(), y.max(), 3),
-                  new ClusteringEdges.Corner(x.min(), y.min(), 5),
-                  new ClusteringEdges.Corner(x.max(), y.min(), 7)
+                    new ClusteringEdges.Corner(x.max(), y.max(), 1),
+                    new ClusteringEdges.Corner(x.min(), y.max(), 3),
+                    new ClusteringEdges.Corner(x.min(), y.min(), 5),
+                    new ClusteringEdges.Corner(x.max(), y.min(), 7)
                 )));
             }
         }
@@ -1769,10 +1788,10 @@ public class BlueprintToolkit<T> {
 
     private static CSVFormat.Builder getCsvFormat(boolean tsv) {
         return CSVFormat.DEFAULT.builder()
-          .setCommentMarker('#')
-          .setIgnoreSurroundingSpaces(true)
-          .setIgnoreHeaderCase(true)
-          .setDelimiter(tsv ? '\t' : ',');
+            .setCommentMarker('#')
+            .setIgnoreSurroundingSpaces(true)
+            .setIgnoreHeaderCase(true)
+            .setDelimiter(tsv ? '\t' : ',');
     }
 
     private static boolean checkCsvHeader(List<String> header) {
@@ -1805,8 +1824,8 @@ public class BlueprintToolkit<T> {
         if (length() != blueprint.length) throw new IllegalArgumentException();
 
         var format = getCsvFormat(tsv)
-          .setHeader("s", "x", "y", "c")
-          .get();
+            .setHeader("s", "x", "y", "c")
+            .get();
 
         try (var writer = Files.newBufferedWriter(file, CREATE, TRUNCATE_EXISTING, WRITE);
              var printer = new CSVPrinter(writer, format)) {
@@ -1897,9 +1916,9 @@ public class BlueprintToolkit<T> {
      */
     public double[] get(double[] data, List<ElectrodeDescription> e) {
         return e.stream()
-          .mapToInt(it -> index(it.s(), it.x(), it.y()))
-          .mapToDouble(i -> i < 0 ? Double.NaN : data[i])
-          .toArray();
+            .mapToInt(it -> index(it.s(), it.x(), it.y()))
+            .mapToDouble(i -> i < 0 ? Double.NaN : data[i])
+            .toArray();
     }
 
     public double[] get(double[] data, BlueprintMask mask) {
@@ -1908,8 +1927,8 @@ public class BlueprintToolkit<T> {
 
     public double[] get(double[] data, Predicate<Electrode> pick) {
         return stream().filter(pick)
-          .mapToDouble(e -> data[e.i()])
-          .toArray();
+            .mapToDouble(e -> data[e.i()])
+            .toArray();
     }
 
     /**

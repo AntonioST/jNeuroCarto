@@ -26,6 +26,8 @@ import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.core.ProbeTransform;
+import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.core.blueprint.DummyProbe;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
@@ -600,7 +602,9 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         maskPath = maskPainter.lines()
             .alpha(0.5)
             .z(-10)
-            .fill("white");
+//            .fill("white")
+            .line("red")
+        ;
 
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_PRESSED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onMouseDragged);
@@ -1073,7 +1077,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      *=============================*/
 
     private @Nullable ImageSliceStack annotations;
-    private @Nullable ImageArray cacheAnnImage;
+    private @Nullable BlueprintToolkit<Object> cacheAnnImageBlueprint;
     private @Nullable List<Point2D> cacheMaskBoundaries;
 
     private final List<RegionMask> maskedRegions = new ArrayList<>();
@@ -1123,7 +1127,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         maskPath.clearPoints();
         if (masks.isEmpty()) {
             if (size > 0) canvas.repaintBackground();
-            cacheAnnImage = null;
+            cacheAnnImageBlueprint = null;
             return;
         }
 
@@ -1142,6 +1146,9 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             }
         }
 
+        var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image)
+            .image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
+
         // fetch masked stricture ids
         var root = brain.structures();
         var set = new HashSet<Integer>();
@@ -1152,12 +1159,18 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
                 root.forAllChildren(mask.structure, s -> set.add(s.id()));
             }
         }
-        var values = set.stream().mapToInt(Integer::intValue).toArray();
-        if (values.length == 0) return;
+        if (set.isEmpty()) return;
+        toolkit.set(0, e -> !set.contains(e.c()));
 
         // edge detection
-        cacheAnnImage = annotations.sliceAtPlane(image).image(ImageSlice.INT_IMAGE, cacheAnnImage);
-        cacheMaskBoundaries = EdgeDetection.detect(cacheAnnImage, values);
+        var points = cacheMaskBoundaries = new ArrayList<>();
+        cacheAnnImageBlueprint.getClusteringEdges().forEach(clustering -> {
+            if (!points.isEmpty()) points.add(new Point2D(Double.NaN, Double.NaN));
+            clustering.setCorner(0.5, 0.5).edges().forEach(it -> {
+                points.add(new Point2D(it.x(), it.y()));
+            });
+        });
+
         updateMaskedRegionBoundaries(cacheMaskBoundaries);
     }
 
@@ -1173,7 +1186,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
         if (image == null || points.isEmpty()) {
             if (size > 0) canvas.repaintBackground();
-            cacheAnnImage = null;
+            cacheAnnImageBlueprint = null;
             return;
         }
 
@@ -1187,6 +1200,35 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             maskPath.addPoint(transform.transform(p));
         }
         canvas.repaintBackground();
+    }
+
+    private static class BlueprintImageWriter implements ImageSlice.ImageWriter<BlueprintToolkit<Object>> {
+        private static BlueprintImageWriter INSTANCE = new BlueprintImageWriter();
+
+        private int w;
+        private int h;
+        BlueprintToolkit<Object> blueprint;
+
+        @Override
+        public void create(int w, int h, @Nullable BlueprintToolkit<Object> init) {
+            DummyProbe probe;
+            if (init == null || (probe = (DummyProbe) init.probe()).nColumns != w || probe.nRows != h) {
+                init = BlueprintToolkit.dummy(1, h, w);
+            }
+            blueprint = init;
+            this.w = w;
+            this.h = h;
+        }
+
+        @Override
+        public void set(int x, int y, int v) {
+            blueprint.set(v, y * w + x);
+        }
+
+        @Override
+        public BlueprintToolkit<Object> get() {
+            return blueprint;
+        }
     }
 
     /*====================*

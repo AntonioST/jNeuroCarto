@@ -1,7 +1,6 @@
 package io.ast.jneurocarto.core.blueprint;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import java.util.stream.Gatherer;
@@ -16,8 +15,8 @@ final class ClusteringUtils {
         ));
     }
 
-    static ClusteringEdges areaClustering(BlueprintToolkit<?> toolkit, int c, int s, int[] index) {
-        return new ClusteringEdges(c, s, walkClusteringArea(toolkit, index));
+    static ClusteringEdges areaClustering(BlueprintToolkit<?> toolkit, int c, int s, BlueprintMask mask) {
+        return new ClusteringEdges(c, s, walkClusteringArea(toolkit, mask));
     }
 
     private record Index(int i, int x, int y) {
@@ -136,13 +135,13 @@ final class ClusteringUtils {
       )),
     };
 
-    private static List<ClusteringEdges.Corner> walkClusteringArea(BlueprintToolkit<?> toolkit, int[] index) {
-        if (index.length == 0) throw new IllegalArgumentException();
+    private static List<ClusteringEdges.Corner> walkClusteringArea(BlueprintToolkit<?> toolkit, BlueprintMask mask) {
+        if (mask.count() == 0) throw new IllegalArgumentException();
 
         var posx = toolkit.posx();
         var posy = toolkit.posy();
 
-        var start = Arrays.stream(index)
+        var start = mask.stream()
           .mapToObj(i -> new Index(i, posx[i], posy[i]))
           .gather(Index.minOn(Index::x))
           .gather(Index.minOn(Index::y))
@@ -169,7 +168,7 @@ final class ClusteringUtils {
                 switch (actions) {
                 case Turn(int action, int corner) -> {
                     var j = toolkit.surrounding(i, action);
-                    if (j >= 0 && indexOf(index, j) >= 0) {
+                    if (j >= 0 && mask.get(j)) {
                         ret.add(new ClusteringEdges.Corner(x, y, corner));
                         i = j;
                         d = action;
@@ -188,12 +187,5 @@ final class ClusteringUtils {
         }
 
         return ret;
-    }
-
-    private static int indexOf(int[] array, int value) {
-        for (int i = 0, length = array.length; i < length; i++) {
-            if (array[i] == value) return i;
-        }
-        return -1;
     }
 }

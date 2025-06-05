@@ -270,7 +270,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
     public static final ImageWriter<BufferedImage> AWT_IMAGE = new BufferedImageWriter();
     public static final ImageWriter<Image> JFX_IMAGE = new JavaFxImageWriter();
 
-    public sealed interface ImageWriter<T> {
+    public interface ImageWriter<T> {
         void create(int w, int h, @Nullable T init);
 
         void set(int x, int y, int v);

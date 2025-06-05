@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
-class DummyProbe implements ProbeDescription<Object> {
+public class DummyProbe implements ProbeDescription<Object> {
 
     public final int nShanks;
     public final int nColumns;
@@ -26,12 +26,12 @@ class DummyProbe implements ProbeDescription<Object> {
 
     @Override
     public List<String> supportedProbeType() {
-        return List.of("test");
+        return List.of("dummy");
     }
 
     @Override
     public String probeTypeDescription(String code) {
-        return "test";
+        return "dummy";
     }
 
     @Override
