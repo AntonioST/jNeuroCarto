@@ -518,44 +518,41 @@ public final class Numpy {
         }
     }
 
-    public record FlattenIntArray(int[] shape, int[] array) {
-    }
-
-    public static ValueArray<FlattenIntArray> ofFlattenInt() {
+    public static ValueArray<FlatIntArray> ofFlattenInt() {
         return new OfFlattenInt();
     }
 
-    private static final class OfFlattenInt extends FlattenArray<FlattenIntArray> {
+    private static final class OfFlattenInt extends FlattenArray<FlatIntArray> {
         private OfFlattenInt() {
             super('i', 4);
         }
 
         @Override
-        protected FlattenIntArray create(NumpyHeader header) {
+        protected FlatIntArray create(NumpyHeader header) {
             checkShape(header);
-            return new FlattenIntArray(shape, new int[total]);
+            return new FlatIntArray(shape, new int[total]);
         }
 
         @Override
-        protected void checkFor(FlattenIntArray data) {
-            checkFor(data.shape, data.array.length);
+        protected void checkFor(FlatIntArray data) {
+            checkFor(data.shape(), data.array().length);
         }
 
         @Override
-        protected boolean read(FlattenIntArray ret, long pos, ByteBuffer buffer) {
+        protected boolean read(FlatIntArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
-                ret.array[p] = readInt(buffer);
+                ret.array()[p] = readInt(buffer);
                 return true;
             }
             return false;
         }
 
         @Override
-        protected boolean write(FlattenIntArray ret, long pos, ByteBuffer buffer) {
+        protected boolean write(FlatIntArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
-                writeInt(buffer, ret.array[p]);
+                writeInt(buffer, ret.array()[p]);
                 return true;
             }
             return false;
@@ -741,31 +738,28 @@ public final class Numpy {
     }
 
 
-    public record FlattenDoubleArray(int[] shape, double[] array) {
-    }
-
-    public static ValueArray<FlattenDoubleArray> ofFlattenDouble() {
+    public static ValueArray<FlatDoubleArray> ofFlattenDouble() {
         return new OfFlattenDouble();
     }
 
-    private static final class OfFlattenDouble extends FlattenArray<FlattenDoubleArray> {
+    private static final class OfFlattenDouble extends FlattenArray<FlatDoubleArray> {
         private OfFlattenDouble() {
             super('f', 8, "if");
         }
 
         @Override
-        protected FlattenDoubleArray create(NumpyHeader header) {
+        protected FlatDoubleArray create(NumpyHeader header) {
             checkShape(header);
-            return new FlattenDoubleArray(shape, new double[total]);
+            return new FlatDoubleArray(shape, new double[total]);
         }
 
         @Override
-        protected void checkFor(FlattenDoubleArray data) {
-            checkFor(data.shape, data.array.length);
+        protected void checkFor(FlatDoubleArray data) {
+            checkFor(data.shape(), data.array().length);
         }
 
         @Override
-        protected boolean read(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
+        protected boolean read(FlatDoubleArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
                 double v;
@@ -774,17 +768,17 @@ public final class Numpy {
                 } else {
                     v = readInt(buffer);
                 }
-                ret.array[p] = v;
+                ret.array()[p] = v;
                 return true;
             }
             return false;
         }
 
         @Override
-        protected boolean write(FlattenDoubleArray ret, long pos, ByteBuffer buffer) {
+        protected boolean write(FlatDoubleArray ret, long pos, ByteBuffer buffer) {
             var p = (int) pos;
             if (p < total) {
-                writeDouble(buffer, ret.array[p]);
+                writeDouble(buffer, ret.array()[p]);
                 return true;
             }
             return false;
@@ -975,13 +969,13 @@ public final class Numpy {
         write(file, array, of);
     }
 
-    public static void write(Path file, FlattenIntArray array) throws IOException {
+    public static void write(Path file, FlatIntArray array) throws IOException {
         var of = new OfFlattenInt();
         of.checkFor(array);
         write(file, array, of);
     }
 
-    public static void write(Path file, FlattenDoubleArray array) throws IOException {
+    public static void write(Path file, FlatDoubleArray array) throws IOException {
         var of = new OfFlattenDouble();
         of.checkFor(array);
         write(file, array, of);
@@ -1043,13 +1037,13 @@ public final class Numpy {
         write(out, array, of);
     }
 
-    public static void write(OutputStream out, FlattenIntArray array) throws IOException {
+    public static void write(OutputStream out, FlatIntArray array) throws IOException {
         var of = new OfFlattenInt();
         of.checkFor(array);
         write(out, array, of);
     }
 
-    public static void write(OutputStream out, FlattenDoubleArray array) throws IOException {
+    public static void write(OutputStream out, FlatDoubleArray array) throws IOException {
         var of = new OfFlattenDouble();
         of.checkFor(array);
         write(out, array, of);

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.core.numpy.FlatDoubleArray;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.NumpyHeader;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
@@ -126,7 +127,7 @@ public class Matrix implements Main.Content, Runnable {
                 }
                 return Numpy.ofFlattenDouble();
             });
-            data = ((Numpy.FlattenDoubleArray) read.data()).array();
+            data = ((FlatDoubleArray) read.data()).array();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

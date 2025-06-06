@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.CoordinateIndex;
 import io.ast.jneurocarto.core.ProbeTransform;
-import io.ast.jneurocarto.core.numpy.Numpy;
+import io.ast.jneurocarto.core.numpy.FlatIntArray;
 
 /**
  * @param plane
@@ -267,7 +267,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
      * image writing *
      *===============*/
 
-    public static final ImageWriter<Numpy.FlattenIntArray> INT_IMAGE = new ArrayImageWriter();
+    public static final ImageWriter<FlatIntArray> INT_IMAGE = new ArrayImageWriter();
     public static final ImageWriter<BufferedImage> AWT_IMAGE = new BufferedImageWriter();
     public static final ImageWriter<Image> JFX_IMAGE = new JavaFxImageWriter();
 
@@ -279,19 +279,19 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         T get();
     }
 
-    public static final class ArrayImageWriter implements ImageWriter<Numpy.FlattenIntArray> {
-        private Numpy.FlattenIntArray image;
+    public static final class ArrayImageWriter implements ImageWriter<FlatIntArray> {
+        private FlatIntArray image;
         private int w;
         private int h;
 
         @Override
-        public void create(int w, int h, Numpy.@Nullable FlattenIntArray init) {
+        public void create(int w, int h, @Nullable FlatIntArray init) {
             this.w = w;
             this.h = h;
             if (init != null && !checkShape(init.shape())) {
                 image = init;
             } else {
-                image = new Numpy.FlattenIntArray(new int[]{h, w}, new int[w * h]);
+                image = new FlatIntArray(new int[]{h, w}, new int[w * h]);
             }
         }
 
@@ -305,7 +305,7 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         }
 
         @Override
-        public Numpy.FlattenIntArray get() {
+        public FlatIntArray get() {
             return image;
         }
     }

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.core.numpy.FlatIntArray;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.data.XYMatrix;
@@ -35,7 +36,7 @@ public class Image implements Main.Content, Runnable {
     @CommandLine.ParentCommand
     public Main parent;
 
-    private Numpy.FlattenIntArray data;
+    private FlatIntArray data;
     private Logger log;
 
 
@@ -97,7 +98,7 @@ public class Image implements Main.Content, Runnable {
         log.debug("setup");
 
         var painter = chart.getPlotting();
-        matrix = painter.imshow(data.array(), data.shape()[0])
+        matrix = painter.imshow(data)
             .colormap(colormap)
             .normalize(0, 1)
             .graphics();

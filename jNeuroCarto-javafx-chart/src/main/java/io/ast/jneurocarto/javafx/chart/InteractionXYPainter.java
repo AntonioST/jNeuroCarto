@@ -15,6 +15,8 @@ import javafx.scene.transform.Affine;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import io.ast.jneurocarto.core.numpy.FlatDoubleArray;
+import io.ast.jneurocarto.core.numpy.FlatIntArray;
 import io.ast.jneurocarto.javafx.chart.data.*;
 
 @NullMarked
@@ -271,13 +273,13 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         return ret.builder().extent(0, 0, ret.nx(), ret.ny());
     }
 
-    public XYMatrix.Builder imshow(int[] mat, int row) {
-        return imshow(mat, row, false);
+    public XYMatrix.Builder imshow(FlatIntArray data) {
+        return imshow(data, false);
     }
 
-    public XYMatrix.Builder imshow(int[] mat, int row, boolean flip) {
+    public XYMatrix.Builder imshow(FlatIntArray data, boolean flip) {
         var ret = new XYMatrix();
-        ret.addData(mat, row, flip);
+        ret.addData(data, flip);
         addGraphics(ret);
         return ret.builder().extent(0, 0, ret.nx(), ret.ny());
     }
@@ -293,13 +295,13 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         return ret.builder().extent(0, 0, ret.nx(), ret.ny());
     }
 
-    public XYMatrix.Builder imshow(double[] mat, int row) {
-        return imshow(mat, row, false);
+    public XYMatrix.Builder imshow(FlatDoubleArray data) {
+        return imshow(data, false);
     }
 
-    public XYMatrix.Builder imshow(double[] mat, int row, boolean flip) {
+    public XYMatrix.Builder imshow(FlatDoubleArray data, boolean flip) {
         var ret = new XYMatrix();
-        ret.addData(mat, row, flip);
+        ret.addData(data, flip);
         addGraphics(ret);
         return ret.builder().extent(0, 0, ret.nx(), ret.ny());
     }
