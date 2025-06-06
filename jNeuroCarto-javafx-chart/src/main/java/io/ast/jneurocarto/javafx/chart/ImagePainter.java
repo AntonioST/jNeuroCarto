@@ -4,6 +4,8 @@ import javafx.beans.property.*;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.BlendMode;
+import javafx.scene.effect.Effect;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
@@ -14,6 +16,25 @@ import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public class ImagePainter implements InteractionXYChart.PlottingJob {
+
+    protected @Nullable BlendMode blend = null;
+    protected @Nullable Effect effect = null;
+
+    public @Nullable BlendMode blend() {
+        return blend;
+    }
+
+    public void blend(@Nullable BlendMode blend) {
+        this.blend = blend;
+    }
+
+    public @Nullable Effect effect() {
+        return effect;
+    }
+
+    public void effect(@Nullable Effect effect) {
+        this.effect = effect;
+    }
 
     /*============*
      * properties *
@@ -227,6 +248,48 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         visible.set(value);
     }
 
+    /**
+     * bind the transform properties with {@code other}.
+     * Includes {@link #x}, {@link #y}, {@link #width}, {@link #height},
+     * {@link #sx}, {@link #sx}, {@link #r}, {@link #invertRotation},
+     * {@link #flipUD} and {@link #flipLR}
+     *
+     * @param other
+     */
+    public void bind(ImagePainter other) {
+        x.bind(other.x);
+        y.bind(other.y);
+        width.bind(other.width);
+        height.bind(other.height);
+        sx.bind(other.sx);
+        sy.bind(other.sy);
+        r.bind(other.r);
+        invertRotation.bind(other.invertRotation);
+        flipUD.bind(other.flipUD);
+        flipLR.bind(other.flipLR);
+    }
+
+    /**
+     * bind the transform properties bidirectional with {@code other}.
+     * Includes {@link #x}, {@link #y}, {@link #width}, {@link #height},
+     * {@link #sx}, {@link #sx}, {@link #r}, {@link #invertRotation},
+     * {@link #flipUD} and {@link #flipLR}
+     *
+     * @param other
+     */
+    public void bindBidirectional(ImagePainter other) {
+        x.bindBidirectional(other.x);
+        y.bindBidirectional(other.y);
+        width.bindBidirectional(other.width);
+        height.bindBidirectional(other.height);
+        sx.bindBidirectional(other.sx);
+        sy.bindBidirectional(other.sy);
+        r.bindBidirectional(other.r);
+        invertRotation.bindBidirectional(other.invertRotation);
+        flipUD.bindBidirectional(other.flipUD);
+        flipLR.bindBidirectional(other.flipLR);
+    }
+
     /*===========*
      * transform *
      *===========*/
@@ -304,12 +367,16 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
 
             if (isDrawAtlasBrainImage()) {
                 gc.setGlobalAlpha(getImageAlpha());
+                gc.setGlobalBlendMode(blend);
+                gc.setEffect(effect);
                 gc.drawImage(image, 0, 0, w, h);
             }
             if (isDrawAtlasBrainBoundary()) {
                 var b = gc.getTransform().transform(new BoundingBox(0, 0, w, h));
                 gc.setTransform(new Affine());
                 gc.setGlobalAlpha(1);
+                gc.setGlobalBlendMode(null);
+                gc.setEffect(null);
                 gc.setStroke(Color.RED);
                 gc.setLineWidth(2);
 

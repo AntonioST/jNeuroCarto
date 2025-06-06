@@ -14,6 +14,9 @@ import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 
@@ -26,15 +29,13 @@ import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.core.Coordinate;
 import io.ast.jneurocarto.core.ProbeCoordinate;
 import io.ast.jneurocarto.core.ProbeTransform;
-import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
-import io.ast.jneurocarto.core.blueprint.DummyProbe;
 import io.ast.jneurocarto.core.cli.CartoConfig;
+import io.ast.jneurocarto.core.numpy.FlatIntArray;
 import io.ast.jneurocarto.javafx.app.LogMessageService;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.PluginStateService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
-import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
-import io.ast.jneurocarto.javafx.chart.data.XYPath;
+import io.ast.jneurocarto.javafx.chart.ImagePainter;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import io.ast.jneurocarto.javafx.utils.IOAction;
 import io.ast.jneurocarto.javafx.view.InvisibleView;
@@ -87,8 +88,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private ProbeTransform</*global*/Coordinate, /*reference*/Coordinate> transform = ProbeTransform.identify(ProbeTransform.ANATOMICAL);
     private ProbeView<?> canvas;
     private SlicePainter painter;
-    private InteractionXYPainter maskPainter;
-    private XYPath.Builder maskPath;
+    private ImagePainter maskPainter;
 
     private final Logger log = LoggerFactory.getLogger(AtlasPlugin.class);
 
@@ -613,21 +613,17 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         painter.setImageAlpha(0.5);
         canvas.addBackgroundPlotting(painter);
 
-        maskPainter = canvas.getBackgroundPainter();
-        maskPath = maskPainter.lines()
-            .alpha(0.5)
-            .z(-10)
-            .linewidth(2)
-//            .fill("white")
-            .line("red")
-        ;
+        maskPainter = new ImagePainter();
+        maskPainter.bind(painter);
+        maskPainter.z(-10);
+//        maskPainter.blend(BlendMode.);
+        canvas.addBackgroundPlotting(maskPainter);
 
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_PRESSED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_DRAGGED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_RELEASED, this::onMouseDragged);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_MOVED, this::onMouseMoved);
         canvas.addEventFilter(ChartMouseEvent.CHART_MOUSE_EXITED, this::onMouseExited);
-        canvas.addEventFilter(AtlasUpdateEvent.POSITION, this::onAtlasImageUpdate);
         canvas.addEventFilter(AtlasUpdateEvent.SLICING, this::onAtlasImageUpdate);
         canvas.addEventFilter(AtlasUpdateEvent.PROJECTION, this::onAtlasImageUpdate);
 
@@ -749,12 +745,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private void onAtlasImageUpdate(AtlasUpdateEvent e) {
-        // PROJECTION, SLICING, POSITION
-        if (e.getEventType() == AtlasUpdateEvent.POSITION) {
-            updateMaskedRegionBoundaries();
-        } else {
-            updateMaskedRegion();
-        }
+        // SLICING, POSITION
+        updateMaskedRegion();
     }
 
     /*================*
@@ -1100,8 +1092,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
      *=============================*/
 
     private @Nullable ImageSliceStack annotations;
-    private @Nullable BlueprintToolkit<Object> cacheAnnImageBlueprint;
-    private @Nullable List<Point2D> cacheMaskBoundaries;
+    private @Nullable FlatIntArray cacheAnnImage;
 
     private final List<RegionMask> maskedRegions = new ArrayList<>();
 
@@ -1161,15 +1152,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     private void updateMaskedRegion(List<RegionMask> masks) {
         if (!updateMaskedRegionUncheck(masks)) {
-            cacheAnnImageBlueprint = null;
-            cacheMaskBoundaries = null;
+            maskPainter.setImage(null);
         }
         canvas.repaintBackground();
     }
 
     private boolean updateMaskedRegionUncheck(List<RegionMask> masks) {
-        maskPath.clearPoints();
-        if (masks.isEmpty()) return true;
+        if (masks.isEmpty()) return false;
 
         //
         var brain = this.brain;
@@ -1180,8 +1169,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var annotations = getAnnotationImageStack(image.projection());
         if (annotations == null) return false;
 
-        var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image)
-            .image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
+        var annImage = cacheAnnImage = annotations.sliceAtPlane(image)
+            .image(ImageSlice.INT_IMAGE, cacheAnnImage);
 
         // fetch masked stricture ids
         var root = brain.structures();
@@ -1194,79 +1183,40 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             }
         }
         if (set.isEmpty()) return true;
-        toolkit.set(0, e -> !set.contains(e.c()));
-        toolkit.set(1, e -> set.contains(e.c()));
 
-        // edge detection
-        var points = cacheMaskBoundaries = new ArrayList<>();
-        cacheAnnImageBlueprint.getClusteringEdges().forEach(clustering -> {
-            if (!points.isEmpty()) points.add(new Point2D(Double.NaN, Double.NaN));
-            clustering.smallCornerRemoving(1, 1).setCorner(0.5, 0.5).edges().forEach(it -> {
-                points.add(new Point2D(it.x(), it.y()));
-            });
-        });
+        var mask = image.image(new MaskImageWriter(annImage, set));
+        maskPainter.setImage(mask);
 
-        return updateMaskedRegionBoundariesUncheck(cacheMaskBoundaries);
-    }
-
-    private void updateMaskedRegionBoundaries() {
-        var points = cacheMaskBoundaries;
-        if (points != null) updateMaskedRegionBoundaries(points);
-    }
-
-    private void updateMaskedRegionBoundaries(List<Point2D> points) {
-        if (!updateMaskedRegionBoundariesUncheck(points)) {
-            cacheMaskBoundaries = null;
-        }
-        canvas.repaintBackground();
-    }
-
-    private boolean updateMaskedRegionBoundariesUncheck(List<Point2D> points) {
-        var image = this.image;
-        maskPath.clearPoints();
-
-        if (image == null || points.isEmpty()) {
-            return false;
-        }
-
-        // create transform
-        var transform = painter.getChartTransform(); // slice -> chart
-        var resolution = image.resolution();
-        transform.appendScale(resolution[1], resolution[2]); // px -> um
-
-        // append data
-        for (var p : points) {
-            maskPath.addPoint(transform.transform(p));
-        }
         return true;
     }
 
-    private static class BlueprintImageWriter implements ImageSlice.ImageWriter<BlueprintToolkit<Object>> {
-        private static BlueprintImageWriter INSTANCE = new BlueprintImageWriter();
 
-        private int w;
-        private int h;
-        BlueprintToolkit<Object> blueprint;
+    private static class MaskImageWriter implements ImageSlice.ImageWriter<Image> {
+        private final FlatIntArray ann;
+        private final Set<Integer> values;
+        private WritableImage image;
+        private PixelWriter writer;
+
+        private MaskImageWriter(FlatIntArray annImage, Set<Integer> values) {
+            this.ann = annImage;
+            this.values = values;
+        }
 
         @Override
-        public void create(int w, int h, @Nullable BlueprintToolkit<Object> init) {
-            DummyProbe probe;
-            if (init == null || (probe = (DummyProbe) init.probe()).nColumns != w || probe.nRows != h) {
-                init = BlueprintToolkit.dummy(1, h, w);
-            }
-            blueprint = init;
-            this.w = w;
-            this.h = h;
+        public void create(int w, int h, @Nullable Image init) {
+            image = new WritableImage(w, h);
+            writer = image.getPixelWriter();
         }
 
         @Override
         public void set(int x, int y, int v) {
-            blueprint.set(v, y * w + x);
+            var t = values.contains(ann.get(y, x));
+            writer.setArgb(x, y, t ? 0x00000000 : 0x50000000);
         }
 
         @Override
-        public BlueprintToolkit<Object> get() {
-            return blueprint;
+        public Image get() {
+            return image;
         }
     }
 
