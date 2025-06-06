@@ -48,7 +48,8 @@ import io.ast.jneurocarto.javafx.view.StateView;
 /// * showing brain atlas [ImageVolume] image in the background.
 /// * project volume image in slice image, and allow to travel in different slices.
 /// * image transformation like translate, rotation and Shearing
-/// * display the structure on mouse position
+/// * display the structure information on mouse position
+/// * draw structure boundary
 ///
 /// ### Required by
 ///

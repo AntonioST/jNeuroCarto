@@ -23,11 +23,11 @@ Features
 - support more configuration.
 - better image transformation (translation and rotation).
 - use Java standard tool (`ServiceLoader`) to load external components.
+- save without completed channelmap and allow to direct read `*.config.json`.
 
 #### Missed features but planned in future
 
-- same ability of blueprint functions.
-- probe implant coordinate transformation.
+- undo/redo actions
 
 #### Highlighted
 
@@ -62,10 +62,11 @@ Modules
 * `jNeuroCarto-core` core module
 * `jNeuroCarto-probe-npx` Neuropixels extension
 * `jNeuroCarto-javafx` standard alone application, use JavaFX.
+* `jNeuroCarto-javafx-chart` interactive chart built on JavaFX.
 * `jNeuroCarto-probe-npx-javafx` Neuropixels plugins for application
 * `jNeuroCarto-atlas` Atlas brain supporting.
 * `jNeuroCarto-kotlin` kotlin support and demonstration of blueprint script
-* `jNeuroCarto-test` jNeuroCarto test supporting
+* `jNeuroCarto-test` jNeuroCarto data structure test supporting
 
 ### Working in progress modules
 
