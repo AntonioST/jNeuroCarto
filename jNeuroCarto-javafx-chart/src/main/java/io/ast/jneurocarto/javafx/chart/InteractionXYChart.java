@@ -496,19 +496,12 @@ public class InteractionXYChart extends StackPane {
      * custom events *
      *===============*/
 
-
     /**
      *
      */
     private void fireCanvasChange(EventType<ChartChangeEvent> type) {
         if (!isDisabled()) {
-            try {
-                repaintBlocker = true;
-                fireEvent(new ChartChangeEvent(this, top, type));
-            } finally {
-                repaintBlocker = false;
-            }
-            repaint();
+            repaint(() -> fireEvent(new ChartChangeEvent(this, top, type)));
         }
     }
 
@@ -613,6 +606,8 @@ public class InteractionXYChart extends StackPane {
     private final List<PlottingJob> foregroundJobs = new ArrayList<>();
     private final List<PlottingJob> backgroundJobs = new ArrayList<>();
     private boolean repaintBlocker = false;
+    private boolean repaintForegroundBlocker = false;
+    private boolean repaintBackgroundBlocker = false;
 
     public void addForegroundPlotting(PlottingJob job) {
         var display = job;
@@ -659,8 +654,87 @@ public class InteractionXYChart extends StackPane {
         backgroundJobs.sort(Comparator.comparingDouble(PlottingJob::z));
     }
 
+    /**
+     * Lock and block {@link #repaintForeground()} function during the {@code runnable}
+     * until the first caller complete.
+     *
+     * @param runnable
+     */
+    public void repaintForeground(Runnable runnable) {
+        var old = repaintForegroundBlocker;
+        repaintForegroundBlocker = true;
+        try {
+            runnable.run();
+        } finally {
+            repaintForegroundBlocker = old;
+        }
+        if (!old) {
+            log.trace("block {} foreground repaint", blockForegroundCounter);
+            blockForegroundCounter = 0;
+            repaintForeground();
+        }
+    }
+
+    /**
+     * Lock and block {@link #repaintBackground()} function during the {@code runnable}
+     * until the first caller complete.
+     *
+     * @param runnable
+     */
+    public void repaintBackground(Runnable runnable) {
+        var old = repaintBackgroundBlocker;
+        repaintBackgroundBlocker = true;
+        try {
+            runnable.run();
+        } finally {
+            repaintBackgroundBlocker = old;
+        }
+        if (!old) {
+            log.trace("block {} background repaint", blockBackgroundCounter);
+            blockForegroundCounter = 0;
+            repaintBackground();
+        }
+    }
+
+    /**
+     * Lock and block {@link #repaint()} function during the {@code runnable}
+     * until the first caller complete.
+     *
+     * @param runnable
+     */
+    public void repaint(Runnable runnable) {
+        var old = repaintBlocker;
+        repaintBlocker = true;
+        try {
+            runnable.run();
+        } finally {
+            repaintBlocker = old;
+        }
+        if (!old) {
+            log.trace("block {} foreground repaint", blockForegroundCounter);
+            log.trace("block {} background repaint", blockBackgroundCounter);
+            blockForegroundCounter = 0;
+            blockForegroundCounter = 0;
+            repaint();
+        }
+    }
+
+    //    private int repaintForegroundCounter;
+//    private int repaintBackgroundCounter;
+    private int blockForegroundCounter;
+    private int blockBackgroundCounter;
+
     public void repaintForeground() {
-        if (repaintBlocker) return;
+        if (repaintBlocker || repaintForegroundBlocker) {
+            blockForegroundCounter++;
+            return;
+        }
+//        System.out.println("repaint foreground " + (repaintForegroundCounter++));
+//        StackWalker.getInstance().walk(s -> {
+//            s.takeWhile(f -> f.getClassName().startsWith("io.ast.jneurocarto")).forEach(System.out::println);
+//            return null;
+//        });
+
         var gc = getForegroundChartGraphicsContext(true);
         var iter = foregroundJobs.iterator();
         while (iter.hasNext()) {
@@ -674,7 +748,16 @@ public class InteractionXYChart extends StackPane {
     }
 
     public void repaintBackground() {
-        if (repaintBlocker) return;
+        if (repaintBlocker || repaintBackgroundBlocker) {
+            blockBackgroundCounter++;
+            return;
+        }
+//        System.out.println("repaint background " + (repaintBackgroundCounter++));
+//        StackWalker.getInstance().walk(s -> {
+//            s.takeWhile(f -> f.getClassName().startsWith("io.ast.jneurocarto")).forEach(System.out::println);
+//            return null;
+//        });
+
         var gc = getBackgroundChartGraphicsContext(true);
         var iter = backgroundJobs.iterator();
         while (iter.hasNext()) {

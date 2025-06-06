@@ -150,13 +150,13 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     public @Nullable ImageSlice getAnnotationImageSlice() {
         var image = this.image;
         if (image == null) return null;
-        var annotations = getAnnotationImageStack();
+        var annotations = getAnnotationImageStack(getProjection());
         if (annotations == null) return null;
         return annotations.sliceAtPlane(image);
     }
 
     public @Nullable ImageSlice getAnnotationImageSlice(ImageSlice image) {
-        var annotations = getAnnotationImageStack();
+        var annotations = getAnnotationImageStack(image.projection());
         if (annotations == null) return null;
         return annotations.sliceAtPlane(image);
     }
@@ -704,12 +704,14 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
 
     private void onSliderMoved(Slider source) {
         if (images != null) {
-            updateSliceImage();
-            if (source == sliderRotation) {
-                fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
-            } else {
-                fireAtlasImageUpdateEvent(AtlasUpdateEvent.SLICING);
-            }
+            canvas.repaintBackground(() -> {
+                updateSliceImage();
+                if (source == sliderRotation) {
+                    fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+                } else {
+                    fireAtlasImageUpdateEvent(AtlasUpdateEvent.SLICING);
+                }
+            });
         }
     }
 
@@ -728,8 +730,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             painter.translate(dx, dy);
             mouseMoved = e;
             e.consume();
-            updateSliceImage();
-            fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+
+            canvas.repaintBackground(() -> {
+                updateSliceImage();
+                fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+            });
         }
     }
 
@@ -1029,26 +1034,29 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         if (brain == null || volume == null) return;
 
         log.debug("updateProjection({})", projection);
-        this.projection.set(projection);
-        images = new ImageSliceStack(brain, volume, projection);
-        canvas.setResetAxesBoundaries(0, images.widthUm(), 0, images.heightUm());
-        canvas.resetAxesBoundaries();
-        canvas.setAxesEqualRatio();
+        canvas.repaintBackground(() -> {
+            this.projection.set(projection);
+            images = new ImageSliceStack(brain, volume, projection);
+            canvas.setResetAxesBoundaries(0, images.widthUm(), 0, images.heightUm());
+            canvas.resetAxesBoundaries();
+            canvas.setAxesEqualRatio();
 
-        var c1 = projectPlane(0);
-        var c2 = projectPlane(images.planeUm());
-        sliderPlane.setMin(Math.min(c1, c2) / 1000);
-        sliderPlane.setMax(Math.max(c1, c2) / 1000);
+            var c1 = projectPlane(0);
+            var c2 = projectPlane(images.planeUm());
+            sliderPlane.setMin(Math.min(c1, c2) / 1000);
+            sliderPlane.setMax(Math.max(c1, c2) / 1000);
 
-        sliderRotation.setValue(0);
-        sliderOffsetWidth.setValue(0);
-        sliderOffsetHeight.setValue(0);
-        sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
-        sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
+            sliderRotation.setValue(0);
+            sliderOffsetWidth.setValue(0);
+            sliderOffsetHeight.setValue(0);
+            sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
+            sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
 
-        fireAtlasImageUpdateEvent(AtlasUpdateEvent.PROJECTION);
-        updateSliceImage();
-        fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+
+            fireAtlasImageUpdateEvent(AtlasUpdateEvent.PROJECTION);
+            updateSliceImage();
+            fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+        });
     }
 
     private void updateSliceImage() {
@@ -1137,11 +1145,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         updateMaskedRegion(maskedRegions);
     }
 
-    private @Nullable ImageSliceStack getAnnotationImageStack() {
+    private @Nullable ImageSliceStack getAnnotationImageStack(ImageSliceStack.Projection projection) {
         var brain = this.brain;
         if (brain == null) return null;
 
-        var projection = getProjection();
         if (annotations == null || annotations.projection() != projection) {
             try {
                 annotations = new ImageSliceStack(brain, brain.annotation(), projection);
@@ -1167,20 +1174,10 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         if (brain == null || image == null) return;
 
         // init annotations
-        var annotations = getAnnotationImageStack();
+        var annotations = getAnnotationImageStack(image.projection());
         if (annotations == null) return;
 
-        ImageSlice stack;
-        try {
-            stack = annotations.sliceAtPlane(image);
-        } catch (Exception e) {
-            log.debug(e.getMessage());
-            cacheAnnImageBlueprint = null;
-            return;
-        }
-
-        var toolkit = cacheAnnImageBlueprint = stack
-            .image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
+        var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image).image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
 
         // fetch masked stricture ids
         var root = brain.structures();
@@ -1193,8 +1190,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             }
         }
         if (set.isEmpty()) return;
-//        System.out.println(set);
-        // HP: [484682470, 139, 843, 909, 1037, 526, 463, 10703, 10704, 19, 20, 726, 982, 918, 727, 664, 28, 926, 543, 1121, 423, 743, 484682508, 52, 822, 502, 375, 1080, 632, 1084, 589508447, 382]
         toolkit.set(0, e -> !set.contains(e.c()));
         toolkit.set(1, e -> set.contains(e.c()));
 

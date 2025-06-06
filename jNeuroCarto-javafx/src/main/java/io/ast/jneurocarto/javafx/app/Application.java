@@ -1382,14 +1382,16 @@ public class Application<T> {
     public void fireProbeUpdate(T chmap, List<ElectrodeDescription> blueprint) {
         log.debug("onProbeUpdate");
 
-        view.updateElectrode();
+        view.repaint(() -> {
+            view.updateElectrode();
 
-        for (var plugin : plugins) {
-            if (plugin.instance() instanceof ProbeUpdateHandler<?> p) {
-                log.debug("onProbeUpdate for {}", p.getClass().getSimpleName());
-                ((ProbeUpdateHandler<T>) p).onProbeUpdate(chmap, blueprint);
+            for (var plugin : plugins) {
+                if (plugin.instance() instanceof ProbeUpdateHandler<?> p) {
+                    log.debug("onProbeUpdate for {}", p.getClass().getSimpleName());
+                    ((ProbeUpdateHandler<T>) p).onProbeUpdate(chmap, blueprint);
+                }
             }
-        }
+        });
     }
 
     /*=================*
