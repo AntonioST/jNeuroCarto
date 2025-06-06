@@ -52,7 +52,7 @@ public class TokenizeTest {
     @Test
     public void purePySymbol() {
         assertEquals(
-            new PyValue.PySymbol("a"),
+            new PyValue.PyToken("a"),
             new Tokenize("a").parseValue()
         );
     }
@@ -73,6 +73,10 @@ public class TokenizeTest {
         assertThrows(IllegalArgumentException.class, () -> {
             new Tokenize("[,,]").parseValue();
         });
+        assertEquals(
+            new PyValue.PyToken("[,,"),
+            new Tokenize("[,,").parseValue()
+        );
     }
 
     @Test
@@ -119,8 +123,11 @@ public class TokenizeTest {
         assertThrows(IllegalArgumentException.class, () -> {
             new Tokenize("(,,)").parseValue();
         });
+        assertEquals(
+            new PyValue.PyToken("(,,"),
+            new Tokenize("(,,").parseValue()
+        );
     }
-
 
     @Test
     public void purePyTupleButWithSingleElement() {
@@ -292,6 +299,17 @@ public class TokenizeTest {
                 new PyValue.PyNamedParameter("a", "2", 4, new PyValue.PyInt(2)),
                 new PyValue.PyNamedParameter("b", "", 8, null)),
             new Tokenize("1,a=2,b=").parse().values
+        );
+    }
+
+    @Test
+    public void parseLineWithUnresolvedToken() {
+        assertEquals(List.of(
+                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt(1)),
+                new PyValue.PyIndexParameter(1, "1+1", 2, new PyValue.PyToken("1+1")),
+                new PyValue.PyIndexParameter(2, "1+[1]", 6, new PyValue.PyToken("1+[1]")),
+                new PyValue.PyIndexParameter(3, "()+[]", 12, new PyValue.PyToken("()+[]"))),
+            new Tokenize("1,1+1,1+[1],()+[]").parse().values
         );
     }
 }

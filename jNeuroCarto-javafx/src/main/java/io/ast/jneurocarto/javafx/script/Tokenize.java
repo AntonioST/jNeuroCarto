@@ -166,13 +166,19 @@ public class Tokenize {
             return parseStr(i, x);
         }
         case '(' -> {
-            return parseTuple(i, x);
+            if (line.charAt(x - 1) == ')') {
+                return parseTuple(i, x);
+            }
         }
         case '[' -> {
-            return parseList(i, x);
+            if (line.charAt(x - 1) == ']') {
+                return parseList(i, x);
+            }
         }
         case '{' -> {
-            return parseDict(i, x);
+            if (line.charAt(x - 1) == '}') {
+                return parseDict(i, x);
+            }
         }
         }
 
@@ -185,7 +191,7 @@ public class Tokenize {
             return new PyValue.PyFloat(Double.parseDouble(content));
         } catch (NumberFormatException e) {
         }
-        return new PyValue.PySymbol(content);
+        return new PyValue.PyToken(content);
     }
 
     public PyValue parseTuple() {

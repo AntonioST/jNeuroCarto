@@ -18,6 +18,9 @@ public sealed interface PyValue {
     PyTuple0 EMPTY_TUPLE = new PyTuple0();
     PyDict EMPTY_DICT = new PyDict(List.of(), List.of());
 
+    /**
+     * represent Python {@code None}
+     */
     record PyNone() implements PyValue {
         @Override
         public String toString() {
@@ -25,6 +28,9 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * represent Python {@code bool}
+     */
     record PyBool(boolean value) implements PyValue {
         @Override
         public String toString() {
@@ -32,6 +38,9 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * represent Python {@code int}
+     */
     record PyInt(int value) implements PyValue {
         public PyBool asBool() {
             return value == 0 ? PyValue.False : PyValue.True;
@@ -43,6 +52,9 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * represent Python {@code float}
+     */
     record PyFloat(double value) implements PyValue {
         @Override
         public String toString() {
@@ -50,25 +62,35 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * represent Python {@code Iterable}
+     */
     sealed interface PyIterable extends PyValue {
         String rawTypeStr();
 
-        List<PyValue> elements();
+        List<PyValue> iter();
 
         default int size() {
-            return elements().size();
+            return iter().size();
         }
 
         default PyValue get(int i) {
-            return elements().get(i);
+            return iter().get(i);
         }
 
         default PyBool asBool() {
             return size() == 0 ? PyValue.False : PyValue.True;
         }
 
+        default List<PyTuple2<PyInt, PyValue>> enumerate() {
+            var iter = iter();
+            return IntStream.range(0, iter.size())
+                .mapToObj(i -> new PyTuple2<>(new PyInt(i), iter.get(i)))
+                .toList();
+        }
+
         default int[] toIntArray() {
-            var elements = elements();
+            var elements = iter();
             var size = elements.size();
             var ret = new int[size];
             for (int i = 0; i < size; i++) {
@@ -82,7 +104,7 @@ public sealed interface PyValue {
         }
 
         default double[] toDoubleArray() {
-            var elements = elements();
+            var elements = iter();
             var size = elements.size();
             var ret = new double[size];
             for (int i = 0; i < size; i++) {
@@ -96,7 +118,7 @@ public sealed interface PyValue {
         }
 
         default String[] toStringArray() {
-            var elements = elements();
+            var elements = iter();
             var size = elements.size();
             var ret = new String[size];
             for (int i = 0; i < size; i++) {
@@ -110,10 +132,13 @@ public sealed interface PyValue {
         }
 
         default String toStringIter() {
-            return elements().stream().map(PyValue::toString).collect(Collectors.joining(", "));
+            return iter().stream().map(PyValue::toString).collect(Collectors.joining(", "));
         }
     }
 
+    /**
+     * represent Python {@code tuple}
+     */
     sealed interface PyTuple extends PyIterable {
         @Override
         default String rawTypeStr() {
@@ -121,7 +146,7 @@ public sealed interface PyValue {
         }
 
         default PyList asList() {
-            return new PyList(elements());
+            return new PyList(iter());
         }
 
         @Override
@@ -130,9 +155,12 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * represent Python {@code ()} (empty tuple).
+     */
     record PyTuple0() implements PyTuple {
         @Override
-        public List<PyValue> elements() {
+        public List<PyValue> iter() {
             return List.of();
         }
 
@@ -142,9 +170,14 @@ public sealed interface PyValue {
         }
     }
 
-    record PyTuple1(PyValue value) implements PyTuple {
+    /**
+     * represent Python {@code tuple[Any]}.
+     *
+     * @param value value
+     */
+    record PyTuple1<T extends PyValue>(T value) implements PyTuple {
         @Override
-        public List<PyValue> elements() {
+        public List<PyValue> iter() {
             return List.of(value);
         }
 
@@ -154,9 +187,15 @@ public sealed interface PyValue {
         }
     }
 
-    record PyTuple2(PyValue first, PyValue second) implements PyTuple {
+    /**
+     * represent Python {@code tuple[Any, Any]}.
+     *
+     * @param first  value
+     * @param second value
+     */
+    record PyTuple2<T1 extends PyValue, T2 extends PyValue>(T1 first, T2 second) implements PyTuple {
         @Override
-        public List<PyValue> elements() {
+        public List<PyValue> iter() {
             return List.of(first, second);
         }
 
@@ -166,9 +205,16 @@ public sealed interface PyValue {
         }
     }
 
-    record PyTuple3(PyValue first, PyValue second, PyValue third) implements PyTuple {
+    /**
+     * represent Python {@code tuple[Any, Any, Any]}.
+     *
+     * @param first  value
+     * @param second value
+     * @param third  value
+     */
+    record PyTuple3<T1 extends PyValue, T2 extends PyValue, T3 extends PyValue>(T1 first, T2 second, T3 third) implements PyTuple {
         @Override
-        public List<PyValue> elements() {
+        public List<PyValue> iter() {
             return List.of(first, second, third);
         }
 
@@ -178,13 +224,28 @@ public sealed interface PyValue {
         }
     }
 
+    /**
+     * represent Python {@code tuple[Any, ...]}.
+     *
+     * @param elements value list
+     */
     record PyTupleN(List<PyValue> elements) implements PyTuple {
+        @Override
+        public List<PyValue> iter() {
+            return elements;
+        }
+
         @Override
         public String toString() {
             return PyTuple.super.toStringIter();
         }
     }
 
+    /**
+     * represent Python {@code list[Any]}.
+     *
+     * @param elements value list
+     */
     record PyList(List<PyValue> elements) implements PyIterable {
         public PyList(PyValue... elements) {
             this(Arrays.asList(elements));
@@ -195,12 +256,17 @@ public sealed interface PyValue {
             return "list";
         }
 
+        @Override
+        public List<PyValue> iter() {
+            return elements;
+        }
+
         public PyTuple asTuple() {
             return switch (elements.size()) {
                 case 0 -> PyValue.EMPTY_TUPLE;
-                case 1 -> new PyTuple1(elements.get(0));
-                case 2 -> new PyTuple2(elements.get(0), elements.get(1));
-                case 3 -> new PyTuple3(elements.get(0), elements.get(1), elements.get(2));
+                case 1 -> new PyTuple1<>(elements.get(0));
+                case 2 -> new PyTuple2<>(elements.get(0), elements.get(1));
+                case 3 -> new PyTuple3<>(elements.get(0), elements.get(1), elements.get(2));
                 default -> new PyTupleN(elements);
             };
         }
@@ -211,7 +277,13 @@ public sealed interface PyValue {
         }
     }
 
-    record PyDict(List<String> keys, List<PyValue> elements) implements PyValue {
+    /**
+     * represent Python {@code dict[str, Any]}.
+     *
+     * @param keys     key name list
+     * @param elements value list.
+     */
+    record PyDict(List<String> keys, List<PyValue> elements) implements PyIterable {
 
         public PyDict {
             if (keys.size() != new HashSet<>(keys).size()) throw new RuntimeException("duplicate keys");
@@ -228,8 +300,26 @@ public sealed interface PyValue {
             this(keys, elements);
         }
 
+        @Override
+        public String rawTypeStr() {
+            return "dict";
+        }
+
         public int size() {
             return elements.size();
+        }
+
+        @Override
+        public List<PyValue> iter() {
+            return keys.stream().map(it -> (PyValue) new PyStr(it)).toList();
+        }
+
+        public List<PyTuple2<PyStr, PyValue>> items() {
+            return IntStream.range(0, keys.size()).mapToObj(i -> {
+                var k = keys.get(i);
+                var v = elements.get(i);
+                return new PyTuple2<>(new PyStr(k), v);
+            }).toList();
         }
 
         public @Nullable PyValue get(String key) {
@@ -252,21 +342,31 @@ public sealed interface PyValue {
         }
     }
 
-    record PySymbol(String symbol) implements PyValue {
+    /**
+     * represent unsolved input.
+     *
+     * @param token
+     */
+    record PyToken(String token) implements PyValue {
         public int length() {
-            return symbol.length();
+            return token.length();
         }
 
         public PyStr asStr() {
-            return new PyStr(symbol);
+            return new PyStr(token);
         }
 
         @Override
         public String toString() {
-            return "symbol(" + symbol + ")";
+            return "token(" + token + ")";
         }
     }
 
+    /**
+     * represent Python {@code str}.
+     *
+     * @param string content
+     */
     record PyStr(String string) implements PyValue {
         public int length() {
             return string.length();

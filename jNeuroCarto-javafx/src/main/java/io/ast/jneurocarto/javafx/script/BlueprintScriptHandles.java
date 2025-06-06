@@ -503,8 +503,8 @@ public final class BlueprintScriptHandles {
             return switch (value) {
                 case PyValue.PyBool(var ret) -> ret;
                 case PyValue.PyInt ret -> ret.asBool().value();
-                case PyValue.PyIterable ret -> ret.asBool().value();
                 case PyValue.PyDict ret -> ret.asBool().value();
+                case PyValue.PyIterable ret -> ret.asBool().value();
                 case PyValue.PyStr ret -> ret.asBool().value();
                 case PyValue.PyNone _ -> false;
                 case null, default -> throwCCE(parameter, token, "bool");
@@ -540,21 +540,21 @@ public final class BlueprintScriptHandles {
             return switch (value) {
                 case PyValue.PyInt _, PyValue.PyFloat _ -> token.text();
                 case PyValue.PyStr(String ret) -> ret;
-                case PyValue.PySymbol(String ret) -> ret;
+                case PyValue.PyToken(String ret) -> ret;
                 case PyValue.PyNone _ -> null;
                 case null, default -> throwCCE(parameter, token, "String");
             };
         } else if (target == File.class) {
             return switch (value) {
                 case PyValue.PyStr(String ret) -> new File(ret);
-                case PyValue.PySymbol(String ret) -> new File(ret);
+                case PyValue.PyToken(String ret) -> new File(ret);
                 case PyValue.PyNone _ -> null;
                 case null, default -> throwCCE(parameter, token, "File");
             };
         } else if (target == Path.class) {
             return switch (value) {
                 case PyValue.PyStr(String ret) -> Path.of(ret);
-                case PyValue.PySymbol(String ret) -> Path.of(ret);
+                case PyValue.PyToken(String ret) -> Path.of(ret);
                 case PyValue.PyNone _ -> null;
                 case null, default -> throwCCE(parameter, token, "Path");
             };
@@ -562,7 +562,7 @@ public final class BlueprintScriptHandles {
             return switch (value) {
                 case PyValue.PyInt(int ret) -> target.getEnumConstants()[ret];
                 case PyValue.PyStr(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
-                case PyValue.PySymbol(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
+                case PyValue.PyToken(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
                 case PyValue.PyNone _ -> null;
                 case null, default -> throwCCE(parameter, token, target.getSimpleName());
             };
