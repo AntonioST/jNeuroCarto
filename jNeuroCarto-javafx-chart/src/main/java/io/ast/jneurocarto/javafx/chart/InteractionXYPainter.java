@@ -97,6 +97,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
      *==========*/
 
     public GraphicsContext gc() {
+        gc.setTransform(chart.getCanvasTransform());
         return gc;
     }
 

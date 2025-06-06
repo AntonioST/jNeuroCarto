@@ -219,7 +219,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         this.reference.set(reference);
     }
 
-    public record RegionMask(Structure structure, boolean exclude) {
+    public record RegionMask(Structure structure, boolean exclude, boolean includeChildren) {
         public int id() {
             return structure.id();
         }
@@ -1106,17 +1106,6 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         updateMaskedRegion(maskedRegions);
     }
 
-    public void addMaskedRegion(String name) {
-        addMaskedRegion(name, false);
-    }
-
-    public void addMaskedRegion(String name, boolean exclude) {
-        var brain = this.brain;
-        if (brain == null) return;
-        var structure = brain.structures().get(name).orElseThrow(() -> new RuntimeException("structure " + name + " not found"));
-        addMaskedRegion(new RegionMask(structure, exclude));
-    }
-
     public void addMaskedRegion(RegionMask mask) {
         maskedRegions.add(mask);
         updateMaskedRegion(maskedRegions);
@@ -1176,10 +1165,18 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var root = brain.structures();
         var set = new HashSet<Integer>();
         for (var mask : masks) {
-            if (mask.exclude) {
-                root.forAllChildren(mask.structure, s -> set.remove(s.id()));
+            if (mask.includeChildren) {
+                if (mask.exclude) {
+                    root.forAllChildren(mask.structure, s -> set.remove(s.id()));
+                } else {
+                    root.forAllChildren(mask.structure, s -> set.add(s.id()));
+                }
             } else {
-                root.forAllChildren(mask.structure, s -> set.add(s.id()));
+                if (mask.exclude) {
+                    set.remove(mask.id());
+                } else {
+                    set.add(mask.id());
+                }
             }
         }
         if (set.isEmpty()) return true;

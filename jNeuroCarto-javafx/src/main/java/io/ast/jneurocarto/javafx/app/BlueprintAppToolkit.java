@@ -1,9 +1,11 @@
 package io.ast.jneurocarto.javafx.app;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 import javafx.event.EventHandler;
 import javafx.geometry.Point2D;
+import javafx.scene.canvas.GraphicsContext;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -17,6 +19,7 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.atlas.*;
+import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.script.ScriptPlugin;
 import io.ast.jneurocarto.javafx.utils.OnceForget;
@@ -378,6 +381,44 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         p.setPlane(plane);
     }
 
+    /*======================*
+     * Atlas region masking *
+     *======================*/
+
+    public AtlasPlugin.RegionMask atlasCreateMask(String name) throws PluginNotLoadException {
+        return atlasCreateMask(name, false, true);
+    }
+
+    public AtlasPlugin.RegionMask atlasCreateMask(String name, boolean exclude) throws PluginNotLoadException {
+        return atlasCreateMask(name, exclude, true);
+    }
+
+    public AtlasPlugin.RegionMask atlasCreateMask(String name, boolean exclude, boolean includeChildren) throws PluginNotLoadException {
+        var structure = getPlugin(AtlasPlugin.class).getRegion(name);
+        if (structure == null) throw new RuntimeException("region " + name + " not existed");
+        return new AtlasPlugin.RegionMask(structure, exclude, includeChildren);
+    }
+
+    public List<AtlasPlugin.RegionMask> atlasGetMask() throws PluginNotLoadException {
+        return getPlugin(AtlasPlugin.class).getMaskedRegions();
+    }
+
+    public void atlasSetMask(List<AtlasPlugin.RegionMask> masks) throws PluginNotLoadException {
+        getPlugin(AtlasPlugin.class).setMaskedRegions(masks);
+    }
+
+    public void atlasAddMask(AtlasPlugin.RegionMask mask) throws PluginNotLoadException {
+        getPlugin(AtlasPlugin.class).addMaskedRegion(mask);
+    }
+
+    public void atlasClearMasks() throws PluginNotLoadException {
+        getPlugin(AtlasPlugin.class).clearMaskedRegions();
+    }
+
+    /*=============*
+     * Atlas label *
+     *=============*/
+
     public @Nullable CoordinateLabel atlasGetLabel(String text) throws PluginNotLoadException {
         return getPlugin(AtlasLabelPlugin.class).getLabel(text);
     }
@@ -526,11 +567,45 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
      * plotting *
      *==========*/
 
+    public void repaintForeground() {
+        application.view.repaintForeground();
+    }
+
+    public void repaintBackground() {
+        application.view.repaintBackground();
+    }
+
     public OnceForget listenOnSelect(EventHandler<DataSelectEvent> handle) {
         var ret = new OnceForget(() -> application.view.removeEventHandler(DataSelectEvent.DATA_SELECT, handle));
         application.view.addEventHandler(DataSelectEvent.DATA_SELECT, handle);
         return ret;
     }
 
-//    public void listerOnAtlas(EventType<AtlasUpdateEvent> type, EventHandler<AtlasUpdateEvent> handle) {}
+    public OnceForget paintOnForeground(Consumer<GraphicsContext> plotting) {
+        var view = application.view;
+        var painter = new InteractionXYChart.PlottingJob() {
+            @Override
+            public void draw(GraphicsContext gc) {
+                gc.setTransform(view.getCanvasTransform());
+                plotting.accept(gc);
+            }
+        };
+        var ret = new OnceForget(() -> view.removeForegroundPlotting(painter));
+        view.addForegroundPlotting(painter);
+        return ret;
+    }
+
+    public OnceForget paintOnBackground(Consumer<GraphicsContext> plotting) {
+        var view = application.view;
+        var painter = new InteractionXYChart.PlottingJob() {
+            @Override
+            public void draw(GraphicsContext gc) {
+                gc.setTransform(view.getCanvasTransform());
+                plotting.accept(gc);
+            }
+        };
+        var ret = new OnceForget(() -> view.removeBackgroundPlotting(painter));
+        view.addBackgroundPlotting(painter);
+        return ret;
+    }
 }

@@ -7,6 +7,7 @@ import module java.base;
 import module javafx.graphics;
 import module org.jspecify;
 import java.nio.file.Path;
+import java.time.Duration;
 
 
 @NullMarked
@@ -121,7 +122,7 @@ public class DebugScript {
     /**
      * test {@link AtlasPlugin#updateMaskedRegion()}
      */
-    @BlueprintScript("mask")
+//    @BlueprintScript("mask")
     public void atlasMaskRegion(
         BlueprintAppToolkit<Object> toolkit,
         ScriptPlugin script,
@@ -133,11 +134,9 @@ public class DebugScript {
             atlas.clearMaskedRegions();
             script.setScriptInputLine("");
         } else {
-            var n = toolkit.atlasGetRegion(name);
-            if (n != null) {
-                toolkit.printLogMessage(n);
-                atlas.addMaskedRegion(n);
-            }
+            var m = toolkit.atlasCreateMask(name);
+            toolkit.printLogMessage(m.name());
+            atlas.addMaskedRegion(m);
         }
     }
 
@@ -179,5 +178,18 @@ public class DebugScript {
         } catch (IOException e) {
             toolkit.printLogMessage("fail save to " + file);
         }
+    }
+
+    /**
+     * test {@link BlueprintAppToolkit#paintOnForeground(Consumer)}
+     */
+//    @BlueprintScript(value = "plot", description = "plot a circle")
+    public void plot(BlueprintAppToolkit<?> toolkit) {
+        var forget = toolkit.paintOnForeground(gc -> {
+            gc.setFill(Color.RED);
+            gc.fillOval(0, 0, 1000, 1000);
+        });
+        forget.keepAtLeast(Duration.ofSeconds(10), forget::clean);
+        toolkit.repaintForeground();
     }
 }
