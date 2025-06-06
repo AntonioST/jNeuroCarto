@@ -748,6 +748,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private void onAtlasImageUpdate(AtlasUpdateEvent e) {
+        // PROJECTION, SLICING, POSITION
         if (e.getEventType() == AtlasUpdateEvent.POSITION) {
             updateMaskedRegionBoundaries();
         } else {
@@ -1052,10 +1053,8 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             sliderOffsetWidth.setBlockIncrement(images.resolution()[1]);
             sliderOffsetHeight.setBlockIncrement(images.resolution()[2]);
 
-
-            fireAtlasImageUpdateEvent(AtlasUpdateEvent.PROJECTION);
             updateSliceImage();
-            fireAtlasImageUpdateEvent(AtlasUpdateEvent.POSITION);
+            fireAtlasImageUpdateEvent(AtlasUpdateEvent.PROJECTION);
         });
     }
 
@@ -1160,24 +1159,28 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private void updateMaskedRegion(List<RegionMask> masks) {
-        var size = maskPath.size();
-        maskPath.clearPoints();
-        if (masks.isEmpty()) {
-            if (size > 0) canvas.repaintBackground();
+        if (!updateMaskedRegionUncheck(masks)) {
             cacheAnnImageBlueprint = null;
-            return;
+            cacheMaskBoundaries = null;
         }
+        canvas.repaintBackground();
+    }
+
+    private boolean updateMaskedRegionUncheck(List<RegionMask> masks) {
+        maskPath.clearPoints();
+        if (masks.isEmpty()) return true;
 
         //
         var brain = this.brain;
         var image = this.image;
-        if (brain == null || image == null) return;
+        if (brain == null || image == null) return false;
 
         // init annotations
         var annotations = getAnnotationImageStack(image.projection());
-        if (annotations == null) return;
+        if (annotations == null) return false;
 
-        var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image).image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
+        var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image)
+            .image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
 
         // fetch masked stricture ids
         var root = brain.structures();
@@ -1189,7 +1192,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
                 root.forAllChildren(mask.structure, s -> set.add(s.id()));
             }
         }
-        if (set.isEmpty()) return;
+        if (set.isEmpty()) return true;
         toolkit.set(0, e -> !set.contains(e.c()));
         toolkit.set(1, e -> set.contains(e.c()));
 
@@ -1202,7 +1205,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
             });
         });
 
-        updateMaskedRegionBoundaries(cacheMaskBoundaries);
+        return updateMaskedRegionBoundariesUncheck(cacheMaskBoundaries);
     }
 
     private void updateMaskedRegionBoundaries() {
@@ -1211,14 +1214,18 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     }
 
     private void updateMaskedRegionBoundaries(List<Point2D> points) {
+        if (!updateMaskedRegionBoundariesUncheck(points)) {
+            cacheMaskBoundaries = null;
+        }
+        canvas.repaintBackground();
+    }
+
+    private boolean updateMaskedRegionBoundariesUncheck(List<Point2D> points) {
         var image = this.image;
-        var size = maskPath.size();
         maskPath.clearPoints();
 
         if (image == null || points.isEmpty()) {
-            if (size > 0) canvas.repaintBackground();
-            cacheAnnImageBlueprint = null;
-            return;
+            return false;
         }
 
         // create transform
@@ -1230,7 +1237,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         for (var p : points) {
             maskPath.addPoint(transform.transform(p));
         }
-        canvas.repaintBackground();
+        return true;
     }
 
     private static class BlueprintImageWriter implements ImageSlice.ImageWriter<BlueprintToolkit<Object>> {
