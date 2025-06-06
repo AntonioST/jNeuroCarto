@@ -20,11 +20,11 @@ import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-    name = "image",
+    name = "npy-image",
     usageHelpAutoWidth = true,
-    description = "show image matrix"
+    description = "show numpy image matrix"
 )
-public class Image implements Main.Content, Runnable {
+public class ShowNpyImage implements Main.Content, Runnable {
 
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
@@ -52,7 +52,7 @@ public class Image implements Main.Content, Runnable {
 
     @Override
     public void run() {
-        log = LoggerFactory.getLogger(Image.class);
+        log = LoggerFactory.getLogger(ShowNpyImage.class);
 
         loadData();
         System.out.println("shape = " + Arrays.toString(data.shape()));

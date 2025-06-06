@@ -319,4 +319,11 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
         builder.addText(text, x, y);
         return builder;
     }
+
+    public XYImageLayer.Builder newImageLayer() {
+        var ret = new XYImageLayer();
+        addGraphics(ret);
+        return ret.builder();
+    }
 }
+

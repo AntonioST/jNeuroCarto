@@ -248,17 +248,16 @@ public class ImagePainter implements InteractionXYChart.PlottingJob {
         var r = r();
         if (invertRotation()) r = -r;
 
+        var ud = flipUD();
+        var lr = flipLR();
+
         var aff = new Affine();
         aff.appendScale(sx(), sy());
         aff.appendTranslation(x, y);
-        if (flipUD()) {
+        if (ud || lr) {
             aff.appendTranslation(cx, cy);
-            aff.append(AFF_FLIP_UP);
-            aff.appendTranslation(-cx, -cy);
-        }
-        if (flipLR()) {
-            aff.appendTranslation(cx, cy);
-            aff.append(AFF_FLIP_LR);
+            if (ud) aff.append(AFF_FLIP_UP);
+            if (lr) aff.append(AFF_FLIP_LR);
             aff.appendTranslation(-cx, -cy);
         }
         aff.appendRotation(r, cx, cy);
