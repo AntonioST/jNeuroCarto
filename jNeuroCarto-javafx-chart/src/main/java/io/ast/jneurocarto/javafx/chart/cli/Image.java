@@ -4,13 +4,17 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 
+import javafx.scene.paint.Color;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
+import io.ast.jneurocarto.core.blueprint.ClusteringEdges;
 import io.ast.jneurocarto.core.numpy.FlatIntArray;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.data.XYMatrix;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import picocli.CommandLine;
@@ -29,6 +33,12 @@ public class Image implements Main.Content, Runnable {
         description = "colormap")
     String colormap;
 
+    @CommandLine.Option(names = "--mask")
+    boolean processMasking;
+
+    @CommandLine.Option(names = "--edge")
+    boolean processEdge;
+
     @CommandLine.Parameters(index = "0", paramLabel = "FILE",
         description = "npy data file")
     Path dataFile;
@@ -45,7 +55,8 @@ public class Image implements Main.Content, Runnable {
         log = LoggerFactory.getLogger(Image.class);
 
         loadData();
-        processData();
+        System.out.println("shape = " + Arrays.toString(data.shape()));
+        if (processMasking) processData();
 
         log.debug("launch");
         parent.launch(this);
@@ -68,22 +79,41 @@ public class Image implements Main.Content, Runnable {
             423, 743, 484682508, 52, 822, 502, 375, 1080, 632, 1084, 589508447, 382
         };
 
-        var shape = data.shape();
-        var toolkit = BlueprintToolkit.dummy(1, shape[0], shape[1]);
-        toolkit.from(data.array());
-
-        var i = 1;
-        while (toolkit.count(i) > 0) {
-            i++;
-        }
-        var ii = i;
-        System.out.println("i = " + i);
+        var toolkit = BlueprintToolkit.dummy(data);
 
         for (var c : HPF) {
-            toolkit.set(ii, e -> e.c() == c);
+            toolkit.set(1, e -> e.c() == c);
         }
-        toolkit.unset(e -> e.c() != ii);
-        toolkit.apply(data.array());
+        toolkit.set(0, e -> e.c() != 1);
+        toolkit.from(toolkit.findClustering(1, true).clustering());
+        toolkit.apply(data);
+    }
+
+    private void processEdge() {
+        var toolkit = BlueprintToolkit.dummy(data);
+
+        var i = 0;
+        for (ClusteringEdges clustering : toolkit.getClusteringEdges()) {
+            var builder = painter.lines();
+            switch (i) {
+            case 0 -> builder.line(Color.WHITE);
+            case 1 -> builder.line(Color.LIGHTGRAY);
+            case 2 -> builder.line(Color.GRAY);
+            case 3 -> builder.line(Color.DARKGRAY);
+            case 4 -> builder.line(Color.YELLOW);
+            case 5 -> builder.line(Color.ORANGE);
+            case 6 -> builder.line(Color.GREEN);
+            case 7 -> builder.line(Color.CYAN);
+            default -> builder.line(Color.BLACK);
+            }
+
+            clustering/*.smallCornerRemoving(1, 1)*/.edges().forEach(it -> {
+                builder.addPoint(it.x() + 0.5, it.y() + 0.5);
+            });
+            i++;
+        }
+
+        painter.repaint();
     }
 
 
@@ -91,21 +121,28 @@ public class Image implements Main.Content, Runnable {
      * Application *
      *=============*/
 
+    private InteractionXYPainter painter;
     private XYMatrix matrix;
 
     @Override
     public void setup(InteractionXYChart chart) {
         log.debug("setup");
 
-        var painter = chart.getPlotting();
+        var shape = data.shape();
+        var row = shape[0];
+        var col = shape[1];
+
+        painter = chart.getPlotting();
         matrix = painter.imshow(data)
             .colormap(colormap)
-            .normalize(0, 1)
+            .normalize(0, processMasking ? 10 : 1000)
+//            .extent(2, 2, col + 1, row + 1)
             .graphics();
-        System.out.println(matrix.nx() + ", " + matrix.ny());
 
         chart.addEventHandler(ChartMouseEvent.CHART_MOUSE_PRESSED, this::onMousePressed);
         painter.repaint();
+
+        if (processEdge) processEdge();
     }
 
     private void onMousePressed(ChartMouseEvent e) {

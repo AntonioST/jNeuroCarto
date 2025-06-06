@@ -175,7 +175,21 @@ public record Clustering(int[] clustering) {
     }
 
 
-    int unionClusteringGroup(int i, int j) {
+    int unionClusteringGroup(int a, int b) {
+        var c = Math.min(a, b);
+        if (a != c) {
+            for (int k = 0, length = clustering.length; k < length; k++) {
+                if (clustering[k] == a) clustering[k] = c;
+            }
+        } else {
+            for (int k = 0, length = clustering.length; k < length; k++) {
+                if (clustering[k] == b) clustering[k] = c;
+            }
+        }
+        return c;
+    }
+
+    int unionClusteringGroupOn(int i, int j) {
         if (i == j) return clustering[i];
 
         var a = clustering[i];

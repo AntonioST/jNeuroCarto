@@ -3,6 +3,8 @@ package io.ast.jneurocarto.javafx.chart.cli;
 import java.util.Objects;
 
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -77,6 +79,12 @@ public class Main implements Runnable {
             // scene
             Scene scene = new Scene(layout);
             content.setup(scene);
+            scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                if (e.getCode() == KeyCode.ESCAPE) {
+                    stage.close();
+                    e.consume();
+                }
+            });
 
             // stage
             stage.setScene(scene);

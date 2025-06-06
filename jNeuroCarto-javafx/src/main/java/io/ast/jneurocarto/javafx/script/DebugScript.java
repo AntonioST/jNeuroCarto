@@ -144,7 +144,7 @@ public class DebugScript {
     /**
      * test temporary add event handle on canvas
      */
-    @BlueprintScript(value = "snapshot", async = true)
+//    @BlueprintScript(value = "snapshot", async = true)
     public void snapshot(
         BlueprintAppToolkit<Object> toolkit,
         AtlasPlugin atlas,

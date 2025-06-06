@@ -616,6 +616,7 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         maskPath = maskPainter.lines()
             .alpha(0.5)
             .z(-10)
+            .linewidth(2)
 //            .fill("white")
             .line("red")
         ;
@@ -1139,9 +1140,11 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
     private @Nullable ImageSliceStack getAnnotationImageStack() {
         var brain = this.brain;
         if (brain == null) return null;
-        if (annotations == null || annotations.projection() != getProjection()) {
+
+        var projection = getProjection();
+        if (annotations == null || annotations.projection() != projection) {
             try {
-                annotations = new ImageSliceStack(brain, brain.annotation(), getProjection());
+                annotations = new ImageSliceStack(brain, brain.annotation(), projection);
             } catch (IOException e) {
                 return null;
             }
@@ -1167,7 +1170,16 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         var annotations = getAnnotationImageStack();
         if (annotations == null) return;
 
-        var toolkit = cacheAnnImageBlueprint = annotations.sliceAtPlane(image)
+        ImageSlice stack;
+        try {
+            stack = annotations.sliceAtPlane(image);
+        } catch (Exception e) {
+            log.debug(e.getMessage());
+            cacheAnnImageBlueprint = null;
+            return;
+        }
+
+        var toolkit = cacheAnnImageBlueprint = stack
             .image(BlueprintImageWriter.INSTANCE, cacheAnnImageBlueprint);
 
         // fetch masked stricture ids

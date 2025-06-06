@@ -16,6 +16,7 @@ import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
+import io.ast.jneurocarto.core.numpy.FlatIntArray;
 import io.ast.jneurocarto.core.numpy.Numpy;
 import io.ast.jneurocarto.core.numpy.UnsupportedNumpyDataFormatException;
 
@@ -319,6 +320,11 @@ public class BlueprintToolkit<T> {
 
     public final void apply(List<ElectrodeDescription> electrodes) {
         blueprint.applyBlueprint(electrodes);
+    }
+
+    public final void apply(FlatIntArray image) {
+        if (image.ndim() != 2) throw new IllegalArgumentException("not a 2d image");
+        apply(image.array());
     }
 
     public final void print() {
@@ -1128,10 +1134,19 @@ public class BlueprintToolkit<T> {
                         g = Math.min(g, clustering[j]);
                     }
                 }
-                ret.set(i, g);
+                if (clustering[i] > g) {
+                    ret.unionClusteringGroup(clustering[i], g);
+                } else {
+                    clustering[i] = g;
+                }
+
                 for (var j : surr) {
                     if (j >= 0 && clustering[j] > 0 && blueprint[j] == cate) {
-                        clustering[j] = g;
+                        if (clustering[j] > g) {
+                            ret.unionClusteringGroup(clustering[j], g);
+                        } else {
+                            clustering[j] = g;
+                        }
                     }
                 }
             }
@@ -2312,5 +2327,13 @@ public class BlueprintToolkit<T> {
 
     public static BlueprintToolkit<Object> dummy(int ns, int ny, int nx) {
         return new BlueprintToolkit<>(new Blueprint<>(new DummyProbe(ns, nx, ny), new Object()));
+    }
+
+    public static BlueprintToolkit<Object> dummy(FlatIntArray image) {
+        if (image.ndim() != 2) throw new IllegalArgumentException("not a 2d image");
+        var shape = image.shape();
+        var ret = new BlueprintToolkit<>(new Blueprint<>(new DummyProbe(1, shape[1], shape[0]), new Object()));
+        ret.from(image.array());
+        return ret;
     }
 }
