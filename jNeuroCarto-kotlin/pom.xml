@@ -25,22 +25,22 @@
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-core</artifactId>
-            <version>0.0</version>
+            <version>${jneurocarto.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-probe-npx</artifactId>
-            <version>0.0</version>
+            <version>${jneurocarto.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-javafx</artifactId>
-            <version>0.0</version>
+            <version>${jneurocarto.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-probe-npx-javafx</artifactId>
-            <version>0.0</version>
+            <version>${jneurocarto.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -96,11 +96,36 @@
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <args>
-                        <arg>-Dkotlin.compiler.incremental=false</arg>
-                    </args>
-                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <!-- Replacing default-compile as it is treated specially by Maven -->
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <!-- Replacing default-testCompile as it is treated specially by Maven -->
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>java-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>java-test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

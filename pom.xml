@@ -17,6 +17,7 @@
         <module>jNeuroCarto-javafx-chart</module>
         <module>jNeuroCarto-javafx</module>
         <module>jNeuroCarto-kotlin</module>
+        <module>jNeuroCarto-javafx-app</module>
         <module>jNeuroCarto-test</module>
         <module>jNeuroCarto-jmh</module>
         <module>jNeuroCarto-web-chart</module>
@@ -36,6 +37,7 @@
         <logback.version>1.5.18</logback.version>
         <spring-boot.version>3.4.5</spring-boot.version>
         <junit.version>5.12.2</junit.version>
+        <jneurocarto.version>0.0</jneurocarto.version>
     </properties>
 
     <dependencyManagement>
@@ -309,36 +311,20 @@
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>3.8.1</version>
                     <executions>
-                        <execution>
-                            <id>copy-dependencies</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>copy-dependencies</goal>
-                            </goals>
-                            <configuration>
-                                <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                                <includeScope>runtime</includeScope>
-                            </configuration>
-                        </execution>
                     </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.11.2</version>
+                    <configuration>
+                        <!-- https://maven.apache.org/plugins/maven-javadoc-plugin/javadoc-mojo.html -->
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>3.5.0</version>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>exec</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <executable>java</executable>
-                        <arguments>
-                            <argument>--enable-preview</argument>
-                        </arguments>
-                    </configuration>
                 </plugin>
                 <plugin>
                     <artifactId>kotlin-maven-plugin</artifactId>

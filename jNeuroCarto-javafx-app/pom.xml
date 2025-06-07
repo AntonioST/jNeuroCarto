@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.ast.jneurocarto</groupId>
+        <artifactId>root</artifactId>
+        <version>0.0</version>
+    </parent>
+
+    <artifactId>jNeuroCarto-javafx-app</artifactId>
+    <version>0.0</version>
+    <packaging>pom</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-core</artifactId>
+            <version>${jneurocarto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-atlas</artifactId>
+            <version>${jneurocarto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-javafx-chart</artifactId>
+            <version>${jneurocarto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-javafx</artifactId>
+            <version>${jneurocarto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-probe-npx</artifactId>
+            <version>${jneurocarto.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-probe-npx-javafx</artifactId>
+            <version>${jneurocarto.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>bin</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>--enable-preview</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/dependencies</outputDirectory>
+                    <includeScope>runtime</includeScope>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>list-modules</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>--enable-preview</argument>
+                                <argument>bin/ListModulePath.java</argument>
+                                <argument>${project.build.directory}/dependencies</argument>
+                                <argument>${project.build.directory}/dependencies/module-path.txt</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jpackage</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>jpackage</executable>
+                            <arguments>
+                                <argument>--name</argument>
+                                <argument>jneurocarto</argument>
+                                <argument>--type</argument>
+                                <argument>app-image</argument>
+                                <argument>--app-version</argument>
+                                <argument>${jneurocarto.version}</argument>
+                                <argument>--description</argument>
+                                <argument>A neural probe channel map editor for the Neuropixels probe family.</argument>
+                                <argument>--dest</argument>
+                                <argument>${project.build.directory}/dist</argument>
+                                <argument>--module-path</argument>
+                                <argument>@${project.build.directory}/dependencies/module-path.txt</argument>
+                                <argument>--add-modules</argument>
+                                <argument>io.ast.jneurocarto.javafx,io.ast.jneurocarto.probe_npx.javafx,org.slf4j.simple</argument>
+                                <argument>--java-options</argument>
+                                <argument>--enable-preview</argument>
+                                <argument>--java-options</argument>
+                                <argument>--enable-native-access=javafx.graphics</argument>
+                                <argument>--java-options</argument>
+                                <argument>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</argument>
+                                <argument>--module</argument>
+                                <argument>io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Main</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+
+            </plugin>
+            <!-- <plugin>-->
+            <!--     <groupId>org.apache.maven.plugins</groupId>-->
+            <!--     <artifactId>maven-jlink-plugin</artifactId>-->
+            <!--     <version>3.2.0</version>-->
+            <!--     <extensions>true</extensions>-->
+            <!--     <configuration>-->
+            <!--         &lt;!&ndash;<compress>2</compress>&ndash;&gt;-->
+            <!--         <stripDebug>true</stripDebug>-->
+            <!--         <noHeaderFiles>true</noHeaderFiles>-->
+            <!--         <noManPages>true</noManPages>-->
+            <!--         <verbose>true</verbose>-->
+            <!--         <addOptions>-->
+            <!--             <addOption>&#45;&#45;enable-preview</addOption>-->
+            <!--             <addOption>&#45;&#45;enable-native-access=javafx.graphics</addOption>-->
+            <!--             <addOption>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</addOption>-->
+            <!--         </addOptions>-->
+            <!--         <launcher>jneurocarto=io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Main</launcher>-->
+            <!--     </configuration>-->
+            <!-- </plugin>-->
+        </plugins>
+    </build>
+</project>

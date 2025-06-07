@@ -6,6 +6,7 @@ import java.nio.file.Path
 import io.ast.jneurocarto.core.RequestChannelmap
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit
+import io.ast.jneurocarto.javafx.app.PluginNotLoadException
 import io.ast.jneurocarto.javafx.script.BlueprintScript
 import io.ast.jneurocarto.javafx.script.ScriptParameter
 import io.ast.jneurocarto.probe_npx.ChannelMap
@@ -47,7 +48,13 @@ fun blueprintSimpleInitScriptFromActivityDataWithThreshold(
 
     toolkit.printLogMessage("min=${data.nanmin().round(2)}, max=${data.nanmax().round(2)}")
 
-    toolkit.getPlugin(DataVisualizePlugin::class.java).ifPresent { plugin ->
+    var plugin = try {
+        toolkit.getPlugin(DataVisualizePlugin::class.java)
+    } catch (e: PluginNotLoadException) {
+        null
+    }
+
+    plugin?.let { plugin ->
         plugin.file = filename
         plugin.interpolate = 3
         plugin.updateDataImage(data)

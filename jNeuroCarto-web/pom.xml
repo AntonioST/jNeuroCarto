@@ -19,13 +19,13 @@
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-core</artifactId>
-            <version>0.0</version>
+            <version>${jneurocarto.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.ast.jneurocarto</groupId>
             <artifactId>jNeuroCarto-probe-npx</artifactId>
-            <version>0.0</version>
+            <version>${jneurocarto.version}</version>
         </dependency>
         <!--        <dependency>-->
         <!--            <groupId>io.ast.jneurocarto</groupId>-->

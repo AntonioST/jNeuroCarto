@@ -9,6 +9,7 @@ module io.ast.jneurocarto.atlas {
     requires org.apache.commons.compress;
     requires org.slf4j;
 
+    requires static com.twelvemonkeys.imageio.tiff;
     requires static info.picocli;
     requires static org.jspecify;
 
