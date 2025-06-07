@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.atlas.BrainAtlas;
 import io.ast.jneurocarto.atlas.BrainGlobeConfig;
 import io.ast.jneurocarto.atlas.BrainGlobeDownloader;
+import io.ast.jneurocarto.core.cli.CartoVersionProvider;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -17,6 +18,8 @@ import picocli.CommandLine;
     sortOptions = false,
     usageHelpWidth = 120,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
+    versionProvider = CartoVersionProvider.class,
     description = "Atlas utilities",
     subcommands = {
         Read.class,
@@ -27,9 +30,6 @@ import picocli.CommandLine;
     }
 )
 public final class Main implements Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = "--debug")
     public void debug(boolean value) {

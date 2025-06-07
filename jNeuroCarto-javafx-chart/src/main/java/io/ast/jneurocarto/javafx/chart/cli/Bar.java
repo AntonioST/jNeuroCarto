@@ -10,12 +10,10 @@ import picocli.CommandLine;
     name = "bar",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show bar graphics"
 )
 public class Bar implements Main.Content, Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = {"--ori", "--orientation"}, defaultValue = "vertical",
         description = "bar direction. could be ${COMPLETION-CANDIDATES}")

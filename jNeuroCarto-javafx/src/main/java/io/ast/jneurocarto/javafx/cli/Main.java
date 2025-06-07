@@ -14,8 +14,9 @@ public class Main {
 
     public static void main(String[] args) {
         var config = new CartoConfig();
-        var exit = new CommandLine(config).execute(args);
-        if (exit != 0 || config.help) System.exit(exit);
+        var parser = new CommandLine(config);
+        var exit = parser.execute(args);
+        if (exit != 0 || parser.isUsageHelpRequested() || parser.isVersionHelpRequested()) System.exit(exit);
 
         if (config.debug) {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");

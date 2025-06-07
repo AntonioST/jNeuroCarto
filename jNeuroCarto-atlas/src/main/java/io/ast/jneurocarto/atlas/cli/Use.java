@@ -11,12 +11,10 @@ import picocli.CommandLine;
     name = "use",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "use atlas brain"
 )
 public class Use implements Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Mixin
     public Main.ConfigOptions config;

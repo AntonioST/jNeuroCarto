@@ -15,6 +15,7 @@ import picocli.CommandLine;
     name = "create",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "create typical channelmap."
 )
 public final class Create implements Runnable {

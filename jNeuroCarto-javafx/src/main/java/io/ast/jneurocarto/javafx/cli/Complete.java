@@ -12,11 +12,10 @@ import picocli.CommandLine;
     name = "complete",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "demo complete text field"
 )
 public class Complete implements Example.Content, Runnable {
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = "--directory",
         description = "only allow directory")

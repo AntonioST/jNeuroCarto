@@ -13,12 +13,10 @@ import picocli.CommandLine;
     name = "slice",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show atlas brain slice"
 )
 public class Slice implements Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Mixin
     public Main.ConfigOptions config;

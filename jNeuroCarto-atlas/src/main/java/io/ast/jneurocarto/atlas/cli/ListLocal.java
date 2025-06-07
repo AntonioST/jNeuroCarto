@@ -10,11 +10,10 @@ import picocli.CommandLine;
     name = "list",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "list local atlas repository"
 )
 public class ListLocal implements Runnable {
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Parameters(index = "0..",
         description = "matched name")

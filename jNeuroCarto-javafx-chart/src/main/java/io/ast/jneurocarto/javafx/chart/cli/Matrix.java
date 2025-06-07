@@ -21,12 +21,10 @@ import picocli.CommandLine;
     name = "matrix",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show matrix image"
 )
 public class Matrix implements Main.Content, Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = "--cmap", defaultValue = "jet",
         description = "colormap")

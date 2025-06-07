@@ -10,15 +10,13 @@ import picocli.CommandLine;
     name = "remote",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "remote atlas server",
     subcommands = {
         Remote.VersionInfo.class
     }
 )
 public class Remote implements Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Mixin
     public Main.ConfigOptions config;

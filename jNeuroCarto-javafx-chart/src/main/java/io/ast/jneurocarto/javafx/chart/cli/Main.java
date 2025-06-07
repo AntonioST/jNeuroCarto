@@ -8,6 +8,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import io.ast.jneurocarto.core.cli.CartoVersionProvider;
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import picocli.CommandLine;
 
@@ -15,6 +16,8 @@ import picocli.CommandLine;
     name = "chart",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
+    versionProvider = CartoVersionProvider.class,
     description = "show interaction xy chart",
     subcommands = {
         ClickLines.class,
@@ -27,8 +30,6 @@ import picocli.CommandLine;
     }
 )
 public class Main implements Runnable {
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = "--debug",
         description = "enable debug logging message.")

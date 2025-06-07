@@ -12,12 +12,10 @@ import picocli.CommandLine;
     name = "download",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "download atlas from server"
 )
 public class Download implements Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Mixin
     public Main.ConfigOptions config;

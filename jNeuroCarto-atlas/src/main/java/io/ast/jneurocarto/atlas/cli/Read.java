@@ -16,6 +16,7 @@ import picocli.CommandLine;
     name = "read",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "read json file"
 )
 public class Read implements Runnable {

@@ -13,6 +13,7 @@ import picocli.CommandLine;
     name = "chart",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show UI control examples",
     subcommands = {
         Complete.class,
@@ -20,8 +21,6 @@ import picocli.CommandLine;
     }
 )
 public class Example implements Runnable {
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = "--debug",
         description = "enable debug logging message.")

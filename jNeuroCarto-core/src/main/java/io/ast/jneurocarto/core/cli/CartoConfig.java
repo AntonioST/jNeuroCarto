@@ -13,12 +13,11 @@ import picocli.CommandLine.Parameters;
     sortOptions = false,
     usageHelpWidth = 120,
     usageHelpAutoWidth = true,
-    description = ""
+    mixinStandardHelpOptions = true,
+    versionProvider = CartoVersionProvider.class,
+    description = "jneurocarto application"
 )
 public final class CartoConfig implements Runnable {
-
-    @Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @Parameters(index = "0", paramLabel = "FILE", arity = "0..1", description = "open channelmap file.")
     public Path file;

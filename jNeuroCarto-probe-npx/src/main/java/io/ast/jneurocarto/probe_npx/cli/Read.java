@@ -18,6 +18,7 @@ import picocli.CommandLine;
     name = "read",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "read file"
 )
 public final class Read implements Runnable {

@@ -10,12 +10,10 @@ import picocli.CommandLine;
     name = "info",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "information"
 )
 public final class Info implements Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Spec
     CommandLine.Model.CommandSpec spec;

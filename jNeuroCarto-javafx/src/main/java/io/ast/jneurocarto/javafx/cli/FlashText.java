@@ -22,6 +22,7 @@ import picocli.CommandLine;
     name = "flash",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show flash text"
 )
 public class FlashText implements Example.Content, Runnable, ChartMouseDraggingHandler {

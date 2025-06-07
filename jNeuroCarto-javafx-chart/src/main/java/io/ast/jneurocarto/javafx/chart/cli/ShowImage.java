@@ -23,12 +23,10 @@ import picocli.CommandLine;
     name = "image",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show image"
 )
 public class ShowImage implements Main.Content, Runnable, ChartMouseDraggingHandler {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Parameters(index = "0", paramLabel = "FILE",
         description = "image file")

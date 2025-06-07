@@ -8,12 +8,10 @@ import picocli.CommandLine;
     name = "colorbar",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show colorbar"
 )
 public class Colorbar implements Main.Content, Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Parameters(index = "0", defaultValue = "jet",
         description = "colormap")

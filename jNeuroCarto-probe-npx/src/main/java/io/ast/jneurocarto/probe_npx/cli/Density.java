@@ -16,6 +16,7 @@ import picocli.CommandLine;
     name = "density",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "print density array"
 )
 public final class Density implements Runnable {

@@ -23,12 +23,10 @@ import picocli.CommandLine;
     name = "npy-image",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show numpy image matrix"
 )
 public class ShowNpyImage implements Main.Content, Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.Option(names = "--cmap", defaultValue = "jet",
         description = "colormap")

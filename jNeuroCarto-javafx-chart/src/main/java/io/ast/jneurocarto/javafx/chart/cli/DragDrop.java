@@ -18,12 +18,10 @@ import picocli.CommandLine;
     name = "drag-drop",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show interaction xy chart for drag-and-drop feature"
 )
 public class DragDrop implements Main.Content, Runnable, ChartMouseDraggingHandler {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.ParentCommand
     public Main parent;

@@ -14,12 +14,10 @@ import picocli.CommandLine;
     name = "click",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "show interaction xy chart"
 )
 public class ClickLines implements Main.Content, Runnable {
-
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
 
     @CommandLine.ParentCommand
     public Main parent;

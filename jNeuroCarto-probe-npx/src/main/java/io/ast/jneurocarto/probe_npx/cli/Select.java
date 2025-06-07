@@ -23,6 +23,7 @@ import picocli.CommandLine;
     name = "select",
     sortOptions = false,
     usageHelpAutoWidth = true,
+    mixinStandardHelpOptions = true,
     description = "Select electrodes",
     exitCodeListHeading = "Exit Codes:%n",
     exitCodeList = {
