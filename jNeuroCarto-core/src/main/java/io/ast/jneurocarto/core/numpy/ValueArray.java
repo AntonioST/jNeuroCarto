@@ -3,6 +3,8 @@ package io.ast.jneurocarto.core.numpy;
 import java.nio.ByteBuffer;
 
 /**
+ * Numpy value array reader/writer.
+ *
  * @param <T> target array type.
  */
 public abstract class ValueArray<T> {

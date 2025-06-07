@@ -82,17 +82,25 @@ Install and Run
 
 ### Prepare environment.
 
-Require `Java 24`.
+Require `Java 24` and `maven`.
 
-### Install
+### Build and Install
 
 ```shell
-mvn install
+mvn clean install
 ```
+
+This action will compile, test and package the source files into local maven repository (`$HOME/.m2`),
+
+The application will be packaged into `jNeuroCarto-javafx-app/target/dist/jneurocarto/`.
+You can copy this directory to anywhere.
 
 ### Run
 
-TODO
+```shell
+cd jNeuroCarto-javafx-app/target/dist/jneurocarto/
+bin/jneurocarto
+```
 
 Build from source
 -----------------
@@ -122,10 +130,12 @@ Web related
 - `com.vaadin`
 - (npm) `plotly.js`
 
-### Build
+### Generate javadoc
 
-```
-mvn package
+```shell
+mvn javadoc:javadoc
 ```
 
+The generated contents will put at `MODULE/target/reports/apidocs`.
+Only some modules have javadoc report.
 

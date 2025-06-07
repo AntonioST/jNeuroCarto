@@ -85,24 +85,24 @@ public final class Blueprint<T> {
 
     private static double minDiffSet(int[] x) {
         return Arrays.stream(x)
-          .distinct()
-          .sorted()
-          .boxed()
-          .gather(Gatherer.<Integer, int[], Integer>ofSequential(
-            () -> new int[]{Integer.MIN_VALUE},
-            (state, element, downstream) -> {
-                if (state[0] == Integer.MIN_VALUE) {
-                    state[0] = element;
-                    return true;
-                } else {
-                    var ret = element - state[0];
-                    state[0] = element;
-                    return downstream.push(ret);
+            .distinct()
+            .sorted()
+            .boxed()
+            .gather(Gatherer.<Integer, int[], Integer>ofSequential(
+                () -> new int[]{Integer.MIN_VALUE},
+                (state, element, downstream) -> {
+                    if (state[0] == Integer.MIN_VALUE) {
+                        state[0] = element;
+                        return true;
+                    } else {
+                        var ret = element - state[0];
+                        state[0] = element;
+                        return downstream.push(ret);
+                    }
                 }
-            }
-          )).mapToInt(it -> it)
-          .min()
-          .orElse(0);
+            )).mapToInt(it -> it)
+            .min()
+            .orElse(0);
     }
 
     public ProbeDescription<T> probe() {
@@ -136,7 +136,7 @@ public final class Blueprint<T> {
 
     public Stream<Electrode> stream() {
         return IntStream.range(0, blueprint.length)
-          .mapToObj(i -> new Electrode(i, shank[i], posx[i], posy[i], blueprint[i]));
+            .mapToObj(i -> new Electrode(i, shank[i], posx[i], posy[i], blueprint[i]));
     }
 
     public Blueprint<T> clear() {
@@ -144,6 +144,14 @@ public final class Blueprint<T> {
         return this;
     }
 
+    /**
+     * Give the electrode index based on electrode's position.
+     *
+     * @param s shank index
+     * @param x x position
+     * @param y y position
+     * @return optional electrode index
+     */
     public OptionalInt index(int s, int x, int y) {
         for (int i = 0, length = blueprint.length; i < length; i++) {
             if (shank[i] == s && posx[i] == x && posy[i] == y) return OptionalInt.of(i);
@@ -151,10 +159,22 @@ public final class Blueprint<T> {
         return OptionalInt.empty();
     }
 
+    /**
+     * Give the electrode index of electrode {@code e}.
+     *
+     * @param e electrode
+     * @return optional electrode index
+     */
     public OptionalInt index(ElectrodeDescription e) {
         return index(e.s(), e.x(), e.y());
     }
 
+    /**
+     * Read the blueprint from another {@code blueprint}.
+     *
+     * @param blueprint blueprint
+     * @return this
+     */
     public Blueprint<T> from(Blueprint<T> blueprint) {
         var length = this.blueprint.length;
         if (blueprint.blueprint.length != length) throw new RuntimeException();
@@ -162,6 +182,12 @@ public final class Blueprint<T> {
         return this;
     }
 
+    /**
+     * Read the blueprint from {@code electrodes}.
+     *
+     * @param electrodes list
+     * @return this
+     */
     public Blueprint<T> from(List<ElectrodeDescription> electrodes) {
         for (var e : electrodes) {
             index(e).ifPresent(i -> blueprint[i] = e.category());
@@ -169,34 +195,61 @@ public final class Blueprint<T> {
         return this;
     }
 
+    /**
+     * Apply the blueprint into {@code electrodes}.
+     *
+     * @param electrodes list
+     */
     public void applyBlueprint(List<ElectrodeDescription> electrodes) {
         for (var e : electrodes) {
             index(e).ifPresentOrElse(i -> e.category(blueprint[i]),
-              () -> e.category(ProbeDescription.CATE_UNSET));
+                () -> e.category(ProbeDescription.CATE_UNSET));
         }
     }
 
+    /**
+     * Load blueprint file.
+     *
+     * @param file blueprint file
+     * @throws IOException
+     * @see ProbeDescription#loadBlueprint(Path, Object)
+     */
     public void load(Path file) throws IOException {
         if (chmap == null) throw new RuntimeException("missing channelmap");
 
         from(probe.loadBlueprint(file, chmap));
     }
 
+    /**
+     * Save blueprint file.
+     *
+     * @param file blueprint file
+     * @throws IOException
+     * @see ProbeDescription#save(Path, Object)
+     */
     public void save(Path file) throws IOException {
         if (chmap == null) throw new RuntimeException("missing channelmap");
 
         probe.saveBlueprint(file, electrodes());
     }
 
+    /**
+     * Set all electrode to {@code category}.
+     *
+     * @param category electrode category
+     * @return this
+     */
     public Blueprint<T> set(int category) {
         Arrays.fill(blueprint, category);
         return this;
     }
 
     /**
+     * Set electrode to {@code category} for specific electrodes subset.
+     *
      * @param category   electrode category
-     * @param electrodes
-     * @return
+     * @param electrodes electrodes set.
+     * @return this
      */
     public Blueprint<T> set(int category, List<ElectrodeDescription> electrodes) {
         for (var electrode : electrodes) {
@@ -206,15 +259,24 @@ public final class Blueprint<T> {
         return this;
     }
 
+    /**
+     * Set electrode to {@code category} with given electrode {@code index}.
+     *
+     * @param category electrode category
+     * @param index    electrode index
+     * @return this
+     */
     public Blueprint<T> set(int category, int index) {
         blueprint[index] = category;
         return this;
     }
 
     /**
+     * Set electrodes to {@code category} with given electrode {@code index}.
+     *
      * @param category electrode category
      * @param index    electrode index array
-     * @return
+     * @return this
      */
     public Blueprint<T> set(int category, int[] index) {
         for (int i : index) {
@@ -225,20 +287,29 @@ public final class Blueprint<T> {
     }
 
     /**
-     * @param category      electrode category
-     * @param electrodeMask
-     * @return
+     * Set electrodes to {@code category} with given electrode {@code mask}.
+     *
+     * @param category electrode category
+     * @param mask     electrode mask
+     * @return this
      */
-    public Blueprint<T> set(int category, boolean[] electrodeMask) {
-        if (blueprint.length != electrodeMask.length) throw new RuntimeException();
+    public Blueprint<T> set(int category, boolean[] mask) {
+        if (blueprint.length != mask.length) throw new RuntimeException();
 
-        for (int i = 0, length = electrodeMask.length; i < length; i++) {
-            if (electrodeMask[i]) blueprint[i] = category;
+        for (int i = 0, length = mask.length; i < length; i++) {
+            if (mask[i]) blueprint[i] = category;
         }
 
         return this;
     }
 
+    /**
+     * Set electrodes to {@code category} with given electrode {@code mask}.
+     *
+     * @param category electrode category
+     * @param mask     electrode mask
+     * @return this
+     */
     public Blueprint<T> set(int category, BlueprintMask mask) {
         if (blueprint.length != mask.length()) throw new RuntimeException();
         mask.forEach(i -> blueprint[i] = category);
@@ -246,9 +317,11 @@ public final class Blueprint<T> {
     }
 
     /**
+     * Set electrodes to {@code category} with given condiction.
+     *
      * @param category electrode category
-     * @param pick
-     * @return
+     * @param pick     picking condiction
+     * @return this
      */
     public Blueprint<T> set(int category, Predicate<Electrode> pick) {
         stream().filter(pick).forEach(it -> {
@@ -266,11 +339,13 @@ public final class Blueprint<T> {
     }
 
     /**
-     * @param electrodeIndex electrode index array
-     * @return
+     * unset electrodes with given electrode {@code index}.
+     *
+     * @param index electrode index array
+     * @return this
      */
-    public Blueprint<T> unset(int[] electrodeIndex) {
-        return set(ProbeDescription.CATE_UNSET, electrodeIndex);
+    public Blueprint<T> unset(int[] index) {
+        return set(ProbeDescription.CATE_UNSET, index);
     }
 
     public Blueprint<T> unset(boolean[] electrodeMask) {
