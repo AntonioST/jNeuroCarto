@@ -10,20 +10,21 @@ import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "chart",
-  usageHelpAutoWidth = true,
-  description = "show UI control examples",
-  subcommands = {
-    Complete.class,
-    FlashText.class
-  }
+    name = "chart",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "show UI control examples",
+    subcommands = {
+        Complete.class,
+        FlashText.class
+    }
 )
 public class Example implements Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
     @CommandLine.Option(names = "--debug",
-      description = "enable debug logging message.")
+        description = "enable debug logging message.")
     public void debug(boolean value) {
         if (value) {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.javafx.chart", "debug");

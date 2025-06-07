@@ -10,9 +10,10 @@ import io.ast.jneurocarto.javafx.atlas.Application;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "slice",
-  usageHelpAutoWidth = true,
-  description = "show atlas brain slice"
+    name = "slice",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "show atlas brain slice"
 )
 public class Slice implements Runnable {
 
@@ -26,7 +27,7 @@ public class Slice implements Runnable {
     public Main.UseAtlas use;
 
     @CommandLine.Option(names = "--debug",
-      description = "enable debug logging message.")
+        description = "enable debug logging message.")
     public void debug(boolean value) {
         if (value) {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto.javafx.atlas", "debug");
@@ -54,6 +55,7 @@ public class Slice implements Runnable {
 
     public static class App extends javafx.application.Application {
         private static Application INSTANCE;
+
         @Override
         public void start(Stage primaryStage) throws Exception {
             INSTANCE.start(primaryStage);

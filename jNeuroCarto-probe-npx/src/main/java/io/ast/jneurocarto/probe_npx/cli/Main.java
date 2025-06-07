@@ -5,17 +5,18 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "jneurocarto-npx",
-  usageHelpWidth = 120,
-  usageHelpAutoWidth = true,
-  description = "",
-  subcommands = {
-    Info.class,
-    Read.class,
-    Create.class,
-    Select.class,
-    Density.class,
-  }
+    name = "jneurocarto-npx",
+    sortOptions = false,
+    usageHelpWidth = 120,
+    usageHelpAutoWidth = true,
+    description = "Neuropixels probe utilities",
+    subcommands = {
+        Info.class,
+        Read.class,
+        Create.class,
+        Select.class,
+        Density.class,
+    }
 )
 public final class Main implements Runnable {
 

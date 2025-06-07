@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.atlas;
 
 import java.io.BufferedInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -21,7 +23,6 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
@@ -67,6 +68,9 @@ public class BrainGlobeDownloader {
     }
 
     public BrainGlobeDownloader atlasName(@Nullable String atlasName) {
+        if (atlasName.contains("_v")) {
+            atlasName = atlasName.replaceFirst("_v.*", "");
+        }
         this.atlasName = atlasName;
         return this;
     }
@@ -120,11 +124,11 @@ public class BrainGlobeDownloader {
         var pattern = FileSystems.getDefault().getPathMatcher("glob:" + atlas + "_v*");
         try (var dirs = Files.list(getDownloadDir())) {
             return dirs
-              .filter(Files::isDirectory)
-              .map(Path::getFileName)
-              .filter(pattern::matches)
-              .findFirst()
-              .map(Path::toString);
+                .filter(Files::isDirectory)
+                .map(Path::getFileName)
+                .filter(pattern::matches)
+                .findFirst()
+                .map(Path::toString);
         } catch (IOException e) {
             return Optional.empty();
         }
@@ -246,6 +250,66 @@ public class BrainGlobeDownloader {
         if (version == null) return false;
 
         return localVersion(atlas).map(version::equals).orElse(false);
+    }
+
+    /*==================*
+     * local repository *
+     *==================*/
+
+    public DownloadResult find() throws FileNotFoundException {
+        return localFullName().map(this::findByNameVersion).orElseThrow(FileNotFoundException::new);
+    }
+
+    public DownloadResult find(String name) throws FileNotFoundException {
+        return localFullName(name).map(this::findByNameVersion).orElseThrow(() -> new FileNotFoundException(name));
+    }
+
+    private @Nullable DownloadResult findByNameVersion(String name) {
+        var atlas = name.replaceFirst("_v.*", "");
+        var version = name.replaceFirst(".*_v", "");
+
+        var downloadDir = getDownloadDir();
+        var result = new DownloadResult(atlas, version, downloadDir);
+        if (!Files.isDirectory(result.root())) {
+            return null;
+        }
+        return result;
+    }
+
+    public DownloadResult find(String name, String version) throws FileNotFoundException {
+        var downloadDir = getDownloadDir();
+        var result = new DownloadResult(name, version, downloadDir);
+        if (!Files.isDirectory(result.root())) {
+            throw new FileNotFoundException(result.atlasNameVersion());
+        }
+        return result;
+    }
+
+    public List<DownloadResult> findAll(Predicate<String> match) {
+        var downloadDir = getDownloadDir();
+        try (var dir = Files.list(downloadDir)) {
+            return dir.<DownloadResult>mapMulti((path, downstream) -> {
+                var name = path.getFileName().toString();
+                if (match.test(name)) {
+                    var result = findByNameVersion(name);
+                    if (result != null) downstream.accept(result);
+                }
+            }).toList();
+        } catch (IOException e) {
+            return List.of();
+        }
+    }
+
+    public List<DownloadResult> findAll() {
+        var downloadDir = getDownloadDir();
+        try (var dir = Files.list(downloadDir)) {
+            return dir.<DownloadResult>mapMulti((path, downstream) -> {
+                var result = findByNameVersion(path.getFileName().toString());
+                if (result != null) downstream.accept(result);
+            }).toList();
+        } catch (IOException e) {
+            return List.of();
+        }
     }
 
     /*==========*
@@ -522,8 +586,8 @@ public class BrainGlobeDownloader {
 
     private static Optional<String> curlText(String url) throws IOException {
         var request = HttpRequest.newBuilder()
-          .uri(URI.create(url))
-          .build();
+            .uri(URI.create(url))
+            .build();
 
         HttpResponse<String> response;
         try (var client = HttpClient.newHttpClient()) {
@@ -543,8 +607,8 @@ public class BrainGlobeDownloader {
     private static boolean curlBinary(String url, Path file) throws IOException {
 
         var request = HttpRequest.newBuilder()
-          .uri(URI.create(url))
-          .build();
+            .uri(URI.create(url))
+            .build();
 
         HttpResponse<Path> response;
         try (var client = HttpClient.newHttpClient()) {

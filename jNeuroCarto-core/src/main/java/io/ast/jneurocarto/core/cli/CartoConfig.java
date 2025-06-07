@@ -10,9 +10,11 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 @Command(name = "jneurocarto",
-  usageHelpWidth = 120,
-  usageHelpAutoWidth = true,
-  description = "")
+    sortOptions = false,
+    usageHelpWidth = 120,
+    usageHelpAutoWidth = true,
+    description = ""
+)
 public final class CartoConfig implements Runnable {
 
     @Option(names = {"-h", "-?", "--help"}, usageHelp = true)
@@ -22,22 +24,22 @@ public final class CartoConfig implements Runnable {
     public Path file;
 
     @Option(names = {"-C", "--chmap-dir"}, paramLabel = "PATH",
-      description = "channel saving directory")
+        description = "channel saving directory")
     public Path chmapRoot;
 
 
     @Option(names = {"-P", "--probe"}, paramLabel = "NAME", defaultValue = "npx",
-      description = "use probe family. default use \"npx\" (Neuropixels probe family).")
+        description = "use probe family. default use \"npx\" (Neuropixels probe family).")
     public String probeFamily;
 
     @Option(names = "--selector", paramLabel = "NAME",
-      description = "use which electrode selection method")
+        description = "use which electrode selection method")
     public String probeSelector;
 
 
     @Option(names = "--atlas", paramLabel = "NAME", defaultValue = "25",
-      converter = AtlasNameConverter.class,
-      description = "atlas mouse brain name. Use empty string to disable atlas plugin.")
+        converter = AtlasNameConverter.class,
+        description = "atlas mouse brain name. Use empty string to disable atlas plugin.")
     public String atlasName;
 
     @ArgGroup(/*exclusive = true, multiplicity = "0..1"*/)
@@ -45,25 +47,25 @@ public final class CartoConfig implements Runnable {
 
     public static class AtlasConfig {
         @Option(names = "--atlas-root", paramLabel = "PATH",
-          description = "atlas mouse brain download path.")
+            description = "atlas mouse brain download path.")
         public Path atlasRoot;
 
         @Option(names = "--atlas-config", paramLabel = "PATH",
-          description = "atlas brain config path")
+            description = "atlas brain config path")
         public Path atlasConfig;
     }
 
     @Option(names = "--config-file", paramLabel = "FILE",
-      description = "user config file.")
+        description = "user config file.")
     public String configFile;
 
     @Option(names = "--view", paramLabel = "NAME",
-      converter = CommaStringListConverter.class,
-      description = "install extra views in right panel")
+        converter = CommaStringListConverter.class,
+        description = "install extra views in right panel")
     public List<String> extraViewList = List.of();
 
     @Option(names = "--debug",
-      description = "enable debug logging message. It reads system property \"io.ast.jneurocarto.debug\".")
+        description = "enable debug logging message. It reads system property \"io.ast.jneurocarto.debug\".")
     public boolean debug = !System.getProperty("io.ast.jneurocarto.debug", "").isEmpty();
 
     public static void main(String[] args) {

@@ -15,9 +15,10 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "read",
-  usageHelpAutoWidth = true,
-  description = "read file"
+    name = "read",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "read file"
 )
 public final class Read implements Runnable {
 
@@ -29,7 +30,7 @@ public final class Read implements Runnable {
     }
 
     @CommandLine.Option(names = {"-t", "--type"}, paramLabel = "TYPE",
-      description = "force consider file as given file-type.")
+        description = "force consider file as given file-type.")
     FileType filetype;
 
     private Logger log;

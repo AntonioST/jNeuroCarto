@@ -20,6 +20,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "flash",
+    sortOptions = false,
     usageHelpAutoWidth = true,
     description = "show flash text"
 )

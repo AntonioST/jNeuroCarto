@@ -8,9 +8,10 @@ import io.ast.jneurocarto.atlas.Structure;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "use",
-  usageHelpAutoWidth = true,
-  description = "use atlas brain"
+    name = "use",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "use atlas brain"
 )
 public class Use implements Runnable {
 
@@ -56,8 +57,8 @@ public class Use implements Runnable {
 
     @CommandLine.Command(name = "structure", aliases = {"s"}, description = "print structure")
     public void searchStructure(
-      @CommandLine.Option(names = "--id", description = "take ACRONYM as id") boolean asid,
-      @CommandLine.Parameters(paramLabel = "ACRONYM", description = "structure acronym") String acronym
+        @CommandLine.Option(names = "--id", description = "take ACRONYM as id") boolean asid,
+        @CommandLine.Parameters(paramLabel = "ACRONYM", description = "structure acronym") String acronym
     ) throws IOException {
         var atlas = getAtlas();
         var structures = atlas.hierarchy();
@@ -78,8 +79,8 @@ public class Use implements Runnable {
 
     @CommandLine.Command(name = "structure.parents", aliases = {"s.parents"}, description = "print structure parents")
     public void printStructureParents(
-      @CommandLine.Option(names = "--id", description = "take ACRONYM as id") boolean asid,
-      @CommandLine.Parameters(paramLabel = "ACRONYM", description = "structure acronym") String acronym
+        @CommandLine.Option(names = "--id", description = "take ACRONYM as id") boolean asid,
+        @CommandLine.Parameters(paramLabel = "ACRONYM", description = "structure acronym") String acronym
     ) throws IOException {
         var atlas = getAtlas();
         var structures = atlas.hierarchy();
@@ -101,9 +102,9 @@ public class Use implements Runnable {
 
     @CommandLine.Command(name = "structure.children", aliases = {"s.children"}, description = "print structure children")
     public void printStructureChildren(
-      @CommandLine.Option(names = "--id", description = "take ACRONYM as id") boolean asid,
-      @CommandLine.Option(names = "--all", description = "print all") boolean all,
-      @CommandLine.Parameters(paramLabel = "ACRONYM", description = "structure acronym") String acronym
+        @CommandLine.Option(names = "--id", description = "take ACRONYM as id") boolean asid,
+        @CommandLine.Option(names = "--all", description = "print all") boolean all,
+        @CommandLine.Parameters(paramLabel = "ACRONYM", description = "structure acronym") String acronym
     ) throws IOException {
         var atlas = getAtlas();
         var structures = atlas.hierarchy();

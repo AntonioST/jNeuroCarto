@@ -13,14 +13,15 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "density",
-  usageHelpAutoWidth = true,
-  description = "print density array"
+    name = "density",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "print density array"
 )
 public final class Density implements Runnable {
 
     @CommandLine.Parameters(index = "0", paramLabel = "CHMAP",
-      description = "channelmap file.")
+        description = "channelmap file.")
     Path chmapFile;
 
     @CommandLine.Option(names = "--dy", paramLabel = "VALUE", defaultValue = "5")
@@ -30,7 +31,7 @@ public final class Density implements Runnable {
     double smooth;
 
     @CommandLine.Option(names = {"-o", "--output"}, paramLabel = "FILE", required = true,
-      description = "output to a numpy file")
+        description = "output to a numpy file")
     Path outputFile;
 
     private Logger log;

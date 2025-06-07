@@ -7,9 +7,10 @@ import io.ast.jneurocarto.javafx.chart.data.XYBar;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "bar",
-  usageHelpAutoWidth = true,
-  description = "show bar graphics"
+    name = "bar",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "show bar graphics"
 )
 public class Bar implements Main.Content, Runnable {
 
@@ -17,23 +18,23 @@ public class Bar implements Main.Content, Runnable {
     public boolean help;
 
     @CommandLine.Option(names = {"--ori", "--orientation"}, defaultValue = "vertical",
-      description = "bar direction. could be ${COMPLETION-CANDIDATES}")
+        description = "bar direction. could be ${COMPLETION-CANDIDATES}")
     XYBar.Orientation orientation;
 
     @CommandLine.Option(names = "--color", defaultValue = "blue",
-      description = "bar color. If stack > 1, use as colormap")
+        description = "bar color. If stack > 1, use as colormap")
     String color;
 
     @CommandLine.Option(names = "--flip",
-      description = "flip bar orientation")
+        description = "flip bar orientation")
     boolean flip;
 
     @CommandLine.Option(names = "--stack", defaultValue = "1",
-      description = "stack bars")
+        description = "stack bars")
     int stack;
 
     @CommandLine.Option(names = "--normalize",
-      description = "normalize stacks")
+        description = "normalize stacks")
     boolean normalize;
 
     @CommandLine.ArgGroup(heading = "Data:%n")
@@ -44,8 +45,8 @@ public class Bar implements Main.Content, Runnable {
         RandomData r;
 
         @CommandLine.Option(names = "--values",
-          arity = "0..1", split = ",",
-          description = "given value sequence")
+            arity = "0..1", split = ",",
+            description = "given value sequence")
         double[] v;
 
         public double[] get() {
@@ -59,15 +60,15 @@ public class Bar implements Main.Content, Runnable {
 
     public static class RandomData {
         @CommandLine.Option(names = "-n", defaultValue = "25",
-          description = "N random numbers")
+            description = "N random numbers")
         int n = 25;
 
         @CommandLine.Option(names = "--min", defaultValue = "0",
-          description = "min random number")
+            description = "min random number")
         int min = 0;
 
         @CommandLine.Option(names = "--max", defaultValue = "100",
-          description = "max random numbers")
+            description = "max random numbers")
         int max = 100;
 
         public double[] get() {
@@ -106,9 +107,9 @@ public class Bar implements Main.Content, Runnable {
         var painter = chart.getPlotting();
 
         var bar = painter.bar(data(), orientation)
-          .baseline(stack == 1 && flip ? 100 : 0)
-          .widthRatio(0.8)
-          .fitInRange(0, 100);
+            .baseline(stack == 1 && flip ? 100 : 0)
+            .widthRatio(0.8)
+            .fitInRange(0, 100);
 
         if (stack == 1) {
             bar.fill(color);
@@ -119,8 +120,8 @@ public class Bar implements Main.Content, Runnable {
 
             for (int s = 1; s < stack; s++) {
                 bar = painter.bar(data(), orientation)
-                  .stackOn(bar)
-                  .fill(cmap.apply(s));
+                    .stackOn(bar)
+                    .fill(cmap.apply(s));
             }
 
             if (normalize) {

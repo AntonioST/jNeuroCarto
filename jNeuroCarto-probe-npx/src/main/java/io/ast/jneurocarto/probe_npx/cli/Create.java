@@ -12,21 +12,22 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "create",
-  usageHelpAutoWidth = true,
-  description = "create typical channelmap."
+    name = "create",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "create typical channelmap."
 )
 public final class Create implements Runnable {
 
     @CommandLine.Parameters(index = "0", paramLabel = "METHOD", arity = "0..1",
-      description = "method name.")
+        description = "method name.")
     String method;
 
     @CommandLine.Parameters(index = "1..", arity = "0..", description = "arguments")
     String[] args;
 
     @CommandLine.Option(names = {"-o", "--output"}, paramLabel = "FILE", defaultValue = "output.imro",
-      description = "output channelmap file.")
+        description = "output channelmap file.")
     Path outputFile;
 
     private Logger log;
@@ -51,13 +52,13 @@ public final class Create implements Runnable {
 
     public void printMethods() {
         System.out.println("""
-          Method:
-            single S [R]                - npx24SingleShank
-            stripe [R]                  - npx24SingleShank
-            half (1/2) S[,S] [R]        - npx24HalfDensity
-            quarter (1/4) [S[,S]] [R]   - npx24QuarterDensity
-            one-eight (1/8) R           - npx24OneEightDensity
-          """);
+            Method:
+              single S [R]                - npx24SingleShank
+              stripe [R]                  - npx24SingleShank
+              half (1/2) S[,S] [R]        - npx24HalfDensity
+              quarter (1/4) [S[,S]] [R]   - npx24QuarterDensity
+              one-eight (1/8) R           - npx24OneEightDensity
+            """);
     }
 
     public ChannelMap create(String method) {

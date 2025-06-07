@@ -18,9 +18,10 @@ import io.ast.jneurocarto.javafx.chart.data.XYMatrix;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "matrix",
-  usageHelpAutoWidth = true,
-  description = "show matrix image"
+    name = "matrix",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "show matrix image"
 )
 public class Matrix implements Main.Content, Runnable {
 
@@ -28,18 +29,18 @@ public class Matrix implements Main.Content, Runnable {
     public boolean help;
 
     @CommandLine.Option(names = "--cmap", defaultValue = "jet",
-      description = "colormap")
+        description = "colormap")
     String colormap;
 
     @CommandLine.Option(names = {"-s", "--shape"}, arity = "1", paramLabel = "[[S,]R,]C", required = true,
-      converter = IntArrayConverter.class,
-      description = "data shape.")
+        converter = IntArrayConverter.class,
+        description = "data shape.")
     IntArray dataShape;
     int[] shape;
 
     @CommandLine.Option(names = {"--space"}, arity = "1", paramLabel = "UM",
-      defaultValue = "10,2,2", split = ",",
-      description = "electrode space S,R,C.")
+        defaultValue = "10,2,2", split = ",",
+        description = "electrode space S,R,C.")
     int[] space;
 
     public record IntArray(int[] shape) {
@@ -64,8 +65,8 @@ public class Matrix implements Main.Content, Runnable {
     }
 
     @CommandLine.Option(names = {"-n", "--norm", "--normalize"}, arity = "1", paramLabel = "V,V",
-      converter = NormalizeConverter.class,
-      description = "data normalize.")
+        converter = NormalizeConverter.class,
+        description = "data normalize.")
     Normalize normalize;
 
     public static class NormalizeConverter implements CommandLine.ITypeConverter<Normalize> {
@@ -81,17 +82,17 @@ public class Matrix implements Main.Content, Runnable {
     }
 
     @CommandLine.Option(names = {"-o", "--order"}, paramLabel = "SRC", defaultValue = "",
-      description = "data shape order.")
+        description = "data shape order.")
     String order;
     int[] orderIndex; // {S, R, C}
     int[] length; // {S, R, C}
 
     @CommandLine.Option(names = "--interpolate",
-      description = "interpolate NaN values")
+        description = "interpolate NaN values")
     boolean interpolateNaN;
 
     @CommandLine.Parameters(index = "0", paramLabel = "FILE",
-      description = "npy data file")
+        description = "npy data file")
     Path dataFile;
     double[] data;
 
@@ -221,8 +222,8 @@ public class Matrix implements Main.Content, Runnable {
         var matrix = new XYMatrix[length[0]];
         for (int s = 0; s < length[0]; s++) {
             var builder = painter.imshow()
-              .colormap(colormap)
-              .extent(s * space[0], 0, length[2], space[2], length[1], space[1]);
+                .colormap(colormap)
+                .extent(s * space[0], 0, length[2], space[2], length[1], space[1]);
 
             var m = builder.graphics();
             matrix[s] = m;

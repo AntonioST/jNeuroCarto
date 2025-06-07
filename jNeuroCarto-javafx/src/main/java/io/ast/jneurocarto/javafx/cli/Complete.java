@@ -9,36 +9,37 @@ import io.ast.jneurocarto.javafx.utils.AutoCompleteTextField;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "complete",
-  usageHelpAutoWidth = true,
-  description = "demo complete text field"
+    name = "complete",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "demo complete text field"
 )
 public class Complete implements Example.Content, Runnable {
     @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
     public boolean help;
 
     @CommandLine.Option(names = "--directory",
-      description = "only allow directory")
+        description = "only allow directory")
     boolean directory;
 
     @CommandLine.Option(names = {"-r", "--regex"},
-      description = "make -g as regex pattern")
+        description = "make -g as regex pattern")
     boolean regex;
 
     @CommandLine.Option(names = {"-g", "--glob"},
-      description = "filename match")
+        description = "filename match")
     String pattern;
 
     @CommandLine.Option(names = "--multiple",
-      description = "allow multiple files")
+        description = "allow multiple files")
     boolean multiple;
 
     @CommandLine.Option(names = "--escape",
-      description = "allow escape root")
+        description = "allow escape root")
     boolean escape;
 
     @CommandLine.Option(names = "--validate",
-      description = "validate during typing")
+        description = "validate during typing")
     boolean validate;
 
     @CommandLine.ParentCommand

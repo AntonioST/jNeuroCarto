@@ -20,50 +20,51 @@ import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "select",
-  usageHelpAutoWidth = true,
-  description = "Select electrodes",
-  exitCodeListHeading = "Exit Codes:%n",
-  exitCodeList = {
-    "0:successful electrode selection or normal exit.",
-    "1:fail electrode selection."
-  }
+    name = "select",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "Select electrodes",
+    exitCodeListHeading = "Exit Codes:%n",
+    exitCodeList = {
+        "0:successful electrode selection or normal exit.",
+        "1:fail electrode selection."
+    }
 )
 public final class Select implements Callable<Integer> {
 
     @CommandLine.Parameters(index = "0", paramLabel = "CHMAP",
-      description = "channelmap file.")
+        description = "channelmap file.")
     Path chmapFile;
 
     @CommandLine.Parameters(index = "1", paramLabel = "BLUEPRINT",
-      description = "blueprint file.")
+        description = "blueprint file.")
     Path blueprintFile;
 
     @CommandLine.Option(names = {"-o", "--output"}, paramLabel = "FILE",
-      description = "output channelmap file.")
+        description = "output channelmap file.")
     Path outputFile;
 
     @CommandLine.Option(names = {"-s", "--selector"}, paramLabel = "NAME",
-      description = "use selector")
+        description = "use selector")
     String selector;
 
     @CommandLine.Option(names = {"-S", "--sample"}, paramLabel = "TIMES", defaultValue = "0",
-      description = "choose best result, which has the highest channel efficiency, from samples.")
+        description = "choose best result, which has the highest channel efficiency, from samples.")
     int sampleTimes;
 
     @CommandLine.Option(names = {"-P", "--parallel"}, paramLabel = "NUM", arity = "0..1",
-      defaultValue = "0", fallbackValue = "-1",
-      description = "run select samples in parallel.")
+        defaultValue = "0", fallbackValue = "-1",
+        description = "run select samples in parallel.")
     int parallelCore;
 
     @CommandLine.Option(names = "-O", paramLabel = "NAME=VALUE")
     Map<String, String> options = Map.of();
 
     @CommandLine.Option(names = {"-p", "--print"},
-      description = "print channelmap result.")
+        description = "print channelmap result.")
     boolean printResult;
     @CommandLine.Option(names = {"--print-info"},
-      description = "print channelmap information.")
+        description = "print channelmap information.")
     boolean printResultInfo;
 
     @CommandLine.Option(names = "--list-options", help = true)

@@ -13,6 +13,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "chart",
+    sortOptions = false,
     usageHelpAutoWidth = true,
     description = "show interaction xy chart",
     subcommands = {

@@ -13,9 +13,10 @@ import io.ast.jneurocarto.atlas.Structures;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "read",
-  usageHelpAutoWidth = true,
-  description = "read file"
+    name = "read",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "read json file"
 )
 public class Read implements Runnable {
     @CommandLine.Parameters(index = "0", paramLabel = "FILE", description = "file path")
@@ -26,7 +27,7 @@ public class Read implements Runnable {
     }
 
     @CommandLine.Option(names = {"-t", "--type"}, paramLabel = "TYPE",
-      description = "force consider file as given file-type.")
+        description = "force consider file as given file-type.")
     FileType filetype;
 
     private Logger log;

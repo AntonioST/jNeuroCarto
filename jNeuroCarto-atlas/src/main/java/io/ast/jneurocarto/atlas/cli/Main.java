@@ -13,16 +13,18 @@ import io.ast.jneurocarto.atlas.BrainGlobeDownloader;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "jneurocarto-atlas",
-  usageHelpWidth = 120,
-  usageHelpAutoWidth = true,
-  description = "",
-  subcommands = {
-    Read.class,
-    Remote.class,
-    Download.class,
-    Use.class,
-  }
+    name = "jneurocarto-atlas",
+    sortOptions = false,
+    usageHelpWidth = 120,
+    usageHelpAutoWidth = true,
+    description = "Atlas utilities",
+    subcommands = {
+        Read.class,
+        Remote.class,
+        ListLocal.class,
+        Download.class,
+        Use.class,
+    }
 )
 public final class Main implements Runnable {
 
@@ -56,7 +58,7 @@ public final class Main implements Runnable {
         CommandLine.Model.CommandSpec mixee;
 
         @CommandLine.Option(names = "--config", paramLabel = "FILE",
-          description = "use which config file")
+            description = "use which config file")
         public Path configFile;
 
         public BrainGlobeConfig getConfig() {
@@ -76,23 +78,23 @@ public final class Main implements Runnable {
     public static class UseAtlas {
 
         @CommandLine.Option(names = {"-n", "--name"}, paramLabel = "NAME", required = true,
-          description = "use atlas name")
+            description = "use atlas name")
         public String name;
 
         @CommandLine.Option(names = "--check", negatable = true,
-          description = "check latest version.")
+            description = "check latest version.")
         public boolean checkLatest;
 
         public BrainGlobeDownloader newDownloader(BrainGlobeConfig config) {
             return BrainGlobeDownloader.builder()
-              .setConfig(config)
-              .setCheckLatest(checkLatest);
+                .setConfig(config)
+                .setCheckLatest(checkLatest);
         }
 
         public BrainGlobeDownloader newDownloader(ConfigOptions config) {
             return BrainGlobeDownloader.builder()
-              .setConfig(config.getConfig())
-              .setCheckLatest(checkLatest);
+                .setConfig(config.getConfig())
+                .setCheckLatest(checkLatest);
         }
 
         public void listAtlasName(BrainGlobeDownloader downloader) {
@@ -103,11 +105,11 @@ public final class Main implements Runnable {
                 var downloadDir = downloader.getDownloadDir();
 
                 prop.keySet().stream()
-                  .sorted()
-                  .forEach(atlas -> {
-                      var version = prop.get(atlas);
-                      System.out.printf("%-16s = %s %s\n", atlas, version, checkStatus(downloadDir, atlas, version));
-                  });
+                    .sorted()
+                    .forEach(atlas -> {
+                        var version = prop.get(atlas);
+                        System.out.printf("%-16s = %s %s\n", atlas, version, checkStatus(downloadDir, atlas, version));
+                    });
             }
         }
 

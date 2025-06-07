@@ -11,9 +11,10 @@ import io.ast.jneurocarto.javafx.chart.data.XYPath;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "click",
-  usageHelpAutoWidth = true,
-  description = "show interaction xy chart"
+    name = "click",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "show interaction xy chart"
 )
 public class ClickLines implements Main.Content, Runnable {
 
@@ -43,11 +44,11 @@ public class ClickLines implements Main.Content, Runnable {
 
         painter = chart.getPlotting();
         path = painter.lines()
-          .line(Color.TRANSPARENT)
-          .colormap("jet")
-          .normalize(Normalize.N01)
-          .addPoint(0, 0, 0)
-          .graphics();
+            .line(Color.TRANSPARENT)
+            .colormap("jet")
+            .normalize(Normalize.N01)
+            .addPoint(0, 0, 0)
+            .graphics();
     }
 
     private void onMouseClicked(MouseEvent e) {

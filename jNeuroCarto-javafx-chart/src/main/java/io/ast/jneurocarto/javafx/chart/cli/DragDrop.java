@@ -16,6 +16,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "drag-drop",
+    sortOptions = false,
     usageHelpAutoWidth = true,
     description = "show interaction xy chart for drag-and-drop feature"
 )

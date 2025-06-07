@@ -21,6 +21,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "image",
+    sortOptions = false,
     usageHelpAutoWidth = true,
     description = "show image"
 )

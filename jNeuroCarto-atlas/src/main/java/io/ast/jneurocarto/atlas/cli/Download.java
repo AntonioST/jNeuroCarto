@@ -9,9 +9,10 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "download",
-  usageHelpAutoWidth = true,
-  description = "download atlas from server"
+    name = "download",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "download atlas from server"
 )
 public class Download implements Runnable {
 
@@ -22,19 +23,19 @@ public class Download implements Runnable {
     public Main.ConfigOptions config;
 
     @CommandLine.Option(names = "--check", negatable = true,
-      description = "check latest version.")
+        description = "check latest version.")
     public boolean checkLatest;
 
     @CommandLine.Option(names = "--force",
-      description = "force downloading latest version.")
+        description = "force downloading latest version.")
     public boolean force;
 
     @CommandLine.Option(names = "--dry",
-      description = "dry run and just print. no download actions.")
+        description = "dry run and just print. no download actions.")
     public boolean dryrun;
 
     @CommandLine.Parameters(index = "0..",
-      description = "atlas name")
+        description = "atlas name")
     public List<String> atlasNameList = List.of();
 
     private Logger log;
@@ -45,8 +46,8 @@ public class Download implements Runnable {
 
         var use = new Main.UseAtlas();
         var downloader = use.newDownloader(config)
-          .setCheckLatest(checkLatest)
-          .dryrun(dryrun);
+            .setCheckLatest(checkLatest)
+            .dryrun(dryrun);
 
         if (atlasNameList.isEmpty()) {
             use.listAtlasName(downloader);

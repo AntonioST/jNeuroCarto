@@ -7,9 +7,10 @@ import io.ast.jneurocarto.probe_npx.NpxProbeType;
 import picocli.CommandLine;
 
 @CommandLine.Command(
-  name = "info",
-  usageHelpAutoWidth = true,
-  description = "information"
+    name = "info",
+    sortOptions = false,
+    usageHelpAutoWidth = true,
+    description = "information"
 )
 public final class Info implements Runnable {
 
@@ -35,7 +36,7 @@ public final class Info implements Runnable {
 
     @CommandLine.Command(name = "probe", description = "print probe information.")
     public void printProbe(
-      @CommandLine.Parameters(index = "0", arity = "0..1", paramLabel = "CODE", description = "probe code") String code
+        @CommandLine.Parameters(index = "0", arity = "0..1", paramLabel = "CODE", description = "probe code") String code
     ) {
         if (code == null) {
             System.out.println("require probe code");

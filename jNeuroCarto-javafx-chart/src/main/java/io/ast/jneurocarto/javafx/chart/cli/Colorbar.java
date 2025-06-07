@@ -6,6 +6,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "colorbar",
+    sortOptions = false,
     usageHelpAutoWidth = true,
     description = "show colorbar"
 )

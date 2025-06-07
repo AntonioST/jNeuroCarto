@@ -127,6 +127,10 @@
                                 <argument>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</argument>
                                 <argument>--module</argument>
                                 <argument>io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Main</argument>
+                                <argument>--add-launcher</argument>
+                                <argument>jneurocarto-probe-npx=launcher-probe-npx.properties</argument>
+                                <argument>--add-launcher</argument>
+                                <argument>jneurocarto-atlas=launcher-atlas.properties</argument>
                             </arguments>
                         </configuration>
                     </execution>

@@ -21,6 +21,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(
     name = "npy-image",
+    sortOptions = false,
     usageHelpAutoWidth = true,
     description = "show numpy image matrix"
 )

@@ -66,7 +66,7 @@ Modules
 * `jNeuroCarto-probe-npx-javafx` Neuropixels plugins for application
 * `jNeuroCarto-atlas` Atlas brain supporting.
 * `jNeuroCarto-kotlin` kotlin support and demonstration of blueprint script
-* `jNeuroCarto-test` jNeuroCarto data structure test supporting
+* `jNeuroCarto-javafx-app` packaging `jNeuroCarto` application
 
 ### Working in progress modules
 
@@ -75,6 +75,7 @@ Modules
 
 ### Other modules
 
+* `jNeuroCarto-test` jNeuroCarto data structure test supporting
 * `jNeuroCarto-probe-npx-jmh` [JMH](https://github.com/openjdk/jmh) benchmark testing.
 
 Install and Run
