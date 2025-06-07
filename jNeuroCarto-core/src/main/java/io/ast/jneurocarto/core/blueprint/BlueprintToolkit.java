@@ -22,6 +22,9 @@ import io.ast.jneurocarto.core.numpy.UnsupportedNumpyDataFormatException;
 
 import static java.nio.file.StandardOpenOption.*;
 
+/**
+ * @param <T>
+ */
 @NullMarked
 public class BlueprintToolkit<T> {
 

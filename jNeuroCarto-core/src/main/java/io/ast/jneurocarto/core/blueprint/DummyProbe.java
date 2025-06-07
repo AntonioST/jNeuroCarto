@@ -7,11 +7,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ProbeDescription;
 
+/**
+ * A dummy probe that only provide the number of shank, column and rows.
+ * It will throw {@link UnsupportedOperationException} for most methods.
+ */
+@NullMarked
 public class DummyProbe implements ProbeDescription<Object> {
 
     public final int nShanks;

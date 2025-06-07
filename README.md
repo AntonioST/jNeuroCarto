@@ -24,6 +24,7 @@ Features
 - better image transformation (translation and rotation).
 - use Java standard tool (`ServiceLoader`) to load external components.
 - save without completed channelmap and allow to direct read `*.config.json`.
+- standalone application.
 
 #### Missed features but planned in future
 

@@ -4,6 +4,10 @@ import java.util.function.IntFunction;
 
 /**
  * The probe coordinate for each shank.
+ * <br>
+ * It only provides basic information of the origin for each shank.
+ * If you want for advance coordinate transformation, please check
+ * {@link ProbeTransform}.
  */
 @FunctionalInterface
 public interface ShankCoordinate extends IntFunction<ProbeCoordinate> {
@@ -11,8 +15,10 @@ public interface ShankCoordinate extends IntFunction<ProbeCoordinate> {
     ShankCoordinate ZERO = (shank) -> new ProbeCoordinate(shank, 0, 0);
 
     /**
+     * Get the coordinate of {@code shank}.
+     *
      * @param shank shank index.
-     * @return offset. Reuse {@link ProbeCoordinate} but changing fields' meaning to offset.
+     * @return the coordinate of the origin of {@code shank}.
      */
     @Override
     ProbeCoordinate apply(int shank);
@@ -27,7 +33,9 @@ public interface ShankCoordinate extends IntFunction<ProbeCoordinate> {
      * @return a {@link ProbeCoordinate} used as an offset.
      */
     default ProbeCoordinate toShank(int fromShank, int toShank) {
-        return apply(toShank - fromShank);
+        var p1 = apply(fromShank);
+        var p2 = apply(toShank);
+        return new ProbeCoordinate(p2.s() - p1.s(), p2.x() - p1.x(), p2.y() - p1.y(), p2.z() - p1.z());
     }
 
     /**

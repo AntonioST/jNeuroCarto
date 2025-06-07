@@ -102,6 +102,15 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     }
 
     @Override
+    public @Nullable String channelmapCode(String code) {
+        try {
+            return NpxProbeType.of(code).name();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    @Override
     public @Nullable String channelmapCode(Object chmap) {
         if (!(chmap instanceof ChannelMap m)) return null;
         return switch (m.type()) {

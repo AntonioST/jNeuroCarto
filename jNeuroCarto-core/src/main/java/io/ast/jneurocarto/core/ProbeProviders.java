@@ -8,8 +8,16 @@ import org.slf4j.LoggerFactory;
 
 import io.github.classgraph.ClassGraph;
 
+/**
+ * Utility functions for {@link ProbeDescription}.
+ */
 public final class ProbeProviders {
 
+    /// Found probe descriptions in the classpath.
+    ///
+    /// @return list of probe descriptions.
+    /// @see ProbeDescription#listProbeDescriptions()
+    /// @see ProbeProvider
     public static List<String> listProbeDescriptions() {
         var ret = new ArrayList<String>();
         for (var provider : ServiceLoader.load(ProbeProvider.class)) {
