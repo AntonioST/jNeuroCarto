@@ -10,14 +10,13 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 import static java.nio.file.StandardOpenOption.*;
 
-/// [Numpy format](https://numpy.org/devdocs/reference/generated/numpy.lib.format.html)
+/// * [Numpy format](https://numpy.org/devdocs/reference/generated/numpy.lib.format.html)
+/// * [NEP-001](https://numpy.org/neps/nep-0001-npy-format.html)
 ///
 /// ```h
 /// struct header{
@@ -51,355 +50,20 @@ public final class Numpy {
         throw new RuntimeException();
     }
 
-    private static abstract class D1Array<T> extends ValueArray<T> {
-
-        int length;
-
-        D1Array(char valueType, int valeSize) {
-            super(valueType, valeSize);
-        }
-
-        D1Array(char valueType, int valueSize, String acceptValueTypes) {
-            super(valueType, valueSize, acceptValueTypes);
-        }
-
-        final int checkShape(NumpyHeader header) {
-            var shape = header.shape();
-
-            if (shape.length != 1) throw new RuntimeException("not an 1-d array : " + Arrays.toString(shape));
-            checkValue(header);
-            length = shape[0];
-            return length;
-        }
-
-        @Override
-        public final int[] shape() {
-            return new int[]{length};
-        }
-
-        final void checkFor(int length) {
-            this.length = length;
-        }
-
-    }
-
-    private static abstract class D2Array<T> extends ValueArray<T> {
-
-        final boolean columnFirst;
-        int rows;
-        int columns;
-        int length1;
-        int length2;
-        int index1;
-        int index2;
-
-        D2Array(char valueType, int valeSize, boolean columnFirst) {
-            super(valueType, valeSize);
-            this.columnFirst = columnFirst;
-        }
-
-        D2Array(char valueType, int valueSize, String acceptValueTypes, boolean columnFirst) {
-            super(valueType, valueSize, acceptValueTypes);
-            this.columnFirst = columnFirst;
-        }
-
-        final void checkShape(NumpyHeader header) {
-            var shape = header.shape();
-
-            if (shape.length != 2) throw new RuntimeException("not an 2-d array : " + Arrays.toString(shape));
-            rows = shape[0];
-            columns = shape[1];
-
-            if (columnFirst) {
-                length1 = columns;
-                length2 = rows;
-            } else {
-                length1 = rows;
-                length2 = columns;
-            }
-
-            checkValue(header);
-        }
-
-        @Override
-        public final int[] shape() {
-            return new int[]{rows, columns};
-        }
-
-        final void checkFor(int length1, int length2) {
-            this.length1 = length1;
-            this.length2 = length2;
-            if (columnFirst) {
-                columns = length1;
-                rows = length2;
-            } else {
-                rows = length1;
-                columns = length2;
-            }
-        }
-
-        final boolean index(long pos) {
-            if (columnFirst) {
-                index1 = (int) (pos % columns);
-                index2 = (int) (pos / columns);
-            } else {
-                index1 = (int) (pos / columns);
-                index2 = (int) (pos % columns);
-            }
-            return index1 < length1 && index2 < length2;
-        }
-    }
-
-    private static abstract class D3Array<T> extends ValueArray<T> {
-        int plans;
-        int rows;
-        int columns;
-        int p;
-        int r;
-        int c;
-
-        D3Array(char valueType, int valeSize) {
-            super(valueType, valeSize);
-        }
-
-        D3Array(char valueType, int valueSize, String acceptValueTypes) {
-            super(valueType, valueSize, acceptValueTypes);
-        }
-
-        final void checkShape(NumpyHeader header) {
-            var shape = header.shape();
-            if (shape.length != 3) throw new RuntimeException("not an 3-d array : " + Arrays.toString(shape));
-            plans = shape[0];
-            rows = shape[1];
-            columns = shape[2];
-            checkValue(header);
-        }
-
-        @Override
-        public final int[] shape() {
-            return new int[]{plans, rows, columns};
-        }
-
-        final void checkFor(int plans, int rows, int columns) {
-            this.plans = plans;
-            this.rows = rows;
-            this.columns = columns;
-        }
-
-        final boolean index(long pos) {
-            var rc = rows * columns;
-            p = (int) (pos / rc);
-            var q = (int) (pos % rc);
-            rows = q / c;
-            columns = q % c;
-            return p < plans && r < rows && c < columns;
-        }
-    }
-
-    private static abstract class FlattenArray<T> extends ValueArray<T> {
-        int[] shape;
-        int total;
-
-        FlattenArray(char valueType, int valeSize) {
-            super(valueType, valeSize);
-        }
-
-        FlattenArray(char valueType, int valueSize, String acceptValueTypes) {
-            super(valueType, valueSize, acceptValueTypes);
-        }
-
-        final void checkShape(NumpyHeader header) {
-            shape = header.shape();
-            if (shape.length > 0) {
-                var total = 1L;
-                for (int j : shape) total *= j;
-                if (total >= Integer.MAX_VALUE) {
-                    throw new RuntimeException("over jvm limitation");
-                }
-                this.total = (int) total;
-            } else {
-                this.total = 0;
-            }
-
-            checkValue(header);
-        }
-
-        final void checkFor(int[] shape, int total) {
-            this.shape = shape;
-            if (shape.length > 0) {
-                var t = 1L;
-                for (int j : shape) t *= j;
-                if (t >= Integer.MAX_VALUE) {
-                    throw new RuntimeException("over jvm limitation");
-                }
-                this.total = (int) t;
-            } else {
-                this.total = 0;
-            }
-            if (this.total != total) throw new RuntimeException();
-        }
-
-        @Override
-        public final int[] shape() {
-            return shape;
-        }
-    }
-
-    public static class OfBuffer extends ValueArray<ByteBuffer> {
-        final ByteBuffer buffer;
-        int[] shape;
-
-        public OfBuffer(ByteBuffer buffer) {
-            this.buffer = buffer;
-        }
-
-        @Override
-        public int[] shape() {
-            return shape;
-        }
-
-        @Override
-        protected ByteBuffer create(NumpyHeader header) {
-            this.shape = header.shape();
-            return buffer;
-        }
-
-        @Override
-        protected final void checkFor(ByteBuffer data) {
-            if (buffer != data) throw new RuntimeException();
-        }
-
-        /**
-         * this method has changed its purpose from reading value into
-         * a callback of read value.
-         * <br/>
-         * If you have limited size of {@link #buffer}, make sure transfer the data from it
-         * for next coming data.
-         * <p>
-         * {@snippet :
-         * boolean read(ByteBuffer ret, long pos, ByteBuffer buffer) {
-         *     ret.flip();
-         *     // do something read from ret.
-         *     ret.reset();
-         *     return true;
-         * }
-         *}
-         *
-         * @param ret    {@link #buffer}
-         * @param pos    the position of read data.
-         * @param buffer always {@code null}.
-         * @return successful
-         */
-        @Override
-        protected boolean read(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
-            return ret.remaining() > 0;
-        }
-
-        /**
-         * this method has changed its purpose from writing value into
-         * a pre-callback of written value.
-         * <br/>
-         * If you have limited size of {@link #buffer}, make sure transfer the data into it
-         * for next writing action.
-         * <p>
-         * {@snippet :
-         * boolean write(ByteBuffer ret, long pos, ByteBuffer buffer) {
-         *     ret.reset();
-         *     // do something writing into ret.
-         *     ret.flip();
-         *     return true;
-         * }
-         *}
-         *
-         * @param ret    {@link #buffer}
-         * @param pos    the position of written data.
-         * @param buffer always {@code null}.
-         * @return successful
-         */
-        @Override
-        protected boolean write(ByteBuffer ret, long pos, @Nullable ByteBuffer buffer) {
-            return ret.remaining() > 0;
-        }
-    }
-
     public static ValueArray<boolean[]> ofBoolean() {
         return new OfBoolean();
     }
 
-    private static final class OfBoolean extends D1Array<boolean[]> {
-        private OfBoolean() {
-            super('b', 1);
-        }
+    public static ValueArray<boolean[][]> ofD2Boolean() {
+        return new OfD2Boolean();
+    }
 
-        @Override
-        public boolean[] create(NumpyHeader header) {
-            return new boolean[checkShape(header)];
-        }
-
-        @Override
-        public void checkFor(boolean[] data) {
-            checkFor(data.length);
-        }
-
-        @Override
-        public boolean read(boolean[] ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < ret.length) {
-                ret[p] = readInt(buffer) > 0;
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean write(boolean[] ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < ret.length) {
-                writeInt(buffer, ret[p] ? 1 : 0);
-                return true;
-            }
-            return false;
-        }
+    public static ValueArray<boolean[][][]> ofD3Boolean() {
+        return new OfD3Boolean();
     }
 
     public static ValueArray<int[]> ofInt() {
         return new OfInt();
-    }
-
-    private static final class OfInt extends D1Array<int[]> {
-        private OfInt() {
-            super('i', 4);
-        }
-
-        @Override
-        public int[] create(NumpyHeader header) {
-            return new int[checkShape(header)];
-        }
-
-        @Override
-        public void checkFor(int[] data) {
-            checkFor(data.length);
-        }
-
-        @Override
-        public boolean read(int[] ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < ret.length) {
-                ret[p] = readInt(buffer);
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean write(int[] ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < ret.length) {
-                writeInt(buffer, ret[p]);
-                return true;
-            }
-            return false;
-        }
     }
 
     public static ValueArray<int[][]> ofD2Int() {
@@ -410,201 +74,16 @@ public final class Numpy {
         return new OfD2Int(columnFirst);
     }
 
-    private static final class OfD2Int extends D2Array<int[][]> {
-        private OfD2Int() {
-            super('i', 4, false);
-        }
-
-        private OfD2Int(boolean columnFirst) {
-            super('i', 4, columnFirst);
-        }
-
-        @Override
-        public int[][] create(NumpyHeader header) {
-            checkShape(header);
-            var ret = new int[length1][length2];
-            for (int i = 0; i < length1; i++) ret[i] = new int[length2];
-            return ret;
-        }
-
-        @Override
-        public void checkFor(int[][] data) {
-            var length1 = data.length;
-            var length2 = length1 == 0 ? 0 : data[0].length;
-            for (int i = 1; i < length1; i++) {
-                if (data[i].length != length2) {
-                    throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
-                }
-            }
-            checkFor(length1, length2);
-        }
-
-        @Override
-        public boolean read(int[][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                ret[index1][index2] = readInt(buffer);
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean write(int[][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                writeInt(buffer, ret[index1][index2]);
-                return true;
-            }
-            return false;
-        }
-    }
-
     public static ValueArray<int[][][]> ofD3Int() {
         return new OfD3Int();
-    }
-
-    private static final class OfD3Int extends D3Array<int[][][]> {
-        private OfD3Int() {
-            super('i', 4);
-        }
-
-        @Override
-        public int[][][] create(NumpyHeader header) {
-            checkShape(header);
-            var ret = new int[plans][][];
-            for (int p = 0; p < plans; p++) {
-                var row = ret[p] = new int[rows][];
-                for (int r = 0; r < rows; r++) {
-                    row[r] = new int[columns];
-                }
-            }
-            return ret;
-        }
-
-        @Override
-        public void checkFor(int[][][] data) {
-            var plans = data.length;
-            var rows = plans == 0 ? 0 : data[0].length;
-            var columns = plans == 0 || rows == 0 ? 0 : data[0][0].length;
-            for (int p = 1; p < plans; p++) {
-                var row = data[p];
-                if (row.length != rows) {
-                    throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
-                }
-                for (int r = 0; r < rows; r++) {
-                    if (row[r].length != columns) {
-                        throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
-                    }
-                }
-            }
-            checkFor(plans, rows, columns);
-        }
-
-        @Override
-        public boolean read(int[][][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                ret[p][r][c] = readInt(buffer);
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean write(int[][][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                writeInt(buffer, ret[p][r][c]);
-                return true;
-            }
-            return false;
-        }
     }
 
     public static ValueArray<FlatIntArray> ofFlattenInt() {
         return new OfFlattenInt();
     }
 
-    private static final class OfFlattenInt extends FlattenArray<FlatIntArray> {
-        private OfFlattenInt() {
-            super('i', 4);
-        }
-
-        @Override
-        protected FlatIntArray create(NumpyHeader header) {
-            checkShape(header);
-            return new FlatIntArray(shape, new int[total]);
-        }
-
-        @Override
-        protected void checkFor(FlatIntArray data) {
-            checkFor(data.shape(), data.array().length);
-        }
-
-        @Override
-        protected boolean read(FlatIntArray ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < total) {
-                ret.array()[p] = readInt(buffer);
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        protected boolean write(FlatIntArray ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < total) {
-                writeInt(buffer, ret.array()[p]);
-                return true;
-            }
-            return false;
-        }
-    }
-
     public static ValueArray<double[]> ofDouble() {
         return new OfDouble();
-    }
-
-    private static final class OfDouble extends D1Array<double[]> {
-        private OfDouble() {
-            super('f', 8, "if");
-        }
-
-        @Override
-        public double[] create(NumpyHeader header) {
-            return new double[checkShape(header)];
-        }
-
-        @Override
-        public void checkFor(double[] data) {
-            checkFor(data.length);
-        }
-
-        @Override
-        public boolean read(double[] ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < ret.length) {
-                double v;
-                if (valueType == 'f') {
-                    v = readDouble(buffer);
-                } else {
-                    v = readInt(buffer);
-                }
-                ret[p] = v;
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public boolean write(double[] ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < ret.length) {
-                writeDouble(buffer, ret[p]);
-                return true;
-            } else {
-                return false;
-            }
-        }
     }
 
     public static ValueArray<double[][]> ofD2Double() {
@@ -615,126 +94,8 @@ public final class Numpy {
         return new OfD2Double(columnFirst);
     }
 
-    private static final class OfD2Double extends D2Array<double[][]> {
-        private OfD2Double() {
-            super('f', 8, "if", false);
-        }
-
-        private OfD2Double(boolean columnFirst) {
-            super('f', 8, columnFirst);
-        }
-
-        @Override
-        public double[][] create(NumpyHeader header) {
-            checkShape(header);
-            var ret = new double[length1][length2];
-            for (int i = 0; i < length1; i++) ret[i] = new double[length2];
-            return ret;
-        }
-
-        @Override
-        public void checkFor(double[][] data) {
-            var length1 = data.length;
-            var length2 = data[0].length;
-            for (int i = 1; i < length1; i++) {
-                if (data[i].length != length2) {
-                    throw new IllegalArgumentException("not an array[%d][%d]".formatted(length1, length2));
-                }
-            }
-            checkFor(length1, length2);
-        }
-
-        @Override
-        public boolean read(double[][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                double v;
-                if (valueType == 'f') {
-                    v = readDouble(buffer);
-                } else {
-                    v = readInt(buffer);
-                }
-                ret[index1][index2] = v;
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public boolean write(double[][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                writeDouble(buffer, ret[index1][index2]);
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
     public static ValueArray<double[][][]> ofD3Double() {
         return new OfD3Double();
-    }
-
-    private static final class OfD3Double extends D3Array<double[][][]> {
-        private OfD3Double() {
-            super('f', 8, "if");
-        }
-
-        @Override
-        public double[][][] create(NumpyHeader header) {
-            checkShape(header);
-            var ret = new double[plans][][];
-            for (int p = 0; p < plans; p++) {
-                var row = ret[p] = new double[rows][];
-                for (int r = 0; r < rows; r++) {
-                    row[r] = new double[columns];
-                }
-            }
-            return ret;
-        }
-
-        @Override
-        public void checkFor(double[][][] data) {
-            var plans = data.length;
-            var rows = plans == 0 ? 0 : data[0].length;
-            var columns = plans == 0 || rows == 0 ? 0 : data[0][0].length;
-            for (int p = 1; p < plans; p++) {
-                var row = data[p];
-                if (row.length != rows) {
-                    throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
-                }
-                for (int r = 0; r < rows; r++) {
-                    if (row[r].length != columns) {
-                        throw new IllegalArgumentException("not an array[%d][%d][%d]".formatted(plans, rows, columns));
-                    }
-                }
-            }
-            checkFor(plans, rows, columns);
-        }
-
-        @Override
-        public boolean read(double[][][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                double v;
-                if (valueType == 'f') {
-                    v = readDouble(buffer);
-                } else {
-                    v = readInt(buffer);
-                }
-                ret[p][r][c] = v;
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public boolean write(double[][][] ret, long pos, ByteBuffer buffer) {
-            if (index(pos)) {
-                writeDouble(buffer, ret[p][r][c]);
-                return true;
-            }
-            return false;
-        }
     }
 
 
@@ -742,48 +103,9 @@ public final class Numpy {
         return new OfFlattenDouble();
     }
 
-    private static final class OfFlattenDouble extends FlattenArray<FlatDoubleArray> {
-        private OfFlattenDouble() {
-            super('f', 8, "if");
-        }
-
-        @Override
-        protected FlatDoubleArray create(NumpyHeader header) {
-            checkShape(header);
-            return new FlatDoubleArray(shape, new double[total]);
-        }
-
-        @Override
-        protected void checkFor(FlatDoubleArray data) {
-            checkFor(data.shape(), data.array().length);
-        }
-
-        @Override
-        protected boolean read(FlatDoubleArray ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < total) {
-                double v;
-                if (valueType == 'f') {
-                    v = readDouble(buffer);
-                } else {
-                    v = readInt(buffer);
-                }
-                ret.array()[p] = v;
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        protected boolean write(FlatDoubleArray ret, long pos, ByteBuffer buffer) {
-            var p = (int) pos;
-            if (p < total) {
-                writeDouble(buffer, ret.array()[p]);
-                return true;
-            }
-            return false;
-        }
-    }
+    /*======*
+     * Read *
+     *======*/
 
     /**
      * read numpy array from file.
@@ -853,6 +175,10 @@ public final class Numpy {
         return ret;
     }
 
+    /*========================*
+     * Read with unknown type *
+     *========================*/
+
     public interface CheckNumberHeader {
         ValueArray<?> check(NumpyHeader header);
     }
@@ -919,6 +245,9 @@ public final class Numpy {
         return new Read(header, ret);
     }
 
+    /*=======*
+     * Write *
+     *=======*/
 
     /**
      * write numpy array to file.
@@ -965,6 +294,18 @@ public final class Numpy {
 
     public static void write(Path file, boolean[] array) throws IOException {
         var of = new OfBoolean();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, boolean[][] array) throws IOException {
+        var of = new OfD2Boolean();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, boolean[][][] array) throws IOException {
+        var of = new OfD3Boolean();
         of.checkFor(array);
         write(file, array, of);
     }
@@ -1037,6 +378,18 @@ public final class Numpy {
         write(out, array, of);
     }
 
+    public static void write(OutputStream out, boolean[][] array) throws IOException {
+        var of = new OfD2Boolean();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, boolean[][][] array) throws IOException {
+        var of = new OfD3Boolean();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
     public static void write(OutputStream out, FlatIntArray array) throws IOException {
         var of = new OfFlattenInt();
         of.checkFor(array);
@@ -1088,6 +441,10 @@ public final class Numpy {
             }
         }
     }
+
+    /*===================*
+     * header read/write *
+     *===================*/
 
     static NumpyHeader readHeader(ReadableByteChannel channel) throws IOException {
         var buffer = ByteBuffer.allocate(64);
