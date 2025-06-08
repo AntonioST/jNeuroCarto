@@ -45,6 +45,7 @@
             <artifactId>jNeuroCarto-probe-npx-javafx</artifactId>
             <version>${jneurocarto.version}</version>
         </dependency>
+        <!-- add extra dependencies -->
     </dependencies>
 
     <build>
@@ -131,31 +132,12 @@
                                 <argument>jneurocarto-probe-npx=launcher-probe-npx.properties</argument>
                                 <argument>--add-launcher</argument>
                                 <argument>jneurocarto-atlas=launcher-atlas.properties</argument>
+                                <!-- add extra launchers -->
                             </arguments>
                         </configuration>
                     </execution>
                 </executions>
-
             </plugin>
-            <!-- <plugin>-->
-            <!--     <groupId>org.apache.maven.plugins</groupId>-->
-            <!--     <artifactId>maven-jlink-plugin</artifactId>-->
-            <!--     <version>3.2.0</version>-->
-            <!--     <extensions>true</extensions>-->
-            <!--     <configuration>-->
-            <!--         &lt;!&ndash;<compress>2</compress>&ndash;&gt;-->
-            <!--         <stripDebug>true</stripDebug>-->
-            <!--         <noHeaderFiles>true</noHeaderFiles>-->
-            <!--         <noManPages>true</noManPages>-->
-            <!--         <verbose>true</verbose>-->
-            <!--         <addOptions>-->
-            <!--             <addOption>&#45;&#45;enable-preview</addOption>-->
-            <!--             <addOption>&#45;&#45;enable-native-access=javafx.graphics</addOption>-->
-            <!--             <addOption>-Dorg.slf4j.simpleLogger.defaultLogLevel=warn</addOption>-->
-            <!--         </addOptions>-->
-            <!--         <launcher>jneurocarto=io.ast.jneurocarto.javafx/io.ast.jneurocarto.javafx.cli.Main</launcher>-->
-            <!--     </configuration>-->
-            <!-- </plugin>-->
         </plugins>
     </build>
 </project>
