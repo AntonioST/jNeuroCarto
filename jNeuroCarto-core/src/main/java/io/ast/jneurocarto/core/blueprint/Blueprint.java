@@ -266,7 +266,7 @@ public final class Blueprint<T> {
     /**
      * Apply the blueprint into {@code electrodes}.
      *
-     * @param electrodes list
+     * @param electrodes electrode list
      */
     public void applyBlueprint(List<ElectrodeDescription> electrodes) {
         for (var e : electrodes) {

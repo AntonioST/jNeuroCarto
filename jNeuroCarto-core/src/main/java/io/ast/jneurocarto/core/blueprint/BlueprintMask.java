@@ -1104,7 +1104,6 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
      * # python numpy form
      * np.where(this, array, otherwise)
      *}
-     * {@code np.where(this, array, otherwise)}
      *
      * @param array     source array
      * @param otherwise fallback value
@@ -1127,7 +1126,6 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
      * # python numpy form
      * output[this] = array[this]
      *}
-     * {@code np.where(this, array, otherwise)}
      *
      * @param output output array
      * @param array  source array

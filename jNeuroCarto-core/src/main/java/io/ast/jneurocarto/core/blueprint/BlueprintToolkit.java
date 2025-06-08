@@ -22,26 +22,36 @@ import io.ast.jneurocarto.core.numpy.UnsupportedNumpyDataFormatException;
 
 import static java.nio.file.StandardOpenOption.*;
 
-/**
- * @param <T>
- */
+/// A wrapper over [Blueprint] but providing more function to
+/// manipulate the blueprint.
+///
+/// ### Limitation
+///
+/// * It assumed the electrodes in a channelmap are lied on grids.
+///
+/// @param <T> channelmap type.
 @NullMarked
 public class BlueprintToolkit<T> {
 
     /**
-     * wrapped blueprint.
+     * Wrapped blueprint.
      */
     protected final Blueprint<T> blueprint;
 
     /**
      * warp {@link BlueprintToolkit} onto {@code blueprint}.
      *
-     * @param blueprint
+     * @param blueprint blueprint
      */
     public BlueprintToolkit(Blueprint<T> blueprint) {
         this.blueprint = blueprint;
     }
 
+    /**
+     * Create a new wrapper over a cloned wrapped blueprint.
+     *
+     * @return blueprint toolkit.
+     */
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public BlueprintToolkit<T> clone() {
         return new BlueprintToolkit<>(new Blueprint<>(blueprint));
@@ -51,50 +61,116 @@ public class BlueprintToolkit<T> {
      * getter *
      *========*/
 
+    /**
+     * {@return probe description}
+     *
+     * @see Blueprint#probe()
+     */
     public ProbeDescription<T> probe() {
         return blueprint.probe;
     }
 
+    /**
+     * {@return carried channelmap}.
+     *
+     * @see Blueprint#channelmap()
+     */
     public @Nullable T channelmap() {
         return blueprint.channelmap();
     }
 
+    /**
+     * Returns a list of electrodes that carried the categories from the blueprint.
+     *
+     * @return a list of electrodes
+     * @throws RuntimeException it is an empty blueprint.
+     * @see Blueprint#electrodes()
+     */
     public final List<ElectrodeDescription> electrodes() {
         return blueprint.electrodes();
     }
 
+    /**
+     * {@return a {@link Electrode} stream}
+     *
+     * @see Blueprint#stream()
+     */
     public Stream<Electrode> stream() {
         return blueprint.stream();
     }
 
+    /**
+     * {@return total electrode numbers}
+     *
+     * @see Blueprint#size()
+     */
     public final int length() {
         return blueprint.shank.length;
     }
 
+    /**
+     * Shank index for each electrode.
+     * <br>
+     * Do not modify the content of the array.
+     *
+     * @return Shank index array.
+     */
     public final int[] shank() {
         return blueprint.shank;
     }
 
+    /**
+     * {@return number of shanks}
+     */
     public final int nShank() {
+        if (probe() instanceof DummyProbe dummy) {
+            return dummy.nShanks;
+        }
         return (int) Arrays.stream(shank()).distinct().count();
     }
 
+    /**
+     * X position for each electrode.
+     * <br>
+     * Do not modify the content of the array.
+     *
+     * @return x position array.
+     */
     public final int[] posx() {
         return blueprint.posx;
     }
 
+    /**
+     * Y position for each electrode.
+     * <br>
+     * Do not modify the content of the array.
+     *
+     * @return y position array.
+     */
     public final int[] posy() {
         return blueprint.posy;
     }
 
+    /**
+     * {@return the minimal distance between columns}
+     */
     public final double dx() {
         return blueprint.dx;
     }
 
+    /**
+     * {@return the minimal distance between rows}
+     */
     public final double dy() {
         return blueprint.dy;
     }
 
+    /**
+     * Get the category value with given electrode index.
+     *
+     * @param index electrode index
+     * @return category value
+     */
     public final int category(int index) {
         return blueprint.blueprint[index];
     }
@@ -103,12 +179,15 @@ public class BlueprintToolkit<T> {
      * blueprint array *
      *=================*/
 
+    /**
+     * {@return wrapped {@link Blueprint}}
+     */
     public final Blueprint<T> blueprint() {
         return blueprint;
     }
 
     /**
-     * reference to the raw blueprint int array.
+     * The blueprint category array of the wrapped {@link Blueprint}.
      *
      * @return blueprint int array.
      */
@@ -116,50 +195,114 @@ public class BlueprintToolkit<T> {
         return blueprint.blueprint;
     }
 
+    /**
+     * Create a blank blueprint array.
+     *
+     * @return blueprint int array.
+     */
     public final int[] empty() {
         var ret = new int[length()];
         Arrays.fill(ret, ProbeDescription.CATE_UNSET);
         return ret;
     }
 
+    /**
+     * pick electrodes (category applied) with given electrode index
+     *
+     * @param index electrode index array.
+     * @return electrode list.
+     * @throws IndexOutOfBoundsException electrode index over range.
+     * @see #pick(List, int[])
+     */
     public final List<ElectrodeDescription> pick(int[] index) {
         return pick(electrodes(), index);
     }
 
+    /**
+     * pick electrodes (category applied) with given electrode index
+     *
+     * @param index  electrode index array.
+     * @param offset initial index
+     * @param length length
+     * @return electrode list.
+     * @throws IndexOutOfBoundsException electrode index over range.
+     * @see #pick(List, int[], int, int)
+     */
     public final List<ElectrodeDescription> pick(int[] index, int offset, int length) {
         return pick(electrodes(), index, offset, length);
     }
 
+    /**
+     * pick electrodes (category applied) with given electrode mask
+     *
+     * @param mask mask.
+     * @return electrode list.
+     * @throws IllegalArgumentException {@code mask} length mismatch.
+     * @see #pick(List, BlueprintMask)
+     */
     public final List<ElectrodeDescription> pick(BlueprintMask mask) {
         return pick(electrodes(), mask);
     }
 
+    /**
+     * pick electrodes with given electrode index
+     *
+     * @param electrodes electrode list.
+     * @param index      electrode index array.
+     * @return electrode list.
+     * @throws IllegalArgumentException  length mismatch.
+     * @throws IndexOutOfBoundsException electrode index over range.
+     * @see #pick(int[])
+     */
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index) {
-        if (length() != electrodes.size()) throw new RuntimeException();
+        if (length() != electrodes.size()) throw new IllegalArgumentException();
         return Arrays.stream(index)
             .mapToObj(electrodes::get)
             .toList();
     }
 
+    /**
+     * pick electrodes with given electrode index
+     *
+     * @param electrodes electrode list.
+     * @param index      electrode index array.
+     * @param offset     initial index
+     * @param length     length
+     * @return electrode list.
+     * @throws IllegalArgumentException  length mismatch.
+     * @throws IndexOutOfBoundsException electrode index over range.
+     * @see #pick(int[], int, int)
+     */
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index, int offset, int length) {
-        if (length() != electrodes.size()) throw new RuntimeException();
+        if (length() != electrodes.size()) throw new IllegalArgumentException();
         return IntStream.range(0, length)
             .map(i -> index[i + offset])
             .mapToObj(electrodes::get)
             .toList();
     }
 
+    /**
+     * pick electrodes with given electrode mask
+     *
+     * @param electrodes electrode list.
+     * @param mask       mask.
+     * @return electrode list.
+     * @throws IllegalArgumentException {@code electrode} or {@code mask} length mismatch.
+     * @see #pick(BlueprintMask)
+     */
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, BlueprintMask mask) {
         var length = length();
-        if (length != mask.length()) throw new RuntimeException();
-        if (length != electrodes.size()) throw new RuntimeException();
+        if (length != mask.length()) throw new IllegalArgumentException();
+        if (length != electrodes.size()) throw new IllegalArgumentException();
         return mask.stream().mapToObj(electrodes::get).toList();
     }
 
     /**
      * copy categories value from {@code electrode}.
      *
-     * @param electrode
+     * @param electrode electrode list
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(int[], List)
      */
     public final void from(List<ElectrodeDescription> electrode) {
         from(blueprint.blueprint, electrode);
@@ -168,11 +311,13 @@ public class BlueprintToolkit<T> {
     /**
      * copy categories value from {@code electrode} into {@code blueprint}.
      *
-     * @param blueprint
-     * @param electrode
+     * @param blueprint blueprint int array
+     * @param electrode electrode list
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(List)
      */
     public final void from(int[] blueprint, List<ElectrodeDescription> electrode) {
-        if (length() != blueprint.length) throw new RuntimeException();
+        if (length() != blueprint.length) throw new IllegalArgumentException();
         for (var e : electrode) {
             var i = index(e.s(), e.x(), e.y());
             if (i >= 0) {
@@ -184,21 +329,41 @@ public class BlueprintToolkit<T> {
     /**
      * copy value from {@code blueprint}.
      *
-     * @param blueprint
+     * @param blueprint blueprint int array
+     * @throws IllegalArgumentException length mismatch.
      */
     public final void from(int[] blueprint) {
         var dst = this.blueprint.blueprint;
-        if (blueprint.length != dst.length) throw new RuntimeException();
+        if (blueprint.length != dst.length) throw new IllegalArgumentException();
         if (dst != blueprint) {
             System.arraycopy(blueprint, 0, dst, 0, dst.length);
         }
     }
 
+    /**
+     * copy value from {@code blueprint} with a mask.
+     * The unmasked categories keep unchange.
+     *
+     * @param blueprint blueprint int array
+     * @param mask      mask
+     * @throws IllegalArgumentException length mismatch.
+     * @see BlueprintMask#where(int[], int[])
+     */
     public final void from(int[] blueprint, BlueprintMask mask) {
         var output = this.blueprint.blueprint;
         mask.where(output, blueprint);
     }
 
+    /**
+     * copy value from {@code blueprint} with a mask.
+     * The unmasked categories keep unchange.
+     *
+     * @param writeMask mask on this
+     * @param blueprint blueprint int array
+     * @param readMask  mask on {@code blueprint}
+     * @throws IllegalArgumentException length mismatch.
+     * @see BlueprintMask#where(int[], int[], BlueprintMask)
+     */
     public final void from(BlueprintMask writeMask, int[] blueprint, BlueprintMask readMask) {
         var output = this.blueprint.blueprint;
         writeMask.where(output, blueprint, readMask);
@@ -207,7 +372,9 @@ public class BlueprintToolkit<T> {
     /**
      * copy blueprint array from {@code blueprint}.
      *
-     * @param blueprint
+     * @param blueprint blueprint
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(int[])
      */
     public final void from(Blueprint<T> blueprint) {
         if (blueprint != this.blueprint) {
@@ -215,12 +382,31 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    /**
+     * copy value from {@code blueprint} with a mask.
+     * The unmasked categories keep unchange.
+     *
+     * @param blueprint blueprint
+     * @param mask      mask
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(int[], BlueprintMask)
+     */
     public final void from(Blueprint<T> blueprint, BlueprintMask mask) {
         if (blueprint != this.blueprint) {
             from(blueprint.blueprint, mask);
         }
     }
 
+    /**
+     * copy value from {@code blueprint} with a mask.
+     * The unmasked categories keep unchange.
+     *
+     * @param writeMask mask on this
+     * @param blueprint blueprint
+     * @param readMask  mask on {@code blueprint}
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(BlueprintMask, int[], BlueprintMask)
+     */
     public final void from(BlueprintMask writeMask, Blueprint<T> blueprint, BlueprintMask readMask) {
         if (blueprint != this.blueprint) {
             from(writeMask, blueprint.blueprint, readMask);
@@ -230,68 +416,176 @@ public class BlueprintToolkit<T> {
     /**
      * copy blueprint array from {@code blueprint}.
      *
-     * @param blueprint
+     * @param blueprint toolkit
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(int[])
      */
     public final void from(BlueprintToolkit<T> blueprint) {
         from(blueprint.blueprint);
     }
 
+    /**
+     * copy value from {@code blueprint} with a mask.
+     * The unmasked categories keep unchange.
+     *
+     * @param blueprint toolkit
+     * @param mask      mask
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(int[], BlueprintMask)
+     */
     public final void from(BlueprintToolkit<T> blueprint, BlueprintMask mask) {
         from(blueprint.blueprint, mask);
     }
 
+    /**
+     * copy value from {@code blueprint} with a mask.
+     * The unmasked categories keep unchange.
+     *
+     * @param writeMask mask on this
+     * @param blueprint toolkit
+     * @param readMask  mask on {@code blueprint}
+     * @throws IllegalArgumentException length mismatch.
+     * @see #from(BlueprintMask, int[], BlueprintMask)
+     */
     public final void from(BlueprintMask writeMask, BlueprintToolkit<T> blueprint, BlueprintMask readMask) {
         from(writeMask, blueprint.blueprint, readMask);
     }
 
+    /**
+     * unset all electrodes to {@link ProbeDescription#CATE_UNSET}.
+     *
+     * @see Blueprint#clear()
+     */
     public final void clear() {
         blueprint.clear();
     }
 
+    /**
+     * Set all electrode to {@code category}.
+     *
+     * @param category electrode category
+     * @see Blueprint#set(int)
+     */
     public final void set(int category) {
         blueprint.set(category);
     }
 
+    /**
+     * Set electrode to {@code category} for specific electrodes subset.
+     *
+     * @param category   electrode category
+     * @param electrodes electrodes set.
+     * @see Blueprint#set(int, List)
+     */
     public final void set(int category, List<ElectrodeDescription> electrodes) {
         blueprint.set(category, electrodes);
     }
 
+    /**
+     * Set electrode to {@code category} with given electrode {@code index}.
+     *
+     * @param category electrode category
+     * @param index    electrode index
+     * @see Blueprint#set(int, int)
+     */
     public final void set(int category, int index) {
         blueprint.set(category, index);
     }
 
+    /**
+     * Set electrode to {@code category} with given electrode {@code index}.
+     *
+     * @param category electrode category
+     * @param index    electrode index
+     * @see Blueprint#set(int, int[])
+     */
     public final void set(int category, int[] index) {
         blueprint.set(category, index);
     }
 
+    /**
+     * Set electrode to {@code category} with given electrode {@code mask}.
+     *
+     * @param category electrode category
+     * @param mask     mask
+     * @see Blueprint#set(int, BlueprintMask)
+     */
     public final void set(int category, BlueprintMask mask) {
         blueprint.set(category, mask.asBooleanMask());
     }
 
+    /**
+     * Set electrodes to {@code category} with given condiction.
+     *
+     * @param category electrode category
+     * @param pick     picking condiction
+     * @see Blueprint#set(int, Predicate)
+     */
     public final void set(int category, Predicate<Electrode> pick) {
         blueprint.set(category, pick);
     }
 
+    /**
+     * unset all electrode belong to {@code category}
+     *
+     * @param category electrode category
+     * @see Blueprint#unset(int)
+     */
     public final void unset(int category) {
         blueprint.unset(category);
     }
 
+    /**
+     * Set electrode for specific electrodes subset.
+     *
+     * @param electrodes electrodes set.
+     * @see Blueprint#unset(List)
+     */
     public final void unset(List<ElectrodeDescription> electrodes) {
         blueprint.unset(electrodes);
     }
 
+    /**
+     * unset electrodes with given electrode {@code index}.
+     *
+     * @param index electrode index array
+     * @see Blueprint#unset(int[])
+     */
     public final void unset(int[] index) {
         blueprint.unset(index);
     }
 
+    /**
+     * unset electrodes with given electrode {@code mask}.
+     *
+     * @param mask electrode mask
+     * @see Blueprint#unset(BlueprintMask)
+     */
     public final void unset(BlueprintMask mask) {
-        blueprint.unset(mask.asBooleanMask());
+        blueprint.unset(mask);
     }
 
+    /**
+     * unset electrodes with given condiction.
+     *
+     * @param pick pick condiction
+     * @see Blueprint#unset(Predicate)
+     */
     public final void unset(Predicate<Electrode> pick) {
         blueprint.unset(pick);
     }
 
+    /**
+     * merge the categories with another blueprint.
+     * <br>
+     * All electrode belongs to {@link ProbeDescription#CATE_UNSET} will apply
+     * the new category from {@code electrodes}.
+     *
+     * @param blueprint another blueprint int array.
+     * @throws IllegalArgumentException length mismatch.
+     * @see #merge(Blueprint)
+     * @see #merge(BlueprintToolkit)
+     */
     public final void merge(int[] blueprint) {
         var dst = this.blueprint.blueprint;
         if (blueprint.length != dst.length) throw new RuntimeException();
@@ -302,16 +596,44 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    /**
+     * merge the categories with another blueprint.
+     * <br>
+     * All electrode belongs to {@link ProbeDescription#CATE_UNSET} will apply
+     * the new category from {@code electrodes}.
+     *
+     * @param blueprint another blueprint
+     * @throws IllegalArgumentException length mismatch.
+     * @see #merge(int[])
+     * @see #merge(BlueprintToolkit)
+     */
     public final void merge(Blueprint<T> blueprint) {
         if (blueprint != this.blueprint) {
             merge(blueprint.blueprint);
         }
     }
 
+    /**
+     * merge the categories with another blueprint.
+     * <br>
+     * All electrode belongs to {@link ProbeDescription#CATE_UNSET} will apply
+     * the new category from {@code electrodes}.
+     *
+     * @param blueprint another blueprint toolkit
+     * @throws IllegalArgumentException length mismatch.
+     * @see #merge(int[])
+     * @see #merge(Blueprint)
+     */
     public final void merge(BlueprintToolkit<T> blueprint) {
         merge(blueprint.blueprint);
     }
 
+    /**
+     * Apply the blueprint into {@code electrodes}.
+     *
+     * @param blueprint output blueprint int array
+     * @throws IllegalArgumentException length mismatch.
+     */
     public final void apply(int[] blueprint) {
         var src = this.blueprint.blueprint;
         var length = src.length;
@@ -321,24 +643,55 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    /**
+     * Apply the blueprint into {@code electrodes}.
+     *
+     * @param electrodes electrode list
+     * @throws IllegalArgumentException length mismatch.
+     * @see Blueprint#applyBlueprint(List)
+     */
     public final void apply(List<ElectrodeDescription> electrodes) {
         blueprint.applyBlueprint(electrodes);
     }
 
+    /**
+     * Apply the blueprint into {@code image}.
+     *
+     * @param image 2d flatten int array
+     * @throws IllegalArgumentException wrong dimension or length mismatch.
+     * @see #apply(int[])
+     */
     public final void apply(FlatIntArray image) {
         if (image.ndim() != 2) throw new IllegalArgumentException("not a 2d image");
         apply(image.array());
     }
 
+    /**
+     * (debug) print blueprint to sout
+     *
+     * @see #print(int[])
+     */
     public final void print() {
         print(blueprint.blueprint);
     }
 
+    /**
+     * (debug) print blueprint to {@link String}.
+     *
+     * @return printed blueprint string
+     * @see #toString(int[])
+     */
     @Override
     public final String toString() {
         return toString(blueprint.blueprint);
     }
 
+    /**
+     * (debug) print {@code blueprint} to sout.
+     *
+     * @param blueprint blueprint int array
+     * @see #print(int[], Appendable)
+     */
     public final void print(int[] blueprint) {
         try {
             print(blueprint, System.out);
@@ -346,6 +699,12 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    /**
+     * (debug) print blueprint mask to sout.
+     *
+     * @param blueprint blueprint mask
+     * @see #print(int[], Appendable)
+     */
     public final void print(BlueprintMask blueprint) {
         var ret = new int[blueprint.length()];
         blueprint.fill(ret, 1);
@@ -355,6 +714,12 @@ public class BlueprintToolkit<T> {
         }
     }
 
+    /**
+     * (debug) print blueprint mask to {@link String}.
+     *
+     * @param blueprint blueprint int array
+     * @see #print(int[], Appendable)
+     */
     public final String toString(int[] blueprint) {
         var sb = new StringBuilder();
         try {
@@ -364,6 +729,12 @@ public class BlueprintToolkit<T> {
         return sb.toString();
     }
 
+    /**
+     * (debug) print blueprint mask to {@link String}.
+     *
+     * @param blueprint blueprint mask
+     * @see #print(int[], Appendable)
+     */
     public final String toString(BlueprintMask blueprint) {
         var ret = new int[blueprint.length()];
         blueprint.fill(ret, 1);
@@ -375,6 +746,11 @@ public class BlueprintToolkit<T> {
         return sb.toString();
     }
 
+    /**
+     * (debug) print blueprint mask.
+     *
+     * @param blueprint blueprint int array
+     */
     public void print(int[] blueprint, Appendable out) throws IOException {
         if (length() != blueprint.length) throw new RuntimeException();
 
@@ -423,6 +799,14 @@ public class BlueprintToolkit<T> {
      * blueprint-like data array *
      *===========================*/
 
+    /**
+     * Give the electrode index of electrode {@code e}.
+     *
+     * @param s shank index
+     * @param x x position
+     * @param y y position
+     * @return electrode index. {@code -1} if not found.
+     */
     public int index(int s, int x, int y) {
         if (probe() instanceof DummyProbe dummy) {
             if (0 <= s && s < dummy.nShanks && 0 <= x && x < dummy.nColumns && 0 <= y && y < dummy.nRows) {
@@ -444,9 +828,11 @@ public class BlueprintToolkit<T> {
      * Get electrode index from selected electrodes in channelmap.
      *
      * @return electrode index array
+     * @throws RuntimeException missing channelmap
+     * @see #index(Object)
      */
     public int[] index() {
-        return index(Objects.requireNonNull(blueprint.chmap, "missing probe"));
+        return index(Objects.requireNonNull(blueprint.chmap, "missing channelmap"));
     }
 
     /**
@@ -454,26 +840,39 @@ public class BlueprintToolkit<T> {
      *
      * @param chmap a channelmap
      * @return electrode index array
+     * @see ProbeDescription#allChannels(Object)
+     * @see #index(int, int, int)
      */
     public int[] index(T chmap) {
         return index(blueprint.probe.allChannels(chmap));
     }
 
     /**
-     * @param e
+     * get the electrode index with given electrode list.
+     *
+     * @param electrode electrode list
      * @return electrode index array
+     * @see #index(int, int, int)
      */
-    public int[] index(List<ElectrodeDescription> e) {
-        var ret = new int[e.size()];
+    public int[] index(List<ElectrodeDescription> electrode) {
+        var ret = new int[electrode.size()];
         for (int i = 0, length = ret.length; i < length; i++) {
-            var t = e.get(i);
+            var t = electrode.get(i);
             ret[i] = index(t.s(), t.x(), t.y());
         }
         return ret;
     }
 
+    /**
+     * Get the electrode index for those electrode belong to {@code category}.
+     *
+     * @param blueprint blueprint int array
+     * @param category  electrode category
+     * @return electrode index array
+     * @throws IllegalArgumentException wrong dimension or length mismatch.
+     */
     public int[] index(int[] blueprint, int category) {
-        if (length() != blueprint.length) throw new RuntimeException();
+        if (length() != blueprint.length) throw new IllegalArgumentException();
 
         var ret = new int[length()];
         int size = 0;
