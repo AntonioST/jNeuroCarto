@@ -1,6 +1,6 @@
 package io.ast.jneurocarto.core.numpy;
 
-public sealed interface FlatArray permits FlatIntArray, FlatDoubleArray {
+public interface FlatArray {
 
     int[] shape();
 

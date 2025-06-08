@@ -298,11 +298,11 @@ public class NpzFile implements AutoCloseable {
     }
 
     public void put(String key, FlatIntArray array) throws IOException {
-        put(ensureOpenWrite(), key, array, new OfFlattenInt());
+        put(ensureOpenWrite(), key, array, new OfFlatInt());
     }
 
     public void put(String key, FlatDoubleArray array) throws IOException {
-        put(ensureOpenWrite(), key, array, new OfFlattenDouble());
+        put(ensureOpenWrite(), key, array, new OfFlatDouble());
     }
 
     public <T> void put(String key, T data, ValueArray<T> of) throws IOException {

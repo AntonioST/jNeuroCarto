@@ -15,6 +15,19 @@ import org.jspecify.annotations.NullMarked;
 
 import static java.nio.file.StandardOpenOption.*;
 
+/// Read/write numpy array.
+///
+/// ### Limitation
+///
+/// * only support [boolean] (`b`), [int] (`i`), [double] (`f`), and [String] (`U`) data type.
+/// * only support 1-d, 2-d, 3-d array.
+/// * only support for C-order array, not fortran-order array
+/// * higher dimension array is supported by [FlatBooleanArray], [FlatIntArray] and [FlatDoubleArray].
+/// * other data type is support by [OfBuffer], which is only support read and write.
+/// * support `npz` file via [NpzFile].
+///
+/// ### Format
+///
 /// * [Numpy format](https://numpy.org/devdocs/reference/generated/numpy.lib.format.html)
 /// * [NEP-001](https://numpy.org/neps/nep-0001-npy-format.html)
 ///
@@ -62,6 +75,10 @@ public final class Numpy {
         return new OfD3Boolean();
     }
 
+    public static ValueArray<FlatBooleanArray> ofFlatBoolean() {
+        return new OfFlatBoolean();
+    }
+
     public static ValueArray<int[]> ofInt() {
         return new OfInt();
     }
@@ -78,8 +95,8 @@ public final class Numpy {
         return new OfD3Int();
     }
 
-    public static ValueArray<FlatIntArray> ofFlattenInt() {
-        return new OfFlattenInt();
+    public static ValueArray<FlatIntArray> ofFlatInt() {
+        return new OfFlatInt();
     }
 
     public static ValueArray<double[]> ofDouble() {
@@ -99,8 +116,20 @@ public final class Numpy {
     }
 
 
-    public static ValueArray<FlatDoubleArray> ofFlattenDouble() {
-        return new OfFlattenDouble();
+    public static ValueArray<FlatDoubleArray> ofFlatDouble() {
+        return new OfFlatDouble();
+    }
+
+    public static ValueArray<String[]> ofString() {
+        return new OfString();
+    }
+
+    public static ValueArray<String[][]> ofD2String() {
+        return new OfD2String();
+    }
+
+    public static ValueArray<String[][][]> ofD3String() {
+        return new OfD3String();
     }
 
     public static ValueArray<NumpyHeader> ofHeader() {
@@ -318,14 +347,38 @@ public final class Numpy {
         write(file, array, of);
     }
 
+    public static void write(Path file, FlatBooleanArray array) throws IOException {
+        var of = new OfFlatBoolean();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
     public static void write(Path file, FlatIntArray array) throws IOException {
-        var of = new OfFlattenInt();
+        var of = new OfFlatInt();
         of.checkFor(array);
         write(file, array, of);
     }
 
     public static void write(Path file, FlatDoubleArray array) throws IOException {
-        var of = new OfFlattenDouble();
+        var of = new OfFlatDouble();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, String[] array) throws IOException {
+        var of = new OfString();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, String[][] array) throws IOException {
+        var of = new OfD2String();
+        of.checkFor(array);
+        write(file, array, of);
+    }
+
+    public static void write(Path file, String[][][] array) throws IOException {
+        var of = new OfD3String();
         of.checkFor(array);
         write(file, array, of);
     }
@@ -398,14 +451,38 @@ public final class Numpy {
         write(out, array, of);
     }
 
+    public static void write(OutputStream out, FlatBooleanArray array) throws IOException {
+        var of = new OfFlatBoolean();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
     public static void write(OutputStream out, FlatIntArray array) throws IOException {
-        var of = new OfFlattenInt();
+        var of = new OfFlatInt();
         of.checkFor(array);
         write(out, array, of);
     }
 
     public static void write(OutputStream out, FlatDoubleArray array) throws IOException {
-        var of = new OfFlattenDouble();
+        var of = new OfFlatDouble();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, String[] array) throws IOException {
+        var of = new OfString();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, String[][] array) throws IOException {
+        var of = new OfD2String();
+        of.checkFor(array);
+        write(out, array, of);
+    }
+
+    public static void write(OutputStream out, String[][][] array) throws IOException {
+        var of = new OfD3String();
         of.checkFor(array);
         write(out, array, of);
     }

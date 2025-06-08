@@ -2,7 +2,7 @@ package io.ast.jneurocarto.core.numpy;
 
 import java.nio.ByteBuffer;
 
-public class OfHeader extends ValueArray<NumpyHeader> {
+final class OfHeader extends ValueArray<NumpyHeader> {
 
     private NumpyHeader header;
 

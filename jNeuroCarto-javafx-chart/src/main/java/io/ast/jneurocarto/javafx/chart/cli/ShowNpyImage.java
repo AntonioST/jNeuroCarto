@@ -65,7 +65,7 @@ public class ShowNpyImage implements Main.Content, Runnable {
         log.debug("load data");
 
         try {
-            data = Numpy.read(dataFile, Numpy.ofFlattenInt());
+            data = Numpy.read(dataFile, Numpy.ofFlatInt());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -2,8 +2,8 @@ package io.ast.jneurocarto.core.numpy;
 
 import java.nio.ByteBuffer;
 
-final class OfFlattenDouble extends FlatValueArray<FlatDoubleArray> {
-    OfFlattenDouble() {
+final class OfFlatDouble extends FlatValueArray<FlatDoubleArray> {
+    OfFlatDouble() {
         super('f', 8, "if");
     }
 

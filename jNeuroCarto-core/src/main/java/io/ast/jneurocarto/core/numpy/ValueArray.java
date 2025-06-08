@@ -26,7 +26,7 @@ public abstract class ValueArray<T> {
         this.acceptValueTypes = acceptValueTypes;
     }
 
-    protected final void checkValue(NumpyHeader header) {
+    protected void checkValue(NumpyHeader header) {
         var descr = header.descr();
         var valueType = descr.charAt(1);
         valueSize = Integer.parseInt(descr.substring(2));
@@ -65,9 +65,9 @@ public abstract class ValueArray<T> {
     /**
      * read a value from buffer.
      *
-     * @param ret
-     * @param pos
-     * @param buffer
+     * @param ret    data array
+     * @param pos    index of value
+     * @param buffer data buffer
      * @return successful
      */
     protected abstract boolean read(T ret, long pos, ByteBuffer buffer);
@@ -75,9 +75,9 @@ public abstract class ValueArray<T> {
     /**
      * write a value into buffer.
      *
-     * @param ret
-     * @param pos
-     * @param buffer
+     * @param ret    data array
+     * @param pos    index of value
+     * @param buffer data buffer
      * @return successful
      */
     protected abstract boolean write(T ret, long pos, ByteBuffer buffer);

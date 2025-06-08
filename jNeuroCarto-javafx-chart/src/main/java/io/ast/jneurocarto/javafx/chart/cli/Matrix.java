@@ -124,7 +124,7 @@ public class Matrix implements Main.Content, Runnable {
                 } else if (!NumpyHeader.match(this.shape, shape)) {
                     throw new RuntimeException("shape mismatch: " + Arrays.toString(this.shape) + " != data " + Arrays.toString(shape));
                 }
-                return Numpy.ofFlattenDouble();
+                return Numpy.ofFlatDouble();
             });
             data = ((FlatDoubleArray) read.data()).array();
         } catch (IOException e) {
