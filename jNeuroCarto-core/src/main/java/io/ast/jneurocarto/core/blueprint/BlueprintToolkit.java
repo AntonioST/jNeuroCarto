@@ -825,7 +825,7 @@ public class BlueprintToolkit<T> {
     }
 
     /**
-     * Get electrode index from selected electrodes in channelmap.
+     * Get electrode index from selected electrodes in carried channelmap.
      *
      * @return electrode index array
      * @throws RuntimeException missing channelmap
@@ -884,24 +884,56 @@ public class BlueprintToolkit<T> {
         return Arrays.copyOfRange(ret, 0, size);
     }
 
+    /**
+     * Get the electrode index for those pass the given condiction.
+     *
+     * @param picker electrode picker
+     * @return electrode index array
+     */
     public int[] index(Predicate<Electrode> picker) {
         return filter(picker).mapToInt(Electrode::i).toArray();
     }
 
+    /**
+     * Returns a blueprint mask with all {@code true} or all {@code false}.
+     *
+     * @param value initial value.
+     * @return a blueprint mask.
+     */
     public BlueprintMask mask(boolean value) {
         var mask = new BlueprintMask(length());
-        if (value) mask = mask.not();
+        if (value) mask.inot();
         return mask;
     }
 
+    /**
+     * Get a blueprint mask on selected electrodes in carried channelmap.
+     *
+     * @return a blueprint mask.
+     * @see ProbeDescription#allChannels(Object)
+     * @see #mask(Object)
+     */
     public BlueprintMask mask() {
-        return mask(Objects.requireNonNull(blueprint.chmap, "missing probe"));
+        return mask(Objects.requireNonNull(blueprint.chmap, "missing channelmap"));
     }
 
+    /**
+     * Get a blueprint mask on selected electrodes in {@code chmap}.
+     *
+     * @param chmap a channelmap
+     * @return a blueprint mask.
+     * @see ProbeDescription#allChannels(Object)
+     */
     public BlueprintMask mask(T chmap) {
         return mask(blueprint.probe.allChannels(chmap));
     }
 
+    /**
+     * Get a blueprint mask with given electrode list.
+     *
+     * @param electrodes electrode list
+     * @return a blueprint mask.
+     */
     public BlueprintMask mask(List<ElectrodeDescription> electrodes) {
         var ret = new BlueprintMask(length());
         for (var e : electrodes) {
@@ -911,12 +943,25 @@ public class BlueprintToolkit<T> {
         return ret;
     }
 
+    /**
+     * Get a blueprint mask with given condiction.
+     *
+     * @param picker electrode picker
+     * @return a blueprint mask.
+     */
     public final BlueprintMask mask(Predicate<Electrode> picker) {
         var ret = new BlueprintMask(length());
         filter(picker).mapToInt(Electrode::i).forEach(ret::set);
         return ret;
     }
 
+    /**
+     * Get a blueprint mask with given electrode index array.
+     * {@code -1} are ignored.
+     *
+     * @param index electrode index array
+     * @return a blueprint mask.
+     */
     public final BlueprintMask mask(int[] index) {
         var ret = new BlueprintMask(length());
         for (int i = 0, length = length(); i < length; i++) {
@@ -926,14 +971,34 @@ public class BlueprintToolkit<T> {
         return ret;
     }
 
+    /**
+     * Get a blueprint mask on those electrode belongs to {@code category}.
+     *
+     * @param category electrode category
+     * @return a blueprint mask.
+     * @see #mask(int[], int)
+     */
     public final BlueprintMask mask(int category) {
         return mask(blueprint.blueprint, category);
     }
 
+    /**
+     * Get a blueprint mask on those electrode belongs to {@code category}.
+     *
+     * @param blueprint a blueprint int array
+     * @param category  electrode category
+     * @return a blueprint mask.
+     */
     public final BlueprintMask mask(int[] blueprint, int category) {
         return BlueprintMask.eq(blueprint, category);
     }
 
+    /**
+     * An electrode stream filtered with a given condiction.
+     *
+     * @param filter electrode picker
+     * @return An electrode stream.
+     */
     public final Stream<Electrode> filter(Predicate<Electrode> filter) {
         return blueprint.stream().filter(filter);
     }
@@ -943,10 +1008,12 @@ public class BlueprintToolkit<T> {
      *
      * @param electrode electrode index.
      * @return electrode index array.
+     * @throws RuntimeException missing channelmap
      */
     public int[] invalid(int electrode) {
+        var chmap = Objects.requireNonNull(blueprint.chmap, "missing channelmap");
         var electrodes = electrodes();
-        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrodes.get(electrode), electrodes);
+        var invalid = blueprint.probe.getInvalidElectrodes(chmap, electrodes.get(electrode), electrodes);
         return index(invalid);
     }
 
@@ -956,9 +1023,11 @@ public class BlueprintToolkit<T> {
      * @param electrodes restrict subset of electrodes
      * @param index      test electrode index of {@code electrodes}
      * @return electrode index array (domain use all electrode set instead of {@code electrodes}).
+     * @throws RuntimeException missing channelmap
      */
     public int[] invalid(List<ElectrodeDescription> electrodes, int index) {
-        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrodes.get(index), electrodes);
+        var chmap = Objects.requireNonNull(blueprint.chmap, "missing channelmap");
+        var invalid = blueprint.probe.getInvalidElectrodes(chmap, electrodes.get(index), electrodes);
         return index(invalid);
     }
 
@@ -968,15 +1037,18 @@ public class BlueprintToolkit<T> {
      * @param electrodes restrict subset of electrodes
      * @param electrode  test electrode
      * @return electrode index array (domain use all electrode set instead of {@code electrodes}).
+     * @throws RuntimeException missing channelmap
      */
     public int[] invalid(List<ElectrodeDescription> electrodes, ElectrodeDescription electrode) {
-        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, electrode, electrodes);
+        var chmap = Objects.requireNonNull(blueprint.chmap, "missing channelmap");
+        var invalid = blueprint.probe.getInvalidElectrodes(chmap, electrode, electrodes);
         return index(invalid);
     }
 
     public int[] invalid(int[] index) {
+        var chmap = Objects.requireNonNull(blueprint.chmap, "missing channelmap");
         var electrodes = electrodes();
-        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, pick(electrodes, index), electrodes);
+        var invalid = blueprint.probe.getInvalidElectrodes(chmap, pick(electrodes, index), electrodes);
         return index(invalid);
     }
 
@@ -990,8 +1062,9 @@ public class BlueprintToolkit<T> {
      * @return
      */
     public BlueprintMask invalid(BlueprintMask selected, boolean include) {
+        var chmap = Objects.requireNonNull(blueprint.chmap, "missing channelmap");
         var electrodes = electrodes();
-        var invalid = blueprint.probe.getInvalidElectrodes(blueprint.chmap, pick(electrodes, selected), electrodes);
+        var invalid = blueprint.probe.getInvalidElectrodes(chmap, pick(electrodes, selected), electrodes);
         var ret = mask(invalid);
         if (!include) {
             ret = ret.diff(selected);
