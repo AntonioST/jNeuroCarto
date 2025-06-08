@@ -1,3 +1,4 @@
+import numpy as np
 from matplotlib import colormaps
 
 n = 25
@@ -26,23 +27,13 @@ names = [
     'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd',
 ]
 
-print(f"""\
-\"""
-Generate by matplotlib_color_maps.py
-\"""
-""")
+data = {}
 for name in names:
-    if isinstance(name, str):
-        cm = colormaps[name]
-        print(name, '= [')
-    else:
-        for n in name:
-            cm = colormaps[n]
-        print(' = '.join(name), '= [')
-
+    cm = colormaps[name]
+    a = []
     for i in range(n + 1):
         c = cm(i / n)
-        print('  ', ', '.join(map('%.4f'.__mod__, [i / n, c[0], c[1], c[2]])), end=',\n')
+        a.append((i / n, *c))
+    data[name] = np.array(a)
 
-    print(']')
-    print()
+np.savez('matplotlib_color_maps.npz', **data)

@@ -103,6 +103,10 @@ public final class Numpy {
         return new OfFlattenDouble();
     }
 
+    public static ValueArray<NumpyHeader> ofHeader() {
+        return new OfHeader();
+    }
+
     /*======*
      * Read *
      *======*/
@@ -153,6 +157,8 @@ public final class Numpy {
                 pos += read;
                 if (!buffer.read(buffer.buffer, pos, null)) break;
             }
+        } else if (of instanceof OfHeader _) {
+            // skip
         } else {
             var descr = header.descr();
             boolean isLittle = descr.charAt(0) == '<';
@@ -223,6 +229,8 @@ public final class Numpy {
                 pos += read;
                 if (!buffer.read(buffer.buffer, pos, null)) break;
             }
+        } else if (of instanceof OfHeader _) {
+            // skip
         } else {
             var descr = header.descr();
             boolean isLittle = descr.charAt(0) == '<';
@@ -420,6 +428,8 @@ public final class Numpy {
                 pos += buffer.buffer.limit();
                 channel.write(ret);
             }
+        } else if (of instanceof OfHeader _) {
+            throw new UnsupportedOperationException("write header");
         } else {
             var valueSize = of.valueSize;
             var buffer = ByteBuffer.allocate(32 * 8 * valueSize);
