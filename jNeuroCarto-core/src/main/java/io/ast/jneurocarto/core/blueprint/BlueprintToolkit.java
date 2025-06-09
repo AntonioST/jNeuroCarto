@@ -1967,7 +1967,6 @@ public class BlueprintToolkit<T> {
      * @param category
      * @param step
      * @param threshold
-     * @return extended result, a copied {@code blueprint}.
      */
     public final void extend(int category, AreaChange step, AreaThreshold threshold) {
         extend(category, step, category, threshold);

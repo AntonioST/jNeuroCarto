@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.ast.jneurocarto</groupId>
-    <artifactId>root</artifactId>
+    <artifactId>jNeuroCarto</artifactId>
     <version>0.0</version>
     <packaging>pom</packaging>
 
@@ -27,6 +27,7 @@
         <module>jNeuroCarto-javafx</module>
         <module>jNeuroCarto-kotlin</module>
         <module>jNeuroCarto-javafx-app</module>
+        <module>jNeuroCarto-javafx-doc</module>
         <module>jNeuroCarto-test</module>
         <module>jNeuroCarto-jmh</module>
         <module>jNeuroCarto-web-chart</module>
@@ -327,7 +328,9 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.11.2</version>
                     <configuration>
-                        <!-- https://maven.apache.org/plugins/maven-javadoc-plugin/javadoc-mojo.html -->
+                        <additionalJOptions>
+                            <additionalJOption>--enable-preview</additionalJOption>
+                        </additionalJOptions>
                     </configuration>
                 </plugin>
                 <plugin>

@@ -1,3 +1,6 @@
+/**
+ * Atlas brain supporting.
+ */
 module io.ast.jneurocarto.atlas {
 
     requires java.net.http;

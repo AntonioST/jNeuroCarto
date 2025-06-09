@@ -1,6 +1,9 @@
 import io.ast.jneurocarto.javafx.app.DefaultPluginProvider;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 
+/**
+ * Standard alone {@code jNeuroCarto} application using {@code JavaFx}.
+ */
 module io.ast.jneurocarto.javafx {
 
     requires java.desktop;

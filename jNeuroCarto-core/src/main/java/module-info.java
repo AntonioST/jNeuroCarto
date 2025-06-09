@@ -1,5 +1,8 @@
 import io.ast.jneurocarto.core.ProbeProvider;
 
+/**
+ * The core module of {@code jNeuroCarto}.
+ */
 module io.ast.jneurocarto.core {
 
     requires static javafx.graphics;

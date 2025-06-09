@@ -19,7 +19,7 @@ import static java.nio.file.StandardOpenOption.*;
 ///
 /// ### Limitation
 ///
-/// * only support [boolean] (`b`), [int] (`i`), [double] (`f`), and [String] (`U`) data type.
+/// * only support `boolean` (`b`), `int` (`i`), `double` (`f`), and [String] (`U`) data type.
 /// * only support 1-d, 2-d, 3-d array.
 /// * only support for C-order array, not fortran-order array
 /// * higher dimension array is supported by [FlatBooleanArray], [FlatIntArray] and [FlatDoubleArray].

@@ -1,6 +1,9 @@
 import io.ast.jneurocarto.javafx.view.PluginProvider;
 import io.ast.jneurocarto.probe_npx.javafx.NpxProbePluginProvider;
 
+/**
+ * Neuropixels plugins for {@code jNeuroCarto} application.
+ */
 module io.ast.jneurocarto.probe_npx.javafx {
 
     requires java.desktop;

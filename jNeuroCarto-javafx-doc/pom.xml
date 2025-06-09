@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.ast.jneurocarto</groupId>
+        <artifactId>jNeuroCarto</artifactId>
+        <version>0.0</version>
+    </parent>
+
+    <artifactId>jNeuroCarto-javafx-doc</artifactId>
+    <version>0.0</version>
+    <packaging>pom</packaging>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>io.ast.jneurocarto</groupId>
+            <artifactId>jNeuroCarto-javafx-app</artifactId>
+            <version>0.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>fix-javadoc-src</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>--enable-preview</argument>
+                                <argument>bin/FixJavadocSrc.java</argument>
+                                <argument>${project.parent.build.directory}/reports/apidocs/src/</argument>
+                                <argument>io.ast.jneurocarto.atlas</argument>
+                                <argument>${project.parent.basedir}/jNeuroCarto-atlas/src/main/java</argument>
+                                <argument>io.ast.jneurocarto.core</argument>
+                                <argument>${project.parent.basedir}/jNeuroCarto-core/src/main/java</argument>
+                                <argument>io.ast.jneurocarto.javafx</argument>
+                                <argument>${project.parent.basedir}/jNeuroCarto-javafx/src/main/java</argument>
+                                <argument>io.ast.jneurocarto.javafx.chart</argument>
+                                <argument>${project.parent.basedir}/jNeuroCarto-javafx-chart/src/main/java</argument>
+                                <argument>io.ast.jneurocarto.probe_npx</argument>
+                                <argument>${project.parent.basedir}/jNeuroCarto-probe-npx/src/main/java</argument>
+                                <argument>io.ast.jneurocarto.probe_npx.javafx</argument>
+                                <argument>${project.parent.basedir}/jNeuroCarto-probe-npx-javafx/src/main/java</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.11.2</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- https://maven.apache.org/plugins/maven-javadoc-plugin/javadoc-mojo.html -->
+                    <!-- https://maven.apache.org/plugins/maven-javadoc-plugin/aggregate-mojo.html -->
+                    <additionalJOptions>
+                        <additionalJOption>--enable-preview</additionalJOption>
+                    </additionalJOptions>
+                    <failOnError>false</failOnError>
+                    <verbose>true</verbose>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

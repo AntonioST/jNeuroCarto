@@ -16,7 +16,7 @@ public @interface ScriptParameter {
 
     /**
      * The parameter index. It will be ignored when used on the parameters.
-     * <p/>
+     * <p>
      * By default, annotated fields are resolved first.
      * Therefore, annotated method should explict index to insert itself to
      * correct parameter order.

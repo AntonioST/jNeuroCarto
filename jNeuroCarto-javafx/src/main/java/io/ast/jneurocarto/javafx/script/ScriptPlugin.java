@@ -592,10 +592,10 @@ public class ScriptPlugin extends InvisibleView {
 
     /**
      * Interrupt the script running thread.
-     * <p/>
+     * <p>
      * If the script is not an async script, then it is uninterruptible,
      * and always return {@code false}.
-     * <p/>
+     * <p>
      * Unexisted script {@code name} always returns {@code false}.
      *
      * @param name the name of the script.

@@ -89,7 +89,7 @@ Require `Java 24` and `maven`.
 ### Build and Install
 
 ```shell
-mvn clean install
+mvn -am -pl jNeuroCarto-javafx-app clean install
 ```
 
 This action will compile, test and package the source files into local maven repository (`$HOME/.m2`),
@@ -135,9 +135,8 @@ Web related
 ### Generate javadoc
 
 ```shell
-mvn javadoc:javadoc
+mvn -am -pl jNeuroCarto-javafx-doc javadoc:aggregate
 ```
 
-The generated contents will put at `MODULE/target/reports/apidocs`.
-Only some modules have javadoc report.
+The generated contents will put at `target/reports/apidocs`.
 

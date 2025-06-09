@@ -21,25 +21,25 @@ public class BlueprintScriptSnippet<C> {
 
     // @start region="BlueprintScript on method"
     @BlueprintScript(value = "name", description = """
-      description
-      """)
+        description
+        """)
     @RequestChannelmap(code = "...") // declare required on certain probe
     public void method(BlueprintAppToolkit<C> bp, // or BlueprintToolkit, Blueprint. Required.      // @highlight regex="public|BlueprintAppToolkit"
                        @ScriptParameter(value = "parameter", defaultValue = "0",
-                         description = "parameter description") int parameter) {
+                           description = "parameter description") int parameter) {
         // do something
     }
     // @end
 
     // @start region="BlueprintScript on inner class"
     @BlueprintScript(value = "name", description = """
-      description
-      """)
+        description
+        """)
     @RequestChannelmap(code = "...", create = false)
     public static class Method<C> implements Runnable {                                             // @highlight regex="public|static|Runnable"  @replace substring="<C>" replacement=""
 
         @ScriptParameter(value = "parameter", defaultValue = "0",
-          description = "parameter description")
+            description = "parameter description")
         public int parameter; // fields are parameters                                              // @highlight regex="public"
 
         private final BlueprintAppToolkit<C> bp;

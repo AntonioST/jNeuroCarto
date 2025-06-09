@@ -1,6 +1,9 @@
 import io.ast.jneurocarto.core.ProbeProvider;
 import io.ast.jneurocarto.probe_npx.NpxProbeProvider;
 
+/**
+ * Neuropixels probe general extension.
+ */
 module io.ast.jneurocarto.probe_npx {
 
     requires org.slf4j;

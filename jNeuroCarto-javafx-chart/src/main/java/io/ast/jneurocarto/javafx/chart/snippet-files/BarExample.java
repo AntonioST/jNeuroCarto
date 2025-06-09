@@ -1,4 +1,4 @@
-package io.ast.jneurocarto.javafx.chart.snippets;
+package io.ast.jneurocarto.javafx.chart.snippet;
 
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;

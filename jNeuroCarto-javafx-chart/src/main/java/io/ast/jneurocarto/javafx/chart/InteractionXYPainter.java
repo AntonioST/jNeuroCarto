@@ -154,14 +154,14 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
 
     /**
      * Create bar graphics.
-     * {@snippet file = "BarExample.java" region = "bar example"}
-     * <p/>
+     * {@snippet class = BarExample region = "bar example"}
+     * <p>
      * Create a stacked bar graphics.
-     * {@snippet file = "BarExample.java" region = "stack bar example"}
+     * {@snippet class = BarExample region = "stack bar example"}
      * <br/>
      * For a normalized stacked bar, add an extra line.
-     * {@snippet file = "BarExample.java" region = "normalized stack bar example"}
-     * <p/>
+     * {@snippet class = BarExample region = "normalized stack bar example"}
+     * <p>
      * Note that once bar has stacked, they cannot add data or modify its position
      * (such as {@link XYBar.Builder#addData(double) addData} and {@link XYBar.Builder#step(double) step})
      * anymore.
@@ -183,6 +183,7 @@ public class InteractionXYPainter implements InteractionXYChart.PlottingJob {
     public XYBar.Builder bar(double[] v, XYBar.Orientation orientation) {
         var ret = new XYBar();
         ret.orientation(orientation);
+
         addGraphics(ret);
         var builder = ret.builder(1);
         builder.addData(v);

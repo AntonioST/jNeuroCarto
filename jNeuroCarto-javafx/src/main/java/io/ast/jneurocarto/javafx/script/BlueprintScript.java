@@ -2,22 +2,24 @@ package io.ast.jneurocarto.javafx.script;
 
 import java.lang.annotation.*;
 
-/**
- * Declare a blueprint script method or collection.
- * <p/>
- * <h3>Use on a top-level class.</h3>
- * It works as a collection.
- * <br/>
- * {@snippet file = "BlueprintScriptSnippet.java" region = "BlueprintScript on class"}
- * <br/>
- * <h3>Use on a method.</h3>
- * It works as a script method.
- * <br/>
- * {@snippet file = "BlueprintScriptSnippet.java" region = "BlueprintScript on method"}
- * <h3>Use on an inner class.</h3>
- * It works as a script method.
- * {@snippet file = "BlueprintScriptSnippet.java" region = "BlueprintScript on inner class"}
- */
+/// Declare a blueprint script method or collection.
+///
+/// ### Use on a top-level class.
+///
+/// It works as a collection.
+///
+/// {@snippet class = BlueprintScriptSnippet region = "BlueprintScript on class"}
+///
+/// ### Use on a method.
+///
+/// It works as a script method.
+///
+/// {@snippet class = BlueprintScriptSnippet region = "BlueprintScript on method"}
+///
+/// ### Use on an inner class.
+///
+/// It works as a script method.
+/// {@snippet class = BlueprintScriptSnippet region = "BlueprintScript on inner class"}
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

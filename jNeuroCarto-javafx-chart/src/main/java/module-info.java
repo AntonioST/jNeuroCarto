@@ -1,3 +1,6 @@
+/**
+ * Interactive chart built on {@code JavaFx}.
+ */
 module io.ast.jneurocarto.javafx.chart {
 
     requires java.desktop;
