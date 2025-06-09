@@ -3,12 +3,12 @@ package io.ast.jneurocarto.probe_npx.javafx;
 import java.util.Arrays;
 import java.util.function.Function;
 
-import io.ast.jneurocarto.atlas.Structure;
 import io.ast.jneurocarto.core.RequestChannelmap;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.app.PluginNotLoadException;
 import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
 import io.ast.jneurocarto.javafx.script.PyValue;
@@ -301,6 +301,7 @@ public final class NpxBlueprintScripts {
         }
     }
 
+    @SuppressWarnings("unused")
     @BlueprintScript(value = "highlight_inside_region")
     public void highlightElectrodeInsideRegion(
         BlueprintAppToolkit<ChannelMap> bp,
@@ -309,25 +310,25 @@ public final class NpxBlueprintScripts {
             description = "region ID, acronym or its partial description") PyValue region,
         @ScriptParameter(value = "mode", label = "r|a|x", defaultValue = "replace",
             description = "capture mode") BlueprintAppToolkit.CaptureMode mode
-    ) {
-        Structure structure;
+    ) throws PluginNotLoadException {
+        String name;
 
         if (region instanceof PyValue.PyInt(var id)) {
-            structure = atlas.getRegion(id);
-            if (structure == null) throw new RuntimeException("structure with id " + id + " not found.");
-        } else if (region instanceof PyValue.PyStr(var name)) {
-            structure = atlas.getRegion(name);
-            if (structure == null) throw new RuntimeException("structure with name " + name + " not found.");
-        } else if (region instanceof PyValue.PyToken(var name)) {
-            structure = atlas.getRegion(name);
-            if (structure == null) throw new RuntimeException("structure with name " + name + " not found.");
+            name = bp.atlasGetRegion(id);
+            if (name == null) throw new RuntimeException("structure with id " + id + " not found.");
+        } else if (region instanceof PyValue.PyStr(var value)) {
+            name = bp.atlasGetRegion(value);
+            if (name == null) throw new RuntimeException("structure with name " + value + " not found.");
+        } else if (region instanceof PyValue.PyToken(var value)) {
+            name = bp.atlasGetRegion(value);
+            if (name == null) throw new RuntimeException("structure with name " + value + " not found.");
         } else {
             throw new RuntimeException("unknown region : " + region);
         }
 
-        bp.printLogMessage("region " + structure.acronym());
-        var mask = bp.setCaptureElectrodesInRegion(atlas, structure, mode);
-        bp.printLogMessage("" + mask.count() + " electrodes in " + structure.acronym());
+        bp.printLogMessage("region " + name);
+        var mask = bp.setCaptureElectrodesInRegion(name, mode);
+        bp.printLogMessage("" + mask.count() + " electrodes in " + name);
         bp.repaint();
     }
 }

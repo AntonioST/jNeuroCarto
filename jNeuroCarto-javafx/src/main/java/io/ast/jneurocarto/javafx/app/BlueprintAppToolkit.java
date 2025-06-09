@@ -244,7 +244,12 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         return setCaptureElectrodesInRegion(atlas, structure, mode);
     }
 
-    public @Nullable BlueprintMask setCaptureElectrodesInRegion(AtlasPlugin atlas, Structure structure, CaptureMode mode) {
+    public @Nullable BlueprintMask setCaptureElectrodesInRegion(Structure region, CaptureMode mode) throws PluginNotLoadException {
+        var atlas = getPlugin(AtlasPlugin.class);
+        return setCaptureElectrodesInRegion(atlas, region, mode);
+    }
+
+    private @Nullable BlueprintMask setCaptureElectrodesInRegion(AtlasPlugin atlas, Structure structure, CaptureMode mode) {
         var brain = atlas.getBrainAtlas();
         var image = atlas.getImageSlice();
         if (brain == null || image == null) return null;
@@ -359,6 +364,16 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         var p = getPlugin(AtlasPlugin.class);
         var r = p.getRegion(name);
         return r == null ? null : r.acronym();
+    }
+
+    public @Nullable Structure atlasGetStructure(int id) throws PluginNotLoadException {
+        var p = getPlugin(AtlasPlugin.class);
+        return p.getRegion(id);
+    }
+
+    public @Nullable Structure atlasGetStructure(String name) throws PluginNotLoadException {
+        var p = getPlugin(AtlasPlugin.class);
+        return p.getRegion(name);
     }
 
     public ImageSliceStack.@Nullable Projection atlasGetProjection() throws PluginNotLoadException {
