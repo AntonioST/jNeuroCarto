@@ -26,7 +26,8 @@ import picocli.CommandLine;
         Matrix.class,
         ShowNpyImage.class,
         ShowImage.class,
-        DragDrop.class
+        DragDrop.class,
+        Hover.class
     }
 )
 public class Main implements Runnable {
