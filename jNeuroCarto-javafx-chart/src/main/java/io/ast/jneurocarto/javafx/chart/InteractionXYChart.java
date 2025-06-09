@@ -55,6 +55,18 @@ public class InteractionXYChart extends StackPane {
             this(x.getLowerBound(), x.getUpperBound(), y.getLowerBound(), y.getUpperBound());
         }
 
+        public AxesBounds(Bounds bounds) {
+            this(bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY());
+        }
+
+        public double xrange() {
+            return xUpper - xLower;
+        }
+
+        public double yrange() {
+            return yUpper - yLower;
+        }
+
         public void apply(NumberAxis x, NumberAxis y) {
             x.setLowerBound(xLower);
             x.setUpperBound(xUpper);
@@ -785,6 +797,11 @@ public class InteractionXYChart extends StackPane {
 
     private static final Affine IDENTIFY = new Affine();
 
+    /**
+     * Get bounds of current {@link AxesBounds}.
+     *
+     * @return a axes bounds.
+     */
     public AxesBounds getAxesBounds() {
         return new AxesBounds(xAxis, yAxis);
     }
@@ -1082,6 +1099,11 @@ public class InteractionXYChart extends StackPane {
         return new Point2D(nx, ny);
     }
 
+    /**
+     * Get bounds of reset/default {@link AxesBounds}.
+     *
+     * @return a axes bounds.
+     */
     public AxesBounds getResetAxesBoundaries() {
         return resetBounds;
     }

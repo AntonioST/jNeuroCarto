@@ -5,6 +5,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.scene.paint.Color;
 
 import org.jspecify.annotations.NullMarked;
@@ -477,8 +479,8 @@ public class ProbeView<T> extends InteractionXYChart {
 
     @JsonRootName("ProbeView")
     public record ProbeViewState(
-      @JsonProperty(value = "x_axis", index = 0, required = true) double[] x,
-      @JsonProperty(value = "y_axis", index = 1, required = true) double[] y
+        @JsonProperty(value = "x_axis", index = 0, required = true) double[] x,
+        @JsonProperty(value = "y_axis", index = 1, required = true) double[] y
     ) {
         public ProbeViewState(double x1, double x2, double y1, double y2) {
             this(new double[]{x1, x2}, new double[]{y1, y2});
@@ -486,7 +488,7 @@ public class ProbeView<T> extends InteractionXYChart {
 
         public ProbeViewState(AxesBounds bounds) {
             this(new double[]{bounds.xLower(), bounds.xUpper()},
-              new double[]{bounds.yLower(), bounds.yUpper()});
+                new double[]{bounds.yLower(), bounds.yUpper()});
         }
     }
 
@@ -505,8 +507,8 @@ public class ProbeView<T> extends InteractionXYChart {
             log.debug("restore");
             try {
                 var bounds = new AxesBounds(
-                  state.x[0], state.x[1],
-                  state.y[0], state.y[1]
+                    state.x[0], state.x[1],
+                    state.y[0], state.y[1]
                 );
                 setAxesBoundaries(bounds);
             } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
@@ -519,7 +521,7 @@ public class ProbeView<T> extends InteractionXYChart {
      * UI *
      *====*/
 
-    public void fitAxesBoundaries() {
+    public void fitAxesBoundaries(boolean keepRatio, boolean asDefault) {
         var blueprint = this.blueprint;
         if (blueprint == null) {
             resetAxesBoundaries();
@@ -541,7 +543,34 @@ public class ProbeView<T> extends InteractionXYChart {
         var dx = (x2 - x1) / 50;
         var dy = (y2 - y1) / 100;
 
-        setAxesBoundaries(x1 - dx, x2 + dx, y1 - dy, y2 + dy);
+        var b = new BoundingBox(x1 - dx, y1 - dy, x2 - x1 + 2 * dx, y2 - y1 + 2 * dy);
+        fitAxesBoundaries(b, keepRatio, asDefault);
+    }
+
+    public void fitAxesBoundaries(Bounds bounds, boolean keepRatio, boolean asDefault) {
+        if (keepRatio) {
+            var current = getAxesBounds();
+            var ratio = current.yrange() / current.xrange();
+
+            var width = bounds.getWidth();
+            var height = bounds.getHeight();
+            var idealHeight = width * ratio;
+            if (idealHeight > height) {
+                var dy = (idealHeight - height) / 2;
+                bounds = new BoundingBox(bounds.getMinX(), bounds.getMinY() - dy, width, idealHeight);
+            } else if (idealHeight < height) {
+                var idealWidth = height / ratio;
+                assert idealWidth > width;
+                var dx = (idealWidth - width) / 2;
+                bounds = new BoundingBox(bounds.getMinX() - dx, bounds.getMinY(), idealWidth, height);
+            }
+        }
+        if (asDefault) {
+            setResetAxesBoundaries(new AxesBounds(bounds));
+            resetAxesBoundaries();
+        } else {
+            setAxesBoundaries(new AxesBounds(bounds));
+        }
     }
 
     /*==============*

@@ -40,6 +40,7 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.core.config.JsonConfig;
 import io.ast.jneurocarto.core.config.Repository;
+import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 import io.ast.jneurocarto.javafx.utils.ChartAxesDialog;
 import io.ast.jneurocarto.javafx.view.Plugin;
 import io.ast.jneurocarto.javafx.view.PluginProvider;
@@ -431,7 +432,7 @@ public class Application<T> {
 
         var resetProbeViewAxes = new MenuItem("R_eset View");
         resetProbeViewAxes.setAccelerator(KeyCombination.keyCombination("Shortcut+E"));
-        resetProbeViewAxes.setOnAction(_ -> view.fitAxesBoundaries());
+        resetProbeViewAxes.setOnAction(_ -> view.fitAxesBoundaries(true, false));
 
         var resetProbeViewAxesRatio = new MenuItem("Reset View Ratio");
         resetProbeViewAxesRatio.setAccelerator(KeyCombination.keyCombination("Shortcut+Alt+E"));
@@ -1230,7 +1231,11 @@ public class Application<T> {
         var chmap = repository.loadChannelmapFile(probe, channelmapFile);
         view.setChannelmap(chmap);
         view.resetBlueprint();
-        view.fitAxesBoundaries();
+        if (getPlugin(AtlasPlugin.class) == null) {
+            view.fitAxesBoundaries(false, true);
+        } else {
+            view.fitAxesBoundaries(true, true);
+        }
         return chmap;
     }
 
@@ -1343,8 +1348,7 @@ public class Application<T> {
     public void clearProbe(String code) {
         log.debug("clearProbe for code {}", code);
 
-        var chmap = probe.newChannelmap(code);
-        clearProbe(chmap);
+        clearProbe(probe.newChannelmap(code));
     }
 
     public void clearProbe(T chmap) {
@@ -1358,7 +1362,11 @@ public class Application<T> {
 
         view.setChannelmap(chmap);
         view.resetBlueprint();
-        view.fitAxesBoundaries();
+        if (getPlugin(AtlasPlugin.class) == null) {
+            view.fitAxesBoundaries(false, true);
+        } else {
+            view.fitAxesBoundaries(true, true);
+        }
         fireProbeUpdate();
     }
 
