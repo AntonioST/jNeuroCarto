@@ -16,6 +16,7 @@ module io.ast.jneurocarto.probe_npx.javafx {
     requires static org.jspecify;
 
     requires io.ast.jneurocarto.core;
+    requires io.ast.jneurocarto.atlas;
     requires io.ast.jneurocarto.javafx;
     requires io.ast.jneurocarto.javafx.chart;
     requires io.ast.jneurocarto.probe_npx;

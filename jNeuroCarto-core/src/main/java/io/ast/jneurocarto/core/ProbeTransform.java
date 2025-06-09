@@ -1,5 +1,6 @@
 package io.ast.jneurocarto.core;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import javafx.geometry.Point2D;
@@ -8,6 +9,7 @@ import javafx.scene.transform.Affine;
 import javafx.scene.transform.NonInvertibleTransformException;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Transform between different 3D coordinate system.
@@ -161,7 +163,9 @@ public sealed abstract class ProbeTransform<C1, C2> {
     abstract Affine transform();
 
     /**
-     * The transformation from target domain to source domain
+     * The transformation from target domain to source domain.
+     *
+     * @throws RuntimeException when inverse transformation is not existed, because {@code det(transform())} is {@code 0}.
      */
     abstract Affine inverse();
 
@@ -169,6 +173,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
      * invert this transformation's domain.
      *
      * @return a transformation.
+     * @throws RuntimeException when inverse transformation is not existed, because {@code det(transform())} is {@code 0}.
      */
     public abstract ProbeTransform<C2, C1> inverted();
 
@@ -409,11 +414,9 @@ public sealed abstract class ProbeTransform<C1, C2> {
      *
      * @param implant an implant coordinate
      * @return a transformation
-     * @throws IllegalArgumentException {@code implant} does not reference to global anatomical space,
-     *                                  which means  {@link ImplantCoordinate#reference} is not {@code null}.
+     * @throws IllegalArgumentException {@code implant} does not reference to global anatomical space.
      */
     public static ProbeTransform<ProbeCoordinate, Coordinate> create(ImplantCoordinate implant) {
-        if (implant.reference() != null) throw new IllegalArgumentException("not reference to global");
         var a = new Point3D(implant.ap(), implant.dv(), implant.ml());
         var t = new Affine();
         t.appendTranslation(implant.ap(), implant.dv() + implant.depth(), implant.ml());
@@ -457,17 +460,19 @@ public sealed abstract class ProbeTransform<C1, C2> {
 
     private static final class FixedTransform<C1, C2> extends ProbeTransform<C1, C2> {
         private final Affine transform;
-        private final Affine inverse;
+        private final @Nullable Affine inverse;
 
         FixedTransform(Domain<C1> d1, Domain<C2> d2, Affine transform) {
             super(d1, d2);
             this.transform = new Affine(transform);
 
+            Affine inverse;
             try {
-                this.inverse = transform.createInverse();
+                inverse = transform.createInverse();
             } catch (NonInvertibleTransformException e) {
-                throw new RuntimeException(e);
+                inverse = null;
             }
+            this.inverse = inverse;
         }
 
         private FixedTransform(Domain<C1> d1, Domain<C2> d2, Affine transform, Affine inverse) {
@@ -483,11 +488,11 @@ public sealed abstract class ProbeTransform<C1, C2> {
 
         @Override
         protected Affine inverse() {
-            return inverse;
+            return Objects.requireNonNull(inverse, "inverse is not existed");
         }
 
         public ProbeTransform<C2, C1> inverted() {
-            return new FixedTransform<>(target, source, inverse, transform);
+            return new FixedTransform<>(target, source, inverse(), transform);
         }
 
         public <C3> ProbeTransform<C1, C3> then(Domain<C3> domain, Affine transform) {

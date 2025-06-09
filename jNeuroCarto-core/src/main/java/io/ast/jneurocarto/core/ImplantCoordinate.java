@@ -157,25 +157,22 @@ public record ImplantCoordinate(
     /**
      * Get the tip coordinate in anatomical space.
      *
-     * @param transform a transformation from probe space to anatomical space.
      * @return The tip coordinate in anatomical space
-     * @throws IllegalArgumentException The source domain of {@code transform} does not match to the {@link #reference}.
      */
-    public Coordinate tipCoordinate(ProbeTransform<ProbeCoordinate, Coordinate> transform) {
-        checkTargetDomain(transform);
+    public Coordinate tipCoordinate() {
+        var transform = ProbeTransform.create(this);
         return transform.transform(new ProbeCoordinate(s, 0, 0, 0));
     }
 
     /**
      * Get the coordinate at certain depth in anatomical space.
      *
-     * @param transform a transformation from probe space to anatomical space.
      * @param depth     the distance from the inertion point.
      * @return a coordinate in anatomical space
      * @throws IllegalArgumentException The source domain of {@code transform} does not match to the {@link #reference}.
      */
-    public Coordinate toCoordinate(ProbeTransform<ProbeCoordinate, Coordinate> transform, double depth) {
-        checkTargetDomain(transform);
+    public Coordinate toCoordinate(double depth) {
+        var transform = ProbeTransform.create(this);
         return transform.transform(new ProbeCoordinate(s, 0, this.depth - depth, 0));
     }
 
@@ -184,12 +181,11 @@ public record ImplantCoordinate(
      * Change the insertion point to the coordinate of the first shank.
      *
      * @param coor      shank coordinate
-     * @param transform a transformation from probe space to anatomical space.
      * @return an new implant coordinate
      * @throws IllegalArgumentException The source domain of {@code transform} does not match to the {@link #reference}.
      */
-    public ImplantCoordinate toShank0(ShankCoordinate coor, ProbeTransform<ProbeCoordinate, Coordinate> transform) {
-        return toShank(0, coor, transform);
+    public ImplantCoordinate toShank0(ShankCoordinate coor) {
+        return toShank(0, coor);
     }
 
     /**
@@ -197,13 +193,12 @@ public record ImplantCoordinate(
      *
      * @param shank     shank number
      * @param coor      shank coordinate
-     * @param transform a transformation from probe space to anatomical space.
      * @return an new implant coordinate
      * @throws IllegalArgumentException The source domain of {@code transform} does not match to the {@link #reference}.
      */
-    public ImplantCoordinate toShank(int shank, ShankCoordinate coor, ProbeTransform<ProbeCoordinate, Coordinate> transform) {
-        checkTargetDomain(transform);
+    public ImplantCoordinate toShank(int shank, ShankCoordinate coor) {
         if (s == shank) return this;
+        var transform = ProbeTransform.create(this);
         return offset(transform.transform(coor.toShank(s, shank)));
     }
 

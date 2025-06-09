@@ -80,8 +80,18 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
         return showImplantCoordinateProperty.get();
     }
 
-    public final void setShowImplantcoordinate(boolean value) {
+    public final void setShowImplantCoordinate(boolean value) {
         showImplantCoordinateProperty.set(value);
+    }
+
+    public final BooleanProperty showTipCoordinateProperty = new SimpleBooleanProperty(true);
+
+    public final boolean isShowTipCoordinate() {
+        return showTipCoordinateProperty.get();
+    }
+
+    public final void setShowTipCoordinate(boolean value) {
+        showTipCoordinateProperty.set(value);
     }
 
     public final BooleanProperty showAtlasReferenceProperty = new SimpleBooleanProperty(false);
@@ -379,6 +389,7 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
 
         var showImplant = isShowImplantCoordinate();
         var showReference = isShowAtlasReference();
+        var showTip = isShowTipCoordinate();
         if (!showImplant && !showReference) return;
 
         var stack = atlas.getImageSliceStack();
@@ -423,6 +434,20 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
                 var y = p.getY();
                 gc.strokeLine(x - 5, y, x + 5, y);
                 gc.strokeLine(x, y + 5, x, y - 5);
+            }
+
+            if (showTip) {
+                var coor = implant.tipCoordinate();
+                var point = stack.project(pt.transform(coor));
+                var plantOffset = Math.abs(image.planeLength() - point.p());
+                var alpha = Math.max(0, 1 - plantOffset / 2000);
+                gc.setGlobalAlpha(alpha);
+                gc.setStroke(Color.GREEN);
+                var p = aff.transform(point.x(), point.y());
+                var x = p.getX();
+                var y = p.getY();
+                gc.strokeLine(x - 5, y - 5, x + 5, y + 5);
+                gc.strokeLine(x - 5, y + 5, x + 5, y - 5);
             }
         } finally {
             gc.restore();

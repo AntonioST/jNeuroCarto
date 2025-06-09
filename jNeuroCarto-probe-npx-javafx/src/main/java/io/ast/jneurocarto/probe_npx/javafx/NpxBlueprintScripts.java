@@ -3,11 +3,13 @@ package io.ast.jneurocarto.probe_npx.javafx;
 import java.util.Arrays;
 import java.util.function.Function;
 
+import io.ast.jneurocarto.atlas.Structure;
 import io.ast.jneurocarto.core.RequestChannelmap;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 import io.ast.jneurocarto.javafx.app.BlueprintAppToolkit;
+import io.ast.jneurocarto.javafx.atlas.AtlasPlugin;
 import io.ast.jneurocarto.javafx.script.BlueprintScript;
 import io.ast.jneurocarto.javafx.script.PyValue;
 import io.ast.jneurocarto.javafx.script.ScriptParameter;
@@ -21,26 +23,26 @@ import io.ast.jneurocarto.probe_npx.NpxProbeType;
 public final class NpxBlueprintScripts {
 
     @BlueprintScript(value = "npx24_single_shank", description = """
-      Make a block channelmap for 4-shank Neuropixels probe.
-      """)
+        Make a block channelmap for 4-shank Neuropixels probe.
+        """)
     @RequestChannelmap(code = "NP24")
     public void newNpx24Singleshank(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", defaultValue = "0",
-        description = "on which shank") int shank,
-      @ScriptParameter(value = "row", defaultValue = "0",
-        description = "start row in um.") double row) {
+        BlueprintAppToolkit<ChannelMap> bp,
+        @ScriptParameter(value = "shank", defaultValue = "0",
+            description = "on which shank") int shank,
+        @ScriptParameter(value = "row", defaultValue = "0",
+            description = "start row in um.") double row) {
         bp.setChannelmap(ChannelMaps.npx24SingleShank(shank, row));
     }
 
     @BlueprintScript(value = "npx24_stripe", description = """
-      Make a block channelmap for 4-shank Neuropixels probe.
-      """)
+        Make a block channelmap for 4-shank Neuropixels probe.
+        """)
     @RequestChannelmap(code = "NP24")
     public void npx24Stripe(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "row", defaultValue = "0",
-        description = "start row in um.") double row) {
+        BlueprintAppToolkit<ChannelMap> bp,
+        @ScriptParameter(value = "row", defaultValue = "0",
+            description = "start row in um.") double row) {
         bp.setChannelmap(ChannelMaps.npx24Stripe(row));
     }
 
@@ -103,16 +105,16 @@ public final class NpxBlueprintScripts {
 
 
     @BlueprintScript(value = "npx24_half_density", description = """
-      Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *half* density.
-      """)
+        Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *half* density.
+        """)
     @RequestChannelmap(code = "NP24")
     public void npx24HalfDensity(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", label = "int|[int,int]|'selected'", defaultValue = "selected",
-        converter = ShankOrSelect.Select.class,
-        description = "on which shank/s. Use 'select' for selected electrodes.") ShankOrSelect shank,
-      @ScriptParameter(value = "row", defaultValue = "0",
-        description = "start row in um.") double row) {
+        BlueprintAppToolkit<ChannelMap> bp,
+        @ScriptParameter(value = "shank", label = "int|[int,int]|'selected'", defaultValue = "selected",
+            converter = ShankOrSelect.Select.class,
+            description = "on which shank/s. Use 'select' for selected electrodes.") ShankOrSelect shank,
+        @ScriptParameter(value = "row", defaultValue = "0",
+            description = "start row in um.") double row) {
 
         switch (shank) {
         case ShankOrSelect.Select _ -> npx24HalfDensity(bp, row);
@@ -155,16 +157,16 @@ public final class NpxBlueprintScripts {
     }
 
     @BlueprintScript(value = "npx24_quarter_density", description = """
-      Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *quarter* density.
-      """)
+        Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *quarter* density.
+        """)
     @RequestChannelmap(code = "NP24")
     public void npx24QuarterDensity(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "shank", label = "int|[int,int]|'selected'|'None'", defaultValue = "None",
-        converter = ShankOrSelect.Select.class,
-        description = "on which shank/s. Use 'select' for selected electrodes. Use ``all`` for four shanks.") ShankOrSelect shank,
-      @ScriptParameter(value = "row", defaultValue = "0",
-        description = "start row in um.") double row) {
+        BlueprintAppToolkit<ChannelMap> bp,
+        @ScriptParameter(value = "shank", label = "int|[int,int]|'selected'|'None'", defaultValue = "None",
+            converter = ShankOrSelect.Select.class,
+            description = "on which shank/s. Use 'select' for selected electrodes. Use ``all`` for four shanks.") ShankOrSelect shank,
+        @ScriptParameter(value = "row", defaultValue = "0",
+            description = "start row in um.") double row) {
 
         switch (shank) {
         case ShankOrSelect.Select _ -> npx24QuarterDensity(bp, row);
@@ -197,13 +199,13 @@ public final class NpxBlueprintScripts {
     }
 
     @BlueprintScript(value = "npx24_one_eighth_density", description = """
-      Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *one-eighth* density.
-      """)
+        Make a channelmap for 4-shank Neuropixels probe that uniformly distributes channels in *one-eighth* density.
+        """)
     @RequestChannelmap(code = "NP24")
     public void npx24OneEightDensity(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "row", defaultValue = "0",
-        description = "start row in um.") double row) {
+        BlueprintAppToolkit<ChannelMap> bp,
+        @ScriptParameter(value = "row", defaultValue = "0",
+            description = "start row in um.") double row) {
         bp.setChannelmap(ChannelMaps.npx24OneEightDensity(row));
     }
 
@@ -220,17 +222,17 @@ public final class NpxBlueprintScripts {
     }
 
     @BlueprintScript(value = "move_blueprint", description = """
-      Move blueprint upward or downward.
-      """)
+        Move blueprint upward or downward.
+        """)
     @RequestChannelmap(code = "NP24", create = false)
     public void moveShanks(
-      BlueprintAppToolkit<ChannelMap> bp,
-      @ScriptParameter(value = "y",
-        description = "um") double y,
-      @ScriptParameter(value = "shank", label = "list[int]", defaultValue = "None",
-        description = "only particular shanks.") PyValue shank,
-      @ScriptParameter(value = "update", defaultValue = "False",
-        description = "update channelmap to follow the blueprint change.") boolean update) {
+        BlueprintAppToolkit<ChannelMap> bp,
+        @ScriptParameter(value = "y",
+            description = "um") double y,
+        @ScriptParameter(value = "shank", label = "list[int]", defaultValue = "None",
+            description = "only particular shanks.") PyValue shank,
+        @ScriptParameter(value = "update", defaultValue = "False",
+            description = "update channelmap to follow the blueprint change.") boolean update) {
 
         var r = (int) (y / NpxProbeType.NP24.spacePerRow());
         var x = maskForShank(bp, shank);
@@ -243,8 +245,8 @@ public final class NpxBlueprintScripts {
     }
 
     @BlueprintScript(value = "exchange_shank", description = """
-      Move blueprint between shanks.
-      """)
+        Move blueprint between shanks.
+        """)
     @RequestChannelmap(code = "NP24", create = false)
     public static class ExchangeShanks implements Runnable {
 
@@ -255,21 +257,21 @@ public final class NpxBlueprintScripts {
             var chmap = new ChannelMap(NpxProbeType.NP24);
             var bp = new BlueprintToolkit<>(new Blueprint<>(desp, chmap));
             MASK = new BlueprintMask[]{
-              bp.mask(e -> e.s() == 0),
-              bp.mask(e -> e.s() == 1),
-              bp.mask(e -> e.s() == 2),
-              bp.mask(e -> e.s() == 3),
+                bp.mask(e -> e.s() == 0),
+                bp.mask(e -> e.s() == 1),
+                bp.mask(e -> e.s() == 2),
+                bp.mask(e -> e.s() == 3),
             };
         }
 
         @ScriptParameter(value = "shank", description = """
-          For N shank probe, it is an N-length list.
-          For example, ``[3, 2, 1, 0]`` gives a reverse-shank-ordered blueprint.
-          """)
+            For N shank probe, it is an N-length list.
+            For example, ``[3, 2, 1, 0]`` gives a reverse-shank-ordered blueprint.
+            """)
         public int[] shank;
 
         @ScriptParameter(value = "update", defaultValue = "False",
-          description = "update channelmap to follow the blueprint change.")
+            description = "update channelmap to follow the blueprint change.")
         public boolean update;
 
         private final BlueprintAppToolkit<ChannelMap> bp;
@@ -297,5 +299,35 @@ public final class NpxBlueprintScripts {
                 bq.refreshElectrodeSelection();
             }
         }
+    }
+
+    @BlueprintScript(value = "highlight_inside_region")
+    public void highlightElectrodeInsideRegion(
+        BlueprintAppToolkit<ChannelMap> bp,
+        AtlasPlugin atlas,
+        @ScriptParameter(value = "region", label = "NAME",
+            description = "region ID, acronym or its partial description") PyValue region,
+        @ScriptParameter(value = "mode", label = "r|a|x", defaultValue = "replace",
+            description = "capture mode") BlueprintAppToolkit.CaptureMode mode
+    ) {
+        Structure structure;
+
+        if (region instanceof PyValue.PyInt(var id)) {
+            structure = atlas.getRegion(id);
+            if (structure == null) throw new RuntimeException("structure with id " + id + " not found.");
+        } else if (region instanceof PyValue.PyStr(var name)) {
+            structure = atlas.getRegion(name);
+            if (structure == null) throw new RuntimeException("structure with name " + name + " not found.");
+        } else if (region instanceof PyValue.PyToken(var name)) {
+            structure = atlas.getRegion(name);
+            if (structure == null) throw new RuntimeException("structure with name " + name + " not found.");
+        } else {
+            throw new RuntimeException("unknown region : " + region);
+        }
+
+        bp.printLogMessage("region " + structure.acronym());
+        var mask = bp.setCaptureElectrodesInRegion(atlas, structure, mode);
+        bp.printLogMessage("" + mask.count() + " electrodes in " + structure.acronym());
+        bp.repaint();
     }
 }

@@ -994,13 +994,19 @@ public class AtlasPlugin extends InvisibleView implements Plugin, StateView<Atla
         return transform;
     }
 
+    public @Nullable ProbeTransform<Coordinate, Coordinate> getReferenceTransform(String reference) {
+        var ref = references.getReference(reference);
+        if (ref == null) return null;
+        return ref.getTransform();
+    }
+
     /**
      * {@return a transform from global anatomical coordinate to slice coordinate}
      */
     public @Nullable ProbeTransform<Coordinate, SliceCoordinate> getSliceTransform() {
         var image = images;
         if (image == null) return null;
-        return image.getTransform();
+        return image.getSliceTransform();
     }
 
     /**

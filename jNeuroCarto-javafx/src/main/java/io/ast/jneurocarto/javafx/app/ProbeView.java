@@ -41,8 +41,8 @@ public class ProbeView<T> extends InteractionXYChart {
     private final CartoConfig config;
     private final ProbeDescription<T> probe;
     private final InteractionXYPainter interaction;
-    private final Map<String, XYMarker> electrodes = new HashMap<>();
-    private final Map<String, XYMarker> captured = new HashMap<>();
+    private final Map</*state*/String, XYMarker> electrodes = new HashMap<>();
+    private final Map</*state*/String, XYMarker> captured = new HashMap<>();
     private XYMarker highlighted;
 
     private @Nullable T channelmap;

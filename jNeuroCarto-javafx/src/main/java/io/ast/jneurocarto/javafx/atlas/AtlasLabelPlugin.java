@@ -764,7 +764,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             if (sg == null) {
                 var image = atlas.getImageSliceStack();
                 if (image == null) return null;
-                sg = image.getTransform();
+                sg = image.getSliceTransform();
             }
             return sg.transform(c);
         }
@@ -774,7 +774,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             if (gs == null) {
                 var image = atlas.getImageSliceStack();
                 if (image == null) return null;
-                gs = image.getTransform().inverted();
+                gs = image.getTransform();
             }
             return gs.transform(c);
         }
@@ -784,7 +784,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             if (gs == null) {
                 var image = atlas.getImageSliceStack();
                 if (image == null) return null;
-                gs = image.getTransform().inverted();
+                gs = image.getTransform();
             }
             return gs.deltaTransform(c);
         }

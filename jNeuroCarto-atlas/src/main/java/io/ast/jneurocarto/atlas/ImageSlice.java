@@ -131,6 +131,9 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
         );
     }
 
+    /**
+     * {@return a transformation from slice space to slice space with plane filled}
+     */
     public ProbeTransform<SliceCoordinate, SliceCoordinate> getPlaneAtTransform() {
         return ProbeTransform.create(SliceDomain.INSTANCE, SliceDomain.INSTANCE, planeAtTransform());
     }
@@ -192,6 +195,14 @@ public record ImageSlice(int plane, int ax, int ay, int dw, int dh, ImageSliceSt
 
     public Coordinate pullBack(Point2D p) {
         return stack.pullBack(planeAt(p));
+    }
+
+    /**
+     * {@return a transformation from slice space to global anatomical space}.
+     */
+    public ProbeTransform<SliceCoordinate, Coordinate> getTransform() {
+        var t = stack.getTransform();
+        return getPlaneAtTransform().then(t);
     }
 
     /**

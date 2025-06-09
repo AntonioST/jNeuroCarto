@@ -10,10 +10,7 @@ import javafx.scene.canvas.GraphicsContext;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import io.ast.jneurocarto.atlas.ImageSlice;
-import io.ast.jneurocarto.atlas.ImageSliceStack;
-import io.ast.jneurocarto.atlas.SliceCoordinate;
-import io.ast.jneurocarto.atlas.Structure;
+import io.ast.jneurocarto.atlas.*;
 import io.ast.jneurocarto.core.*;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintMask;
@@ -202,13 +199,15 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         var electrodes = view.getBlueprint();
         if (electrodes == null) return false;
 
+        var picked = pick(electrodes, index);
+
         switch (mode) {
         case replace -> {
             view.clearCaptured();
-            view.setCaptured(pick(electrodes, index));
+            view.setCaptured(picked);
         }
-        case append -> view.setCaptured(pick(electrodes, index));
-        case exclude -> view.unsetCaptured(pick(electrodes, index));
+        case append -> view.setCaptured(picked);
+        case exclude -> view.unsetCaptured(picked);
         }
         return true;
     }
@@ -218,41 +217,48 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         var electrodes = view.getBlueprint();
         if (electrodes == null) return false;
 
+        var picked = pick(electrodes, mask);
+
         switch (mode) {
         case replace -> {
             view.clearCaptured();
-            view.setCaptured(pick(electrodes, mask));
+            view.setCaptured(picked);
         }
-        case append -> view.setCaptured(pick(electrodes, mask));
-        case exclude -> view.unsetCaptured(pick(electrodes, mask));
+        case append -> view.setCaptured(picked);
+        case exclude -> view.unsetCaptured(picked);
         }
         return true;
     }
 
-    public void setCaptureElectrodesInRegion(int region, CaptureMode mode) throws PluginNotLoadException {
+    public @Nullable BlueprintMask setCaptureElectrodesInRegion(int region, CaptureMode mode) throws PluginNotLoadException {
         var atlas = getPlugin(AtlasPlugin.class);
         var structure = atlas.getRegion(region);
         if (structure == null) throw new RuntimeException("structure with id " + region + " not found.");
-        setCaptureElectrodesInRegion(atlas, structure, mode);
+        return setCaptureElectrodesInRegion(atlas, structure, mode);
     }
 
-    public void setCaptureElectrodesInRegion(String region, CaptureMode mode) throws PluginNotLoadException {
+    public @Nullable BlueprintMask setCaptureElectrodesInRegion(String region, CaptureMode mode) throws PluginNotLoadException {
         var atlas = getPlugin(AtlasPlugin.class);
         var structure = atlas.getRegion(region);
         if (structure == null) throw new RuntimeException("structure with name " + region + " not found.");
-        setCaptureElectrodesInRegion(atlas, structure, mode);
+        return setCaptureElectrodesInRegion(atlas, structure, mode);
     }
 
-    private void setCaptureElectrodesInRegion(AtlasPlugin atlas, Structure structure, CaptureMode mode) {
+    public @Nullable BlueprintMask setCaptureElectrodesInRegion(AtlasPlugin atlas, Structure structure, CaptureMode mode) {
         var brain = atlas.getBrainAtlas();
         var image = atlas.getImageSlice();
-        if (brain == null || image == null) return;
+        if (brain == null || image == null) return null;
+
+        var tps = ProbeTransform.create(ProbeTransform.PROBE, SliceDomain.INSTANCE, atlas.painter().getImageTransform());
+        var tsc = image.getTransform();
+        var transform = tps.then(tsc);
 
         var mask = mask(e -> {
-            var s = brain.structureAt(image.pullBack(e.x(), e.y()));
+            var s = brain.structureAt(transform.transform(new ProbeCoordinate(0, e.x(), e.y(), 0)));
             return s != null && s.hasParent(structure);
         });
         setCaptureElectrodes(mask, mode);
+        return mask;
     }
 
     public void clearCaptureElectrodes() {
@@ -288,7 +294,7 @@ public class BlueprintAppToolkit<T> extends BlueprintToolkit<T> {
         application.refreshSelection(selector);
     }
 
-    public void repaintViewBlueprint() {
+    public void repaint() {
         application.view.repaint();
     }
 

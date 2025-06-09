@@ -369,7 +369,7 @@ public final class ImageSliceStack {
     /**
      * {@return a transformation from global anatomical space to slice space}
      */
-    public ProbeTransform<Coordinate, SliceCoordinate> getTransform() {
+    public ProbeTransform<Coordinate, SliceCoordinate> getSliceTransform() {
         var t = new double[9];
         // [1 0 0] [ap]   [x]
         // [0 1 0] [dv] = [y]
@@ -379,6 +379,21 @@ public final class ImageSliceStack {
         t[6 + project.p] = 1;
         var a = new Affine(t[0], t[1], t[2], 0, t[3], t[4], t[5], 0, t[6], t[7], t[8], 0);
         return ProbeTransform.create(ProbeTransform.ANATOMICAL, SliceDomain.INSTANCE, a);
+    }
+
+    /**
+     * {@return a transformation from slice space to global anatomical space }
+     */
+    public ProbeTransform<SliceCoordinate, Coordinate> getTransform() {
+        var t = new double[9];
+        // [1 0 0] [x]   [ap]
+        // [0 1 0] [y] = [dv]
+        // [0 0 1] [p]   [ml]
+        t[3 * project.x + 0] = 1;
+        t[3 * project.y + 1] = 1;
+        t[3 * project.p + 2] = 1;
+        var a = new Affine(t[0], t[1], t[2], 0, t[3], t[4], t[5], 0, t[6], t[7], t[8], 0);
+        return ProbeTransform.create(SliceDomain.INSTANCE, ProbeTransform.ANATOMICAL, a);
     }
 
     @Override
