@@ -69,11 +69,6 @@ Modules
 * `jNeuroCarto-kotlin` kotlin support and demonstration of blueprint script
 * `jNeuroCarto-javafx-app` packaging `jNeuroCarto` application
 
-### Working in progress modules
-
-* `jNeuroCarto-web` web application, use Vaadin.
-* `jNeuroCarto-web-chart` web component.
-
 ### Other modules
 
 * `jNeuroCarto-test` jNeuroCarto data structure test supporting
@@ -126,11 +121,6 @@ Other dependencies
 - `org.jetbrains.kotlin:kotlin-stdlib` kotlin support
 - `org.openjdk.jmh` benchmark framework
 
-Web related
-
-- `org.springframework.boot`
-- `com.vaadin`
-- (npm) `plotly.js`
 
 ### Generate javadoc
 
