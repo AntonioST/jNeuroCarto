@@ -909,8 +909,8 @@ public class Application<T> {
                 channelmap = loadChannelmap(channelmapFile);
             } catch (IOException e) {
                 printMessage("fail to open channelmap file " + channelmapFile.getFileName());
-                log.warn("loadProbe", e);
-                return;
+                clearProbe(state.code);
+                channelmap = Objects.requireNonNull(view.getChannelmap());
             }
 
             try {
