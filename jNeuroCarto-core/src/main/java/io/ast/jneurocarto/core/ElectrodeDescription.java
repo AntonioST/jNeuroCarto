@@ -18,21 +18,26 @@ public final class ElectrodeDescription {
     private int category = ProbeDescription.CATE_UNSET;
 
     /**
+     * Create an electrode description.
+     *
      * @param s         shank
      * @param x         x position in um
      * @param y         y position in um
      * @param electrode electrode identify. It should be a hashable.
      * @param channel   channel identify. It is used for display (str-able).
+     * @throws NullPointerException when {@code electrode} is {@code null}
      */
     public ElectrodeDescription(int s, int x, int y, Object electrode, Object channel) {
         this.s = s;
         this.x = x;
         this.y = y;
-        this.electrode = electrode;
+        this.electrode = Objects.requireNonNull(electrode);
         this.channel = channel;
     }
 
     /**
+     * Create an electrode description with initial category.
+     *
      * @param s         shank
      * @param x         x position in um
      * @param y         y position in um
@@ -40,12 +45,13 @@ public final class ElectrodeDescription {
      * @param channel   channel identify. It is used for display (str-able).
      * @param state     electrode selecting state
      * @param category  electrode selecting category.
+     * @throws NullPointerException when {@code electrode} is {@code null}
      */
     public ElectrodeDescription(int s, int x, int y, Object electrode, Object channel, int state, int category) {
         this.s = s;
         this.x = x;
         this.y = y;
-        this.electrode = electrode;
+        this.electrode = Objects.requireNonNull(electrode);
         this.channel = channel;
         this.state = state;
         this.category = category;
@@ -66,22 +72,37 @@ public final class ElectrodeDescription {
         return "Electrode[" + electrode + ", channel=" + channel + "]";
     }
 
+    /**
+     * {@return shank}
+     */
     public int s() {
         return s;
     }
 
+    /**
+     * {@return x position in um}
+     */
     public int x() {
         return x;
     }
 
+    /**
+     * {@return y position in um}
+     */
     public int y() {
         return y;
     }
 
+    /**
+     * {@return electrode identify}
+     */
     public Object electrode() {
         return electrode;
     }
 
+    /**
+     * {@return channel identify}
+     */
     public Object channel() {
         return channel;
     }
@@ -93,6 +114,11 @@ public final class ElectrodeDescription {
         return state;
     }
 
+    /**
+     * change the state of the electrode.
+     *
+     * @param state new state code
+     */
     public void state(int state) {
         this.state = state;
     }
@@ -104,6 +130,11 @@ public final class ElectrodeDescription {
         return category;
     }
 
+    /**
+     * change the category of the electrode
+     *
+     * @param category new category code.
+     */
     public void category(int category) {
         this.category = category;
     }

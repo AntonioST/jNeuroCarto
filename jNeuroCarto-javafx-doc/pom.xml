@@ -77,7 +77,6 @@
                         <additionalJOption>--enable-preview</additionalJOption>
                     </additionalJOptions>
                     <failOnError>false</failOnError>
-                    <verbose>true</verbose>
                 </configuration>
             </plugin>
         </plugins>
