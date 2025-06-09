@@ -35,8 +35,7 @@
     </modules>
 
     <properties>
-        <maven.compiler.source>24</maven.compiler.source>
-        <maven.compiler.target>24</maven.compiler.target>
+        <maven.compiler.release>24</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.14</slf4j.version>
         <javafx.version>24.0.1</javafx.version>
@@ -300,7 +299,7 @@
                                 <version>3.0</version>
                             </requireMavenVersion>
                             <requireJavaVersion>
-                                <version>${maven.compiler.source}</version>
+                                <version>${maven.compiler.release}</version>
                             </requireJavaVersion>
                         </rules>
                     </configuration>
@@ -311,9 +310,9 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.14.0</version>
                     <configuration>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
-                        <compilerVersion>${maven.compiler.target}</compilerVersion>
+                        <source>${maven.compiler.release}</source>
+                        <target>${maven.compiler.release}</target>
+                        <compilerVersion>${maven.compiler.release}</compilerVersion>
                     </configuration>
                 </plugin>
                 <plugin>
