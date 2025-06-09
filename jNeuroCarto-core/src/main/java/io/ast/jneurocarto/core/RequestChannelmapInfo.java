@@ -6,12 +6,32 @@ import org.jspecify.annotations.Nullable;
 import io.github.classgraph.AnnotationClassRef;
 import io.github.classgraph.AnnotationInfo;
 
+/**
+ * A record class represent the annotation {@link RequestChannelmap}.
+ *
+ * @param probe  the class of the request probe description.
+ * @param code   the channelmap code of the request channelmap.
+ * @param create Create the new probe if it is missing.
+ */
 @NullMarked
 public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nullable String code, boolean create) {
+
+    /**
+     * Create a corresponding requirement with {@link #create}.
+     *
+     * @param probe the class of the request probe description.
+     * @param code  channelmap code
+     */
     public RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nullable String code) {
         this(probe, code, true);
     }
 
+    /**
+     * Create a corresponding requirement.
+     *
+     * @param family probe family name
+     * @return the request information. {@code null} if probe class resolution fail.
+     */
     public static @Nullable RequestChannelmapInfo of(String family) {
         if (family.isEmpty()) return null;
         var ret = ProbeDescription.getProbeDescription(family);
@@ -20,6 +40,13 @@ public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nu
         return new RequestChannelmapInfo(probe, null);
     }
 
+    /**
+     * Create a corresponding requirement.
+     *
+     * @param family probe family name
+     * @param code   channelmap code
+     * @return the request information. {@code null} if probe class resolution fail.
+     */
     public static @Nullable RequestChannelmapInfo of(String family, @Nullable String code) {
         if (family.isEmpty()) return null;
         var ret = ProbeDescription.getProbeDescription(family);
@@ -29,7 +56,15 @@ public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nu
         return new RequestChannelmapInfo(probe, code);
     }
 
-    public static RequestChannelmapInfo of(AnnotationInfo ann) {
+    /**
+     * Create a corresponding request information.
+     *
+     * @param ann a scanned annotation information
+     * @return the request information. {@code null} if probe class resolution fail.
+     * @throws IllegalArgumentException {@code ann} does not represent {@link RequestChannelmap}
+     * @throws RuntimeException         {@code ann} values have wrong type.
+     */
+    public static @Nullable RequestChannelmapInfo of(AnnotationInfo ann) {
         if (!RequestChannelmap.class.getName().equals(ann.getClassInfo().getName())) {
             throw new IllegalArgumentException("not @RequestChannelmap AnnotationInfo");
         }
@@ -55,7 +90,7 @@ public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nu
             if (!family.isEmpty()) {
                 var ret = ProbeDescription.getProbeDescription(family);
                 if (ret == null) {
-                    throw new RuntimeException("unable to load probe family : " + family);
+                    return null;
                 }
                 probe = ret.getClass();
             }
@@ -67,6 +102,12 @@ public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nu
         return new RequestChannelmapInfo(probe, code, create);
     }
 
+    /**
+     * Create a corresponding request information.
+     *
+     * @param check the annotation
+     * @return the request information. {@code null} if probe class resolution fail.
+     */
     public static @Nullable RequestChannelmapInfo of(RequestChannelmap check) {
         String family = check.value();
         Class<? extends ProbeDescription> probe = check.probe();
@@ -85,6 +126,12 @@ public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nu
         return new RequestChannelmapInfo(probe, code, create);
     }
 
+    /**
+     * Create a corresponding request information chain.
+     *
+     * @param checks the annotation chain. The latter request complete the former.
+     * @return the request information. {@code null} if probe class resolution fail.
+     */
     public static @Nullable RequestChannelmapInfo of(@Nullable RequestChannelmap... checks) {
         if (checks.length == 0) return null;
 
@@ -114,18 +161,42 @@ public record RequestChannelmapInfo(Class<? extends ProbeDescription> probe, @Nu
         return new RequestChannelmapInfo(probe, code, create);
     }
 
+    /**
+     * Change the request to always create.
+     *
+     * @return a new request information.
+     */
     public RequestChannelmapInfo alwaysCreate() {
         return new RequestChannelmapInfo(probe, code, true);
     }
 
+    /**
+     * Does the {@code probe} fit the request?
+     *
+     * @param probe testing probe.
+     * @return fit
+     */
     public boolean checkProbe(ProbeDescription<?> probe) {
         return this.probe.isInstance(probe);
     }
 
+    /**
+     * Does the {@code probe} fit the request?
+     *
+     * @param probe testing probe.
+     * @return fit
+     */
     public boolean checkProbe(Class<?> probe) {
         return this.probe.isAssignableFrom(probe);
     }
 
+    /**
+     * Do the {@code probe} and the {@code channelmap} fit the request?
+     *
+     * @param probe      testing probe.
+     * @param channelmap testing channelmap.
+     * @return fit
+     */
     public boolean checkChannelmap(ProbeDescription<?> probe, @Nullable Object channelmap) {
         if (!checkProbe(probe)) return false;
         if (channelmap == null) return true;

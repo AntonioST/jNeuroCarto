@@ -17,10 +17,23 @@ public record ProbeCoordinate(
     double y,
     double z
 ) {
+
+    /**
+     * Create a point on shank origin.
+     *
+     * @param s shank
+     */
     public ProbeCoordinate(int s) {
         this(s, 0, 0, 0);
     }
 
+    /**
+     * Create a point on shank.
+     *
+     * @param s shank
+     * @param x x position
+     * @param y y position
+     */
     public ProbeCoordinate(int s, double x, double y) {
         this(s, x, y, 0);
     }

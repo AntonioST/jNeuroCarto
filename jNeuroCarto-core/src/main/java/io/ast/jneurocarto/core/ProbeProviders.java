@@ -65,24 +65,28 @@ public final class ProbeProviders {
 
     public static List<String> getElectrodeSelectors(ProbeDescription<?> probe) {
         return SELECTORS.computeIfAbsent(probe.getClass(), ProbeProviders::scanElectrodeSelectors).stream()
-          .map(SelectorInfo::name)
-          .toList();
+            .map(SelectorInfo::name)
+            .toList();
     }
 
     public static ElectrodeSelector newElectrodeSelector(ProbeDescription<?> probe, String name) {
         var info = SELECTORS.computeIfAbsent(probe.getClass(), ProbeProviders::scanElectrodeSelectors).stream()
-          .filter(it -> it.name.equals(name))
-          .findFirst()
-          .orElseThrow(() -> new RuntimeException("select name " + name + " not found"));
+            .filter(it -> it.name.equals(name))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("select name " + name + " not found"));
 
         if (info.request != null && !info.request.checkProbe(probe)) {
             throw new RuntimeException("select name " + name + " reject probe " + probe.getClass().getSimpleName());
         }
 
+        return newElectrodeSelector(info.clazz);
+    }
+
+    private static ElectrodeSelector newElectrodeSelector(Class<? extends ElectrodeSelector> selector) {
         try {
-            return info.clazz.getConstructor().newInstance();
+            return selector.getConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException("unable to create selector " + info.clazz.getSimpleName(), e);
+            throw new RuntimeException("unable to create selector " + selector.getSimpleName(), e);
         }
     }
 
@@ -92,25 +96,17 @@ public final class ProbeProviders {
 
         var scan = new ClassGraph()
 //          .verbose()
-          .enableClassInfo()
-          .enableAnnotationInfo()
-          .acceptPackages(
-            ProbeDescription.class.getPackageName(),
-            probe.getPackageName()
-          );
+            .enableClassInfo()
+            .enableAnnotationInfo()
+            .acceptPackages(
+                ProbeDescription.class.getPackageName(),
+                probe.getPackageName()
+            );
 
         var ret = new ArrayList<SelectorInfo>();
         try (var result = scan.scan()) {
             for (var info : result.getClassesImplementing(ElectrodeSelector.class)) {
-                String name = info.getSimpleName();
-                var selector = info.getAnnotationInfo(ElectrodeSelector.Selector.class);
-                if (selector != null) {
-                    name = (String) selector.getParameterValues().getValue("value");
-                    log.debug("found selector {} = {}", name, info.getName());
-                } else {
-                    log.debug("found selector {}", info.getName());
-                }
-
+                log.debug("found selector {}", info.getName());
 
                 RequestChannelmapInfo request = null;
                 var check = info.getAnnotationInfo(RequestChannelmap.class);
@@ -121,7 +117,11 @@ public final class ProbeProviders {
                         log.debug("reject selector {}", e.getMessage());
                         continue;
                     }
-                    log.debug("selector {} request {}", name, request.probe().getName());
+                    if (request == null) {
+                        log.debug("reject selector : probe resolution fail");
+                        continue;
+                    }
+                    log.debug("selector {} request {}", info.getSimpleName(), request.probe().getName());
                     if (!request.checkProbe(probe)) {
                         log.debug("reject selector : probe mismatch");
                         continue;
@@ -130,7 +130,15 @@ public final class ProbeProviders {
 
                 var clazz = (Class<ElectrodeSelector>) info.loadClass(true);
 
-                ret.add(new SelectorInfo(name, request, clazz));
+                ElectrodeSelector selector;
+                try {
+                    selector = newElectrodeSelector(clazz);
+                } catch (Exception e) {
+                    log.debug(e.getMessage());
+                    continue;
+                }
+
+                ret.add(new SelectorInfo(selector.name(), request, clazz));
             }
         }
         return ret;

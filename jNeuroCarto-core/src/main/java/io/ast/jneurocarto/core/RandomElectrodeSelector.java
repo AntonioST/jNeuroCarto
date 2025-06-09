@@ -9,12 +9,16 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
-@ElectrodeSelector.Selector("random")
 public class RandomElectrodeSelector implements ElectrodeSelector {
 
     private static final int CATE_INVALIDED = Integer.MAX_VALUE;
     private boolean ignorePreSelected = false;
     private boolean ignoreExclude = false;
+
+    @Override
+    public String name() {
+        return "random";
+    }
 
     @Override
     public Map<String, String> getOptions() {

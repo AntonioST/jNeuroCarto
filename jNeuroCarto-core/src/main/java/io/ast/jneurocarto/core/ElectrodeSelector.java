@@ -1,18 +1,40 @@
 package io.ast.jneurocarto.core;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.util.List;
 import java.util.Map;
 
 import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.core.blueprint.Blueprint;
 
+/// An electrode selector.
+///
+/// ### Declaration
+///
+/// To create a new {@link ElectrodeSelector}, it should be beside the corresponding {@link ProbeDescription}
+/// (same package).
+///
+/// {@snippet lang = "java":
+///
+/// @RequestChannelmap(value = "my-probe") // 1
+/// public class MySelector implements ElectrodeSelector {
+///     public String name() {
+///        return "my-selector"; // 2
+///     }
+/// }
+///}
+///
+/// 1. declare this selector is specific for particular probe type.
+/// 2. the name of the selector, which is used in {@link ProbeDescription#getElectrodeSelectors()}
+///     and {@link ProbeDescription#newElectrodeSelector(String)}
+///
+/// ### stateful or stateless?
+///
+/// The selector usually only used once.
+/// @see RandomElectrodeSelector
 @NullMarked
 public interface ElectrodeSelector {
+
+    String name();
 
     /**
      * {@return get option map}.
@@ -58,23 +80,4 @@ public interface ElectrodeSelector {
      */
     <T> T select(Blueprint<T> blueprint);
 
-    /**
-     * Return a new channelmap {@code T} with electrode selected based on the {@code blueprint}.
-     *
-     * @param desp      probe description
-     * @param chmap     channelmap
-     * @param blueprint blueprint
-     * @param <T>       channelmap type
-     * @return a new channelmap
-     * @see #select(Blueprint)
-     */
-    default <T> T select(ProbeDescription<T> desp, T chmap, List<ElectrodeDescription> blueprint) {
-        return select(new Blueprint<>(desp, chmap, blueprint));
-    }
-
-    @Target(ElementType.TYPE)
-    @Retention(RetentionPolicy.RUNTIME)
-    @interface Selector {
-        String value();
-    }
 }

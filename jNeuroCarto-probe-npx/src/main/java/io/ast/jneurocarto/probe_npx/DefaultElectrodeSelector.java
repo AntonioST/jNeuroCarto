@@ -12,11 +12,15 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
-@ElectrodeSelector.Selector("default")
 @RequestChannelmap(probe = NpxProbeDescription.class)
 public class DefaultElectrodeSelector implements ElectrodeSelector {
 
     private static final int CATE_INVALIDED = Integer.MAX_VALUE;
+
+    @Override
+    public String name() {
+        return "default";
+    }
 
     @Override
     public <T> T select(Blueprint<T> blueprint) {

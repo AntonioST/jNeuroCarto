@@ -104,7 +104,10 @@ public class ScriptPlugin extends InvisibleView {
             return false;
         }
 
-        if (!request.checkProbe(probe)) {
+        if (request == null) {
+            log.debug("reject probe: resolution fail");
+            return false;
+        } else if (!request.checkProbe(probe)) {
             log.debug("reject probe {}", request.probe().getName());
             return false;
         }

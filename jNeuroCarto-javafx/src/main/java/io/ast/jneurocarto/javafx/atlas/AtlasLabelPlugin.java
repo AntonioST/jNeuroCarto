@@ -748,7 +748,7 @@ public class AtlasLabelPlugin extends InvisibleView implements StateView<AtlasLa
             if (sc == null) {
                 sc = ProbeTransform.create(CHART_DOMAIN, SliceDomain.INSTANCE, atlas.painter().getImageTransform());
             }
-            return sc.deltaTransform(c);
+            return sc.deltaTransform(new Point3D(c.getX(), c.getY(), 0));
         }
 
         private @Nullable SliceCoordinate sp(@Nullable ProbeCoordinate c) {

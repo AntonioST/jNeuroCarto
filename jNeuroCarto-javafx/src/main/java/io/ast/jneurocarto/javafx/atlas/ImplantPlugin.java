@@ -314,7 +314,7 @@ public class ImplantPlugin implements Plugin, ProbeUpdateHandler<Object>, StateV
 
         var tip = tpc.transform(probe);
 
-        var dxy = tpc.deltaTransform(0, 1); // 1 depth = dxy = (dap,ddv,dml)
+        var dxy = tpc.deltaTransform(0, 1, 0); // 1 depth = dxy = (dap,ddv,dml)
         var depth = -tip.dv() / dxy.getY();
 
         var rot = stack.offset2Angle(image.dw(), image.dh(), atlas.painter().r());

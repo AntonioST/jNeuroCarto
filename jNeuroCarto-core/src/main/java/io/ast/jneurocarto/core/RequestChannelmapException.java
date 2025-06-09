@@ -2,6 +2,9 @@ package io.ast.jneurocarto.core;
 
 import org.jspecify.annotations.NullMarked;
 
+/**
+ * An exception carried a {@link RequestChannelmapInfo}.
+ */
 @NullMarked
 public class RequestChannelmapException extends RuntimeException {
     public final RequestChannelmapInfo request;

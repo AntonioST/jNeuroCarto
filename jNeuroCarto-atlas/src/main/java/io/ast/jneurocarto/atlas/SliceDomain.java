@@ -2,8 +2,11 @@ package io.ast.jneurocarto.atlas;
 
 import javafx.geometry.Point3D;
 
+import org.jspecify.annotations.NullMarked;
+
 import io.ast.jneurocarto.core.ProbeTransform;
 
+@NullMarked
 public class SliceDomain implements ProbeTransform.Domain<SliceCoordinate> {
 
     public static final SliceDomain INSTANCE = new SliceDomain();

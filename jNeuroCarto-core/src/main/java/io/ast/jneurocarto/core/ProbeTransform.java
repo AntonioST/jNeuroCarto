@@ -9,25 +9,56 @@ import javafx.scene.transform.NonInvertibleTransformException;
 
 import org.jspecify.annotations.NullMarked;
 
+/**
+ * Transform between different 3D coordinate system.
+ *
+ * @param <C1> coordinate type from source domain
+ * @param <C2> coordinate type from target domain.
+ */
 @NullMarked
 public sealed abstract class ProbeTransform<C1, C2> {
 
+    /**
+     * coordinate domain.
+     * <p>
+     * Domain should implement {@link #equals(Object)} if necessary.
+     *
+     * @param <C> coordinate type
+     */
     public interface Domain<C> {
+
+        /**
+         * cast {@link Point3D} into coordinate.
+         *
+         * @param p point
+         * @return coordinate instance
+         */
         C fromPoint(Point3D p);
 
+        /**
+         * cast coordinate into {@link Point3D}.
+         *
+         * @param coordinate coordinate instance
+         * @return point
+         */
         Point3D toPoint(C coordinate);
     }
 
     /**
-     * A chart space, used by a probe coordinate
+     * A chart/probe space, used by {@link ProbeCoordinate}.
      */
     public static final Domain<ProbeCoordinate> PROBE = new Probe();
 
     /**
-     * A global anatomical space, used by a volume image.
+     * A global anatomical space, used by {@link Coordinate}.
      */
     public static final Domain<Coordinate> ANATOMICAL = new Anatomical();
 
+    /**
+     * A 2D projection domain. Just drop {@link Point3D#z}.
+     *
+     * @param name domain name.
+     */
     public record Project2D(String name) implements Domain<Point2D> {
         @Override
         public Point2D fromPoint(Point3D p) {
@@ -40,6 +71,9 @@ public sealed abstract class ProbeTransform<C1, C2> {
         }
     }
 
+    /**
+     * A chart/probe space, used by {@link ProbeCoordinate}.
+     */
     public static class Probe implements Domain<ProbeCoordinate> {
         private Probe() {
         }
@@ -56,7 +90,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
     }
 
     /**
-     * A global anatomical space, used by a volume image.
+     * A global anatomical space, used by {@link Coordinate}.
      */
     public static class Anatomical implements Domain<Coordinate> {
         private Anatomical() {
@@ -79,6 +113,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
      * @param reference the name of the reference.
      * @param origin    the origin of the reference in the global anatomical space.
      * @param flipAP    flip the AP-axis
+     * @see #create(String, Coordinate, boolean)
      */
     public record ReferencedAnatomical(String reference, Coordinate origin, boolean flipAP) implements Domain<Coordinate> {
 
@@ -98,33 +133,57 @@ public sealed abstract class ProbeTransform<C1, C2> {
     private static final Point3D AXIS_DV = new Point3D(0, 1, 0);
     private static final Point3D AXIS_ML = new Point3D(0, 0, 1);
 
-    protected final Domain<C1> d1;
-    protected final Domain<C2> d2;
+    /**
+     * source domain
+     */
+    protected final Domain<C1> source;
 
-    protected ProbeTransform(Domain<C1> d1, Domain<C2> d2) {
-        this.d1 = d1;
-        this.d2 = d2;
+    /**
+     * target domain
+     */
+    protected final Domain<C2> target;
+
+    /**
+     * Create a transform with given source and target domain.
+     * The actual transform matrix is provided in sub-classes.
+     *
+     * @param source source domain
+     * @param target target domain
+     */
+    ProbeTransform(Domain<C1> source, Domain<C2> target) {
+        this.source = source;
+        this.target = target;
     }
 
     /**
-     * Transformation from {@link #d1} to {@link #d2}.
+     * The transformation from source domain to target domain.
      */
-    protected abstract Affine transform();
+    abstract Affine transform();
 
     /**
-     * Transformation from {@link #d2} to {@link #d1}
+     * The transformation from target domain to source domain
      */
-    protected abstract Affine inverse();
+    abstract Affine inverse();
 
+    /**
+     * invert this transformation's domain.
+     *
+     * @return a transformation.
+     */
     public abstract ProbeTransform<C2, C1> inverted();
 
-
+    /**
+     * {@return source domain}
+     */
     public Domain<C1> sourceDomain() {
-        return d1;
+        return source;
     }
 
+    /**
+     * {@return target domain}
+     */
     public Domain<C2> targetDomain() {
-        return d2;
+        return target;
     }
 
     /**
@@ -134,18 +193,33 @@ public sealed abstract class ProbeTransform<C1, C2> {
         return new Affine(transform());
     }
 
+    /**
+     * Compose transformation.
+     *
+     * @param domain    target domain
+     * @param transform Composed transformation
+     * @param <C3>      coordinate from target domain.
+     * @return a transformation from {@code Domain<C1>} to {@code Domain <C3>}
+     * @see #then(ProbeTransform)
+     */
     public abstract <C3> ProbeTransform<C1, C3> then(Domain<C3> domain, Affine transform);
 
     /**
-     * compose {@code transform} and form {@code transform(this(.))} or {@code transform ∘ this}.
+     * compose {@code transform}. It returns a transformation {@code transform(this(.))} ({@code transform ∘ this}).
      *
-     * @param transform
-     * @param <C3>      final target domain.
-     * @return
+     * @param transform Composed transformation
+     * @param <C3>      coordinate from target domain.
+     * @return a transformation from {@code Domain<C1>} to {@code Domain <C3>}
+     * @see #then(Domain, Affine)
      */
     public abstract <C3> ProbeTransform<C1, C3> then(ProbeTransform<C2, C3> transform);
 
-    protected void checkComposeDomain(ProbeTransform<?, ?> transform) {
+    /**
+     * Check the {@code transform} can be composed with this.
+     *
+     * @param transform transformation
+     */
+    void checkComposeDomain(ProbeTransform<?, ?> transform) {
         if (!targetDomain().equals(transform.sourceDomain())) {
             throw new RuntimeException("domain mismatch between " + targetDomain() + " and " + transform.sourceDomain());
         }
@@ -156,94 +230,125 @@ public sealed abstract class ProbeTransform<C1, C2> {
      *======================*/
 
     /**
-     * @param x x position (um) in C1 space.
-     * @param y y position (um) in C1 space.
-     * @return point in C2 space.
-     */
-    public Point3D transform(double x, double y) {
-        return transform().transform(x, y, 0);
-    }
-
-    /**
-     * @param x x position (um) in C1 space.
-     * @param y y position (um) in C1 space.
-     * @param z z position (um) in C1 space.
-     * @return point in C2 space.
+     * transform a point from source domain.
+     *
+     * @param x x position in source domain.
+     * @param y y position in source domain.
+     * @param z z position in source domain.
+     * @return point in target domain.
      */
     public Point3D transform(double x, double y, double z) {
         return transform().transform(x, y, z);
     }
 
     /**
-     * @param p point in C1 coordinate.
-     * @return point in C2 space.
-     */
-    public Point3D transform(Point2D p) {
-        return transform().transform(p.getX(), p.getY(), 0);
-    }
-
-    /**
-     * @param p point in C1 coordinate.
-     * @return point in C2 space.
+     * transform a point from source domain.
+     *
+     * @param p point in source domain.
+     * @return point in target domain.
      */
     public Point3D transform(Point3D p) {
         return transform().transform(p);
     }
 
     /**
-     * @param coordinate coordinate in C1 coordinate.
-     * @return coordinate in C2 space.
+     * transform a coordinate from source domain.
+     *
+     * @param coordinate coordinate in source domain.
+     * @return coordinate in target domain.
      */
     public C2 transform(C1 coordinate) {
-        return d2.fromPoint(transform().transform(d1.toPoint(coordinate)));
+        return target.fromPoint(transform().transform(source.toPoint(coordinate)));
     }
 
     /**
-     * @param ap ap position (um) in anatomical space.
-     * @param dv dv position (um) in anatomical space.
-     * @param ml ml position (um) in anatomical space.
-     * @return point in probe coordinate.
+     * transform a point from target domain.
+     *
+     * @param x x position in target domain.
+     * @param y y position in target domain.
+     * @param z z position in target domain.
+     * @return point in source domain.
      */
-    public Point3D inverseTransform(double ap, double dv, double ml) {
-        return inverse().transform(ap, dv, ml);
+    public Point3D inverseTransform(double x, double y, double z) {
+        return inverse().transform(x, y, z);
     }
 
     /**
-     * @param p point in anatomical space.
-     * @return point in probe coordinate.
+     * transform a point from target domain.
+     *
+     * @param p point in target domain.
+     * @return point in source domain.
      */
     public Point3D inverseTransform(Point3D p) {
         return inverse().transform(p);
     }
 
     /**
-     * @param coordinate coordinate in C2 coordinate.
-     * @return coordinate in C1 space.
+     * transform a coordinate from target domain.
+     *
+     * @param coordinate coordinate in target domain.
+     * @return coordinate in source domain.
      */
     public C1 inverseTransform(C2 coordinate) {
-        return d1.fromPoint(inverse().transform(d2.toPoint(coordinate)));
+        return source.fromPoint(inverse().transform(target.toPoint(coordinate)));
     }
 
-    public Point3D deltaTransform(double x, double y) {
-        return transform().deltaTransform(x, y, 0);
-    }
 
+    /**
+     * transform a delta from source domain.
+     *
+     * @param x x delta in source domain.
+     * @param y y delta in source domain.
+     * @param z z delta in source domain.
+     * @return delta in target domain.
+     */
     public Point3D deltaTransform(double x, double y, double z) {
         return transform().deltaTransform(x, y, z);
     }
 
-    public Point3D deltaTransform(Point2D p) {
-        return transform().deltaTransform(p.getX(), p.getY(), 0);
-    }
-
+    /**
+     * transform a delta from source domain.
+     *
+     * @param p delta in source domain.
+     * @return delta in target domain.
+     */
     public Point3D deltaTransform(Point3D p) {
         return transform().deltaTransform(p);
+    }
+
+    /**
+     * transform a delta from target domain.
+     *
+     * @param x x delta in target domain.
+     * @param y y delta in target domain.
+     * @param z z delta in target domain.
+     * @return delta in source domain.
+     */
+    public Point3D inverseDeltaTransform(double x, double y, double z) {
+        return inverse().deltaTransform(x, y, z);
+    }
+
+    /**
+     * transform a delta from target domain.
+     *
+     * @param p delta in target domain.
+     * @return delta in source domain.
+     */
+    public Point3D inverseDeltaTransform(Point3D p) {
+        return inverse().deltaTransform(p);
     }
 
     /*===========*
      * factories *
      *===========*/
 
+    /**
+     * Create an identify transformation.
+     *
+     * @param domain domain.
+     * @param <C>    coordinate
+     * @return a transformation
+     */
     public static <C> ProbeTransform<C, C> identify(Domain<C> domain) {
         return new FixedTransform<>(domain, domain, new Affine());
     }
@@ -260,7 +365,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
      *}
      *
      * @param transform transformation from {@link ProbeCoordinate} to {@link Coordinate}
-     * @return
+     * @return a transformation
      */
     public static ProbeTransform<ProbeCoordinate, Coordinate> create(Affine transform) {
         return new FixedTransform<>(PROBE, ANATOMICAL, transform);
@@ -268,11 +373,22 @@ public sealed abstract class ProbeTransform<C1, C2> {
 
     /**
      * Create a coordinate transformation from {@link Coordinate} to a referenced {@link Coordinate}.
+     * <p>
+     * The transform matrix {@snippet lang = "TEXT":
+     * [  1  0  0 -ap ]
+     * [  0  1  0 -dv ]
+     * [  0  0  1 -ml ]
+     *}
+     * and the transform matrix for {@code flipAP} {@snippet lang = "TEXT":
+     * [ -1  0  0  ap ]
+     * [  0  1  0 -dv ]
+     * [  0  0 -1  ml ]
+     *}
      *
      * @param reference the name of the reference.
      * @param origin    the origin of the reference in the global anatomical space.
      * @param flipAP    flip the AP-axis
-     * @return
+     * @return a transformation
      */
     public static ProbeTransform<Coordinate, Coordinate> create(String reference, Coordinate origin, boolean flipAP) {
         var t = new Affine();
@@ -289,12 +405,15 @@ public sealed abstract class ProbeTransform<C1, C2> {
     }
 
     /**
-     * Create a coordinate transform based on the {@code implant}. Do not consider implant reference.
+     * Create a coordinate transform based on the {@code implant}.
      *
-     * @param implant
-     * @return
+     * @param implant an implant coordinate
+     * @return a transformation
+     * @throws IllegalArgumentException {@code implant} does not reference to global anatomical space,
+     *                                  which means  {@link ImplantCoordinate#reference} is not {@code null}.
      */
     public static ProbeTransform<ProbeCoordinate, Coordinate> create(ImplantCoordinate implant) {
+        if (implant.reference() != null) throw new IllegalArgumentException("not reference to global");
         var a = new Point3D(implant.ap(), implant.dv(), implant.ml());
         var t = new Affine();
         t.appendTranslation(implant.ap(), implant.dv() + implant.depth(), implant.ml());
@@ -304,10 +423,30 @@ public sealed abstract class ProbeTransform<C1, C2> {
         return create(t);
     }
 
+    /**
+     * Create transformation from {@code source} to {@code target} with given fixed {@code transform}.
+     *
+     * @param source    source domain
+     * @param target    target domain
+     * @param transform a transform
+     * @param <C1>      coordinate in source domain
+     * @param <C2>      coordinate in target domain
+     * @return a transformation
+     */
     public static <C1, C2> ProbeTransform<C1, C2> create(Domain<C1> source, Domain<C2> target, Affine transform) {
         return new FixedTransform<>(source, target, transform);
     }
 
+    /**
+     * Create transformation from {@code source} to {@code target} with given dynamic {@code transform}.
+     *
+     * @param source    source domain
+     * @param target    target domain
+     * @param transform a transform supplier.
+     * @param <C1>      coordinate in source domain
+     * @param <C2>      coordinate in target domain
+     * @return a transformation
+     */
     public static <C1, C2> ProbeTransform<C1, C2> create(Domain<C1> source, Domain<C2> target, Supplier<Affine> transform) {
         return new DynamicTransform<>(source, target, transform, false);
     }
@@ -348,13 +487,13 @@ public sealed abstract class ProbeTransform<C1, C2> {
         }
 
         public ProbeTransform<C2, C1> inverted() {
-            return new FixedTransform<>(d2, d1, inverse, transform);
+            return new FixedTransform<>(target, source, inverse, transform);
         }
 
         public <C3> ProbeTransform<C1, C3> then(Domain<C3> domain, Affine transform) {
             var t = new Affine(transform);
             t.prepend(transform);
-            return new FixedTransform<>(this.d1, domain, t);
+            return new FixedTransform<>(this.source, domain, t);
         }
 
         public <C3> ProbeTransform<C1, C3> then(ProbeTransform<C2, C3> transform) {
@@ -362,7 +501,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
             if (transform instanceof ProbeTransform.FixedTransform<C2, C3> f) {
                 var t = new Affine(this.transform);
                 t.prepend(f.transform());
-                return new FixedTransform<>(this.d1, transform.d2, t);
+                return new FixedTransform<>(this.source, transform.target, t);
             } else if (transform instanceof ProbeTransform.ComposedTransform<C2, ?, C3> f) {
                 return then(f);
             } else {
@@ -410,7 +549,7 @@ public sealed abstract class ProbeTransform<C1, C2> {
         }
 
         public ProbeTransform<C2, C1> inverted() {
-            return new DynamicTransform<>(d2, d1, transform, !inverted);
+            return new DynamicTransform<>(target, source, transform, !inverted);
         }
 
         @Override

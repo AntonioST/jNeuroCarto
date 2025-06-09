@@ -12,9 +12,12 @@ import io.ast.jneurocarto.core.blueprint.Blueprint;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
-@ElectrodeSelector.Selector("weaker")
 @RequestChannelmap(probe = NpxProbeDescription.class)
 public class WeakerElectrodeSelector implements ElectrodeSelector {
+    @Override
+    public String name() {
+        return "weaker";
+    }
 
     @Override
     public <T> T select(Blueprint<T> blueprint) {
