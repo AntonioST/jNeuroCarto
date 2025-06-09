@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.javafx.script;
 
 
+import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,8 +49,9 @@ public sealed interface PyValue {
         return switch (object) {
             case null -> None;
             case boolean b -> b ? True : False;
-            case int i -> new PyInt(i);
-//            case long i -> new PyInt(i);
+            case int i -> new PyInt32(i);
+            case long i -> new PyInt64(i);
+            case BigInteger i -> new PyIntBig(i);
             case double f -> new PyFloat(f);
             case String s -> new PyStr(s);
             case List<?> list -> new PyList(list.stream().map(PyValue::valueOf).toList());
@@ -100,12 +102,148 @@ public sealed interface PyValue {
 
     /**
      * represent Python {@code int} type.
+     */
+    sealed interface PyInt extends PyValue {
+        /**
+         * {@return is it a zero value}
+         */
+        PyBool asBool();
+
+        /**
+         * try cast to java int.
+         *
+         * @return int  value
+         * @throws ArithmeticException if value over int domain
+         */
+        int toInt();
+
+        /**
+         * try cast to java long.
+         *
+         * @return long  value
+         * @throws ArithmeticException if value over long domain.
+         */
+        long toLong();
+
+        /**
+         * cast to java double.
+         *
+         * @return double value
+         */
+        double toDouble();
+
+        /**
+         * cast to {@link BigInteger}.
+         *
+         * @return value
+         */
+        BigInteger toBigInteger();
+    }
+
+    /**
+     * represent Python {@code int} type.
      *
      * @param value int value.
      */
-    record PyInt(int value) implements PyValue {
+    record PyInt32(int value) implements PyInt {
+        @Override
         public PyBool asBool() {
             return value == 0 ? PyValue.False : PyValue.True;
+        }
+
+        @Override
+        public int toInt() {
+            return value;
+        }
+
+        @Override
+        public long toLong() {
+            return value;
+        }
+
+        @Override
+        public double toDouble() {
+            return value;
+        }
+
+        @Override
+        public BigInteger toBigInteger() {
+            return BigInteger.valueOf(value);
+        }
+
+        @Override
+        public String toString() {
+            return "int(" + value + ")";
+        }
+    }
+
+    /**
+     * represent Python {@code int} type.
+     *
+     * @param value long value.
+     */
+    record PyInt64(long value) implements PyInt {
+        @Override
+        public PyBool asBool() {
+            return value == 0 ? PyValue.False : PyValue.True;
+        }
+
+        @Override
+        public int toInt() {
+            if (value instanceof int ret) return ret;
+            throw new ArithmeticException("cannot cast to int");
+        }
+
+        @Override
+        public long toLong() {
+            return value;
+        }
+
+        @Override
+        public double toDouble() {
+            return value;
+        }
+
+        @Override
+        public BigInteger toBigInteger() {
+            return BigInteger.valueOf(value);
+        }
+
+        @Override
+        public String toString() {
+            return "int(" + value + ")";
+        }
+    }
+
+    /**
+     * represent Python {@code int} type.
+     *
+     * @param value BigInteger value.
+     */
+    record PyIntBig(BigInteger value) implements PyInt {
+        @Override
+        public PyBool asBool() {
+            return value.compareTo(BigInteger.ZERO) == 0 ? PyValue.False : PyValue.True;
+        }
+
+        @Override
+        public int toInt() {
+            return value.intValueExact();
+        }
+
+        @Override
+        public long toLong() {
+            return value.longValueExact();
+        }
+
+        @Override
+        public double toDouble() {
+            return value.doubleValue();
+        }
+
+        @Override
+        public BigInteger toBigInteger() {
+            return value;
         }
 
         @Override
@@ -182,10 +320,10 @@ public sealed interface PyValue {
          *
          * @return a list of {@code (int, T)}
          */
-        default List<PyTuple2<PyInt, PyValue>> enumerate() {
+        default List<PyTuple2<PyInt32, PyValue>> enumerate() {
             var iter = iter();
             return IntStream.range(0, iter.size())
-                .mapToObj(i -> new PyTuple2<>(new PyInt(i), iter.get(i)))
+                .mapToObj(i -> new PyTuple2<>(new PyInt32(i), iter.get(i)))
                 .toList();
         }
 
@@ -200,7 +338,7 @@ public sealed interface PyValue {
             var size = elements.size();
             var ret = new int[size];
             for (int i = 0; i < size; i++) {
-                if (elements.get(i) instanceof PyInt(int value)) {
+                if (elements.get(i) instanceof PyInt32(int value)) {
                     ret[i] = value;
                 } else {
                     throw new RuntimeException("not a python int " + rawTypeStr());
@@ -221,7 +359,9 @@ public sealed interface PyValue {
             var ret = new double[size];
             for (int i = 0; i < size; i++) {
                 switch (elements.get(i)) {
-                case PyInt(var value) -> ret[i] = value;
+                case PyInt32(var value) -> ret[i] = value;
+                case PyInt64(var value) -> ret[i] = value;
+                case PyIntBig(var value) -> ret[i] = value.doubleValue();
                 case PyFloat(var value) -> ret[i] = value;
                 default -> throw new RuntimeException("not a python float " + rawTypeStr());
                 }

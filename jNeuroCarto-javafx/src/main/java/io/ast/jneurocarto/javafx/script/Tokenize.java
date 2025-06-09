@@ -184,7 +184,12 @@ public class Tokenize {
 
         var content = line.substring(i, x);
         try {
-            return new PyValue.PyInt(Integer.parseInt(content));
+            var value = Long.parseLong(content);
+            if (value instanceof int intValue) {
+                return new PyValue.PyInt32(intValue);
+            } else {
+                return new PyValue.PyInt64(value);
+            }
         } catch (NumberFormatException e) {
         }
         try {

@@ -92,9 +92,9 @@ public final class NpxBlueprintScripts {
                         return new AllShank();
                     }
                     throw new RuntimeException();
-                case PyValue.PyTuple1(PyValue.PyInt(int shank)):
+                case PyValue.PyTuple1(PyValue.PyInt32(int shank)):
                     return new OneShank(shank);
-                case PyValue.PyTuple2(PyValue.PyInt(int s1), PyValue.PyInt(int s2)):
+                case PyValue.PyTuple2(PyValue.PyInt32(int s1), PyValue.PyInt32(int s2)):
                     return new TwoShank(s1, s2);
                 default:
                     throw new RuntimeException();
@@ -313,7 +313,7 @@ public final class NpxBlueprintScripts {
     ) throws PluginNotLoadException {
         String name;
 
-        if (region instanceof PyValue.PyInt(var id)) {
+        if (region instanceof PyValue.PyInt32(var id)) {
             name = bp.atlasGetRegion(id);
             if (name == null) throw new RuntimeException("structure with id " + id + " not found.");
         } else if (region instanceof PyValue.PyStr(var value)) {

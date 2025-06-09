@@ -511,13 +511,19 @@ public final class BlueprintScriptHandles {
             };
         } else if (target == int.class || target == Integer.class) {
             return switch (value) {
-                case PyValue.PyInt(var ret) -> ret;
+                case PyValue.PyInt ret -> ret.toInt();
                 case PyValue.PyNone _ when target == Integer.class -> null;
                 case null, default -> throwCCE(parameter, token, "int");
             };
+        } else if (target == long.class || target == Long.class) {
+            return switch (value) {
+                case PyValue.PyInt ret -> ret.toLong();
+                case PyValue.PyNone _ when target == Long.class -> null;
+                case null, default -> throwCCE(parameter, token, "long");
+            };
         } else if (target == double.class || target == Double.class) {
             return switch (value) {
-                case PyValue.PyInt(var ret) -> (double) ret;
+                case PyValue.PyInt ret -> ret.toDouble();
                 case PyValue.PyFloat(double ret) -> ret;
                 case PyValue.PyNone _ when target == Double.class -> null;
                 case null, default -> throwCCE(parameter, token, "double");
@@ -560,7 +566,7 @@ public final class BlueprintScriptHandles {
             };
         } else if (target.isEnum()) {
             return switch (value) {
-                case PyValue.PyInt(int ret) -> target.getEnumConstants()[ret];
+                case PyValue.PyInt32(int ret) -> target.getEnumConstants()[ret];
                 case PyValue.PyStr(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
                 case PyValue.PyToken(String ret) -> castScriptArgumentForEnum((Class<Enum>) target, ret);
                 case PyValue.PyNone _ -> null;
