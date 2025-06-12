@@ -5,6 +5,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.input.InputEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.transform.Affine;
 
 public class ChartMouseEvent extends InputEvent {
     public static final EventType<ChartMouseEvent> ANY = new EventType<>(InputEvent.ANY, "CHART_MOUSE_ANY");
@@ -27,10 +28,16 @@ public class ChartMouseEvent extends InputEvent {
      */
     public final MouseEvent mouse;
 
-    public ChartMouseEvent(EventType<ChartMouseEvent> type, Point2D point, MouseEvent e) {
+    private final Affine chartTransform;
+
+    public ChartMouseEvent(EventType<ChartMouseEvent> type,
+                           Point2D point,
+                           MouseEvent e,
+                           Affine chartTransform) {
         super(type);
         this.point = point;
         this.mouse = e;
+        this.chartTransform = chartTransform;
     }
 
     public double getChartX() {
@@ -47,6 +54,51 @@ public class ChartMouseEvent extends InputEvent {
 
     public double getMouseY() {
         return mouse.getY();
+    }
+
+    public double getMouseSceneX() {
+        return mouse.getSceneX();
+    }
+
+    public double getMouseSceneY() {
+        return mouse.getSceneY();
+    }
+
+    public double getMouseScreenX() {
+        return mouse.getScreenX();
+    }
+
+    public double getMouseScreenY() {
+        return mouse.getScreenY();
+    }
+
+    /**
+     * {@return a transformation from mouse position to chart}
+     */
+    public Affine chartTransform() {
+        return chartTransform;
+    }
+
+    /**
+     * {@return a transformation from scene position to chart}
+     */
+    public Affine chartTransformFromScene() {
+        var dx = mouse.getX() - mouse.getSceneX();
+        var dy = mouse.getY() - mouse.getSceneY();
+        var ret = new Affine(chartTransform);
+        ret.appendTranslation(dx, dy);
+        return ret;
+    }
+
+    /**
+     * {@return a transformation from screen position to chart}
+     */
+    public Affine chartTransformFromScreen() {
+        var dx = mouse.getX() - mouse.getScreenX();
+        var dy = mouse.getY() - mouse.getScreenY();
+        var ret = new Affine(chartTransform);
+        ret.appendTranslation(dx, dy);
+        return ret;
     }
 
     public MouseButton getButton() {

@@ -525,7 +525,8 @@ public class InteractionXYChart extends StackPane {
     private void fireChartMouseEvent(EventType<ChartMouseEvent> type, MouseEvent mouse) {
         if (!isDisabled()) {
             var transform = getChartTransform(getPlottingAreaFromTop());
-            var event = new ChartMouseEvent(type, transform.transform(mouse.getX(), mouse.getY()), mouse);
+            var point = transform.transform(mouse.getX(), mouse.getY());
+            var event = new ChartMouseEvent(type, point, mouse, transform);
             fireEvent(event);
         }
     }
@@ -874,67 +875,6 @@ public class InteractionXYChart extends StackPane {
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
-    /**
-     * transform a chart point to a canvas point.
-     *
-     * @param p a point in chart coordinate system
-     * @return a point in canvas coordinate system
-     */
-    public Point2D getCanvasTransform(Point2D p) {
-        return getCanvasTransform(p.getX(), p.getY());
-    }
-
-    /**
-     * transform chart point to canvas point.
-     *
-     * @param px a x position of a point in chart coordinate system
-     * @param py a y position of a point in chart coordinate system
-     * @return a point in canvas coordinate system
-     */
-    public Point2D getCanvasTransform(double px, double py) {
-        var ax = xAxis;
-        var ay = yAxis;
-        var area = getPlottingArea();
-        var w = ax.getUpperBound() - ax.getLowerBound();
-        var h = ay.getUpperBound() - ay.getLowerBound();
-
-        var mxx = area.getWidth() / w;
-        var mxy = 0;
-        var mxt = area.getMinX() - ax.getLowerBound() * area.getWidth() / w;
-        var myx = 0;
-        var myy = -area.getHeight() / h;
-        var myt = area.getMaxY() + ay.getLowerBound() * area.getHeight() / h;
-
-        var nx = mxx * px + mxy * py + mxt;
-        var ny = myx * px + myy * py + myt;
-        return new Point2D(nx, ny);
-    }
-
-    /**
-     * transform chart length to canvas length.
-     *
-     * @param vw a x-axis-directed length in chart coordinate system
-     * @param vh a y-axis-directed length in chart coordinate system
-     * @return a directed in canvas coordinate system.
-     * {@link Point2D#getX()} means x-axis-directed length; and
-     * {@link Point2D#getY()} means y-axis-directed length
-     */
-    public Point2D getCanvasTransformScaling(double vw, double vh) {
-        var ax = xAxis;
-        var ay = yAxis;
-        var area = getPlottingArea();
-        var w = ax.getUpperBound() - ax.getLowerBound();
-        var h = ay.getUpperBound() - ay.getLowerBound();
-
-        var mxx = area.getWidth() / w;
-        var mxy = 0;
-        var myx = 0;
-        var myy = -area.getHeight() / h;
-
-        var nx = mxx * vw + mxy * vh;
-        var ny = myx * vw + myy * vh;
-        return new Point2D(nx, ny);
-    }
 
     /**
      * {@return an affine transform from canvas to chart coordinate system.}
@@ -943,83 +883,6 @@ public class InteractionXYChart extends StackPane {
         return getChartTransform(getPlottingArea());
     }
 
-    /**
-     * transform a canvas point to a chart point.
-     *
-     * @param p a point in canvas coordinate system
-     * @return a point in chart coordinate system
-     */
-    public Point2D getChartTransform(Point2D p) {
-        return getChartTransform(p.getX(), p.getY());
-    }
-
-    /**
-     * transform canvas point to chart point.
-     *
-     * @param px a x position of a point in canvas coordinate system
-     * @param py a y position of a point in canvas coordinate system
-     * @return a point in chart coordinate system
-     */
-    public Point2D getChartTransform(double px, double py) {
-        return getChartTransform(px, py, getPlottingArea());
-    }
-
-    /**
-     * transform canvas length to chart length.
-     *
-     * @param vw a x-axis-directed length in canvas coordinate system
-     * @param vh a y-axis-directed length in canvas coordinate system
-     * @return a directed in chart coordinate system.
-     * {@link Point2D#getX()} means x-axis-directed length; and
-     * {@link Point2D#getY()} means y-axis-directed length
-     */
-    public Point2D getChartTransformScaling(double vw, double vh) {
-        return getChartTransformScaling(vw, vh, getPlottingArea());
-    }
-
-    /**
-     * {@return an affine transform from scene to chart coordinate system.}
-     */
-    public Affine getChartTransformFromScene() {
-        var area = chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal());
-        return getChartTransform(area);
-    }
-
-    /**
-     * transform a scene point to a chart point.
-     *
-     * @param p a point on scene
-     * @return a point in chart coordinate system
-     */
-    public Point2D getChartTransformFromScene(Point2D p) {
-        return getChartTransformFromScene(p.getX(), p.getY());
-    }
-
-    /**
-     * transform scene point to chart point.
-     *
-     * @param px a x position of a point on scene
-     * @param py a y position of a point on scene
-     * @return a point in chart coordinate system
-     */
-    public Point2D getChartTransformFromScene(double px, double py) {
-        var area = chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal());
-        return getChartTransform(px, py, area);
-    }
-
-    /**
-     * transform scene length to chart length.
-     *
-     * @param vw a x-axis-directed length on scene
-     * @param vh a y-axis-directed length on scene
-     * @return a directed in chart coordinate system.
-     * {@link Point2D#getX()} means x-axis-directed length; and
-     * {@link Point2D#getY()} means y-axis-directed length
-     */
-    public Point2D getChartTransformScalingFromScene(double vw, double vh) {
-        var area = chartPlottingArea.localToScene(chartPlottingArea.getBoundsInLocal());
-        return getChartTransformScaling(vw, vh, area);
-    }
 
     /**
      * {@return an affine transform from area's coordinate to chart coordinate system.}
@@ -1039,65 +902,6 @@ public class InteractionXYChart extends StackPane {
         return new Affine(mxx, mxy, mxt, myx, myy, myt);
     }
 
-    /**
-     * transform an area's  point to a chart point.
-     *
-     * @param p a point in area's coordinate system
-     * @return a point in chart coordinate system
-     */
-    private Point2D getChartTransform(Point2D p, Bounds area) {
-        return getChartTransformFromScene(p.getX(), p.getY());
-    }
-
-    /**
-     * transform an area's point to chart point.
-     *
-     * @param px a x position of a point in area's coordinate system
-     * @param py a y position of a point in area's coordinate system
-     * @return a point in chart coordinate system
-     */
-    public Point2D getChartTransform(double px, double py, Bounds area) {
-        var ax = xAxis;
-        var ay = yAxis;
-        var w = ax.getUpperBound() - ax.getLowerBound();
-        var h = ay.getUpperBound() - ay.getLowerBound();
-
-        var mxx = w / area.getWidth();
-        var mxy = 0;
-        var mxt = ax.getLowerBound() - area.getMinX() * w / area.getWidth();
-        var myx = 0;
-        var myy = -h / area.getHeight();
-        var myt = ay.getLowerBound() + area.getMaxY() * h / area.getHeight();
-
-        var nx = mxx * px + mxy * py + mxt;
-        var ny = myx * px + myy * py + myt;
-        return new Point2D(nx, ny);
-    }
-
-    /**
-     * transform area's length to chart length.
-     *
-     * @param vw a x-axis-directed length in area's coordinate system
-     * @param vh a y-axis-directed length in area's coordinate system
-     * @return a directed in chart coordinate system.
-     * {@link Point2D#getX()} means x-axis-directed length; and
-     * {@link Point2D#getY()} means y-axis-directed length
-     */
-    public Point2D getChartTransformScaling(double vw, double vh, Bounds area) {
-        var ax = xAxis;
-        var ay = yAxis;
-        var w = ax.getUpperBound() - ax.getLowerBound();
-        var h = ay.getUpperBound() - ay.getLowerBound();
-
-        var mxx = w / area.getWidth();
-        var mxy = 0;
-        var myx = 0;
-        var myy = -h / area.getHeight();
-
-        var nx = mxx * vw + mxy * vh;
-        var ny = myx * vw + myy * vh;
-        return new Point2D(nx, ny);
-    }
 
     /**
      * Get bounds of reset/default {@link AxesBounds}.

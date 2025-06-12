@@ -1,13 +1,13 @@
 package io.ast.jneurocarto.javafx.chart.cli;
 
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
 import io.ast.jneurocarto.javafx.chart.colormap.Normalize;
 import io.ast.jneurocarto.javafx.chart.data.XYPath;
+import io.ast.jneurocarto.javafx.chart.event.ChartMouseEvent;
 import picocli.CommandLine;
 
 @CommandLine.Command(
@@ -38,7 +38,7 @@ public class ClickLines implements Main.Content, Runnable {
     @Override
     public void setup(InteractionXYChart chart) {
         this.chart = chart;
-        chart.addEventHandler(MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
+        chart.addEventHandler(ChartMouseEvent.CHART_MOUSE_CLICKED, this::onMouseClicked);
 
         painter = chart.getPlotting();
         path = painter.lines()
@@ -49,13 +49,12 @@ public class ClickLines implements Main.Content, Runnable {
             .graphics();
     }
 
-    private void onMouseClicked(MouseEvent e) {
+    private void onMouseClicked(ChartMouseEvent e) {
         if (e.getButton() == MouseButton.PRIMARY) {
             if (e.getClickCount() >= 2) {
                 chart.resetAxesBoundaries();
             } else {
-                var p = chart.getChartTransformFromScene(e.getSceneX(), e.getSceneY());
-                path.addData(p, Math.random());
+                path.addData(e.point, Math.random());
                 painter.repaint();
             }
         }
