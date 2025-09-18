@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 import javafx.scene.layout.VBox;
 
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
+import io.ast.jneurocarto.javafx.chart.cli.Main;
 import io.ast.jneurocarto.javafx.utils.AutoCompleteTextField;
 import picocli.CommandLine;
 
@@ -15,7 +16,7 @@ import picocli.CommandLine;
     mixinStandardHelpOptions = true,
     description = "demo complete text field"
 )
-public class Complete implements Example.Content, Runnable {
+public class Complete implements Main.Content, Runnable {
 
     @CommandLine.Option(names = "--directory",
         description = "only allow directory")
@@ -42,7 +43,7 @@ public class Complete implements Example.Content, Runnable {
     boolean validate;
 
     @CommandLine.ParentCommand
-    public Example parent;
+    public Main parent;
 
     @Override
     public void run() {

@@ -41,17 +41,18 @@ public class Main implements Runnable {
         }
     }
 
-    private static CommandLine parser;
+    @CommandLine.Spec
+    private CommandLine.Model.CommandSpec spec;
 
     public static void main(String[] args) {
-        parser = new CommandLine(new Main());
+        var parser = new CommandLine(new Main());
         parser.setCaseInsensitiveEnumValuesAllowed(true);
         parser.execute(args);
     }
 
     @Override
     public void run() {
-        parser.usage(System.out);
+        spec.commandLine().usage(System.out);
     }
 
     public void launch(Content app) {

@@ -73,4 +73,12 @@ public interface ChartMouseHoverHandler {
         chart.addEventHandler(ChartMouseEvent.CHART_MOUSE_MOVED, impl);
         return impl;
     }
+
+    static void removeChartMouseHoverHandler(InteractionXYChart chart, EventHandler<ChartMouseEvent> handler) {
+        if (handler.getClass().getName().equals("io.ast.jneurocarto.javafx.chart.event.ChartMouseHoverHandler$1ChartMouseHoverHandlerImpl")) {
+            chart.removeEventHandler(ChartMouseEvent.CHART_MOUSE_MOVED, handler);
+        } else {
+            throw new RuntimeException("Not the EventHandler generated from setupChartMouseHoverHandler()");
+        }
+    }
 }

@@ -338,8 +338,8 @@ public sealed interface PyValue {
             var size = elements.size();
             var ret = new int[size];
             for (int i = 0; i < size; i++) {
-                if (elements.get(i) instanceof PyInt32(int value)) {
-                    ret[i] = value;
+                if (elements.get(i) instanceof PyInt pi) {
+                    ret[i] = pi.toInt();
                 } else {
                     throw new RuntimeException("not a python int " + rawTypeStr());
                 }
@@ -359,9 +359,7 @@ public sealed interface PyValue {
             var ret = new double[size];
             for (int i = 0; i < size; i++) {
                 switch (elements.get(i)) {
-                case PyInt32(var value) -> ret[i] = value;
-                case PyInt64(var value) -> ret[i] = value;
-                case PyIntBig(var value) -> ret[i] = value.doubleValue();
+                case PyInt pi -> ret[i] = pi.toDouble();
                 case PyFloat(var value) -> ret[i] = value;
                 default -> throw new RuntimeException("not a python float " + rawTypeStr());
                 }
@@ -563,7 +561,6 @@ public sealed interface PyValue {
         public List<PyValue> iter() {
             return elements;
         }
-
 
         @Override
         public String toString() {

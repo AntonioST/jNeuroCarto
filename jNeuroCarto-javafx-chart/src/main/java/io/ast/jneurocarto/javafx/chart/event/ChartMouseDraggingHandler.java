@@ -44,5 +44,16 @@ public interface ChartMouseDraggingHandler {
         return impl;
     }
 
+    static void removeChartMouseDraggingHandler(InteractionXYChart chart,
+                                                EventHandler<ChartMouseEvent> handler) {
+        if (handler.getClass().getName().equals("io.ast.jneurocarto.javafx.chart.event.ChartMouseDraggingHandler$1ChartMouseDraggingHandlerImpl")) {
+            chart.removeEventHandler(ChartMouseEvent.CHART_MOUSE_PRESSED, handler);
+            chart.removeEventHandler(ChartMouseEvent.CHART_MOUSE_DRAGGED, handler);
+            chart.removeEventHandler(ChartMouseEvent.CHART_MOUSE_RELEASED, handler);
+        } else {
+            throw new RuntimeException("Not the EventHandler generated from setupChartMouseDraggingHandler()");
+        }
+    }
+
 
 }

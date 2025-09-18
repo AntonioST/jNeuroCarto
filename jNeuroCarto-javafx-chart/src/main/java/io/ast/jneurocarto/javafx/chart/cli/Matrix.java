@@ -26,8 +26,8 @@ import picocli.CommandLine;
 )
 public class Matrix implements Main.Content, Runnable {
 
-    @CommandLine.Option(names = "--cmap", defaultValue = "jet",
-        description = "colormap")
+    @CommandLine.Option(names = "--cmap", paramLabel = "CMAP", defaultValue = "jet",
+        description = "colormap. default: ${DEFAULT-VALUE}")
     String colormap;
 
     @CommandLine.Option(names = {"-s", "--shape"}, arity = "1", paramLabel = "[[S,]R,]C", required = true,

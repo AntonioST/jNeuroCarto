@@ -13,12 +13,12 @@ import picocli.CommandLine;
 )
 public class Colorbar implements Main.Content, Runnable {
 
-    @CommandLine.Parameters(index = "0", defaultValue = "jet",
-        description = "colormap")
+    @CommandLine.Parameters(index = "0", paramLabel = "CMAP", defaultValue = "jet",
+        description = "colormap. default: ${DEFAULT-VALUE}")
     String colormap;
 
-    @CommandLine.Parameters(index = "1", defaultValue = "25",
-        description = "colormap N")
+    @CommandLine.Parameters(index = "1", paramLabel = "N", defaultValue = "25",
+        description = "colormap N. default: ${DEFAULT-VALUE}")
     int n;
 
     @CommandLine.ParentCommand

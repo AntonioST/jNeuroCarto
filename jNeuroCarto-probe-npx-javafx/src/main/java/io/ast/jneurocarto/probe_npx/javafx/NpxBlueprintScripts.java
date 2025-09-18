@@ -26,7 +26,7 @@ public final class NpxBlueprintScripts {
         Make a block channelmap for 4-shank Neuropixels probe.
         """)
     @RequestChannelmap(code = "NP24")
-    public void newNpx24Singleshank(
+    public void newNpx24SingleShank(
         BlueprintAppToolkit<ChannelMap> bp,
         @ScriptParameter(value = "shank", defaultValue = "0",
             description = "on which shank") int shank,
@@ -49,23 +49,15 @@ public final class NpxBlueprintScripts {
     public sealed interface ShankOrSelect {
         record OneShank(int shank) implements ShankOrSelect {
             public OneShank {
-                if (shank < 0 || shank >= 4) {
-                    throw new IllegalArgumentException();
-                }
+                if (shank < 0 || shank >= 4) throw new IllegalArgumentException();
             }
         }
 
         record TwoShank(int s1, int s2) implements ShankOrSelect {
             public TwoShank {
-                if (s1 < 0 || s1 >= 4) {
-                    throw new IllegalArgumentException();
-                }
-                if (s2 < 0 || s2 >= 4) {
-                    throw new IllegalArgumentException();
-                }
-                if (s1 == s2) {
-                    throw new IllegalArgumentException();
-                }
+                if (s1 < 0 || s1 >= 4) throw new IllegalArgumentException();
+                if (s2 < 0 || s2 >= 4) throw new IllegalArgumentException();
+                if (s1 == s2) throw new IllegalArgumentException();
             }
         }
 

@@ -1484,7 +1484,7 @@ public class Application<T> {
 
     private static final int[] GRIDDED_COMPONENT_WIDTH = {290, 140, 90, 30};
 
-    private <T, N extends Region> List<N> addAllIntoGridPane(GridPane layout, int column, List<T> data, BiFunction<Integer, T, N> factory) {
+    private static <T, N extends Region> List<N> addAllIntoGridPane(GridPane layout, int column, List<T> data, BiFunction<Integer, T, N> factory) {
         if (column < 1) throw new IllegalArgumentException();
 
         var ret = new ArrayList<N>();

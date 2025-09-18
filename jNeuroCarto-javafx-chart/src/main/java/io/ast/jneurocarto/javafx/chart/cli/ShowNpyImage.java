@@ -28,8 +28,8 @@ import picocli.CommandLine;
 )
 public class ShowNpyImage implements Main.Content, Runnable {
 
-    @CommandLine.Option(names = "--cmap", defaultValue = "jet",
-        description = "colormap")
+    @CommandLine.Option(names = "--cmap", paramLabel = "CMAP", defaultValue = "jet",
+        description = "colormap. default: ${DEFAULT-VALUE}")
     String colormap;
 
     @CommandLine.Option(names = "--mask")
@@ -73,6 +73,7 @@ public class ShowNpyImage implements Main.Content, Runnable {
     }
 
     private void processData() {
+        // annotations belongs to hippocampus formation
         var HPF = new int[]{
             484682470, 139, 843, 909, 1037, 526, 463, 10703, 10704, 19, 20, 726, 982, 918, 727, 664, 28, 926, 543, 1121,
             423, 743, 484682508, 52, 822, 502, 375, 1080, 632, 1084, 589508447, 382

@@ -19,7 +19,7 @@ public class Bar implements Main.Content, Runnable {
         description = "bar direction. could be ${COMPLETION-CANDIDATES}")
     XYBar.Orientation orientation;
 
-    @CommandLine.Option(names = "--color", defaultValue = "blue",
+    @CommandLine.Option(names = "--color", paramLabel = "COLOR", defaultValue = "blue",
         description = "bar color. If stack > 1, use as colormap")
     String color;
 
@@ -27,7 +27,7 @@ public class Bar implements Main.Content, Runnable {
         description = "flip bar orientation")
     boolean flip;
 
-    @CommandLine.Option(names = "--stack", defaultValue = "1",
+    @CommandLine.Option(names = "--stack", paramLabel = "NUM", defaultValue = "1",
         description = "stack bars")
     int stack;
 

@@ -11,6 +11,7 @@ import javafx.scene.text.TextAlignment;
 
 import io.ast.jneurocarto.javafx.chart.InteractionXYChart;
 import io.ast.jneurocarto.javafx.chart.InteractionXYPainter;
+import io.ast.jneurocarto.javafx.chart.cli.Main;
 import io.ast.jneurocarto.javafx.chart.data.XY;
 import io.ast.jneurocarto.javafx.chart.data.XYText;
 import io.ast.jneurocarto.javafx.chart.event.ChartMouseDraggingHandler;
@@ -25,11 +26,10 @@ import picocli.CommandLine;
     mixinStandardHelpOptions = true,
     description = "show flash text"
 )
-public class FlashText implements Example.Content, Runnable, ChartMouseDraggingHandler {
-    @CommandLine.Option(names = {"-h", "-?", "--help"}, usageHelp = true)
-    public boolean help;
+public class FlashText implements Main.Content, Runnable, ChartMouseDraggingHandler {
 
-    @CommandLine.Option(names = {"-s", "--size"}, defaultValue = "40")
+    @CommandLine.Option(names = {"-s", "--size"}, paramLabel = "SIZE", defaultValue = "40",
+        description = "font size. default: ${DEFAULT-VALUE}")
     public int fontSize;
 
     @CommandLine.Option(names = {"-sa", "--show-anchor"})
@@ -44,11 +44,11 @@ public class FlashText implements Example.Content, Runnable, ChartMouseDraggingH
     public boolean useEffect;
 
     @CommandLine.Option(names = {"-n", "--newline"},
-        description = "white space as newline")
+        description = "treat white space as newline character")
     public boolean newline;
 
     @CommandLine.ParentCommand
-    public Example parent;
+    public Main parent;
 
     private FlashStringBuffer buffer;
     private InteractionXYPainter painter;

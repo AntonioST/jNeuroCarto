@@ -35,7 +35,6 @@ public class Hover implements Main.Content, Runnable, ChartMouseHoverHandler {
     private InteractionXYPainter painter;
     private XYMarker markers;
 
-
     @Override
     public void setup(InteractionXYChart chart) {
         this.chart = chart;

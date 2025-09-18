@@ -68,7 +68,7 @@ public final class CartoConfig implements Runnable {
     public boolean debug = !System.getProperty("io.ast.jneurocarto.debug", "").isEmpty();
 
     public static void main(String[] args) {
-        System.err.println("It is an test main.");
+        System.err.println("It is a test main.");
         System.exit(new CommandLine(new CartoConfig()).execute(args));
     }
 
