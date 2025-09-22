@@ -35,14 +35,14 @@
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <slf4j.version>2.0.14</slf4j.version>
-        <javafx.version>24.0.1</javafx.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <javafx.version>25</javafx.version>
         <picocli.version>4.7.7</picocli.version>
-        <jackson.version>2.18.3</jackson.version>
-        <kotlin.version>2.1.21</kotlin.version>
-        <vaadin.version>24.7.3</vaadin.version>
-        <logback.version>1.5.18</logback.version>
-        <spring-boot.version>3.4.5</spring-boot.version>
+        <jackson.version>2.20.0</jackson.version>
+        <kotlin.version>2.2.20</kotlin.version>
+        <!-- <vaadin.version>24.7.3</vaadin.version>-->
+        <!-- <logback.version>1.5.18</logback.version>-->
+        <!-- <spring-boot.version>3.4.5</spring-boot.version>-->
         <junit.version>5.12.2</junit.version>
         <jneurocarto.version>0.0</jneurocarto.version>
     </properties>
@@ -122,7 +122,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.27.1</version>
+                <version>1.28.0</version>
             </dependency>
 
             <!-- classpath/module scanner  -->
@@ -131,7 +131,7 @@
             <dependency>
                 <groupId>io.github.classgraph</groupId>
                 <artifactId>classgraph</artifactId>
-                <version>4.8.179</version>
+                <version>4.8.181</version>
             </dependency>
 
             <!-- Json -->
@@ -150,7 +150,8 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
+                <!-- <version>${jackson.version}</version>-->
+                <version>2.20</version>  <!--not 2.20.0-->
             </dependency>
 
             <!-- CSV -->
@@ -159,7 +160,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
-                <version>1.14.0</version>
+                <version>1.14.1</version>
             </dependency>
 
             <!-- Kotlin -->
@@ -265,7 +266,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.5.4</version>
                     <configuration>
                         <argLine>--enable-preview</argLine>
                     </configuration>
