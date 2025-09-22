@@ -18,7 +18,6 @@ import io.ast.jneurocarto.javafx.chart.event.DataSelectEvent;
 import io.ast.jneurocarto.javafx.utils.Result;
 
 @NullMarked
-@SuppressWarnings("preview")
 public class ScriptThread implements Runnable {
     private static final ScopedValue<ScriptThread> CURRENT = ScopedValue.newInstance();
 
