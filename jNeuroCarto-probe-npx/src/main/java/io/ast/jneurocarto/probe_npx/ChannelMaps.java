@@ -2,8 +2,14 @@ package io.ast.jneurocarto.probe_npx;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.StructuredTaskScope;
 
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -368,27 +374,60 @@ public final class ChannelMaps {
             }
         }
 
-        try (var scope = new AwaitAll<Result>(parallel)) {
-            var desp = new NpxProbeDescription();
-            var bp = new Blueprint<>(desp, chmap, blueprint);
+        var desp = new NpxProbeDescription();
+        var bp = new Blueprint<>(desp, chmap, blueprint);
+        var results = repeatSampleInParallel(sampleTimes, parallel, () -> {
+            var newMap = selector.select(new Blueprint<>(bp));
+            if (desp.validateChannelmap(newMap)) {
+                var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
+                return new Result(newMap, efficiency);
+            } else {
+                return new Result(null, 0);
+            }
+        });
+
+        if (results == null) {
+            return null;
+        }
+
+        bp.from(blueprint);
+        var ret = new Result(chmap, channelEfficiency(bp).efficiency());
+        return results.stream().reduce(ret, Result::max).result;
+    }
+
+    @SuppressWarnings("preview")
+    private static <T> @Nullable List<T> repeatSampleInParallel(int sampleTimes, int parallel, Callable<T> callable) {
+        int maxThreadCount;
+        if (parallel < 0) {
+            maxThreadCount = Runtime.getRuntime().availableProcessors();
+        } else if (parallel == 0) {
+            maxThreadCount = 1;
+        } else {
+            maxThreadCount = parallel;
+        }
+        Semaphore semaphore = new Semaphore(maxThreadCount);
+
+        try (var scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.awaitAll())) {
+            var results = new ArrayList<StructuredTaskScope.Subtask<T>>(sampleTimes);
 
             for (int i = 0; i < sampleTimes; i++) {
-                scope.fork(() -> {
-                    var newMap = selector.select(new Blueprint<>(bp));
-                    if (desp.validateChannelmap(newMap)) {
-                        var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
-                        return new Result(newMap, efficiency);
-                    } else {
-                        return new Result(null, 0);
+                var task = scope.fork(() -> {
+                    semaphore.acquireUninterruptibly();
+                    try {
+                        return callable.call();
+                    } finally {
+                        semaphore.release();
                     }
                 });
+                results.add(task);
             }
 
-            bp.from(blueprint);
-            var ret = new Result(chmap, channelEfficiency(bp).efficiency());
-            return scope.join().result().stream()
-              .reduce(ret, Result::max)
-              .result;
+            scope.join();
+
+            return results.stream()
+                .filter(it -> it.state() == StructuredTaskScope.Subtask.State.SUCCESS)
+                .map(StructuredTaskScope.Subtask::get)
+                .toList();
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -396,64 +435,11 @@ public final class ChannelMaps {
         }
     }
 
-    /**
-     * @param <T> task return type.
-     * @deprecated it is preview feature that it will be deprecated at java 25.
-     */
-    @SuppressWarnings("preview")
-    @Deprecated
-    private static class AwaitAll<T> extends StructuredTaskScope<T> {
-        private final Semaphore semaphore;
-        private final Queue<T> result = new LinkedTransferQueue<>();
-
-        AwaitAll(int parallel) {
-            int maxThreadCount;
-            if (parallel < 0) {
-                maxThreadCount = Runtime.getRuntime().availableProcessors();
-            } else if (parallel == 0) {
-                maxThreadCount = 1;
-            } else {
-                maxThreadCount = parallel;
-            }
-            semaphore = new Semaphore(maxThreadCount);
-        }
-
-        @Override
-        public <U extends T> Subtask<U> fork(Callable<? extends U> task) {
-            return super.fork(() -> {
-                semaphore.acquireUninterruptibly();
-                try {
-                    return task.call();
-                } finally {
-                    semaphore.release();
-                }
-            });
-        }
-
-        @Override
-        protected void handleComplete(Subtask<? extends T> subtask) {
-            if (subtask.state() == Subtask.State.SUCCESS) {
-                result.add(subtask.get());
-            }
-        }
-
-        @Override
-        public AwaitAll<T> join() throws InterruptedException {
-            super.join();
-            return this;
-        }
-
-        public List<T> result() {
-            return new ArrayList<>(result);
-        }
-    }
-
-
     public record ProbabilityResult(
-      int sampleTimes,
-      int[] summation,
-      int complete,
-      double[] efficiency
+        int sampleTimes,
+        int[] summation,
+        int complete,
+        double[] efficiency
     ) {
 
         public double[] probability() {
@@ -513,31 +499,28 @@ public final class ChannelMaps {
             }
         }
 
-        try (var scope = new AwaitAll<Result>(parallel)) {
-            var desp = new NpxProbeDescription();
-            var bp = new Blueprint<>(desp, chmap, blueprint);
-            var tool = new BlueprintToolkit<>(bp);
+        var desp = new NpxProbeDescription();
+        var bp = new Blueprint<>(desp, chmap, blueprint);
+        var tool = new BlueprintToolkit<>(bp);
+        var results = repeatSampleInParallel(sampleTimes, parallel, () -> {
+            var newMap = selector.select(new Blueprint<>(bp));
+            var index = tool.index(newMap);
+            var complete = desp.validateChannelmap(newMap);
+            var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
+            return new Result(index, complete, efficiency);
+        });
 
-            scope.fork(() -> {
-                var newMap = selector.select(new Blueprint<>(bp));
-                var index = tool.index(newMap);
-                var complete = desp.validateChannelmap(newMap);
-                var efficiency = channelEfficiency(new Blueprint<>(bp, newMap)).efficiency();
-                return new Result(index, complete, efficiency);
-            });
-
-            var results = scope.join().result();
-            var summation = new int[tool.length()];
-            for (var result : results) {
-                result.sum(summation);
-            }
-            var complete = (int) results.stream().filter(Result::complete).count();
-            var efficiency = results.stream().mapToDouble(Result::efficiency).toArray();
-            return new ProbabilityResult(sampleTimes, summation, complete, efficiency);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        if (results == null) {
             return null;
         }
+
+        var summation = new int[tool.length()];
+        for (var result : results) {
+            result.sum(summation);
+        }
+        var complete = (int) results.stream().filter(Result::complete).count();
+        var efficiency = results.stream().mapToDouble(Result::efficiency).toArray();
+        return new ProbabilityResult(sampleTimes, summation, complete, efficiency);
     }
 
     public static double[][] calculateElectrodeDensity(ChannelMap chmap, double dy, double smooth) {
@@ -736,8 +719,8 @@ public final class ChannelMaps {
             int rr = r;
             if (checkTruncate) {
                 checkTruncate = bodies.stream()
-                  .map(it -> getRemappedRowContent(it, rr))
-                  .allMatch(pus::isBlank);
+                    .map(it -> getRemappedRowContent(it, rr))
+                    .allMatch(pus::isBlank);
                 if (checkTruncate) continue;
             }
 
@@ -772,34 +755,34 @@ public final class ChannelMaps {
 
     enum PrintProbeUnicodeSymbols {
         S22(2, 2, '▕', '▏', " ╹ ", new char[]{
-          // 0x02 0x08
-          // 0x01 0x04
-          ' ', '▖', '▘', '▌',
-          '▗', '▄', '▚', '▙',
-          '▝', '▞', '▀', '▛',
-          '▐', '▟', '▜', '█',
+            // 0x02 0x08
+            // 0x01 0x04
+            ' ', '▖', '▘', '▌',
+            '▗', '▄', '▚', '▙',
+            '▝', '▞', '▀', '▛',
+            '▐', '▟', '▜', '█',
         }),
         S42(4, 2, ' ', ' ', " ╷ ", new char[]{
-          // 0x08 0x80
-          // 0x04 0x40
-          // 0x02 0x20
-          // 0x01 0x10
-          ' ', '⡀', '⠄', '⡄', '⠂', '⡂', '⠆', '⡆', '⠁', '⡁', '⠅', '⡅', '⠃', '⡃', '⠇', '⡇',
-          '⢀', '⣀', '⢄', '⣄', '⢂', '⣂', '⢆', '⣆', '⢁', '⣁', '⢅', '⣅', '⢃', '⣃', '⢇', '⣇',
-          '⠠', '⡠', '⠤', '⡤', '⠢', '⡢', '⠦', '⡦', '⠡', '⡡', '⠥', '⡥', '⠣', '⡣', '⠧', '⡧',
-          '⢠', '⣠', '⢤', '⣤', '⢢', '⣢', '⢦', '⣦', '⢡', '⣡', '⢥', '⣥', '⢣', '⣣', '⢧', '⣧',
-          '⠐', '⡐', '⠔', '⡔', '⠒', '⡒', '⠖', '⡖', '⠑', '⡑', '⠕', '⡕', '⠓', '⡓', '⠗', '⡗',
-          '⢐', '⣐', '⢔', '⣔', '⢒', '⣒', '⢖', '⣖', '⢑', '⣑', '⢕', '⣕', '⢓', '⣓', '⢗', '⣗',
-          '⠰', '⡰', '⠴', '⡴', '⠲', '⡲', '⠶', '⡶', '⠱', '⡱', '⠵', '⡵', '⠳', '⡳', '⠷', '⡷',
-          '⢰', '⣰', '⢴', '⣴', '⢲', '⣲', '⢶', '⣶', '⢱', '⣱', '⢵', '⣵', '⢳', '⣳', '⢷', '⣷',
-          '⠈', '⡈', '⠌', '⡌', '⠊', '⡊', '⠎', '⡎', '⠉', '⡉', '⠍', '⡍', '⠋', '⡋', '⠏', '⡏',
-          '⢈', '⣈', '⢌', '⣌', '⢊', '⣊', '⢎', '⣎', '⢉', '⣉', '⢍', '⣍', '⢋', '⣋', '⢏', '⣏',
-          '⠨', '⡨', '⠬', '⡬', '⠪', '⡪', '⠮', '⡮', '⠩', '⡩', '⠭', '⡭', '⠫', '⡫', '⠯', '⡯',
-          '⢨', '⣨', '⢬', '⣬', '⢪', '⣪', '⢮', '⣮', '⢩', '⣩', '⢭', '⣭', '⢫', '⣫', '⢯', '⣯',
-          '⠘', '⡘', '⠜', '⡜', '⠚', '⡚', '⠞', '⡞', '⠙', '⡙', '⠝', '⡝', '⠛', '⡛', '⠟', '⡟',
-          '⢘', '⣘', '⢜', '⣜', '⢚', '⣚', '⢞', '⣞', '⢙', '⣙', '⢝', '⣝', '⢛', '⣛', '⢟', '⣟',
-          '⠸', '⡸', '⠼', '⡼', '⠺', '⡺', '⠾', '⡾', '⠹', '⡹', '⠽', '⡽', '⠻', '⡻', '⠿', '⡿',
-          '⢸', '⣸', '⢼', '⣼', '⢺', '⣺', '⢾', '⣾', '⢹', '⣹', '⢽', '⣽', '⢻', '⣻', '⢿', '⣿'
+            // 0x08 0x80
+            // 0x04 0x40
+            // 0x02 0x20
+            // 0x01 0x10
+            ' ', '⡀', '⠄', '⡄', '⠂', '⡂', '⠆', '⡆', '⠁', '⡁', '⠅', '⡅', '⠃', '⡃', '⠇', '⡇',
+            '⢀', '⣀', '⢄', '⣄', '⢂', '⣂', '⢆', '⣆', '⢁', '⣁', '⢅', '⣅', '⢃', '⣃', '⢇', '⣇',
+            '⠠', '⡠', '⠤', '⡤', '⠢', '⡢', '⠦', '⡦', '⠡', '⡡', '⠥', '⡥', '⠣', '⡣', '⠧', '⡧',
+            '⢠', '⣠', '⢤', '⣤', '⢢', '⣢', '⢦', '⣦', '⢡', '⣡', '⢥', '⣥', '⢣', '⣣', '⢧', '⣧',
+            '⠐', '⡐', '⠔', '⡔', '⠒', '⡒', '⠖', '⡖', '⠑', '⡑', '⠕', '⡕', '⠓', '⡓', '⠗', '⡗',
+            '⢐', '⣐', '⢔', '⣔', '⢒', '⣒', '⢖', '⣖', '⢑', '⣑', '⢕', '⣕', '⢓', '⣓', '⢗', '⣗',
+            '⠰', '⡰', '⠴', '⡴', '⠲', '⡲', '⠶', '⡶', '⠱', '⡱', '⠵', '⡵', '⠳', '⡳', '⠷', '⡷',
+            '⢰', '⣰', '⢴', '⣴', '⢲', '⣲', '⢶', '⣶', '⢱', '⣱', '⢵', '⣵', '⢳', '⣳', '⢷', '⣷',
+            '⠈', '⡈', '⠌', '⡌', '⠊', '⡊', '⠎', '⡎', '⠉', '⡉', '⠍', '⡍', '⠋', '⡋', '⠏', '⡏',
+            '⢈', '⣈', '⢌', '⣌', '⢊', '⣊', '⢎', '⣎', '⢉', '⣉', '⢍', '⣍', '⢋', '⣋', '⢏', '⣏',
+            '⠨', '⡨', '⠬', '⡬', '⠪', '⡪', '⠮', '⡮', '⠩', '⡩', '⠭', '⡭', '⠫', '⡫', '⠯', '⡯',
+            '⢨', '⣨', '⢬', '⣬', '⢪', '⣪', '⢮', '⣮', '⢩', '⣩', '⢭', '⣭', '⢫', '⣫', '⢯', '⣯',
+            '⠘', '⡘', '⠜', '⡜', '⠚', '⡚', '⠞', '⡞', '⠙', '⡙', '⠝', '⡝', '⠛', '⡛', '⠟', '⡟',
+            '⢘', '⣘', '⢜', '⣜', '⢚', '⣚', '⢞', '⣞', '⢙', '⣙', '⢝', '⣝', '⢛', '⣛', '⢟', '⣟',
+            '⠸', '⡸', '⠼', '⡼', '⠺', '⡺', '⠾', '⡾', '⠹', '⡹', '⠽', '⡽', '⠻', '⡻', '⠿', '⡿',
+            '⢸', '⣸', '⢼', '⣼', '⢺', '⣺', '⢾', '⣾', '⢹', '⣹', '⢽', '⣽', '⢻', '⣻', '⢿', '⣿'
         });
 
         private final int nr;
