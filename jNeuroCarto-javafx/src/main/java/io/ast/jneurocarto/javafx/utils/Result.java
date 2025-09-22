@@ -4,7 +4,6 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public sealed interface Result<V, X extends Throwable> {
@@ -12,6 +11,14 @@ public sealed interface Result<V, X extends Throwable> {
     }
 
     record Failure<V, X extends Throwable>(X error) implements Result<V, X> {
+    }
+
+    class Void {
+        private static final Void INSTANCE = new Void();
+
+        private Void() {
+        }
+
     }
 
     static <V, X extends Throwable> Success<V, X> success(V value) {
@@ -22,10 +29,10 @@ public sealed interface Result<V, X extends Throwable> {
         return new Failure<>(error);
     }
 
-    static Result<@Nullable Void, Throwable> invoke(Runnable runnable) {
+    static Result<Void, Throwable> invoke(Runnable runnable) {
         try {
             runnable.run();
-            return success(null);
+            return success(Void.INSTANCE);
         } catch (Throwable error) {
             return fail(error);
         }

@@ -655,7 +655,6 @@ public final class ChannelMaps {
         boolean checkTruncate = truncate;
         for (int r = nr - 1; r >= 0; r--) {
             var row = body.get(r);
-            //noinspection AssignmentUsedAsCondition
             if (checkTruncate && (checkTruncate = pus.isBlank(row))) continue;
 
             for (int i = 0; i < maxNrLength - lines[r].length(); i++) out.append(' ');

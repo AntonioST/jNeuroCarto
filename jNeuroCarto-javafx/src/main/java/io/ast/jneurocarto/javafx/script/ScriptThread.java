@@ -131,7 +131,7 @@ public class ScriptThread implements Runnable {
             return Result.invoke(runnable);
         }
 
-        var ret = new AtomicReference<Result<V, Throwable>>();
+        var ret = new AtomicReference<Result<V, Throwable>>(Result.fail(new RuntimeException("not init")));
         var latch = new CountDownLatch(1);
         Platform.runLater(() -> {
             current.log.trace("{} awaitFxApplicationThread (run)", current.name());
@@ -162,7 +162,7 @@ public class ScriptThread implements Runnable {
             throw new IllegalStateException("cannot call this in Fx application thread");
         }
 
-        var selection = new AtomicReference<DataSelectEvent>();
+        var selection = new AtomicReference<>(new DataSelectEvent(null));
         var latch = new CountDownLatch(1);
 
         var keep = toolkit.listenOnSelect(e -> {
