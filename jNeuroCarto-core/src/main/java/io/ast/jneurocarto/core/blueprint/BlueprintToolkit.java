@@ -1866,8 +1866,8 @@ public class BlueprintToolkit<T> {
                 var index = clustering.indexGroup(group);
                 var s = shank[index[0]];
                 var c = blueprint[index[0]];
-                var x = Arrays.stream(index).map(i -> posx[i]).boxed().gather(MinMaxInt.intMinmax()).findFirst().get();
-                var y = Arrays.stream(index).map(i -> posy[i]).boxed().gather(MinMaxInt.intMinmax()).findFirst().get();
+                var x = Arrays.stream(index).map(i -> posx[i]).boxed().gather(MinMax.intMinmax()).findFirst().get();
+                var y = Arrays.stream(index).map(i -> posy[i]).boxed().gather(MinMax.intMinmax()).findFirst().get();
 
                 fillClusteringEdges(blueprint, new ClusteringEdges(c, s, List.of(
                     new ClusteringEdges.Corner(x.max(), y.max(), 1),

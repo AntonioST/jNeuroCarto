@@ -10,7 +10,7 @@ import javafx.scene.transform.NonInvertibleTransformException;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import io.ast.jneurocarto.core.blueprint.MinMaxInt;
+import io.ast.jneurocarto.core.blueprint.MinMax;
 import io.ast.jneurocarto.core.numpy.FlatDoubleArray;
 import io.ast.jneurocarto.core.numpy.FlatIntArray;
 
@@ -23,8 +23,8 @@ public class XYMatrix extends XYSeries {
     protected double h = 1;
 
     private int numberOfData;
-    private @Nullable MinMaxInt xr;
-    private @Nullable MinMaxInt yr;
+    private MinMax.@Nullable OfInt xr;
+    private MinMax.@Nullable OfInt yr;
     private int nx = -1;
     private int ny = -1;
 
@@ -213,12 +213,12 @@ public class XYMatrix extends XYSeries {
         return 0;
     }
 
-    private @Nullable MinMaxInt minmax(ToDoubleFunction<XY> f) {
+    private MinMax.@Nullable OfInt minmax(ToDoubleFunction<XY> f) {
         return data.stream().mapToDouble(f)
-            .mapToInt(x -> (int) x)
-            .boxed()
-            .gather(MinMaxInt.intMinmax())
-            .findFirst().orElse(null);
+          .mapToInt(x -> (int) x)
+          .boxed()
+          .gather(MinMax.intMinmax())
+          .findFirst().orElse(null);
     }
 
     @Override

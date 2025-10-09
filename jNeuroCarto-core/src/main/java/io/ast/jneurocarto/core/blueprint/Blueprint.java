@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.function.Predicate;
-import java.util.stream.Gatherer;
+import java.util.stream.Gatherers;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -130,19 +130,8 @@ public final class Blueprint<T> {
             .distinct()
             .sorted()
             .boxed()
-            .gather(Gatherer.<Integer, int[], Integer>ofSequential(
-                () -> new int[]{Integer.MIN_VALUE},
-                (state, element, downstream) -> {
-                    if (state[0] == Integer.MIN_VALUE) {
-                        state[0] = element;
-                        return true;
-                    } else {
-                        var ret = element - state[0];
-                        state[0] = element;
-                        return downstream.push(ret);
-                    }
-                }
-            )).mapToInt(it -> it)
+          .gather(Gatherers.windowSliding(2))
+          .mapToInt(it -> it.get(1) - it.get(0))
             .min()
             .orElse(0);
     }

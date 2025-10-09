@@ -16,9 +16,18 @@ public record Normalize(double lower, double upper) implements DoubleUnaryOperat
         if (!(lower <= upper)) throw new IllegalArgumentException();
     }
 
-    public Normalize(MinMax minmax) {
+    public Normalize(MinMax.OfInt minmax) {
         this(minmax.min(), minmax.max());
     }
+
+    public Normalize(MinMax.OfDouble minmax) {
+        this(minmax.min(), minmax.max());
+    }
+
+    private MinMax.OfDouble asMinmax() {
+        return new MinMax.OfDouble(lower, upper);
+    }
+
 
     public static Normalize union(Normalize[] normalizes) {
         return union(Arrays.asList(normalizes));
@@ -29,34 +38,24 @@ public record Normalize(double lower, double upper) implements DoubleUnaryOperat
     }
 
     public static Normalize union(List<Normalize> normalizes) {
-        if (normalizes.isEmpty()) throw new RuntimeException();
-        if (normalizes.size() == 1) return normalizes.get(0);
-
-        var result = normalizes.stream()
-          .map(n -> new MinMax(n.lower, n.upper))
-          .gather(MinMax.minmax())
+        return normalizes.stream()
+          .gather(MinMax.doubleMinmax(Normalize::asMinmax))
           .findFirst()
-          .get();
-
-        return new Normalize(result);
+          .map(Normalize::new)
+          .orElseThrow();
     }
 
     public static Normalize union(List<Normalize> normalizes, Normalize init) {
-        if (normalizes.isEmpty()) return init;
-
-        var stream = Stream.concat(Stream.of(init), normalizes.stream());
-        var result = stream.map(n -> new MinMax(n.lower, n.upper))
-          .gather(MinMax.minmax())
+        return Stream.concat(Stream.of(init), normalizes.stream())
+          .gather(MinMax.doubleMinmax(Normalize::asMinmax))
           .findFirst()
-          .get();
-
-        return new Normalize(result);
+          .map(Normalize::new)
+          .orElse(init);
     }
 
     public static Gatherer<Normalize, ?, Normalize> union() {
-        var toMM = Gatherer.<Normalize, MinMax>of((_, e, d) -> d.push(new MinMax(e.lower, e.upper)));
-        var toNM = Gatherer.<MinMax, Normalize>of((_, e, d) -> d.push(new Normalize(e)));
-        return toMM.andThen(MinMax.minmax()).andThen(toNM);
+        var toNM = Gatherer.<MinMax.OfDouble, Normalize>of((_, e, d) -> d.push(new Normalize(e)));
+        return MinMax.doubleMinmax(Normalize::asMinmax).andThen(toNM);
     }
 
     @Override
