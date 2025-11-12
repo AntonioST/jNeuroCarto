@@ -114,7 +114,7 @@ public class ProbeReferencePlugin implements ProbePlugin<ChannelMap> {
         }
 
         var type = chmap.type();
-        var infos = IntStream.range(0, ReferenceInfo.maxReferenceValue(type))
+        var infos = IntStream.range(0, type.nReference())
           .mapToObj(code -> ReferenceInfo.of(type, code))
           .toList();
 
@@ -130,7 +130,7 @@ public class ProbeReferencePlugin implements ProbePlugin<ChannelMap> {
             return switch (object.type()) {
                 case ReferenceInfo.ReferenceType.EXT -> "External";
                 case ReferenceInfo.ReferenceType.TIP -> "Shank: " + object.shank();
-                case ReferenceInfo.ReferenceType.ON_SHANK -> "Channel: " + object.shank() + ":" + object.channel();
+                case ReferenceInfo.ReferenceType.BANK -> "Channel: " + object.shank() + ":" + object.channel();
             };
         }
 

@@ -157,19 +157,12 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
         return type.nChannel();
     }
 
-    /**
-     * {@return number of electrode blocks}
-     */
-    public int nElectrodePerBlock() {
-        return type.nElectrodePerBlock();
-    }
-
     public int getReference() {
         return reference;
     }
 
     public void setReference(int reference) {
-        if (reference < 0 || reference >= ReferenceInfo.maxReferenceValue(type)) {
+        if (reference < 0 || reference >= type.nReference()) {
             throw new IllegalArgumentException("illegal reference value: " + reference);
         }
 

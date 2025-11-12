@@ -114,9 +114,9 @@ public final class ChannelMapUtilPlain {
             // s
             ret[0][i] = s;
             // x
-            ret[1][i] = s * ps + c * pc;
+            ret[1][i] = (int) (s * ps + c * pc);
             // y
-            ret[2][i] = pr * r;
+            ret[2][i] = (int) (pr * r);
         }
 
         return ret;
@@ -135,8 +135,8 @@ public final class ChannelMapUtilPlain {
         Arrays.fill(ret[0], shank);
 
         for (int i = 0, length = electrode.length; i < length; i++) {
-            ret[1][i] = cr[1][i] * pc + shank * ps;
-            ret[2][i] = cr[2][i] * pr;
+            ret[1][i] = (int) (cr[1][i] * pc + shank * ps);
+            ret[2][i] = (int) (cr[2][i] * pr);
         }
         return ret;
     }
@@ -167,8 +167,8 @@ public final class ChannelMapUtilPlain {
         var pr = type.spacePerRow();
 
         for (int i = 0, length = ret[0].length; i < length; i++) {
-            ret[1][i] = scr[1][i] * pc + scr[0][i] * ps;
-            ret[2][i] = scr[2][i] * pr;
+            ret[1][i] = (int) (scr[1][i] * pc + scr[0][i] * ps);
+            ret[2][i] = (int) (scr[2][i] * pr);
         }
         return ret;
     }

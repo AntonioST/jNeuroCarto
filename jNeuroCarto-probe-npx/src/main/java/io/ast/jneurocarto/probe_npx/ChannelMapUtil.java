@@ -88,7 +88,7 @@ public final class ChannelMapUtil {
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
             if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
-                ret[i] = e.column * pc + e.shank * ps;
+                ret[i] = (int) (e.column * pc + e.shank * ps);
             } else {
                 ret[i] = -1;
             }
@@ -109,7 +109,7 @@ public final class ChannelMapUtil {
         var ret = new int[map.nChannel()];
         for (int i = 0, length = ret.length; i < length; i++) {
             if (map.getChannel(i) instanceof Electrode e && (e.inUsed || includeUnused)) {
-                ret[i] = e.row * pr;
+                ret[i] = (int) (e.row * pr);
             } else {
                 ret[i] = -1;
             }
@@ -229,9 +229,9 @@ public final class ChannelMapUtil {
             // s
             ret[0][i] = s;
             // x
-            ret[1][i] = s * ps + c * pc;
+            ret[1][i] = (int) (s * ps + c * pc);
             // y
-            ret[2][i] = pr * r;
+            ret[2][i] = (int) (pr * r);
         }
 
         return ret;
@@ -262,8 +262,8 @@ public final class ChannelMapUtil {
         var cr = e2cr(type, electrode);
         return new XY(
           0,
-          cr.c() * type.spacePerColumn(),
-          cr.r() * type.spacePerRow()
+          (int) (cr.c() * type.spacePerColumn()),
+          (int) (cr.r() * type.spacePerRow())
         );
     }
 
@@ -290,8 +290,8 @@ public final class ChannelMapUtil {
         var cr = e2cr(type, electrode);
         return new XY(
           shank,
-          shank * type.spacePerShank() + cr.c() * type.spacePerColumn(),
-          cr.r() * type.spacePerRow()
+          (int) (shank * type.spacePerShank() + cr.c() * type.spacePerColumn()),
+          (int) (cr.r() * type.spacePerRow())
         );
     }
 
@@ -313,8 +313,8 @@ public final class ChannelMapUtil {
         Arrays.fill(ret[0], shank);
 
         for (int i = 0, length = electrode.length; i < length; i++) {
-            ret[1][i] = cr[1][i] * pc + shank * ps;
-            ret[2][i] = cr[2][i] * pr;
+            ret[1][i] = (int) (cr[1][i] * pc + shank * ps);
+            ret[2][i] = (int) (cr[2][i] * pr);
         }
         return ret;
     }
@@ -331,8 +331,8 @@ public final class ChannelMapUtil {
     public static XY e2xy(NpxProbeType type, int shank, int column, int row) {
         return new XY(
           shank,
-          shank * type.spacePerShank() + column * type.spacePerColumn(),
-          row * type.spacePerRow()
+          (int) (shank * type.spacePerShank() + column * type.spacePerColumn()),
+          (int) (row * type.spacePerRow())
         );
     }
 
@@ -351,8 +351,8 @@ public final class ChannelMapUtil {
         var pr = type.spacePerRow();
 
         for (int i = 0, length = ret[0].length; i < length; i++) {
-            ret[1][i] = scr[1][i] * pc + scr[0][i] * ps;
-            ret[2][i] = scr[2][i] * pr;
+            ret[1][i] = (int) (scr[1][i] * pc + scr[0][i] * ps);
+            ret[2][i] = (int) (scr[2][i] * pr);
         }
         return ret;
     }
@@ -367,8 +367,8 @@ public final class ChannelMapUtil {
     public static XY e2xy(NpxProbeType type, Electrode electrode) {
         return new XY(
           electrode.shank,
-          electrode.shank * type.spacePerShank() + electrode.column * type.spacePerColumn(),
-          electrode.row * type.spacePerRow()
+          (int) (electrode.shank * type.spacePerShank() + electrode.column * type.spacePerColumn()),
+          (int) (electrode.row * type.spacePerRow())
         );
     }
 

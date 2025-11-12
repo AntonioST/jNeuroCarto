@@ -47,9 +47,6 @@ public final class Info implements Runnable {
             System.out.printf("%-16s %d\n", "nRow/Shank", type.nRowPerShank());
             System.out.printf("%-16s %d\n", "nChannel", type.nChannel());
             System.out.printf("%-16s %d\n", "nBank", type.nBank());
-            System.out.printf("%-16s %d\n", "nBlock", type.nBlock());
-            System.out.printf("%-16s %d\n", "nBlock/Bank", type.nBlockPerBank());
-            System.out.printf("%-16s %d\n", "nElectrode/Block", type.nElectrodePerBlock());
             System.out.printf("%-16s %d\n", "nElectrode/Shank", type.nElectrodePerShank());
             System.out.printf("%-16s %d\n", "nElectrode", type.nElectrode());
             System.out.printf("%-16s %d\n", "um/Column", type.spacePerColumn());
