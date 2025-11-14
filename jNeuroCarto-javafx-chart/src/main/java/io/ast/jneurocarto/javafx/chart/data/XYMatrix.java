@@ -232,8 +232,8 @@ public class XYMatrix extends XYSeries {
 
         var x0 = xr.min();
         var y0 = yr.min();
-        int nx = this.nx > 0 ? this.nx : xr.range() + 1;
-        int ny = this.ny > 0 ? this.ny : yr.range() + 1;
+        int nx = this.nx > 0 ? this.nx : (int) xr.range() + 1;
+        int ny = this.ny > 0 ? this.ny : (int) yr.range() + 1;
 
         var dw = w / nx;
         var dh = h / ny;

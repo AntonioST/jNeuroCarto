@@ -87,10 +87,10 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
                 if (state[0] == null) {
                     state[0] = element;
                     state[1] = element;
-                    return !downstream.isRejecting();
+                    return true;
                 } else if (state[2] == null) {
                     state[2] = element;
-                    return !downstream.isRejecting();
+                    return true;
                 } else if (smallCornerRemovingPushing(state[1], state[2], element, dx, dy)) {
                     var push = state[1];
                     state[1] = state[2];
@@ -98,7 +98,7 @@ public record ClusteringEdges(int category, int shank, List<Corner> edges) {
                     return downstream.push(push);
                 } else {
                     state[2] = element;
-                    return !downstream.isRejecting();
+                    return true;
                 }
             },
             (state, downstream) -> {

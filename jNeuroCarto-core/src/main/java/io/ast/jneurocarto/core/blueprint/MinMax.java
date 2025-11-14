@@ -1,6 +1,7 @@
 package io.ast.jneurocarto.core.blueprint;
 
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Gatherer;
 
@@ -9,6 +10,13 @@ public sealed interface MinMax<T> {
     MinMax<T> consume(MinMax<T> other);
 
     record OfInt(int min, int max) implements MinMax<Integer> {
+
+        public OfInt {
+            if (min > max) {
+                throw new IllegalArgumentException();
+            }
+        }
+
         public OfInt(int value) {
             this(value, value);
         }
@@ -24,26 +32,35 @@ public sealed interface MinMax<T> {
             }
         }
 
-        public int range() {
-            return max - min;
+        public long range() {
+            return (long) max - min;
         }
     }
 
     record OfDouble(double min, double max) implements MinMax<Double> {
+        public OfDouble {
+            var nanMin = Double.isNaN(min);
+            var nanMax = Double.isNaN(max);
+            if (nanMin && nanMax) {
+                //
+            } else if (nanMin || nanMax) {
+                throw new IllegalArgumentException("one of min or max is NaN");
+            } else if (min > max) {
+                throw new IllegalArgumentException("min > max");
+            }
+        }
+
         public OfDouble(double value) {
             this(value, value);
         }
 
         public OfDouble consume(MinMax<Double> other) {
-            if (other instanceof OfDouble(double min1, double max1)) {
-                var min = Math.min(this.min, min1);
-                var max = Math.max(this.max, max1);
-                if (Double.isNaN(min)) {
-                    min = !Double.isNaN(this.min) ? this.min : min1;
-                }
-                if (Double.isNaN(max)) {
-                    max = !Double.isNaN(this.max) ? this.max : max1;
-                }
+            if (other instanceof OfDouble that) {
+                if (that.isNaN()) return this;
+                if (isNaN()) return that;
+
+                var min = Math.min(this.min, that.min);
+                var max = Math.max(this.max, that.max);
                 return new OfDouble(min, max);
             } else {
                 throw new ClassCastException();
@@ -53,6 +70,10 @@ public sealed interface MinMax<T> {
         public double range() {
             return max - min;
         }
+
+        public boolean isNaN() {
+            return Double.isNaN(min);
+        }
     }
 
     record OfRef<T>(T min, T max) implements MinMax<T> {
@@ -61,13 +82,7 @@ public sealed interface MinMax<T> {
         }
 
         public OfRef<T> consume(MinMax<T> other) {
-            if (other instanceof OfRef(T min1, T max1)) {
-                var min = ((Comparable) this.min).compareTo(min1) < 0 ? this.min : min1;
-                var max = ((Comparable) this.max).compareTo(max1) > 0 ? this.max : max1;
-                return new OfRef<>(min, max);
-            } else {
-                throw new ClassCastException();
-            }
+            throw new RuntimeException("use consume(MinMax, Comparator) instead");
         }
 
         public OfRef<T> consume(MinMax<T> other, Comparator<? super T> cmp) {
@@ -147,6 +162,8 @@ public sealed interface MinMax<T> {
     }
 
     static <T> Gatherer<T, ?, OfRef<T>> minmax(Comparator<? super T> cmp) {
+        Objects.requireNonNull(cmp, "comparator");
+
         return Gatherer.of(
           () -> new OfRef[1],
           Gatherer.Integrator.ofGreedy((state, element, _) -> {
@@ -169,6 +186,8 @@ public sealed interface MinMax<T> {
     }
 
     static <T> Gatherer<T, ?, OfInt> intMinmax(Function<T, MinMax.OfInt> mapper) {
+        Objects.requireNonNull(mapper);
+
         return Gatherer.of(
           () -> new OfInt[1],
           Gatherer.Integrator.ofGreedy((state, element, _) -> {
@@ -191,6 +210,8 @@ public sealed interface MinMax<T> {
     }
 
     static <T> Gatherer<T, ?, OfDouble> doubleMinmax(Function<T, MinMax.OfDouble> mapper) {
+        Objects.requireNonNull(mapper);
+
         return Gatherer.of(
           () -> new OfDouble[1],
           Gatherer.Integrator.ofGreedy((state, element, _) -> {
@@ -212,7 +233,15 @@ public sealed interface MinMax<T> {
         );
     }
 
+    static <T extends Comparable<? super T>> Gatherer<T, ?, OfRef<T>> minmax(Function<T, MinMax.OfRef<T>> mapper) {
+        Objects.requireNonNull(mapper);
+        return minmax(mapper, Comparable::compareTo);
+    }
+
     static <T> Gatherer<T, ?, OfRef<T>> minmax(Function<T, MinMax.OfRef<T>> mapper, Comparator<? super T> cmp) {
+        Objects.requireNonNull(mapper);
+        Objects.requireNonNull(cmp, "comparator");
+
         return Gatherer.of(
           () -> new OfRef[1],
           Gatherer.Integrator.ofGreedy((state, element, _) -> {
