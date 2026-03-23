@@ -1,0 +1,43 @@
+package io.ast.jneurocarto.probe_npx.io;
+
+import java.io.PrintStream;
+
+import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
+import io.ast.jneurocarto.probe_npx.Electrode;
+import io.ast.jneurocarto.probe_npx.NpxProbeType;
+
+public class ImroNp1 extends ImroIO {
+    protected ImroNp1(NpxProbeType type) {
+        super(type);
+    }
+
+    @Override
+    public void parseHeader(int[] headers) {
+    }
+
+    @Override
+    public Electrode parseElectrodes(int[] args) {
+        assert args.length == 6;
+        var ch = args[0];
+        var bk = args[1];
+        reference = args[2];
+        var ap = args[3];
+        var lf = args[4];
+        var ft = args[5];
+        var ed = ChannelMapUtil.c2e0(ch, bk);
+        var cr = ChannelMapUtil.e2cr(type, ed);
+        assert cr.s() == 0;
+        var e = new Electrode(0, cr.c(), cr.r());
+        e.apBandGain = ap;
+        e.lfBandBain = lf;
+        e.apHpFilter = ft != 0;
+        return e;
+    }
+
+    @Override
+    public void stringElectrode(PrintStream out, int channel, Electrode e) {
+        var cb = ChannelMapUtil.e2cb(type, e);
+        assert cb.channel() == channel;
+        out.printf("(%d %d %d %d %d %d)", channel, cb.bank(), reference, e.apBandGain, e.lfBandBain, e.apHpFilter ? 1 : 0);
+    }
+}

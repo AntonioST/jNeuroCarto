@@ -54,7 +54,16 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
 
     @Override
     public List<String> supportedProbeType() {
-        return List.of("NP0", "NP21", "NP24");
+        return List.of(
+          // Neuropixels probe
+          "NP0",
+          // Neuropixels probe 2.0
+          "NP21", "NP2003",
+          // 4-Shank Neuropixels probe 2.0
+          "NP24", "NP2010", "NP2013",
+          // Neuropixels probe quad base
+          "NP2020"
+        );
     }
 
     @Override
@@ -62,26 +71,11 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         return switch (channelmapType(code)) {
             case NpxProbeType.NP1 _ -> "Neuropixels probe";
             case NpxProbeType.NP21 _ -> "Neuropixels probe 2.0";
-            case NpxProbeType.NP24 _ -> "4-Shank Neuropixels probe 2.0";
-            //TODO
-            case NpxProbeType.NP1020 _ -> "TODO";
-            case NpxProbeType.NP1022 _ -> "TODO";
-            case NpxProbeType.NP1030 _ -> "TODO";
-            case NpxProbeType.NP1032 _ -> "TODO";
-            case NpxProbeType.NP1100 _ -> "TODO";
-            case NpxProbeType.NP1110 _ -> "TODO";
-            case NpxProbeType.NP1120 _ -> "TODO";
-            case NpxProbeType.NP1121 _ -> "TODO";
-            case NpxProbeType.NP1122 _ -> "TODO";
-            case NpxProbeType.NP1123 _ -> "TODO";
-            case NpxProbeType.NP1200 _ -> "TODO";
-            case NpxProbeType.NP1300 _ -> "TODO";
-            case NpxProbeType.NP2003 _ -> "TODO";
-            case NpxProbeType.NP2013 _ -> "TODO";
-            case NpxProbeType.NP2020 _ -> "TODO";
-            case NpxProbeType.NP3000 _ -> "TODO";
-            case NpxProbeType.NP3010 _ -> "TODO";
-            case NpxProbeType.NP3020 _ -> "TODO";
+            case NpxProbeType.NP2003 _ -> "Neuropixels probe 2.0 (2003)";
+            case NpxProbeType.NP24 np24 -> np24.code() == 24 ? "4-Shank Neuropixels probe 2.0" : "4-Shank Neuropixels probe 2.0 (2010)";
+            case NpxProbeType.NP2013 _ -> "4-Shank Neuropixels probe 2.0 (2013)";
+            case NpxProbeType.NP2020 _ -> "Neuropixels probe quad base (2020)";
+            default -> "Unknown or Unsupported probe";
         };
     }
 
@@ -132,29 +126,7 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     @Override
     public @Nullable String channelmapCode(Object chmap) {
         if (!(chmap instanceof ChannelMap m)) return null;
-        return switch (m.type()) {
-            case NpxProbeType.NP1 _ -> "NP0";
-            case NpxProbeType.NP21 _ -> "NP21";
-            case NpxProbeType.NP24 _ -> "NP24";
-            case NpxProbeType.NP1020 _ -> "NP1020";
-            case NpxProbeType.NP1022 _ -> "NP1022";
-            case NpxProbeType.NP1030 _ -> "NP1030";
-            case NpxProbeType.NP1032 _ -> "NP1032";
-            case NpxProbeType.NP1100 _ -> "NP1100";
-            case NpxProbeType.NP1110 _ -> "NP1110";
-            case NpxProbeType.NP1120 _ -> "NP1120";
-            case NpxProbeType.NP1121 _ -> "NP1121";
-            case NpxProbeType.NP1122 _ -> "NP1122";
-            case NpxProbeType.NP1123 _ -> "NP1123";
-            case NpxProbeType.NP1200 _ -> "NP1200";
-            case NpxProbeType.NP1300 _ -> "NP1300";
-            case NpxProbeType.NP2003 _ -> "NP2003";
-            case NpxProbeType.NP2013 _ -> "NP2013";
-            case NpxProbeType.NP2020 _ -> "NP2020";
-            case NpxProbeType.NP3000 _ -> "NP3000";
-            case NpxProbeType.NP3010 _ -> "NP3010";
-            case NpxProbeType.NP3020 _ -> "NP3020";
-        };
+        return m.type().name();
     }
 
     public NpxProbeType channelmapType(String code) {

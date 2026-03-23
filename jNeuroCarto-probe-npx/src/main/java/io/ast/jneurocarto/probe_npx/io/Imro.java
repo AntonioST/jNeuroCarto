@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import io.ast.jneurocarto.probe_npx.ChannelMap;
-import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
@@ -39,69 +38,81 @@ public final class Imro {
             throw new IOException("not imro format");
         }
 
-        NpxProbeType code = null;
-        int ref = 0;
+        ImroIO io = null;
         var electrodes = new ArrayList<Electrode>();
 
         var iter = new TokenIterator(source);
         while (iter.hasNext()) {
-            var part = iter.next();
-            switch (code) {
-            case null:
-                code = NpxProbeType.of(part[0]);
-                break;
-            case NpxProbeType.NP1 _: {
-                var channel = part[0];
-                var bank = part[1];
-                ref = part[2];
-                var ap = part[3];
-                var lf = part[4];
-                var ft = part[4];
-                var cr = ChannelMapUtil.e2cr(code, channel);
-                var e = new Electrode(0, cr.c(), cr.r());
-                e.apBandGain = ap;
-                e.lfBandBain = lf;
-                e.apHpFilter = ft != 0;
-                electrodes.add(e);
-                break;
+            var parts = iter.next();
+            if (io == null) {
+                io = ImroIO.of(NpxProbeType.of(parts[0]));
+                io.parseHeader(parts);
+            } else {
+                electrodes.add(io.parseElectrodes(parts));
             }
-            case NpxProbeType.NP21 _: {
-                var channel = part[0];
-                var bank = part[1];
-                ref = part[2];
-                var ec = part[3];
-                var cb = ChannelMapUtil.e2cb(code, ec);
-                assert cb.channel() == channel && cb.bank() == bank;
-                var cr = ChannelMapUtil.e2cr(code, ec);
-                electrodes.add(new Electrode(0, cr.c(), cr.r()));
-                break;
-            }
-            case NpxProbeType.NP24 _: {
-                var channel = part[0];
-                var shank = part[1];
-                var bank = part[2];
-                ref = part[3];
-                var ec = part[4];
-                var cb = ChannelMapUtil.e2cb(code, ec);
-                assert cb.channel() == channel && cb.bank() == bank;
-                var cr = ChannelMapUtil.e2cr(code, ec);
-                electrodes.add(new Electrode(shank, cr.c(), cr.r()));
-                break;
-            }
-            default: //XXX Unsupported Operation Imro.read
-                throw new UnsupportedOperationException();
-            }
+//            switch (code) {
+//            case null:
+//                code = NpxProbeType.of(part[0]);
+//                io = ImroIO.of(code);
+//                io.parseHeader(part);
+//                break;
+//            case NpxProbeType.NP1 _: {
+//                var channel = part[0];
+//                var bank = part[1];
+//                ref = part[2];
+//                var ap = part[3];
+//                var lf = part[4];
+//                var ft = part[4];
+//                var cr = ChannelMapUtil.e2cr(code, channel);
+//                var e = new Electrode(0, cr.c(), cr.r());
+//                e.apBandGain = ap;
+//                e.lfBandBain = lf;
+//                e.apHpFilter = ft != 0;
+//                electrodes.add(e);
+//                break;
+//            }
+//            case NpxProbeType.NP21 _: {
+//                var channel = part[0];
+//                var bank = part[1];
+//                ref = part[2];
+//                var ec = part[3];
+//                var cb = ChannelMapUtil.e2cb(code, ec);
+//                assert cb.channel() == channel && cb.bank() == bank;
+//                var cr = ChannelMapUtil.e2cr(code, ec);
+//                electrodes.add(new Electrode(0, cr.c(), cr.r()));
+//                break;
+//            }
+//            case NpxProbeType.NP24 _: {
+//                var channel = part[0];
+//                var shank = part[1];
+//                var bank = part[2];
+//                ref = part[3];
+//                var ec = part[4];
+//                var cb = ChannelMapUtil.e2cb(code, ec);
+//                assert cb.channel() == channel && cb.bank() == bank;
+//                var cr = ChannelMapUtil.e2cr(code, ec);
+//                electrodes.add(new Electrode(shank, cr.c(), cr.r()));
+//                break;
+//            }
+//            default: //XXX Unsupported Operation Imro.read
+//                throw new UnsupportedOperationException();
+//            }
         }
 
-        if (code == null) {
+        if (io == null) {
             throw new IOException("not imro format");
         }
 
-        var ret = new ChannelMap(code, electrodes, null);
-        ret.setReference(ref);
+        var ret = new ChannelMap(io.type, electrodes, null);
+        ret.setReference(io.reference);
         return ret;
     }
 
+    public static String stringify(ChannelMap chmap) {
+        var builder = new StringBuilder();
+        write(builder, chmap);
+        return builder.toString();
+    }
 
     public static void write(Path file, ChannelMap chmap) throws IOException {
         if (chmap.size() != chmap.nChannel()) {
@@ -114,13 +125,17 @@ public final class Imro {
         }
     }
 
-    public static void write(StringBuilder out, ChannelMap chmap) throws IOException {
-        write(new PrintStream(new OutputStream() {
-            @Override
-            public void write(int b) {
-                out.append((char) b);
-            }
-        }), chmap);
+    public static void write(StringBuilder out, ChannelMap chmap) {
+        try {
+            write(new PrintStream(new OutputStream() {
+                @Override
+                public void write(int b) {
+                    out.append((char) b);
+                }
+            }), chmap);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void write(PrintStream out, ChannelMap chmap) throws IOException {
@@ -128,39 +143,48 @@ public final class Imro {
             throw new RuntimeException("incomplete chmap");
         }
 
+        var io = ImroIO.of(chmap.type());
+
         // header
-        out.printf("(%d,%d)", chmap.type().code(), chmap.nChannel());
+        io.stringHeader(out, chmap);
+
+        for (int i = 0, n = chmap.nChannel(); i < n; i++) {
+            var electrode = chmap.getChannel(i);
+            assert electrode != null;
+            io.stringElectrode(out, i, electrode);
+        }
+
 
         // channels
-        var reference = chmap.getReference();
-        var type = chmap.type();
-        switch (type) {
-        case NpxProbeType.NP1 _:
-            for (int i = 0, n = chmap.nChannel(); i < n; i++) {
-                var electrode = chmap.getChannel(i);
-                assert electrode != null;
-                out.printf("(%d 0 %d %d %d %d)", i, reference, electrode.apBandGain, electrode.lfBandBain, electrode.apHpFilter ? 1 : 0);
-            }
-            break;
-        case NpxProbeType.NP21 _:
-            for (var electrode : chmap) {
-                assert electrode != null;
-                var e = ChannelMapUtil.cr2e(type, electrode);
-                var cb = ChannelMapUtil.e2c21(e);
-                out.printf("(%d %d %d %d)", cb.channel(), cb.bank(), reference, e);
-            }
-            break;
-        case NpxProbeType.NP24 _:
-            for (var electrode : chmap) {
-                assert electrode != null;
-                var e = ChannelMapUtil.cr2e(type, electrode);
-                var cb = ChannelMapUtil.e2c24(electrode.shank, e);
-                out.printf("(%d %d %d %d %d)", cb.channel(), electrode.shank, cb.bank(), reference, e);
-            }
-            break;
-        default: //XXX Unsupported Operation Imro.read
-            throw new UnsupportedOperationException();
-        }
+//        var reference = chmap.getReference();
+//        var type = chmap.type();
+//        switch (type) {
+//        case NpxProbeType.NP1 _:
+//            for (int i = 0, n = chmap.nChannel(); i < n; i++) {
+//                var electrode = chmap.getChannel(i);
+//                assert electrode != null;
+//                out.printf("(%d 0 %d %d %d %d)", i, reference, electrode.apBandGain, electrode.lfBandBain, electrode.apHpFilter ? 1 : 0);
+//            }
+//            break;
+//        case NpxProbeType.NP21 _:
+//            for (var electrode : chmap) {
+//                assert electrode != null;
+//                var e = ChannelMapUtil.cr2e(type, electrode);
+//                var cb = ChannelMapUtil.e2c21(e);
+//                out.printf("(%d %d %d %d)", cb.channel(), cb.bank(), reference, e);
+//            }
+//            break;
+//        case NpxProbeType.NP24 _:
+//            for (var electrode : chmap) {
+//                assert electrode != null;
+//                var e = ChannelMapUtil.cr2e(type, electrode);
+//                var cb = ChannelMapUtil.e2c24(electrode.shank, e);
+//                out.printf("(%d %d %d %d %d)", cb.channel(), electrode.shank, cb.bank(), reference, e);
+//            }
+//            break;
+//        default: //XXX Unsupported Operation Imro.read
+//            throw new UnsupportedOperationException();
+//        }
     }
 
     private static class TokenIterator implements Iterator<int[]> {

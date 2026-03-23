@@ -455,8 +455,8 @@ public interface ProbeDescription<T> {
      */
     default List<ElectrodeDescription> getInvalidElectrodes(T chmap, Collection<ElectrodeDescription> e, Collection<ElectrodeDescription> electrodes) {
         return electrodes.stream()
-            .filter(it -> e.stream().anyMatch(r -> !isElectrodeCompatible(chmap, r, it)))
-            .toList();
+          .filter(it -> e.stream().anyMatch(r -> !isElectrodeCompatible(chmap, r, it)))
+          .toList();
     }
 
     /*====================*

@@ -1,6 +1,8 @@
 package io.ast.jneurocarto.probe_npx;
 
 import java.util.Arrays;
+import java.util.function.IntBinaryOperator;
+import java.util.function.IntFunction;
 
 import org.jspecify.annotations.NullMarked;
 
@@ -146,13 +148,20 @@ public final class ChannelMapUtil {
         return ret;
     }
 
+    private static int check2N(int[][] a) {
+        if (a.length != 3) throw new IllegalArgumentException();
+        var length = a[0].length;
+        if (a[1].length != length) throw new IllegalArgumentException();
+        return length;
+    }
+
     /**
      * Check array has equal length.
      *
      * @param a 2-d matric-like array
      * @return the length of the second axis.
      */
-    private static int check(int[][] a) {
+    private static int check3N(int[][] a) {
         if (a.length != 3) throw new IllegalArgumentException();
         var length = a[0].length;
         if (a[1].length != length) throw new IllegalArgumentException();
@@ -168,7 +177,7 @@ public final class ChannelMapUtil {
      * @return an int array with same size.
      */
     private static int[][] like(int[][] a, boolean cloneFirst) {
-        var length = check(a);
+        var length = check3N(a);
 
         var ret = new int[3][];
         ret[0] = cloneFirst ? a[0].clone() : new int[length];
@@ -237,17 +246,6 @@ public final class ChannelMapUtil {
         return ret;
     }
 
-    static final int[][] ELECTRODE_MAP_21 = new int[][]{
-      {1, 7, 5, 3},
-      {0, 4, 8, 12},
-    };
-
-    static final int[][] ELECTRODE_MAP_24 = new int[][]{
-      {0, 2, 4, 6, 5, 7, 1, 3},
-      {1, 3, 5, 7, 4, 6, 0, 2},
-      {4, 6, 0, 2, 1, 3, 5, 7},
-      {5, 7, 1, 3, 0, 2, 4, 6},
-    };
 
     public record XY(int s, int x, int y) {
     }
@@ -430,7 +428,7 @@ public final class ChannelMapUtil {
      * @return int result
      */
     public static int[][] e2cr(NpxProbeType type, int[][] scr) {
-        check(scr);
+        check3N(scr);
         return scr;
     }
 
@@ -466,7 +464,7 @@ public final class ChannelMapUtil {
      * @return electrode index array[E].
      */
     public static int[] cr2e(NpxProbeType type, int[][] scr) {
-        var ret = new int[check(scr)];
+        var ret = new int[check3N(scr)];
 
         var nc = type.nColumnPerShank();
 
@@ -488,6 +486,10 @@ public final class ChannelMapUtil {
         var nc = type.nColumnPerShank();
         return electrode.column + nc * electrode.row;
     }
+
+    /*=======================*
+     * E-to-C/C-to-E mapping *
+     *=======================*/
 
     /**
      * Get channel index for given electrode.
@@ -536,6 +538,54 @@ public final class ChannelMapUtil {
         return e2cb(type, electrode).channel;
     }
 
+
+    public static int c2e(NpxProbeType type, int channel, int bank, int shank) {
+        return switch (type) {
+            case NpxProbeType.NP21 _ -> c2e21(channel, bank);
+            case NpxProbeType.NP24 _ -> c2e24(channel, bank, shank);
+            case NpxProbeType.NP1110 _ -> c2e1110(channel, bank);
+            case NpxProbeType.NP2020 _ -> c2e2020(channel, bank, shank);
+            case NpxProbeType.NP3010 _ -> c2e3010(channel, bank);
+            case NpxProbeType.NP3020 _ -> c2e3020(channel, bank, shank);
+            default -> c2e0(channel, bank);
+        };
+    }
+
+    public static int[] c2e(NpxProbeType type, int[][] channel, int shank) {
+        return switch (type) {
+            case NpxProbeType.NP21 _ -> c2e(channel, ChannelMapUtil::c2e21);
+            case NpxProbeType.NP24 _ -> c2e(channel, shank, ChannelMapUtil::c2e24);
+            case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtil::c2e1110);
+            case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtil::c2e2020);
+            case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtil::c2e3010);
+            case NpxProbeType.NP3020 _ -> c2e(channel, shank, ChannelMapUtil::c2e3020);
+            default -> c2e(channel, ChannelMapUtil::c2e0);
+        };
+    }
+
+    private static int[] c2e(int[][] channel, IntBinaryOperator func) {
+        int length = check2N(channel);
+        var ret = new int[length];
+        for (int i = 0; i < length; i++) {
+            ret[i] = func.applyAsInt(channel[0][i], channel[1][i]);
+        }
+        return ret;
+    }
+
+    @FunctionalInterface
+    private interface IntTriFunction {
+        int apply(int a, int b, int c);
+    }
+
+    private static int[] c2e(int[][] channel, int shank, IntTriFunction func) {
+        int length = check2N(channel);
+        var ret = new int[length];
+        for (int i = 0; i < length; i++) {
+            ret[i] = func.apply(channel[0][i], channel[1][i], shank);
+        }
+        return ret;
+    }
+
     /**
      * Get channel and bank index for given electrode.
      *
@@ -556,11 +606,14 @@ public final class ChannelMapUtil {
      * @return index result
      */
     public static CB e2cb(NpxProbeType type, int shank, int electrode) {
-        return switch (type.code()) {
-            case 0 -> e2c0(electrode);
-            case 21 -> e2c21(electrode);
-            case 24 -> e2c24(shank, electrode);
-            default -> throw new IllegalArgumentException();
+        return switch (type) {
+            case NpxProbeType.NP21 _ -> e2c21(electrode);
+            case NpxProbeType.NP24 _ -> e2c24(shank, electrode);
+            case NpxProbeType.NP1110 _ -> e2c1110(electrode);
+            case NpxProbeType.NP2020 _ -> e2c2020(shank, electrode);
+            case NpxProbeType.NP3010 _ -> e2c3010(electrode);
+            case NpxProbeType.NP3020 _ -> e2c3020(shank, electrode);
+            default -> e2c0(electrode);
         };
     }
 
@@ -597,11 +650,14 @@ public final class ChannelMapUtil {
      * @return index array [(channel, bank)][E]
      */
     public static int[][] e2cb(NpxProbeType type, int shank, int[] electrode) {
-        return switch (type.code()) {
-            case 0 -> e2c0(electrode);
-            case 21 -> e2c21(electrode);
-            case 24 -> e2c24(shank, electrode);
-            default -> throw new IllegalArgumentException();
+        return switch (type) {
+            case NpxProbeType.NP21 _ -> e2cb(electrode, ChannelMapUtil::e2c21);
+            case NpxProbeType.NP24 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c24);
+            case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtil::e2c1110);
+            case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c2020);
+            case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtil::e2c3010);
+            case NpxProbeType.NP3020 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c3020);
+            default -> e2cb(electrode, ChannelMapUtil::e2c0);
         };
     }
 
@@ -614,12 +670,53 @@ public final class ChannelMapUtil {
      * @return index array [(channel, bank)][E]
      */
     public static int[][] e2cb(NpxProbeType type, int[] shank, int[] electrode) {
-        return switch (type.code()) {
-            case 0 -> e2c0(electrode);
-            case 21 -> e2c21(electrode);
-            case 24 -> e2c24(shank, electrode);
-            default -> throw new IllegalArgumentException();
+        return switch (type) {
+            case NpxProbeType.NP21 _ -> e2cb(electrode, ChannelMapUtil::e2c21);
+            case NpxProbeType.NP24 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c24);
+            case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtil::e2c1110);
+            case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c2020);
+            case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtil::e2c3010);
+            case NpxProbeType.NP3020 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c3020);
+            default -> e2cb(electrode, ChannelMapUtil::e2c0);
         };
+    }
+
+    private static int[][] e2cb(int[] electrode, IntFunction<CB> func) {
+        var ret = empty(2, electrode.length);
+        for (int i = 0, length = electrode.length; i < length; i++) {
+            var tmp = func.apply(electrode[i]);
+            ret[0][i] = tmp.channel();
+            ret[1][i] = tmp.bank();
+        }
+        return ret;
+    }
+
+    @FunctionalInterface
+    private interface BiIntFunction<R> {
+        R apply(int a, int b);
+    }
+
+
+    private static int[][] e2cb(int shank, int[] electrode, BiIntFunction<CB> func) {
+        var ret = empty(2, electrode.length);
+        for (int i = 0, length = electrode.length; i < length; i++) {
+            var tmp = func.apply(shank, electrode[i]);
+            ret[0][i] = tmp.channel();
+            ret[1][i] = tmp.bank();
+        }
+        return ret;
+    }
+
+    private static int[][] e2cb(int[] shank, int[] electrode, BiIntFunction<CB> func) {
+        if (shank.length != electrode.length) throw new IndexOutOfBoundsException();
+
+        var ret = empty(2, electrode.length);
+        for (int i = 0, length = electrode.length; i < length; i++) {
+            var tmp = func.apply(shank[i], electrode[i]);
+            ret[0][i] = tmp.channel();
+            ret[1][i] = tmp.bank();
+        }
+        return ret;
     }
 
     /**
@@ -633,6 +730,15 @@ public final class ChannelMapUtil {
         return e2cb(type, electrode.shank, cr2e(type, electrode));
     }
 
+    /*===========================================*
+     * E-to-C/C-to-E mapping for each probe type *
+     *===========================================*/
+
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T0base.cpp#L12)
+    public static int c2e0(int channel, int bank) {
+        return bank * 384 + channel % 384;
+    }
+
     /**
      * Get channel and bank index for given electrode for {@link NpxProbeType#NP0}.
      *
@@ -644,20 +750,30 @@ public final class ChannelMapUtil {
         return new CB(electrode % n, electrode / n);
     }
 
-    /**
-     * Get channel and bank index for given electrodes for {@link NpxProbeType#NP0}.
-     *
-     * @param electrode electrode index array[E]
-     * @return index array [(channel, bank)][E]
-     */
-    public static int[][] e2c0(int[] electrode) {
-        var ret = empty(2, electrode.length);
-        for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = ChannelMapUtil.e2c0(electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+    static final int[][] ELECTRODE_MAP_21 = new int[][]{
+      {1, 7, 5, 3},
+      {0, 4, 8, 12},
+    };
+
+    private static int np21IndexOfRow(int bank, int row, int col) {
+        var bf = ELECTRODE_MAP_21[0][bank];
+        var ba = ELECTRODE_MAP_21[1][bank];
+        for (int r = 0; r < 16; r++) {
+            if ((r * bf + col * ba) % 16 == row) {
+                return r;
+            }
         }
-        return ret;
+        throw new IllegalArgumentException();
+    }
+
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T21base.cpp#L34)
+    public static int c2e21(int channel, int bank) {
+        var block = channel / 32;
+        var index = channel % 32;
+        var row = index / 2;
+        var col = index % 2;
+        row = np21IndexOfRow(bank, row, col);
+        return bank * 384 + block * 32 + row * 2 + col;
     }
 
     /**
@@ -680,20 +796,27 @@ public final class ChannelMapUtil {
         return new CB(channel, bank);
     }
 
-    /**
-     * Get channel and bank index for given electrodes for {@link NpxProbeType#NP21}.
-     *
-     * @param electrode electrode index array[E]
-     * @return index array [(channel, bank)][E]
-     */
-    public static int[][] e2c21(int[] electrode) {
-        var ret = empty(2, electrode.length);
-        for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = ChannelMapUtil.e2c21(electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+    static final int[][] ELECTRODE_MAP_24 = new int[][]{
+      {0, 2, 4, 6, 5, 7, 1, 3},
+      {1, 3, 5, 7, 4, 6, 0, 2},
+      {4, 6, 0, 2, 1, 3, 5, 7},
+      {5, 7, 1, 3, 0, 2, 4, 6},
+    };
+
+    private static int np24IndexOfBlock(int shank, int block) {
+        var s = ELECTRODE_MAP_24[shank];
+        for (int i = 0; i < 8; i++) {
+            if (s[i] == block) return i;
         }
-        return ret;
+        throw new IllegalArgumentException();
+    }
+
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T24base.cpp#L26)
+    public static int c2e24(int channel, int bank, int shank) {
+        var block = channel / 48;
+        var index = channel % 48;
+        block = np24IndexOfBlock(shank, block);
+        return bank * 384 + block * 48 + index;
     }
 
     /**
@@ -713,36 +836,129 @@ public final class ChannelMapUtil {
         return new CB(48 * block + index, bank);
     }
 
-    /**
-     * Get channel and bank index for given electrodes for {@link NpxProbeType#NP24}.
-     *
-     * @param electrode electrode index array[E]
-     * @return index array [(channel, bank)][E]
-     */
-    public static int[][] e2c24(int shank, int[] electrode) {
-        var ret = empty(2, electrode.length);
-        for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = ChannelMapUtil.e2c24(shank, electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L298)
+    private static int np1110Group(int channel) {
+        var c = channel % 384;
+        return 2 * (c / 32) + (c % 2);
+    }
+
+    private static int np1110Row(int channel, int bank) {
+        return np1110Row(channel, bank, np1110Group(channel));
+    }
+
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L318)
+    private static int np1110Row(int channel, int bank, int group) {
+        var groupRow = group / 4;
+        var inGroupRow = ((channel % 64) % 32) / 4;
+        var bankRow = 8 * groupRow + (channel % 2 == 0 ? inGroupRow : 7 - inGroupRow);
+        return 48 * bank + bankRow;
+    }
+
+    private static int np1110Col(int channel, int bank) {
+        return np1110Col(channel, bank, np1110Group(channel));
+    }
+
+    static final int[][] ELECTRODE_MAP_1110 = new int[][]{
+      {0, 3, 1, 2},
+      {1, 2, 0, 3},
+    };
+
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L306)
+    private static int np1110Col(int channel, int bank, int group) {
+        var groupCol = ELECTRODE_MAP_1110[bank % 2][group % 4];
+        var crossed = (bank / 4) % 2;
+        var inGroupCol = (((channel % 64) % 32) / 2) % 2;
+        inGroupCol = inGroupCol ^ crossed;
+        return 2 * groupCol + (channel % 2 == 0 ? inGroupCol : 1 - inGroupCol);
+    }
+
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L349)
+    public static int c2e1110(int channel, int bank) {
+        var g = np1110Group(channel);
+        var r = np1110Row(channel, bank, g);
+        var c = np1110Col(channel, bank, g);
+        return r * 8 + c;
+    }
+
+    private static final LazyConstant<int[]> ELECTRODE_MAP_1110_CACHE = LazyConstant.of(ChannelMapUtil::initNp1110E2CCache);
+
+    private static int[] initNp1110E2CCache() {
+        var type = NpxProbeType.NP1110;
+        var channels = type.nChannel();
+        assert type.nElectrodePerShank() / channels == 16;
+        var banks = 16;
+
+        var ret = new int[banks * channels];
+        int e = 0;
+        for (int b = 0; b < banks; b++) {
+            for (int c = 0; c < channels; c++) {
+                ret[e++] = c2e1110(c, b);
+            }
         }
         return ret;
     }
 
-    /**
-     * Get channel and bank index for given electrodes for {@link NpxProbeType#NP24}.
-     *
-     * @param shank     shank index array[E]
-     * @param electrode electrode index array[E]
-     * @return index array [(channel, bank)][E]
-     */
-    public static int[][] e2c24(int[] shank, int[] electrode) {
-        var ret = empty(2, electrode.length);
-        for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = ChannelMapUtil.e2c24(shank[i], electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+    public static CB e2c1110(int electrode) {
+        var cache = ELECTRODE_MAP_1110_CACHE.get();
+        for (int i = 0, length = cache.length; i < length; i++) {
+            if (cache[i] == electrode) {
+                var b = i / 384;
+                var c = i % 384;
+                return new CB(c, b);
+            }
         }
-        return ret;
+        throw new IllegalArgumentException();
+    }
+
+    public static int c2e2020(int channel, int bank, int shank) {
+        return bank * 384 + channel % 384;
+    }
+
+    public static CB e2c2020(int shank, int electrode) {
+        var b = electrode / 384;
+        var c = electrode % 384;
+        return new CB(shank * 384 + c, b);
+    }
+
+    public static int c2e3010(int channel, int bank) {
+        return bank * 912 + channel;
+    }
+
+    public static CB e2c3010(int electrode) {
+        var b = electrode / 912;
+        var c = electrode % 912;
+        return new CB(c, b);
+    }
+
+    static final int[][] ELECTRODE_MAP_3020 = new int[][]{//  4 shanks X 32 blocks, 99 = forbidden
+      {0, 16, 1, 17, 2, 18, 3, 99, 4, 99, 5, 99, 6, 99, 7, 99, 8, 99, 9, 99, 10, 99, 11, 99, 12, 99, 13, 99, 14, 99, 15, 99},
+      {16, 0, 17, 1, 18, 2, 99, 3, 99, 4, 99, 5, 99, 6, 99, 7, 99, 8, 99, 9, 99, 10, 99, 11, 99, 12, 99, 13, 99, 14, 99, 15},
+      {8, 99, 9, 99, 10, 99, 11, 99, 12, 99, 13, 99, 14, 99, 15, 99, 0, 16, 1, 17, 2, 18, 3, 99, 4, 99, 5, 99, 6, 99, 7, 99},
+      {99, 8, 99, 9, 99, 10, 99, 11, 99, 12, 99, 13, 99, 14, 99, 15, 16, 0, 17, 1, 18, 2, 99, 3, 99, 4, 99, 5, 99, 6, 99, 7},
+    };
+
+    private static int np3020IndexOfBlock(int shank, int block) {
+        var s = ELECTRODE_MAP_3020[shank];
+        for (int i = 0, length = s.length; i < length; i++) {
+            if (s[i] == block) return i;
+        }
+        return -1;
+    }
+
+    public static int c2e3020(int channel, int bank, int shank) {
+        var b = channel / 48;
+        var i = channel % 48;
+        b = ELECTRODE_MAP_3020[shank][b];
+        if (b == 99) throw new IllegalArgumentException("Illegal channel");
+        return bank * 912 + b * 48 + i;
+    }
+
+    public static CB e2c3020(int shank, int electrode) {
+        var b = electrode / 912;
+        var e = electrode % 912;
+        var k = e / 48; // block
+        var i = e % 48; // index
+        k = np3020IndexOfBlock(shank, k);
+        return new CB(k * 48 + i, b);
     }
 }

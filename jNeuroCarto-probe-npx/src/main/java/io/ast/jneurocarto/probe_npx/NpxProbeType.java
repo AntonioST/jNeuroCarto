@@ -1,18 +1,20 @@
 package io.ast.jneurocarto.probe_npx;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /// Probe profile.
 ///
 /// References:
 /// * [open-ephys-plugins](https://github.com/open-ephys-plugins/neuropixels-pxi/blob/master/Source/Probes/Geometry.cpp#L27)
-/// * [SpikeGLX](https://github.com/jenniferColonell/SGLXMetaToCoords/blob/140452d43a55ea7c7904f09e03858bfe0d499df3/SGLXMetaToCoords.py#L79)
+/// * [SGLXMetaToCoords](https://github.com/jenniferColonell/SGLXMetaToCoords/blob/140452d43a55ea7c7904f09e03858bfe0d499df3/SGLXMetaToCoords.py#L79)
+/// * [SpikeGLX](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl.cpp#L115)
 @NullMarked
 public sealed interface NpxProbeType {
 
     NpxProbeType NP0 = new NP1();
-    NpxProbeType NP21 = new NP21();
-    NpxProbeType NP24 = new NP24();
+    NpxProbeType NP21 = new NP21(21);
+    NpxProbeType NP24 = new NP24(24);
     NpxProbeType NP1020 = new NP1020();
     NpxProbeType NP1022 = new NP1022();
     NpxProbeType NP1030 = new NP1030();
@@ -25,18 +27,23 @@ public sealed interface NpxProbeType {
     NpxProbeType NP1123 = new NP1123();
     NpxProbeType NP1200 = new NP1200();
     NpxProbeType NP1300 = new NP1300();
+    NpxProbeType NP2000 = new NP21(2000);
     NpxProbeType NP2003 = new NP2003();
+    NpxProbeType NP2010 = new NP24(2010);
     NpxProbeType NP2013 = new NP2013();
     NpxProbeType NP2020 = new NP2020();
     NpxProbeType NP3000 = new NP3000();
     NpxProbeType NP3010 = new NP3010();
     NpxProbeType NP3020 = new NP3020();
 
+    /// Get [NpxProbeType] by probe type code.
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl.cpp#L1112)
     static NpxProbeType of(int code) {
         return switch (code) {
             case 0, 1000, 1001, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017 -> NP0;
-            case 21, 2000 -> NP21;
-            case 24, 2010 -> NP24;
+            case 21 -> NP21;
+            case 24 -> NP24;
             case 1020, 1021 -> NP1020;
             case 1022 -> NP1022;
             case 1030, 1031 -> NP1030;
@@ -49,22 +56,32 @@ public sealed interface NpxProbeType {
             case 1123 -> NP1123;
             case 1200, 1210, 1221 -> NP1200;
             case 1300 -> NP1300;
+            case 2000 -> NP2000;
             case 2003, 2004, 2005, 2006 -> NP2003;
+            case 2010 -> NP2010;
             case 2013, 2014 -> NP2013;
             case 2020, 2021 -> NP2020;
             case 3000 -> NP3000;
             case 3010, 3011 -> NP3010;
-            case 3020, 3021 -> NP3020;
+            case 3020, 3021, 3022 -> NP3020;
             default -> throw new IllegalArgumentException("unknown Neuropixels probe code : " + code);
         };
     }
 
+    /// Get [NpxProbeType] by probe type name.
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl.cpp#L1112)
     static NpxProbeType of(String code) {
         if (code.startsWith("PRB_1_4") || code.startsWith("PRB_1_2")) {
+            // PRB_1_4_0480_1 (Silicon cap)
+            // PRB_1_4_0480_1_C (Metal cap)
+            // PRB_1_2_0480_2
             return NP0;
         } else if (code.startsWith("PRB2_1")) {
+            // PRB2_1_2_0640_0 (NP 2.0 SS scrambled el 1280)
             return NP21;
         } else if (code.startsWith("PRB2_4")) {
+            // PRB2_4_2_0640_0 (NP 2.0 MS el 1280)
             return NP24;
         } else if (code.startsWith("NP")) {
             return of(Integer.parseInt(code.substring(2)));
@@ -130,6 +147,11 @@ public sealed interface NpxProbeType {
         return nElectrodePerShank() * nShank();
     }
 
+    default int @Nullable [] reference() {
+        return null;
+    }
+
+    /// Neuropixels 1 based probes.
     abstract sealed class NP1Base implements NpxProbeType {
 
         @Override
@@ -171,138 +193,153 @@ public sealed interface NpxProbeType {
         public int nReference() {
             return 5;
         }
-
-
     }
 
+    /// Neuropixels 1.
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T0.h#L12)
     final class NP1 extends NP1Base {
         @Override
         public int code() {
             return 0;
         }
 
-//        public int[] reference() {
-//            return new int[]{192, 576, 960};
-//        }
+        @Override
+        public int[] reference() {
+            return new int[]{192, 576, 960};
+        }
     }
 
-    abstract sealed class NP21Base implements NpxProbeType {
+    /// Neuropixels 2 based probes.
+    sealed interface NP21Base extends NpxProbeType {
 
         @Override
-        public int nShank() {
+        default int nShank() {
             return 1;
         }
 
         @Override
-        public int nColumnPerShank() {
+        default int nColumnPerShank() {
             return 2;
         }
 
 
         @Override
-        public int nElectrodePerShank() {
+        default int nElectrodePerShank() {
             return 1280;
         }
 
         @Override
-        public int nChannel() {
+        default int nChannel() {
             return 384;
         }
 
         @Override
-        public float spacePerColumn() {
+        default float spacePerColumn() {
             return 32;
         }
 
         @Override
-        public float spacePerRow() {
+        default float spacePerRow() {
             return 15;
         }
 
         @Override
-        public int spacePerShank() {
+        default int spacePerShank() {
             return 0;
         }
 
         @Override
-        public int nReference() {
+        default int nReference() {
             return 6;
         }
     }
 
-    final class NP21 extends NP21Base {
-        @Override
-        public int code() {
-            return 21;
+    /// Neuropixels 2.
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T21.h#L12)
+    record NP21(int code) implements NP21Base {
+        public NP21 {
+            if (code != 21 && code != 2000) {
+                throw new IllegalArgumentException("NP21 does not allow alter type code: " + code);
+            }
         }
 
+        @Override
         public int[] reference() {
             return new int[]{127, 507, 887, 1251};
         }
     }
 
-    abstract sealed class NP24Base implements NpxProbeType {
+    /// 4 shank Neuropixels 2 based probes.
+    sealed interface NP24Base extends NpxProbeType {
         @Override
-        public int nShank() {
+        default int nShank() {
             return 4;
         }
 
         @Override
-        public int nColumnPerShank() {
+        default int nColumnPerShank() {
             return 2;
         }
 
         @Override
-        public int nElectrodePerShank() {
+        default int nElectrodePerShank() {
             return 1280;
         }
 
         @Override
-        public int nChannel() {
+        default int nChannel() {
             return 384;
         }
 
         @Override
-        public float spacePerColumn() {
+        default float spacePerColumn() {
             return 32;
         }
 
         @Override
-        public float spacePerRow() {
+        default float spacePerRow() {
             return 15;
         }
 
         @Override
-        public int spacePerShank() {
+        default int spacePerShank() {
             return 250;
         }
 
         @Override
-        public int nReference() {
-            return 18;
+        default int nReference() {
+            return 21;
         }
-
-
     }
 
-    final class NP24 extends NP24Base {
-        @Override
-        public int code() {
-            return 24;
+    /// 4 shank Neuropixels 2.
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T24.h#L12)
+    record NP24(int code) implements NP24Base {
+        public NP24 {
+            if (code != 24 && code != 2010) {
+                throw new IllegalArgumentException("NP24 does not allow alter type code: " + code);
+            }
         }
 
+
+        @Override
         public int[] reference() {
             return new int[]{127, 511, 895, 1279};
         }
     }
 
+    /// NHP phase 2
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1020.h#L12)
     final class NP1020 extends NP1Base {
         @Override
         public int code() {
             return 1020;
         }
 
-
         @Override
         public int nElectrodePerShank() {
             return 2496;
@@ -319,13 +356,15 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// NHP phase 2
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1020.h#L12)
     final class NP1022 extends NP1Base {
         @Override
         public int code() {
             return 1020;
         }
 
-
         @Override
         public int nElectrodePerShank() {
             return 2496;
@@ -342,12 +381,14 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// NHP phase 2 45 mm
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1030.h#L12)
     final class NP1030 extends NP1Base {
         @Override
         public int code() {
             return 1030;
         }
-
 
         @Override
         public int nElectrodePerShank() {
@@ -365,12 +406,19 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// NHP phase 2
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1030.h#L12)
     final class NP1032 extends NP1Base {
         @Override
         public int code() {
-            return 1032;
+            return 1030;
         }
 
+        @Override
+        public String name() {
+            return "NP1032";
+        }
 
         @Override
         public int nElectrodePerShank() {
@@ -388,6 +436,9 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// UHD phase 1
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1100.h#L12)
     final class NP1100 extends NP1Base {
         @Override
         public int code() {
@@ -421,12 +472,14 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// UHD phase 2
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.h#L61)
     final class NP1110 extends NP1Base {
         @Override
         public int code() {
             return 1110;
         }
-
 
         @Override
         public int nColumnPerShank() {
@@ -454,12 +507,14 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// UHD phase 3
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1120.h#L12)
     final class NP1120 extends NP1Base {
         @Override
         public int code() {
             return 1120;
         }
-
 
         @Override
         public int nElectrodePerShank() {
@@ -482,6 +537,9 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// UHD phase 3
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1121.h#L12)
     final class NP1121 extends NP1Base {
         @Override
         public int code() {
@@ -489,6 +547,11 @@ public sealed interface NpxProbeType {
         }
 
         @Override
+        public int nColumnPerShank() {
+            return 1;
+        }
+
+        @Override
         public int nElectrodePerShank() {
             return 384;
         }
@@ -509,6 +572,9 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// UHD phase 3
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1122.h#L12)
     final class NP1122 extends NP1Base {
         @Override
         public int code() {
@@ -541,6 +607,9 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// UHD phase 3
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1123.h#L12)
     final class NP1123 extends NP1Base {
         @Override
         public int code() {
@@ -573,6 +642,9 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// NHP 128
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1200.h#L12)
     final class NP1200 extends NP1Base {
         @Override
         public int code() {
@@ -581,7 +653,12 @@ public sealed interface NpxProbeType {
 
         @Override
         public int nElectrodePerShank() {
-            return 384;
+            return 128;
+        }
+
+        @Override
+        public int nChannel() {
+            return 128;
         }
 
         @Override
@@ -595,6 +672,9 @@ public sealed interface NpxProbeType {
         }
     }
 
+    /// Opto
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1300.h#L12)
     final class NP1300 extends NP1Base {
         @Override
         public int code() {
@@ -607,15 +687,11 @@ public sealed interface NpxProbeType {
         }
     }
 
-    final class NP2003 extends NP21Base {
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T2003.h#L12)
+    final class NP2003 implements NP21Base {
         @Override
         public int code() {
             return 2003;
-        }
-
-        @Override
-        public float spacePerColumn() {
-            return 48;
         }
 
         @Override
@@ -624,7 +700,8 @@ public sealed interface NpxProbeType {
         }
     }
 
-    final class NP2013 extends NP24Base {
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T2013.h#L12)
+    final class NP2013 implements NP24Base {
         @Override
         public int code() {
             return 2013;
@@ -632,10 +709,13 @@ public sealed interface NpxProbeType {
 
         @Override
         public int nReference() {
-            return 4;
+            return 6;
         }
     }
 
+    /// Neuropixels 2.0 quad base
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T2020.h#L43)
     final class NP2020 implements NpxProbeType {
         @Override
         public int code() {
@@ -684,6 +764,7 @@ public sealed interface NpxProbeType {
 
     }
 
+    /// Passive NXT probe
     final class NP3000 implements NpxProbeType {
         @Override
         public int code() {
@@ -732,6 +813,10 @@ public sealed interface NpxProbeType {
 
     }
 
+    /// NXT single shank
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T3010base.h#L47)
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T3010.h#L12)
     final class NP3010 implements NpxProbeType {
         @Override
         public int code() {
@@ -780,6 +865,10 @@ public sealed interface NpxProbeType {
 
     }
 
+    /// NXT multishank
+    ///
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T3020base.h#L47)
+    /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T3020.h#L12)
     final class NP3020 implements NpxProbeType {
         @Override
         public int code() {
@@ -825,6 +914,5 @@ public sealed interface NpxProbeType {
         public int nReference() {
             return 7;
         }
-
     }
 }
