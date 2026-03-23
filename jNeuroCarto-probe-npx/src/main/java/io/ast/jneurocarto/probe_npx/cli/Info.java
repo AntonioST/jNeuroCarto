@@ -1,7 +1,5 @@
 package io.ast.jneurocarto.probe_npx.cli;
 
-import java.util.Arrays;
-
 import io.ast.jneurocarto.probe_npx.NpxProbeDescription;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 import picocli.CommandLine;
@@ -52,7 +50,7 @@ public final class Info implements Runnable {
             System.out.printf("%-16s %d\n", "um/Column", type.spacePerColumn());
             System.out.printf("%-16s %d\n", "um/Row", type.spacePerRow());
             System.out.printf("%-16s %d\n", "um/Shank", type.spacePerShank());
-            System.out.printf("%-16s %s\n", "reference", Arrays.toString(type.reference()));
+//            System.out.printf("%-16s %s\n", "reference", Arrays.toString(type.reference()));
         }
     }
 

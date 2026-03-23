@@ -86,9 +86,9 @@ public sealed interface MinMax<T> {
         }
 
         public OfRef<T> consume(MinMax<T> other, Comparator<? super T> cmp) {
-            if (other instanceof OfRef(T min1, T max1)) {
-                var min = cmp.compare(this.min, min1) < 0 ? this.min : min1;
-                var max = cmp.compare(this.max, max1) > 0 ? this.max : max1;
+            if (other instanceof OfRef<T> ref) {
+                var min = cmp.compare(this.min, ref.min) < 0 ? this.min : ref.min;
+                var max = cmp.compare(this.max, ref.max) > 0 ? this.max : ref.max;
                 return new OfRef<>(min, max);
             } else {
                 throw new ClassCastException();
@@ -180,12 +180,12 @@ public sealed interface MinMax<T> {
               return state;
           },
           (state, downstream) -> {
-              if (state[0] != null) downstream.push(state[0]);
+              if (state[0] != null) downstream.push((OfRef<T>) state[0]);
           }
         );
     }
 
-    static <T> Gatherer<T, ?, OfInt> intMinmax(Function<T, MinMax.OfInt> mapper) {
+    static <T> Gatherer<T, ?, OfInt> intMinmax(Function<T, OfInt> mapper) {
         Objects.requireNonNull(mapper);
 
         return Gatherer.of(
@@ -209,7 +209,7 @@ public sealed interface MinMax<T> {
         );
     }
 
-    static <T> Gatherer<T, ?, OfDouble> doubleMinmax(Function<T, MinMax.OfDouble> mapper) {
+    static <T> Gatherer<T, ?, OfDouble> doubleMinmax(Function<T, OfDouble> mapper) {
         Objects.requireNonNull(mapper);
 
         return Gatherer.of(
@@ -233,12 +233,12 @@ public sealed interface MinMax<T> {
         );
     }
 
-    static <T extends Comparable<? super T>> Gatherer<T, ?, OfRef<T>> minmax(Function<T, MinMax.OfRef<T>> mapper) {
+    static <T extends Comparable<? super T>> Gatherer<T, ?, OfRef<T>> minmax(Function<T, OfRef<T>> mapper) {
         Objects.requireNonNull(mapper);
         return minmax(mapper, Comparable::compareTo);
     }
 
-    static <T> Gatherer<T, ?, OfRef<T>> minmax(Function<T, MinMax.OfRef<T>> mapper, Comparator<? super T> cmp) {
+    static <T> Gatherer<T, ?, OfRef<T>> minmax(Function<T, OfRef<T>> mapper, Comparator<? super T> cmp) {
         Objects.requireNonNull(mapper);
         Objects.requireNonNull(cmp, "comparator");
 
@@ -258,7 +258,7 @@ public sealed interface MinMax<T> {
               return state;
           },
           (state, downstream) -> {
-              if (state[0] != null) downstream.push(state[0]);
+              if (state[0] != null) downstream.push(((OfRef<T>) state[0]));
           }
         );
     }

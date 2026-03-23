@@ -12,7 +12,6 @@ import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
-
 import static java.nio.file.StandardOpenOption.*;
 
 public final class Imro {
@@ -89,6 +88,8 @@ public final class Imro {
                 electrodes.add(new Electrode(shank, cr.c(), cr.r()));
                 break;
             }
+            default: //XXX Unsupported Operation Imro.read
+                throw new UnsupportedOperationException();
             }
         }
 
@@ -157,6 +158,8 @@ public final class Imro {
                 out.printf("(%d %d %d %d %d)", cb.channel(), electrode.shank, cb.bank(), reference, e);
             }
             break;
+        default: //XXX Unsupported Operation Imro.read
+            throw new UnsupportedOperationException();
         }
     }
 

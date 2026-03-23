@@ -234,7 +234,7 @@ public class WeakerElectrodeSelector implements ElectrodeSelector {
             var x = s * type.spacePerShank() + c * type.spacePerColumn();
             var y = r * type.spacePerRow();
 
-            var t = tool.index(s, x, y);
+            var t = tool.index(s, (int) x, (int) y);
             if (t >= 0 && tool.category(i) == tool.category(t)) return t;
             return -1;
         }

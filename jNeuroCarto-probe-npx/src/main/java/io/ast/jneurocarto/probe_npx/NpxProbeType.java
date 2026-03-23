@@ -181,9 +181,9 @@ public sealed interface NpxProbeType {
             return 0;
         }
 
-        public int[] reference() {
-            return new int[]{192, 576, 960};
-        }
+//        public int[] reference() {
+//            return new int[]{192, 576, 960};
+//        }
     }
 
     abstract sealed class NP21Base implements NpxProbeType {
@@ -682,10 +682,6 @@ public sealed interface NpxProbeType {
             return 3;
         }
 
-        @Override
-        public int[] reference() {
-            return new int[0];
-        }
     }
 
     final class NP3000 implements NpxProbeType {
@@ -734,10 +730,6 @@ public sealed interface NpxProbeType {
             return 2;
         }
 
-        @Override
-        public int[] reference() {
-            return new int[0];
-        }
     }
 
     final class NP3010 implements NpxProbeType {
@@ -786,10 +778,6 @@ public sealed interface NpxProbeType {
             return 3;
         }
 
-        @Override
-        public int[] reference() {
-            return new int[0];
-        }
     }
 
     final class NP3020 implements NpxProbeType {
@@ -838,9 +826,5 @@ public sealed interface NpxProbeType {
             return 7;
         }
 
-        @Override
-        public int[] reference() {
-            return new int[0];
-        }
     }
 }

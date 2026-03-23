@@ -128,9 +128,11 @@ public class ProbeReferencePlugin implements ProbePlugin<ChannelMap> {
         public String toString(@Nullable ReferenceInfo object) {
             if (object == null) return "";
             return switch (object.type()) {
-                case ReferenceInfo.ReferenceType.EXT -> "External";
-                case ReferenceInfo.ReferenceType.TIP -> "Shank: " + object.shank();
-                case ReferenceInfo.ReferenceType.BANK -> "Channel: " + object.shank() + ":" + object.channel();
+                case EXT -> "External";
+                case TIP -> "Shank: " + object.shank();
+                case BANK -> "Channel: " + object.shank() + ":" + object.channel();
+                case GROUND -> "Ground";
+                case UNKNOWN -> "Unknown";
             };
         }
 

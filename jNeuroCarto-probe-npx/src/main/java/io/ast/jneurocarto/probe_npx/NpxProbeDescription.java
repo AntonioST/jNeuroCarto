@@ -34,19 +34,19 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     public static final int CATE_QUARTER = 13;
 
     private static final Map<Integer, String> ALL_STATES = Map.of(
-        STATE_UNUSED, "Disable",
-        STATE_USED, "Enable",
-        STATE_DISABLED, "Forbidden"
+      STATE_UNUSED, "Disable",
+      STATE_USED, "Enable",
+      STATE_DISABLED, "Forbidden"
     );
 
     private static final Map<Integer, String> ALL_CATEGORIES = Map.of(
-        CATE_UNSET, "Unset",
-        CATE_SET, "Pre Selected",
-        CATE_FULL, "Full Density",
-        CATE_HALF, "Half Density",
-        CATE_QUARTER, "Quarter Density",
-        CATE_LOW, "Low priority",
-        CATE_EXCLUDED, "Excluded"
+      CATE_UNSET, "Unset",
+      CATE_SET, "Pre Selected",
+      CATE_FULL, "Full Density",
+      CATE_HALF, "Half Density",
+      CATE_QUARTER, "Quarter Density",
+      CATE_LOW, "Low priority",
+      CATE_EXCLUDED, "Excluded"
     );
 
     private static final List<String> STATES = List.of("Enable", "Disable");
@@ -63,6 +63,25 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
             case NpxProbeType.NP1 _ -> "Neuropixels probe";
             case NpxProbeType.NP21 _ -> "Neuropixels probe 2.0";
             case NpxProbeType.NP24 _ -> "4-Shank Neuropixels probe 2.0";
+            //TODO
+            case NpxProbeType.NP1020 _ -> "TODO";
+            case NpxProbeType.NP1022 _ -> "TODO";
+            case NpxProbeType.NP1030 _ -> "TODO";
+            case NpxProbeType.NP1032 _ -> "TODO";
+            case NpxProbeType.NP1100 _ -> "TODO";
+            case NpxProbeType.NP1110 _ -> "TODO";
+            case NpxProbeType.NP1120 _ -> "TODO";
+            case NpxProbeType.NP1121 _ -> "TODO";
+            case NpxProbeType.NP1122 _ -> "TODO";
+            case NpxProbeType.NP1123 _ -> "TODO";
+            case NpxProbeType.NP1200 _ -> "TODO";
+            case NpxProbeType.NP1300 _ -> "TODO";
+            case NpxProbeType.NP2003 _ -> "TODO";
+            case NpxProbeType.NP2013 _ -> "TODO";
+            case NpxProbeType.NP2020 _ -> "TODO";
+            case NpxProbeType.NP3000 _ -> "TODO";
+            case NpxProbeType.NP3010 _ -> "TODO";
+            case NpxProbeType.NP3020 _ -> "TODO";
         };
     }
 
@@ -117,6 +136,24 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
             case NpxProbeType.NP1 _ -> "NP0";
             case NpxProbeType.NP21 _ -> "NP21";
             case NpxProbeType.NP24 _ -> "NP24";
+            case NpxProbeType.NP1020 _ -> "NP1020";
+            case NpxProbeType.NP1022 _ -> "NP1022";
+            case NpxProbeType.NP1030 _ -> "NP1030";
+            case NpxProbeType.NP1032 _ -> "NP1032";
+            case NpxProbeType.NP1100 _ -> "NP1100";
+            case NpxProbeType.NP1110 _ -> "NP1110";
+            case NpxProbeType.NP1120 _ -> "NP1120";
+            case NpxProbeType.NP1121 _ -> "NP1121";
+            case NpxProbeType.NP1122 _ -> "NP1122";
+            case NpxProbeType.NP1123 _ -> "NP1123";
+            case NpxProbeType.NP1200 _ -> "NP1200";
+            case NpxProbeType.NP1300 _ -> "NP1300";
+            case NpxProbeType.NP2003 _ -> "NP2003";
+            case NpxProbeType.NP2013 _ -> "NP2013";
+            case NpxProbeType.NP2020 _ -> "NP2020";
+            case NpxProbeType.NP3000 _ -> "NP3000";
+            case NpxProbeType.NP3010 _ -> "NP3010";
+            case NpxProbeType.NP3020 _ -> "NP3020";
         };
     }
 
@@ -162,9 +199,9 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
         var ret = new ArrayList<ElectrodeDescription>(c.length);
         for (int i = 0, length = c.length; i < length; i++) {
             ret.add(new ElectrodeDescription(
-                sxy[0][i], sxy[1][i], sxy[2][i],
-                new Electrode(scr[0][i], scr[1][i], scr[2][i]),
-                c[i]
+              sxy[0][i], sxy[1][i], sxy[2][i],
+              new Electrode(scr[0][i], scr[1][i], scr[2][i]),
+              c[i]
             ));
         }
         return ret;
@@ -179,8 +216,8 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
                 var sxy = ChannelMapUtil.e2xy(type, electrode);
                 var c = ChannelMapUtil.e2c(type, electrode);
                 ret.add(new ElectrodeDescription(
-                    sxy.s(), sxy.x(), sxy.y(),
-                    electrode, c
+                  sxy.s(), sxy.x(), sxy.y(),
+                  electrode, c
                 ));
             }
         }
@@ -237,10 +274,10 @@ public class NpxProbeDescription implements ProbeDescription<ChannelMap> {
     @Override
     public ElectrodeDescription copyElectrode(ElectrodeDescription e) {
         return new ElectrodeDescription(
-            e.s(), e.x(), e.y(),
-            new Electrode((Electrode) e.electrode()),
-            e.channel(),
-            e.state(), e.category()
+          e.s(), e.x(), e.y(),
+          new Electrode((Electrode) e.electrode()),
+          e.channel(),
+          e.state(), e.category()
         );
     }
 
