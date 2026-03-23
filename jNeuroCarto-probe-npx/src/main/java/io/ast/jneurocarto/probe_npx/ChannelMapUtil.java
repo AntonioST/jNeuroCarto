@@ -149,9 +149,9 @@ public final class ChannelMapUtil {
     }
 
     private static int check2N(int[][] a) {
-        if (a.length != 3) throw new IllegalArgumentException();
+        if (a.length != 2) throw new IllegalArgumentException("Not a 2,N array");
         var length = a[0].length;
-        if (a[1].length != length) throw new IllegalArgumentException();
+        if (a[1].length != length) throw new IllegalArgumentException("Not a 2,N array: inconsistent length on 2nd row");
         return length;
     }
 
@@ -162,10 +162,10 @@ public final class ChannelMapUtil {
      * @return the length of the second axis.
      */
     private static int check3N(int[][] a) {
-        if (a.length != 3) throw new IllegalArgumentException();
+        if (a.length != 3) throw new IllegalArgumentException("Not a 3,N array");
         var length = a[0].length;
-        if (a[1].length != length) throw new IllegalArgumentException();
-        if (a[2].length != length) throw new IllegalArgumentException();
+        if (a[1].length != length) throw new IllegalArgumentException("Not a 3,N array: inconsistent length on 2nd row");
+        if (a[2].length != length) throw new IllegalArgumentException("Not a 3,N array: inconsistent length on 3rd row");
         return length;
     }
 
@@ -563,6 +563,18 @@ public final class ChannelMapUtil {
         };
     }
 
+    public static int[] c2e(NpxProbeType type, int[][] channel, int[] shank) {
+        return switch (type) {
+            case NpxProbeType.NP21Base _ -> c2e(channel, ChannelMapUtil::c2e21);
+            case NpxProbeType.NP24Base _ -> c2e(channel, shank, ChannelMapUtil::c2e24);
+            case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtil::c2e1110);
+            case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtil::c2e2020);
+            case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtil::c2e3010);
+            case NpxProbeType.NP3020 _ -> c2e(channel, shank, ChannelMapUtil::c2e3020);
+            default -> c2e(channel, ChannelMapUtil::c2e0);
+        };
+    }
+
     private static int[] c2e(int[][] channel, IntBinaryOperator func) {
         int length = check2N(channel);
         var ret = new int[length];
@@ -582,6 +594,16 @@ public final class ChannelMapUtil {
         var ret = new int[length];
         for (int i = 0; i < length; i++) {
             ret[i] = func.apply(channel[0][i], channel[1][i], shank);
+        }
+        return ret;
+    }
+
+    private static int[] c2e(int[][] channel, int[] shank, IntTriFunction func) {
+        int length = check2N(channel);
+        if (shank.length != length) throw new IllegalArgumentException();
+        var ret = new int[length];
+        for (int i = 0; i < length; i++) {
+            ret[i] = func.apply(channel[0][i], channel[1][i], shank[i]);
         }
         return ret;
     }
