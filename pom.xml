@@ -2,276 +2,276 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.ast.jneurocarto</groupId>
-    <artifactId>jNeuroCarto</artifactId>
-    <version>0.0</version>
-    <packaging>pom</packaging>
+  <groupId>io.ast.jneurocarto</groupId>
+  <artifactId>jNeuroCarto</artifactId>
+  <version>0.0</version>
+  <packaging>pom</packaging>
 
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
-            <distribution>repo</distribution>
-            <comments>Copyright (c) 2025, AntonioST</comments>
-        </license>
-    </licenses>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+      <comments>Copyright (c) 2025, AntonioST</comments>
+    </license>
+  </licenses>
 
-    <modules>
-        <module>jNeuroCarto-core</module>
-        <module>jNeuroCarto-probe-npx</module>
-        <module>jNeuroCarto-probe-npx-javafx</module>
-        <module>jNeuroCarto-atlas</module>
-        <module>jNeuroCarto-javafx-chart</module>
-        <module>jNeuroCarto-javafx</module>
-        <module>jNeuroCarto-kotlin</module>
-        <module>jNeuroCarto-javafx-app</module>
-        <module>jNeuroCarto-javafx-doc</module>
-        <module>jNeuroCarto-test</module>
-        <module>jNeuroCarto-jmh</module>
-    </modules>
+  <modules>
+    <module>jNeuroCarto-core</module>
+    <module>jNeuroCarto-probe-npx</module>
+    <module>jNeuroCarto-probe-npx-javafx</module>
+    <module>jNeuroCarto-atlas</module>
+    <module>jNeuroCarto-javafx-chart</module>
+    <module>jNeuroCarto-javafx</module>
+    <module>jNeuroCarto-kotlin</module>
+    <module>jNeuroCarto-javafx-app</module>
+    <module>jNeuroCarto-javafx-doc</module>
+    <module>jNeuroCarto-test</module>
+    <module>jNeuroCarto-jmh</module>
+  </modules>
 
-    <properties>
-        <maven.compiler.release>25</maven.compiler.release>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <slf4j.version>2.0.17</slf4j.version>
-        <javafx.version>25</javafx.version>
-        <picocli.version>4.7.7</picocli.version>
-        <jackson.version>2.20.0</jackson.version>
-        <kotlin.version>2.2.20</kotlin.version>
-        <!-- <vaadin.version>24.7.3</vaadin.version>-->
-        <!-- <logback.version>1.5.18</logback.version>-->
-        <!-- <spring-boot.version>3.4.5</spring-boot.version>-->
-        <junit.version>5.12.2</junit.version>
-        <jneurocarto.version>0.0</jneurocarto.version>
-    </properties>
+  <properties>
+    <maven.compiler.release>26</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <slf4j.version>2.0.17</slf4j.version>
+    <javafx.version>26</javafx.version>
+    <picocli.version>4.7.7</picocli.version>
+    <jackson.version>2.21.2</jackson.version>
+    <kotlin.version>2.3.20</kotlin.version>
+    <!-- <vaadin.version>24.7.3</vaadin.version>-->
+    <!-- <logback.version>1.5.18</logback.version>-->
+    <!-- <spring-boot.version>3.4.5</spring-boot.version>-->
+    <junit.version>6.0.3</junit.version>
+    <jneurocarto.version>0.0</jneurocarto.version>
+  </properties>
 
-    <dependencyManagement>
-        <dependencies>
+  <dependencyManagement>
+    <dependencies>
 
-            <!--logging-->
+      <!--logging-->
 
-            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
 
-            <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-simple</artifactId>
-                <version>${slf4j.version}</version>
-                <scope>runtime</scope>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>${slf4j.version}</version>
+        <scope>runtime</scope>
+      </dependency>
 
-            <!--Annotations-->
+      <!--Annotations-->
 
-            <!-- https://mvnrepository.com/artifact/org.jspecify/jspecify -->
-            <dependency>
-                <groupId>org.jspecify</groupId>
-                <artifactId>jspecify</artifactId>
-                <version>1.0.0</version>
-                <scope>provided</scope>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.jspecify/jspecify -->
+      <dependency>
+        <groupId>org.jspecify</groupId>
+        <artifactId>jspecify</artifactId>
+        <version>1.0.0</version>
+        <scope>provided</scope>
+      </dependency>
 
-            <!-- JavaFX -->
+      <!-- JavaFX -->
 
-            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
-            <dependency>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-base</artifactId>
-                <version>${javafx.version}</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-base -->
+      <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-base</artifactId>
+        <version>${javafx.version}</version>
+      </dependency>
 
-            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-graphics -->
-            <dependency>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-graphics</artifactId>
-                <version>${javafx.version}</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-graphics -->
+      <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-graphics</artifactId>
+        <version>${javafx.version}</version>
+      </dependency>
 
-            <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-controls -->
-            <dependency>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-controls</artifactId>
-                <version>${javafx.version}</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.openjfx/javafx-controls -->
+      <dependency>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-controls</artifactId>
+        <version>${javafx.version}</version>
+      </dependency>
 
-            <!--CLI-->
+      <!--CLI-->
 
-            <!-- https://mvnrepository.com/artifact/info.picocli/picocli -->
-            <dependency>
-                <groupId>info.picocli</groupId>
-                <artifactId>picocli</artifactId>
-                <version>${picocli.version}</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/info.picocli/picocli -->
+      <dependency>
+        <groupId>info.picocli</groupId>
+        <artifactId>picocli</artifactId>
+        <version>${picocli.version}</version>
+      </dependency>
 
-            <!-- Image -->
+      <!-- Image -->
 
-            <!-- https://mvnrepository.com/artifact/com.twelvemonkeys.imageio/imageio-tiff -->
-            <dependency>
-                <groupId>com.twelvemonkeys.imageio</groupId>
-                <artifactId>imageio-tiff</artifactId>
-                <version>3.12.0</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/com.twelvemonkeys.imageio/imageio-tiff -->
+      <dependency>
+        <groupId>com.twelvemonkeys.imageio</groupId>
+        <artifactId>imageio-tiff</artifactId>
+        <version>3.13.1</version>
+      </dependency>
 
-            <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>1.28.0</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.28.0</version>
+      </dependency>
 
-            <!-- classpath/module scanner  -->
+      <!-- classpath/module scanner  -->
 
-            <!-- https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
-            <dependency>
-                <groupId>io.github.classgraph</groupId>
-                <artifactId>classgraph</artifactId>
-                <version>4.8.181</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
+      <dependency>
+        <groupId>io.github.classgraph</groupId>
+        <artifactId>classgraph</artifactId>
+        <version>4.8.184</version>
+      </dependency>
 
-            <!-- Json -->
+      <!-- Json -->
 
-            <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <!-- <version>${jackson.version}</version>-->
-                <version>2.20</version>  <!--not 2.20.0-->
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <!-- <version>${jackson.version}</version>-->
+        <version>2.21</version>
+      </dependency>
 
-            <!-- CSV -->
+      <!-- CSV -->
 
-            <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-csv -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-csv</artifactId>
-                <version>1.14.1</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-csv -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>1.14.1</version>
+      </dependency>
 
-            <!-- Kotlin -->
+      <!-- Kotlin -->
 
-            <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
-            <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-stdlib</artifactId>
-                <version>${kotlin.version}</version>
-            </dependency>
-            <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-jdk8 -->
-            <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-stdlib-jdk8</artifactId>
-                <version>${kotlin.version}</version>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib</artifactId>
+        <version>${kotlin.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-jdk8 -->
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-jdk8</artifactId>
+        <version>${kotlin.version}</version>
+      </dependency>
 
 
-            <!--Test-->
+      <!--Test-->
 
-            <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-api</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
 
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-params</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-params</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
 
-            <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine -->
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-engine</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
+      <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine -->
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
 
-        </dependencies>
-    </dependencyManagement>
+    </dependencies>
+  </dependencyManagement>
 
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.5.0</version>
-                    <configuration>
-                        <rules>
-                            <requireMavenVersion>
-                                <version>3.0</version>
-                            </requireMavenVersion>
-                            <requireJavaVersion>
-                                <version>${maven.compiler.release}</version>
-                            </requireJavaVersion>
-                        </rules>
-                    </configuration>
-                </plugin>
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.5.0</version>
+          <configuration>
+            <rules>
+              <requireMavenVersion>
+                <version>3.0</version>
+              </requireMavenVersion>
+              <requireJavaVersion>
+                <version>${maven.compiler.release}</version>
+              </requireJavaVersion>
+            </rules>
+          </configuration>
+        </plugin>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.14.0</version>
-                    <configuration>
-                        <source>${maven.compiler.release}</source>
-                        <target>${maven.compiler.release}</target>
-                        <compilerVersion>${maven.compiler.release}</compilerVersion>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.8.1</version>
-                    <executions>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.11.2</version>
-                    <configuration>
-                        <additionalJOptions>
-                            <additionalJOption>--enable-preview</additionalJOption>
-                        </additionalJOptions>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.5.0</version>
-                </plugin>
-                <plugin>
-                    <artifactId>kotlin-maven-plugin</artifactId>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <version>${kotlin.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.4</version>
-                    <configuration>
-                        <argLine>--enable-preview</argLine>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.14.0</version>
+          <configuration>
+            <source>${maven.compiler.release}</source>
+            <target>${maven.compiler.release}</target>
+            <compilerVersion>${maven.compiler.release}</compilerVersion>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.8.1</version>
+          <executions>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.11.2</version>
+          <configuration>
+            <additionalJOptions>
+              <additionalJOption>--enable-preview</additionalJOption>
+            </additionalJOptions>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>kotlin-maven-plugin</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <version>${kotlin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.4</version>
+          <configuration>
+            <argLine>--enable-preview</argLine>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 </project>
