@@ -2,21 +2,20 @@ package io.ast.jneurocarto.probe_npx.io;
 
 import java.io.PrintStream;
 
+import org.jspecify.annotations.NullMarked;
+
 import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
-public class ImroNp1 extends ImroIO {
+@NullMarked
+class ImroNp1 extends ImroIO {
     protected ImroNp1(NpxProbeType type) {
         super(type);
     }
 
     @Override
-    public void parseHeader(int[] headers) {
-    }
-
-    @Override
-    public Electrode parseElectrodes(int[] args) {
+    public boolean parseElectrodes(int[] args) {
         assert args.length == 6;
         var ch = args[0];
         var bk = args[1];
@@ -27,11 +26,13 @@ public class ImroNp1 extends ImroIO {
         var ed = ChannelMapUtil.c2e0(ch, bk);
         var cr = ChannelMapUtil.e2cr(type, ed);
         assert cr.s() == 0;
+
         var e = new Electrode(0, cr.c(), cr.r());
         e.apBandGain = ap;
         e.lfBandBain = lf;
         e.apHpFilter = ft != 0;
-        return e;
+
+        return addElectrode(e);
     }
 
     @Override

@@ -49,7 +49,7 @@ public class ChannelMapUtilTest {
 
     @BeforeAll
     public static void initNpxTypeData() {
-        DATA = new NpxTypeData[]{new NpxTypeData(NpxProbeType.NP0), new NpxTypeData(NpxProbeType.NP21), new NpxTypeData(NpxProbeType.NP24)};
+        DATA = new NpxTypeData[]{new NpxTypeData(NpxProbeType.np0), new NpxTypeData(NpxProbeType.np21), new NpxTypeData(NpxProbeType.np24)};
     }
 
     private static void assert2DArrayEquals(int[][] expect, int[][] actual) {

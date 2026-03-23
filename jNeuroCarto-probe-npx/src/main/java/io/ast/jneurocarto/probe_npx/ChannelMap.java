@@ -23,6 +23,9 @@ public class ChannelMap implements Iterable<@Nullable Electrode> {
     private int reference = 0;
     private @Nullable NpxMeta meta = null;
 
+    // for NP1110
+    public NpxProbeType.NP1110.Mode mode = NpxProbeType.NP1110.Mode.ALL;
+
     public ChannelMap(NpxProbeType type) {
         this.type = type;
         electrodes = new Electrode[type.nChannel()];

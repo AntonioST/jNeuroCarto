@@ -12,58 +12,58 @@ import org.jspecify.annotations.Nullable;
 @NullMarked
 public sealed interface NpxProbeType {
 
-    NpxProbeType NP0 = new NP1();
-    NpxProbeType NP21 = new NP21(21);
-    NpxProbeType NP24 = new NP24(24);
-    NpxProbeType NP1020 = new NP1020();
-    NpxProbeType NP1022 = new NP1022();
-    NpxProbeType NP1030 = new NP1030();
-    NpxProbeType NP1032 = new NP1032();
-    NpxProbeType NP1100 = new NP1100();
-    NpxProbeType NP1110 = new NP1110();
-    NpxProbeType NP1120 = new NP1120();
-    NpxProbeType NP1121 = new NP1121();
-    NpxProbeType NP1122 = new NP1122();
-    NpxProbeType NP1123 = new NP1123();
-    NpxProbeType NP1200 = new NP1200();
-    NpxProbeType NP1300 = new NP1300();
-    NpxProbeType NP2000 = new NP21(2000);
-    NpxProbeType NP2003 = new NP2003();
-    NpxProbeType NP2010 = new NP24(2010);
-    NpxProbeType NP2013 = new NP2013();
-    NpxProbeType NP2020 = new NP2020();
-    NpxProbeType NP3000 = new NP3000();
-    NpxProbeType NP3010 = new NP3010();
-    NpxProbeType NP3020 = new NP3020();
+    NpxProbeType np0 = new NP1();
+    NpxProbeType np21 = new NP21(21);
+    NpxProbeType np24 = new NP24(24);
+    NpxProbeType np1020 = new NP1020();
+    NpxProbeType np1022 = new NP1022();
+    NpxProbeType np1030 = new NP1030();
+    NpxProbeType np1032 = new NP1032();
+    NpxProbeType np1100 = new NP1100();
+    NpxProbeType np1110 = new NP1110();
+    NpxProbeType np1120 = new NP1120();
+    NpxProbeType np1121 = new NP1121();
+    NpxProbeType np1122 = new NP1122();
+    NpxProbeType np1123 = new NP1123();
+    NpxProbeType np1200 = new NP1200();
+    NpxProbeType np1300 = new NP1300();
+    NpxProbeType np2000 = new NP21(2000);
+    NpxProbeType np2003 = new NP2003();
+    NpxProbeType np2010 = new NP24(2010);
+    NpxProbeType np2013 = new NP2013();
+    NpxProbeType np2020 = new NP2020();
+    NpxProbeType np3000 = new NP3000();
+    NpxProbeType np3010 = new NP3010();
+    NpxProbeType np3020 = new NP3020();
 
     /// Get [NpxProbeType] by probe type code.
     ///
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl.cpp#L1112)
     static NpxProbeType of(int code) {
         return switch (code) {
-            case 0, 1000, 1001, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017 -> NP0;
-            case 21 -> NP21;
-            case 24 -> NP24;
-            case 1020, 1021 -> NP1020;
-            case 1022 -> NP1022;
-            case 1030, 1031 -> NP1030;
-            case 1032, 1033 -> NP1032;
-            case 1100 -> NP1100;
-            case 1110 -> NP1110;
-            case 1120 -> NP1120;
-            case 1121 -> NP1121;
-            case 1122 -> NP1122;
-            case 1123 -> NP1123;
-            case 1200, 1210, 1221 -> NP1200;
-            case 1300 -> NP1300;
-            case 2000 -> NP2000;
-            case 2003, 2004, 2005, 2006 -> NP2003;
-            case 2010 -> NP2010;
-            case 2013, 2014 -> NP2013;
-            case 2020, 2021 -> NP2020;
-            case 3000 -> NP3000;
-            case 3010, 3011 -> NP3010;
-            case 3020, 3021, 3022 -> NP3020;
+            case 0, 1000, 1001, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017 -> np0;
+            case 21 -> np21;
+            case 24 -> np24;
+            case 1020, 1021 -> np1020;
+            case 1022 -> np1022;
+            case 1030, 1031 -> np1030;
+            case 1032, 1033 -> np1032;
+            case 1100 -> np1100;
+            case 1110 -> np1110;
+            case 1120 -> np1120;
+            case 1121 -> np1121;
+            case 1122 -> np1122;
+            case 1123 -> np1123;
+            case 1200, 1210, 1221 -> np1200;
+            case 1300 -> np1300;
+            case 2000 -> np2000;
+            case 2003, 2004, 2005, 2006 -> np2003;
+            case 2010 -> np2010;
+            case 2013, 2014 -> np2013;
+            case 2020, 2021 -> np2020;
+            case 3000 -> np3000;
+            case 3010, 3011 -> np3010;
+            case 3020, 3021, 3022 -> np3020;
             default -> throw new IllegalArgumentException("unknown Neuropixels probe code : " + code);
         };
     }
@@ -76,13 +76,13 @@ public sealed interface NpxProbeType {
             // PRB_1_4_0480_1 (Silicon cap)
             // PRB_1_4_0480_1_C (Metal cap)
             // PRB_1_2_0480_2
-            return NP0;
+            return np0;
         } else if (code.startsWith("PRB2_1")) {
             // PRB2_1_2_0640_0 (NP 2.0 SS scrambled el 1280)
-            return NP21;
+            return np21;
         } else if (code.startsWith("PRB2_4")) {
             // PRB2_4_2_0640_0 (NP 2.0 MS el 1280)
-            return NP24;
+            return np24;
         } else if (code.startsWith("NP")) {
             return of(Integer.parseInt(code.substring(2)));
         }
@@ -476,6 +476,11 @@ public sealed interface NpxProbeType {
     ///
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.h#L61)
     final class NP1110 extends NP1Base {
+
+        public enum Mode {
+            INNER, OUTER, ALL;
+        }
+
         @Override
         public int code() {
             return 1110;

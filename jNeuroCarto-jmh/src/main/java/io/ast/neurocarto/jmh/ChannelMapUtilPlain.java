@@ -237,7 +237,7 @@ public final class ChannelMapUtilPlain {
      * @see ChannelMapUtil#e2c0(int)
      */
     public static ChannelMapUtil.CB e2c0(int electrode) {
-        var n = NpxProbeType.NP0.nChannel();
+        var n = NpxProbeType.np0.nChannel();
         return new ChannelMapUtil.CB(electrode % n, electrode / n);
     }
 
@@ -258,7 +258,7 @@ public final class ChannelMapUtilPlain {
      * @see ChannelMapUtil#e2c21(int)
      */
     public static ChannelMapUtil.CB e2c21(int electrode) {
-        var n = NpxProbeType.NP21.nChannel();
+        var n = NpxProbeType.np21.nChannel();
         var bf = ELECTRODE_MAP_21[0];
         var ba = ELECTRODE_MAP_21[1];
         var bank = electrode / n;
@@ -288,7 +288,7 @@ public final class ChannelMapUtilPlain {
      * @see ChannelMapUtil#e2c24(int, int)
      */
     public static ChannelMapUtil.CB e2c24(int shank, int electrode) {
-        var n = NpxProbeType.NP24.nChannel();
+        var n = NpxProbeType.np24.nChannel();
         var bank = electrode / n;
         var e1 = electrode % n;
         var b1 = e1 / 48/*type.nElectrodePerBlock()*/;

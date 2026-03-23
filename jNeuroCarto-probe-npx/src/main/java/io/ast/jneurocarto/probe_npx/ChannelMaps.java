@@ -27,7 +27,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24SingleShank(int shank, double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         try {
             return npx24SingleShank(shank, (int) (row / type.spacePerRow()));
         } catch (IllegalArgumentException e) {
@@ -40,7 +40,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24SingleShank(int shank, int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         if (!(0 <= shank && shank < type.nShank())) {
             throw new IllegalArgumentException("shank over range : " + shank);
         }
@@ -65,7 +65,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24Stripe(double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         try {
             return npx24Stripe((int) (row / type.spacePerRow()));
         } catch (IllegalArgumentException e) {
@@ -78,7 +78,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24Stripe(int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         var ns = type.nShank();
         var nc = type.nColumnPerShank();
         var nr = type.nChannel() / (nc * ns);
@@ -102,17 +102,17 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24HalfDensity(int shank, double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         return npx24HalfDensity(shank, (int) (row / type.spacePerRow()));
     }
 
     public static ChannelMap npx24HalfDensity(int s1, int s2, double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         return npx24HalfDensity(s1, s2, (int) (row / type.spacePerRow()));
     }
 
     public static ChannelMap npx24HalfDensity(int shank, int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         if (!(0 <= shank && shank < type.nShank())) {
             throw new IllegalArgumentException("shank over range : " + shank);
         }
@@ -131,7 +131,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24HalfDensity(int s1, int s2, int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         var ns = type.nShank();
         if (!(0 <= s1 && s1 < ns)) {
             throw new IllegalArgumentException("shank (s1) over range : " + s1);
@@ -155,22 +155,22 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24QuarterDensity(double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         return npx24QuarterDensity((int) (row / type.spacePerRow()));
     }
 
     public static ChannelMap npx24QuarterDensity(int shank, double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         return npx24QuarterDensity(shank, (int) (row / type.spacePerRow()));
     }
 
     public static ChannelMap npx24QuarterDensity(int s1, int s2, double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         return npx24QuarterDensity(s1, s2, (int) (row / type.spacePerRow()));
     }
 
     public static ChannelMap npx24QuarterDensity(int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         var nc = type.nColumnPerShank();
         var ret = new ChannelMap(type);
         for (int r = 0; r < 192; r += 4) {
@@ -188,7 +188,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24QuarterDensity(int shank, int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         if (!(0 <= shank && shank < type.nShank())) {
             throw new IllegalArgumentException("shank over range : " + shank);
         }
@@ -216,7 +216,7 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24QuarterDensity(int s1, int s2, int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         var ns = type.nShank();
         if (!(0 <= s1 && s1 < ns)) {
             throw new IllegalArgumentException("shank (s1) over range : " + s1);
@@ -244,12 +244,12 @@ public final class ChannelMaps {
     }
 
     public static ChannelMap npx24OneEightDensity(double row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
         return npx24OneEightDensity((int) (row / type.spacePerRow()));
     }
 
     public static ChannelMap npx24OneEightDensity(int row) {
-        var type = NpxProbeType.NP24;
+        var type = NpxProbeType.np24;
 
         var nc = type.nColumnPerShank();
 

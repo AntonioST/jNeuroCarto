@@ -541,8 +541,8 @@ public final class ChannelMapUtil {
 
     public static int c2e(NpxProbeType type, int channel, int bank, int shank) {
         return switch (type) {
-            case NpxProbeType.NP21 _ -> c2e21(channel, bank);
-            case NpxProbeType.NP24 _ -> c2e24(channel, bank, shank);
+            case NpxProbeType.NP21Base _ -> c2e21(channel, bank);
+            case NpxProbeType.NP24Base _ -> c2e24(channel, bank, shank);
             case NpxProbeType.NP1110 _ -> c2e1110(channel, bank);
             case NpxProbeType.NP2020 _ -> c2e2020(channel, bank, shank);
             case NpxProbeType.NP3010 _ -> c2e3010(channel, bank);
@@ -553,8 +553,8 @@ public final class ChannelMapUtil {
 
     public static int[] c2e(NpxProbeType type, int[][] channel, int shank) {
         return switch (type) {
-            case NpxProbeType.NP21 _ -> c2e(channel, ChannelMapUtil::c2e21);
-            case NpxProbeType.NP24 _ -> c2e(channel, shank, ChannelMapUtil::c2e24);
+            case NpxProbeType.NP21Base _ -> c2e(channel, ChannelMapUtil::c2e21);
+            case NpxProbeType.NP24Base _ -> c2e(channel, shank, ChannelMapUtil::c2e24);
             case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtil::c2e1110);
             case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtil::c2e2020);
             case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtil::c2e3010);
@@ -607,8 +607,8 @@ public final class ChannelMapUtil {
      */
     public static CB e2cb(NpxProbeType type, int shank, int electrode) {
         return switch (type) {
-            case NpxProbeType.NP21 _ -> e2c21(electrode);
-            case NpxProbeType.NP24 _ -> e2c24(shank, electrode);
+            case NpxProbeType.NP21Base _ -> e2c21(electrode);
+            case NpxProbeType.NP24Base _ -> e2c24(shank, electrode);
             case NpxProbeType.NP1110 _ -> e2c1110(electrode);
             case NpxProbeType.NP2020 _ -> e2c2020(shank, electrode);
             case NpxProbeType.NP3010 _ -> e2c3010(electrode);
@@ -651,8 +651,8 @@ public final class ChannelMapUtil {
      */
     public static int[][] e2cb(NpxProbeType type, int shank, int[] electrode) {
         return switch (type) {
-            case NpxProbeType.NP21 _ -> e2cb(electrode, ChannelMapUtil::e2c21);
-            case NpxProbeType.NP24 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c24);
+            case NpxProbeType.NP21Base _ -> e2cb(electrode, ChannelMapUtil::e2c21);
+            case NpxProbeType.NP24Base _ -> e2cb(shank, electrode, ChannelMapUtil::e2c24);
             case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtil::e2c1110);
             case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c2020);
             case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtil::e2c3010);
@@ -671,8 +671,8 @@ public final class ChannelMapUtil {
      */
     public static int[][] e2cb(NpxProbeType type, int[] shank, int[] electrode) {
         return switch (type) {
-            case NpxProbeType.NP21 _ -> e2cb(electrode, ChannelMapUtil::e2c21);
-            case NpxProbeType.NP24 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c24);
+            case NpxProbeType.NP21Base _ -> e2cb(electrode, ChannelMapUtil::e2c21);
+            case NpxProbeType.NP24Base _ -> e2cb(shank, electrode, ChannelMapUtil::e2c24);
             case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtil::e2c1110);
             case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtil::e2c2020);
             case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtil::e2c3010);
@@ -740,13 +740,13 @@ public final class ChannelMapUtil {
     }
 
     /**
-     * Get channel and bank index for given electrode for {@link NpxProbeType#NP0}.
+     * Get channel and bank index for given electrode for {@link NpxProbeType#np0}.
      *
      * @param electrode electrode index
      * @return index result
      */
     public static CB e2c0(int electrode) {
-        var n = NpxProbeType.NP0.nChannel();
+        var n = NpxProbeType.np0.nChannel();
         return new CB(electrode % n, electrode / n);
     }
 
@@ -777,13 +777,13 @@ public final class ChannelMapUtil {
     }
 
     /**
-     * Get channel and bank index for given electrode for {@link NpxProbeType#NP21}.
+     * Get channel and bank index for given electrode for {@link NpxProbeType#np21}.
      *
      * @param electrode electrode index
      * @return index result
      */
     public static CB e2c21(int electrode) {
-        var n = NpxProbeType.NP21.nChannel();
+        var n = NpxProbeType.np21.nChannel();
         var bf = ELECTRODE_MAP_21[0];
         var ba = ELECTRODE_MAP_21[1];
         var bank = electrode / n;
@@ -820,14 +820,14 @@ public final class ChannelMapUtil {
     }
 
     /**
-     * Get channel and bank index for given electrode for {@link NpxProbeType#NP24}.
+     * Get channel and bank index for given electrode for {@link NpxProbeType#np24}.
      *
      * @param shank     shank index
      * @param electrode electrode index
      * @return index result
      */
     public static CB e2c24(int shank, int electrode) {
-        var n = NpxProbeType.NP24.nChannel();
+        var n = NpxProbeType.np24.nChannel();
         var bank = electrode / n;
         var e1 = electrode % n;
         var b1 = e1 / 48/*type.nElectrodePerBlock()*/;
@@ -837,24 +837,24 @@ public final class ChannelMapUtil {
     }
 
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L298)
-    private static int np1110Group(int channel) {
+    public static int np1110Group(int channel) {
         var c = channel % 384;
         return 2 * (c / 32) + (c % 2);
     }
 
-    private static int np1110Row(int channel, int bank) {
+    public static int np1110Row(int channel, int bank) {
         return np1110Row(channel, bank, np1110Group(channel));
     }
 
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L318)
-    private static int np1110Row(int channel, int bank, int group) {
+    public static int np1110Row(int channel, int bank, int group) {
         var groupRow = group / 4;
         var inGroupRow = ((channel % 64) % 32) / 4;
         var bankRow = 8 * groupRow + (channel % 2 == 0 ? inGroupRow : 7 - inGroupRow);
         return 48 * bank + bankRow;
     }
 
-    private static int np1110Col(int channel, int bank) {
+    public static int np1110Col(int channel, int bank) {
         return np1110Col(channel, bank, np1110Group(channel));
     }
 
@@ -864,7 +864,7 @@ public final class ChannelMapUtil {
     };
 
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L306)
-    private static int np1110Col(int channel, int bank, int group) {
+    public static int np1110Col(int channel, int bank, int group) {
         var groupCol = ELECTRODE_MAP_1110[bank % 2][group % 4];
         var crossed = (bank / 4) % 2;
         var inGroupCol = (((channel % 64) % 32) / 2) % 2;
@@ -883,7 +883,7 @@ public final class ChannelMapUtil {
     private static final LazyConstant<int[]> ELECTRODE_MAP_1110_CACHE = LazyConstant.of(ChannelMapUtil::initNp1110E2CCache);
 
     private static int[] initNp1110E2CCache() {
-        var type = NpxProbeType.NP1110;
+        var type = NpxProbeType.np1110;
         var channels = type.nChannel();
         assert type.nElectrodePerShank() / channels == 16;
         var banks = 16;

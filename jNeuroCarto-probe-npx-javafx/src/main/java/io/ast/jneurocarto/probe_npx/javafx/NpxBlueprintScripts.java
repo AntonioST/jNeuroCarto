@@ -124,7 +124,7 @@ public final class NpxBlueprintScripts {
             return;
         }
 
-        var r = (int) (row / NpxProbeType.NP24.spacePerRow());
+        var r = (int) (row / NpxProbeType.np24.spacePerRow());
         if (r % 2 == 0) {
             z = keepIndexForModule(index, r, 0, 3);
         } else {
@@ -176,7 +176,7 @@ public final class NpxBlueprintScripts {
             return;
         }
 
-        var r = (int) (row / NpxProbeType.NP24.spacePerRow());
+        var r = (int) (row / NpxProbeType.np24.spacePerRow());
         z = switch (r % 4) {
             case 0 -> keepIndexForModule(index, 8, 0, 5);
             case 1 -> keepIndexForModule(index, 8, 1, 4);
@@ -226,7 +226,7 @@ public final class NpxBlueprintScripts {
         @ScriptParameter(value = "update", defaultValue = "False",
             description = "update channelmap to follow the blueprint change.") boolean update) {
 
-        var r = (int) (y / NpxProbeType.NP24.spacePerRow());
+        var r = (int) (y / NpxProbeType.np24.spacePerRow());
         var x = maskForShank(bp, shank);
         bp.move(r, x);
         bp.applyViewBlueprint();
@@ -246,7 +246,7 @@ public final class NpxBlueprintScripts {
 
         static {
             var desp = new NpxProbeDescription();
-            var chmap = new ChannelMap(NpxProbeType.NP24);
+            var chmap = new ChannelMap(NpxProbeType.np24);
             var bp = new BlueprintToolkit<>(new Blueprint<>(desp, chmap));
             MASK = new BlueprintMask[]{
                 bp.mask(e -> e.s() == 0),

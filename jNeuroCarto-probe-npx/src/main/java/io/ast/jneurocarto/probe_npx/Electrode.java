@@ -9,9 +9,15 @@ public final class Electrode implements Comparable<Electrode> {
     public final int row;
 
     public boolean inUsed;
+
+    // for NP1
     public int apBandGain = 0;
     public int lfBandBain = 0;
     public boolean apHpFilter = false;
+
+    // for NP1110
+    public int bankA = 0;
+    public int bankB = 0;
 
     public Electrode(int shank, int column, int row) {
         if (shank < 0) throw new IllegalArgumentException("negative shank value : " + shank);
@@ -32,6 +38,8 @@ public final class Electrode implements Comparable<Electrode> {
         apBandGain = ref.apBandGain;
         lfBandBain = ref.lfBandBain;
         apHpFilter = ref.apHpFilter;
+        bankA = ref.bankA;
+        bankB = ref.bankB;
     }
 
     @Override

@@ -263,7 +263,7 @@ public final class ChannelMapUtilVec {
      * @see ChannelMapUtil#e2c0(int[])
      */
     public static int[][] e2c0(int[] electrode) {
-        var n = NpxProbeType.NP0.nChannel();
+        var n = NpxProbeType.np0.nChannel();
         var ret = empty(2, electrode.length);
         int i = 0;
         for (int u = I.loopBound(electrode.length); i < u; i += I.length()) {
@@ -286,7 +286,7 @@ public final class ChannelMapUtilVec {
      * @see ChannelMapUtil#e2c21(int[])
      */
     public static int[][] e2c21(int[] electrode) {
-        var n = NpxProbeType.NP21.nChannel();
+        var n = NpxProbeType.np21.nChannel();
         var bf = ELECTRODE_MAP_21[0];
         var ba = ELECTRODE_MAP_21[1];
         var ret = empty(2, electrode.length);
@@ -331,7 +331,7 @@ public final class ChannelMapUtilVec {
      * @see ChannelMapUtil#e2c24(int, int[])
      */
     public static int[][] e2c24(int shank, int[] electrode) {
-        var n = NpxProbeType.NP24.nChannel();
+        var n = NpxProbeType.np24.nChannel();
         var s = ELECTRODE_MAP_24[shank];
         var ret = empty(2, electrode.length);
 
@@ -363,7 +363,7 @@ public final class ChannelMapUtilVec {
      * @see ChannelMapUtil#e2c24(int[], int[])
      */
     public static int[][] e2c24(int[] shank, int[] electrode) {
-        var n = NpxProbeType.NP24.nChannel();
+        var n = NpxProbeType.np24.nChannel();
         var z = ELECTRODE_MAP_24_FAT.length / 4;
         var ret = empty(2, electrode.length);
 
