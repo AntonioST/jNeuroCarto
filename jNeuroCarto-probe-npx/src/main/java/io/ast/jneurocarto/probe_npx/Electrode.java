@@ -8,12 +8,12 @@ public final class Electrode implements Comparable<Electrode> {
     public final int column;
     public final int row;
 
-    public boolean inUsed;
+    public boolean inUsed = true;
 
     // for NP1
-    public int apBandGain = 0;
-    public int lfBandBain = 0;
-    public boolean apHpFilter = false;
+    public int apBandGain = 500;
+    public int lfBandBain = 250;
+    public boolean apHpFilter = true;
 
     // for NP1110
     public int bankA = 0;
