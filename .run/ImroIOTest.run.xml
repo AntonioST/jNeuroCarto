@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ImroIOTest" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+    <module name="jNeuroCarto-probe-npx"/>
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.ast.jneurocarto.probe_npx.io.*"/>
+        <option name="ENABLED" value="true"/>
+      </pattern>
+    </extension>
+    <option name="PACKAGE_NAME" value="io.ast.jneurocarto.probe_npx.io"/>
+    <option name="MAIN_CLASS_NAME" value="io.ast.jneurocarto.probe_npx.io.ImroIOTest"/>
+    <option name="METHOD_NAME" value=""/>
+    <option name="TEST_OBJECT" value="class"/>
+    <method v="2">
+      <option name="Make" enabled="true"/>
+    </method>
+  </configuration>
+</component>
