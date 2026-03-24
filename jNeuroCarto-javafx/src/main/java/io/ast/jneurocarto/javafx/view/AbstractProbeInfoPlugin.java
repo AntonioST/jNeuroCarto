@@ -16,6 +16,9 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 
+/// A basic UI layout to provide an information panel.
+///
+/// @param <T> channelmap instance.
 @NullMarked
 public abstract class AbstractProbeInfoPlugin<T> extends InvisibleView implements ProbePlugin<T> {
 

@@ -68,12 +68,14 @@ import io.ast.jneurocarto.javafx.view.StateView;
 /// Example:
 ///
 /// {@snippet lang = "JSON":
+///   {
 ///     "AtlasBrainView": {
 ///       "default_use": "bregma",
 ///       "use_reference": {
 ///         "allen_mouse_10um": "bregma"
 ///       }
 ///     }
+///   }
 ///}
 ///
 /// * (global) [AtlasReferenceState] store the atlas reference information.

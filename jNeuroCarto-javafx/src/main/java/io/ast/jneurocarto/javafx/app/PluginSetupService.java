@@ -30,6 +30,12 @@ import io.ast.jneurocarto.javafx.view.Provide;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 
+/**
+ * A facade to setup plugin during application initializing phase.
+ *
+ * @see io.ast.jneurocarto.javafx.view.Plugin#setup(PluginSetupService)
+ * @see io.ast.jneurocarto.javafx.view.PluginProvider#filterPlugin(PluginSetupService, Class)
+ */
 @NullMarked
 public final class PluginSetupService {
 
@@ -184,6 +190,9 @@ public final class PluginSetupService {
      * plugin *
      *========*/
 
+    /**
+     * An exception carried the information of the required plugins do not satisfy for a particular plugin.
+     */
     public static class PluginRequirePluginNotSatisfyException extends RuntimeException {
         public final Class<? extends Plugin> plugin;
         public final Class<? extends Plugin> require;
@@ -196,6 +205,13 @@ public final class PluginSetupService {
         }
     }
 
+    /**
+     * plugin information, extra information from {@link Provide}.
+     *
+     * @param provider plugin provider.
+     * @param plugin   plugin class
+     * @param name     plugin names.
+     */
     record PluginInfo(PluginProvider provider, Class<? extends Plugin> plugin, String[] name) {
     }
 

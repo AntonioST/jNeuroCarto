@@ -15,12 +15,18 @@ import org.slf4j.LoggerFactory;
 import io.ast.jneurocarto.javafx.app.PluginSetupService;
 import io.ast.jneurocarto.javafx.app.ProbeView;
 
+/**
+ * A UI plugin that provide a collapse control to hide main contents.
+ */
 public abstract class InvisibleView implements Plugin {
 
     /*============*
      * properties *
      *============*/
 
+    /**
+     * visible property of main contents.
+     */
     public final BooleanProperty visible = new SimpleBooleanProperty(true);
 
     public boolean isVisible() {
@@ -49,7 +55,7 @@ public abstract class InvisibleView implements Plugin {
     ///     [ProbeView][io.ast.jneurocarto.javafx.app.ProbeView]. It also can be used as pre-setup.
     /// 2. [setupHeading][#setupHeading(PluginSetupService)].
     ///     Set up the head row beside the visible switch (bind with [visible][InvisibleView#visible]).
-    /// 3. [setupChartContent][#setupChartContent(PluginSetupService, ProbeView)].
+    /// 3. [setupContent][#setupContent(PluginSetupService)].
     ///     Set up hidden-able (managed by [visible][InvisibleView#visible]) content.
     /// 4. [setupMenuItems][#setupMenuItems(PluginSetupService)].
     ///     Set up the menu items. It also can be used as post-setup.

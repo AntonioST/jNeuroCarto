@@ -6,6 +6,9 @@ import org.jspecify.annotations.NullMarked;
 
 import io.ast.jneurocarto.core.ElectrodeDescription;
 
+/// Indicate this [Plugin] can interaction with the probe.
+///
+/// @param <T> channelmap.
 @NullMarked
 public interface ProbePlugin<T> extends Plugin, ProbeUpdateHandler<T> {
 
