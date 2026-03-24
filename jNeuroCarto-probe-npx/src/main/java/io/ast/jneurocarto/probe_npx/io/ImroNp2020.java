@@ -23,6 +23,7 @@ class ImroNp2020 extends ImroIO {
         var bank = args[2];
         reference = args[3];
         var ec = args[4];
+        ec += bank * 384;
         assert new ChannelMapUtil.CB(channel, bank).equals(ChannelMapUtil.e2c2020(shank, ec));
 
         var cr = ChannelMapUtil.e2cr(type, ec);

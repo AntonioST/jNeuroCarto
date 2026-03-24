@@ -17,6 +17,7 @@ import org.jspecify.annotations.Nullable;
 import io.ast.jneurocarto.core.ElectrodeDescription;
 import io.ast.jneurocarto.core.ElectrodeSelector;
 import io.ast.jneurocarto.core.blueprint.Blueprint;
+import io.ast.jneurocarto.core.blueprint.BlueprintMask;
 import io.ast.jneurocarto.core.blueprint.BlueprintToolkit;
 
 @NullMarked
@@ -286,11 +287,22 @@ public final class ChannelMaps {
     }
 
     public static double requestElectrode(Blueprint<?> blueprint) {
-        var tool = new BlueprintToolkit<>(blueprint);
-        var s1 = tool.count(NpxProbeDescription.CATE_SET);
-        s1 += tool.count(NpxProbeDescription.CATE_FULL);
-        var s2 = tool.count(NpxProbeDescription.CATE_HALF);
-        var s4 = tool.count(NpxProbeDescription.CATE_QUARTER);
+        return requestElectrode(new BlueprintToolkit<>(blueprint));
+    }
+
+    public static double requestElectrode(BlueprintToolkit<?> blueprint) {
+        var s1 = blueprint.count(NpxProbeDescription.CATE_SET);
+        s1 += blueprint.count(NpxProbeDescription.CATE_FULL);
+        var s2 = blueprint.count(NpxProbeDescription.CATE_HALF);
+        var s4 = blueprint.count(NpxProbeDescription.CATE_QUARTER);
+        return (double) s1 + (double) (s2) / 2 + (double) (s4) / 4;
+    }
+
+    public static double requestElectrode(BlueprintToolkit<?> blueprint, BlueprintMask mask) {
+        var s1 = blueprint.count(NpxProbeDescription.CATE_SET, mask);
+        s1 += blueprint.count(NpxProbeDescription.CATE_FULL, mask);
+        var s2 = blueprint.count(NpxProbeDescription.CATE_HALF, mask);
+        var s4 = blueprint.count(NpxProbeDescription.CATE_QUARTER, mask);
         return (double) s1 + (double) (s2) / 2 + (double) (s4) / 4;
     }
 
@@ -318,6 +330,10 @@ public final class ChannelMaps {
     }
 
     public static Efficiency channelEfficiency(Blueprint<ChannelMap> blueprint) {
+        return channelEfficiency(new BlueprintToolkit<>(blueprint));
+    }
+
+    public static Efficiency channelEfficiency(BlueprintToolkit<ChannelMap> blueprint) {
         var chmap = Objects.requireNonNull(blueprint.channelmap(), "missing channelmap");
         var request = requestElectrode(blueprint);
         var total = chmap.nChannel();
@@ -325,13 +341,33 @@ public final class ChannelMaps {
         var channel = 0;
         var excluded = 0;
 
-        var tool = new BlueprintToolkit<>(blueprint);
-        var selected = tool.index();
-        channel += tool.count(NpxProbeDescription.CATE_SET, selected);
-        channel += tool.count(NpxProbeDescription.CATE_FULL, selected);
-        channel += tool.count(NpxProbeDescription.CATE_HALF, selected);
-        channel += tool.count(NpxProbeDescription.CATE_QUARTER, selected);
-        excluded += tool.count(NpxProbeDescription.CATE_EXCLUDED, selected);
+        var selected = blueprint.index();
+        channel += blueprint.count(NpxProbeDescription.CATE_SET, selected);
+        channel += blueprint.count(NpxProbeDescription.CATE_FULL, selected);
+        channel += blueprint.count(NpxProbeDescription.CATE_HALF, selected);
+        channel += blueprint.count(NpxProbeDescription.CATE_QUARTER, selected);
+        excluded += blueprint.count(NpxProbeDescription.CATE_EXCLUDED, selected);
+
+        var effA = request == 0 ? 0 : Math.max((double) channel / request, 0);
+        var effC = effA == 0 ? 0 : Math.min(effA, 1 / effA);
+        return new Efficiency(effA, effC, excluded + unused, total);
+    }
+
+    public static Efficiency channelEfficiency(BlueprintToolkit<ChannelMap> blueprint, BlueprintMask mask) {
+        var chmap = Objects.requireNonNull(blueprint.channelmap(), "missing channelmap");
+        var request = requestElectrode(blueprint, mask);
+        var total = chmap.nChannel();
+        var unused = total - chmap.size();
+        var channel = 0;
+        var excluded = 0;
+
+        var selected = blueprint.mask().iand(mask);
+
+        channel += blueprint.count(NpxProbeDescription.CATE_SET, selected);
+        channel += blueprint.count(NpxProbeDescription.CATE_FULL, selected);
+        channel += blueprint.count(NpxProbeDescription.CATE_HALF, selected);
+        channel += blueprint.count(NpxProbeDescription.CATE_QUARTER, selected);
+        excluded += blueprint.count(NpxProbeDescription.CATE_EXCLUDED, selected);
 
         var effA = request == 0 ? 0 : Math.max((double) channel / request, 0);
         var effC = effA == 0 ? 0 : Math.min(effA, 1 / effA);

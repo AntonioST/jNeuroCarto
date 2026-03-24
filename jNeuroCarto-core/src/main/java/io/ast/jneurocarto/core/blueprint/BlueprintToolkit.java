@@ -257,8 +257,8 @@ public class BlueprintToolkit<T> {
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index) {
         if (length() != electrodes.size()) throw new IllegalArgumentException();
         return Arrays.stream(index)
-            .mapToObj(electrodes::get)
-            .toList();
+          .mapToObj(electrodes::get)
+          .toList();
     }
 
     /**
@@ -276,9 +276,9 @@ public class BlueprintToolkit<T> {
     public final List<ElectrodeDescription> pick(List<ElectrodeDescription> electrodes, int[] index, int offset, int length) {
         if (length() != electrodes.size()) throw new IllegalArgumentException();
         return IntStream.range(0, length)
-            .map(i -> index[i + offset])
-            .mapToObj(electrodes::get)
-            .toList();
+          .map(i -> index[i + offset])
+          .mapToObj(electrodes::get)
+          .toList();
     }
 
     /**
@@ -301,11 +301,12 @@ public class BlueprintToolkit<T> {
      * copy categories value from {@code electrode}.
      *
      * @param electrode electrode list
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(int[], List)
      */
-    public final void from(List<ElectrodeDescription> electrode) {
-        from(blueprint.blueprint, electrode);
+    public final BlueprintToolkit<T> from(List<ElectrodeDescription> electrode) {
+        return from(blueprint.blueprint, electrode);
     }
 
     /**
@@ -313,10 +314,11 @@ public class BlueprintToolkit<T> {
      *
      * @param blueprint blueprint int array
      * @param electrode electrode list
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(List)
      */
-    public final void from(int[] blueprint, List<ElectrodeDescription> electrode) {
+    public final BlueprintToolkit<T> from(int[] blueprint, List<ElectrodeDescription> electrode) {
         if (length() != blueprint.length) throw new IllegalArgumentException();
         for (var e : electrode) {
             var i = index(e.s(), e.x(), e.y());
@@ -324,20 +326,23 @@ public class BlueprintToolkit<T> {
                 blueprint[i] = e.category();
             }
         }
+        return this;
     }
 
     /**
      * copy value from {@code blueprint}.
      *
      * @param blueprint blueprint int array
+     * @return this.
      * @throws IllegalArgumentException length mismatch.
      */
-    public final void from(int[] blueprint) {
+    public final BlueprintToolkit<T> from(int[] blueprint) {
         var dst = this.blueprint.blueprint;
         if (blueprint.length != dst.length) throw new IllegalArgumentException();
         if (dst != blueprint) {
             System.arraycopy(blueprint, 0, dst, 0, dst.length);
         }
+        return this;
     }
 
     /**
@@ -346,12 +351,14 @@ public class BlueprintToolkit<T> {
      *
      * @param blueprint blueprint int array
      * @param mask      mask
+     * @return this.
      * @throws IllegalArgumentException length mismatch.
      * @see BlueprintMask#where(int[], int[])
      */
-    public final void from(int[] blueprint, BlueprintMask mask) {
+    public final BlueprintToolkit<T> from(int[] blueprint, BlueprintMask mask) {
         var output = this.blueprint.blueprint;
         mask.where(output, blueprint);
+        return this;
     }
 
     /**
@@ -361,25 +368,29 @@ public class BlueprintToolkit<T> {
      * @param writeMask mask on this
      * @param blueprint blueprint int array
      * @param readMask  mask on {@code blueprint}
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see BlueprintMask#where(int[], int[], BlueprintMask)
      */
-    public final void from(BlueprintMask writeMask, int[] blueprint, BlueprintMask readMask) {
+    public final BlueprintToolkit<T> from(BlueprintMask writeMask, int[] blueprint, BlueprintMask readMask) {
         var output = this.blueprint.blueprint;
         writeMask.where(output, blueprint, readMask);
+        return this;
     }
 
     /**
      * copy blueprint array from {@code blueprint}.
      *
      * @param blueprint blueprint
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(int[])
      */
-    public final void from(Blueprint<T> blueprint) {
+    public final BlueprintToolkit<T> from(Blueprint<T> blueprint) {
         if (blueprint != this.blueprint) {
             from(blueprint.blueprint);
         }
+        return this;
     }
 
     /**
@@ -388,13 +399,15 @@ public class BlueprintToolkit<T> {
      *
      * @param blueprint blueprint
      * @param mask      mask
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(int[], BlueprintMask)
      */
-    public final void from(Blueprint<T> blueprint, BlueprintMask mask) {
+    public final BlueprintToolkit<T> from(Blueprint<T> blueprint, BlueprintMask mask) {
         if (blueprint != this.blueprint) {
             from(blueprint.blueprint, mask);
         }
+        return this;
     }
 
     /**
@@ -404,24 +417,27 @@ public class BlueprintToolkit<T> {
      * @param writeMask mask on this
      * @param blueprint blueprint
      * @param readMask  mask on {@code blueprint}
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(BlueprintMask, int[], BlueprintMask)
      */
-    public final void from(BlueprintMask writeMask, Blueprint<T> blueprint, BlueprintMask readMask) {
+    public final BlueprintToolkit<T> from(BlueprintMask writeMask, Blueprint<T> blueprint, BlueprintMask readMask) {
         if (blueprint != this.blueprint) {
             from(writeMask, blueprint.blueprint, readMask);
         }
+        return this;
     }
 
     /**
      * copy blueprint array from {@code blueprint}.
      *
      * @param blueprint toolkit
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(int[])
      */
-    public final void from(BlueprintToolkit<T> blueprint) {
-        from(blueprint.blueprint);
+    public final BlueprintToolkit<T> from(BlueprintToolkit<T> blueprint) {
+        return from(blueprint.blueprint);
     }
 
     /**
@@ -430,11 +446,13 @@ public class BlueprintToolkit<T> {
      *
      * @param blueprint toolkit
      * @param mask      mask
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(int[], BlueprintMask)
      */
-    public final void from(BlueprintToolkit<T> blueprint, BlueprintMask mask) {
+    public final BlueprintToolkit<T> from(BlueprintToolkit<T> blueprint, BlueprintMask mask) {
         from(blueprint.blueprint, mask);
+        return this;
     }
 
     /**
@@ -444,11 +462,12 @@ public class BlueprintToolkit<T> {
      * @param writeMask mask on this
      * @param blueprint toolkit
      * @param readMask  mask on {@code blueprint}
+     * @return this
      * @throws IllegalArgumentException length mismatch.
      * @see #from(BlueprintMask, int[], BlueprintMask)
      */
-    public final void from(BlueprintMask writeMask, BlueprintToolkit<T> blueprint, BlueprintMask readMask) {
-        from(writeMask, blueprint.blueprint, readMask);
+    public final BlueprintToolkit<T> from(BlueprintMask writeMask, BlueprintToolkit<T> blueprint, BlueprintMask readMask) {
+        return from(writeMask, blueprint.blueprint, readMask);
     }
 
     /**
@@ -790,9 +809,9 @@ public class BlueprintToolkit<T> {
         var posx = posx();
 
         return IntStream.range(0, shank.length)
-            .filter(i -> shank[i] == s)
-            .map(i -> posx[i])
-            .min();
+          .filter(i -> shank[i] == s)
+          .map(i -> posx[i])
+          .min();
     }
 
     /*===========================*
@@ -1579,8 +1598,8 @@ public class BlueprintToolkit<T> {
         if (length == 0) return Clustering.EMPTY;
 
         var n = (int) IntStream.range(0, length)
-            .filter(i -> tester.applyAsInt(i, blueprint[i]) > 0)
-            .count();
+          .filter(i -> tester.applyAsInt(i, blueprint[i]) > 0)
+          .count();
 
         var ret = new Clustering(length);
         if (n == 0) {
@@ -1870,10 +1889,10 @@ public class BlueprintToolkit<T> {
                 var y = Arrays.stream(index).map(i -> posy[i]).boxed().gather(MinMax.intMinmax()).findFirst().get();
 
                 fillClusteringEdges(blueprint, new ClusteringEdges(c, s, List.of(
-                    new ClusteringEdges.Corner(x.max(), y.max(), 1),
-                    new ClusteringEdges.Corner(x.min(), y.max(), 3),
-                    new ClusteringEdges.Corner(x.min(), y.min(), 5),
-                    new ClusteringEdges.Corner(x.max(), y.min(), 7)
+                  new ClusteringEdges.Corner(x.max(), y.max(), 1),
+                  new ClusteringEdges.Corner(x.min(), y.max(), 3),
+                  new ClusteringEdges.Corner(x.min(), y.min(), 5),
+                  new ClusteringEdges.Corner(x.max(), y.min(), 7)
                 )));
             }
         }
@@ -2286,10 +2305,10 @@ public class BlueprintToolkit<T> {
 
     private static CSVFormat.Builder getCsvFormat(boolean tsv) {
         return CSVFormat.DEFAULT.builder()
-            .setCommentMarker('#')
-            .setIgnoreSurroundingSpaces(true)
-            .setIgnoreHeaderCase(true)
-            .setDelimiter(tsv ? '\t' : ',');
+          .setCommentMarker('#')
+          .setIgnoreSurroundingSpaces(true)
+          .setIgnoreHeaderCase(true)
+          .setDelimiter(tsv ? '\t' : ',');
     }
 
     private static boolean checkCsvHeader(List<String> header) {
@@ -2322,8 +2341,8 @@ public class BlueprintToolkit<T> {
         if (length() != blueprint.length) throw new IllegalArgumentException();
 
         var format = getCsvFormat(tsv)
-            .setHeader("s", "x", "y", "c")
-            .get();
+          .setHeader("s", "x", "y", "c")
+          .get();
 
         try (var writer = Files.newBufferedWriter(file, CREATE, TRUNCATE_EXISTING, WRITE);
              var printer = new CSVPrinter(writer, format)) {
@@ -2414,9 +2433,9 @@ public class BlueprintToolkit<T> {
      */
     public double[] get(double[] data, List<ElectrodeDescription> e) {
         return e.stream()
-            .mapToInt(it -> index(it.s(), it.x(), it.y()))
-            .mapToDouble(i -> i < 0 ? Double.NaN : data[i])
-            .toArray();
+          .mapToInt(it -> index(it.s(), it.x(), it.y()))
+          .mapToDouble(i -> i < 0 ? Double.NaN : data[i])
+          .toArray();
     }
 
     public double[] get(double[] data, BlueprintMask mask) {
@@ -2425,8 +2444,8 @@ public class BlueprintToolkit<T> {
 
     public double[] get(double[] data, Predicate<Electrode> pick) {
         return stream().filter(pick)
-            .mapToDouble(e -> data[e.i()])
-            .toArray();
+          .mapToDouble(e -> data[e.i()])
+          .toArray();
     }
 
     /**

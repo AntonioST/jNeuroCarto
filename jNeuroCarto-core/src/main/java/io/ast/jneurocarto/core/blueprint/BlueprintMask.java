@@ -122,6 +122,19 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
     }
 
     /**
+     * Set bits at {@code i} to {@code true}.
+     *
+     * @param i index array.
+     * @throws IndexOutOfBoundsException {@code i} over {@link #length}
+     */
+    public void set(int[] i) {
+        for (var t : i) {
+            if (!(0 <= t && t < length)) throw new IndexOutOfBoundsException();
+            mask.set(t);
+        }
+    }
+
+    /**
      * Set bit at {@code i} to {@code value}.
      *
      * @param i     index.
@@ -131,6 +144,20 @@ public record BlueprintMask(int length, BitSet mask) implements IntPredicate {
     public void set(int i, boolean value) {
         if (!(0 <= i && i < length)) throw new IndexOutOfBoundsException();
         mask.set(i, value);
+    }
+
+    /**
+     * Set bits at {@code i} to {@code value}.
+     *
+     * @param i     index array.
+     * @param value set or not
+     * @throws IndexOutOfBoundsException {@code i} over {@link #length}
+     */
+    public void set(int[] i, boolean value) {
+        for (var t : i) {
+            if (!(0 <= t && t < length)) throw new IndexOutOfBoundsException();
+            mask.set(t, value);
+        }
     }
 
     /**
