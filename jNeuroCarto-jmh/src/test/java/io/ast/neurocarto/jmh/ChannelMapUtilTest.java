@@ -49,7 +49,15 @@ public class ChannelMapUtilTest {
 
     @BeforeAll
     public static void initNpxTypeData() {
-        DATA = new NpxTypeData[]{new NpxTypeData(NpxProbeType.np0), new NpxTypeData(NpxProbeType.np21), new NpxTypeData(NpxProbeType.np24)};
+        DATA = new NpxTypeData[]{
+          new NpxTypeData(NpxProbeType.np0),
+          new NpxTypeData(NpxProbeType.np21),
+          new NpxTypeData(NpxProbeType.np24),
+//          new NpxTypeData(NpxProbeType.np1110),
+//          new NpxTypeData(NpxProbeType.np2020),
+//          new NpxTypeData(NpxProbeType.np3010),
+//          new NpxTypeData(NpxProbeType.np3020),
+        };
     }
 
     private static void assert2DArrayEquals(int[][] expect, int[][] actual) {
@@ -181,7 +189,28 @@ public class ChannelMapUtilTest {
 
     @ParameterizedTest(name = "{0}")
     @FieldSource("DATA")
-    public void e2cbWithShank(NpxTypeData data) {
+    public void c2e(NpxTypeData data) {
+        for (int i = 0, length = data.shanks.length; i < length; i++) {
+            var shank = data.shanks[i];
+            var channels = ChannelMapUtil.e2cb(data.type, shank, data.electrodes);
+            assertArrayEquals(
+              ChannelMapUtil.c2e(data.type, channels, shank),
+              ChannelMapUtilPlain.c2e(data.type, channels, shank)
+            );
+        }
+        for (int i = 0, length = data.shanks.length; i < length; i++) {
+            var shank = data.shanks[i];
+            var channels = ChannelMapUtil.e2cb(data.type, shank, data.electrodes);
+            assertArrayEquals(
+              ChannelMapUtilPlain.c2e(data.type, channels, shank),
+              ChannelMapUtilVec.c2e(data.type, channels, shank)
+            );
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
+    public void es2cb(NpxTypeData data) {
         var s = data.nShank();
         int e = data.nElectrode();
         int[] shank = new int[e];
@@ -200,6 +229,31 @@ public class ChannelMapUtilTest {
         assert2DArrayEquals(
           ChannelMapUtilPlain.e2cb(data.type, shank, data.electrodes),
           ChannelMapUtilVec.e2cb(data.type, shank, data.electrodes)
+        );
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @FieldSource("DATA")
+    public void cs2e(NpxTypeData data) {
+        var s = data.nShank();
+        int e = data.nElectrode();
+        int[] shank = new int[e];
+        if (s == 1) {
+            Arrays.fill(shank, 0);
+        } else {
+            for (int i = 0; i < e; i++) {
+                shank[i] = (int) (Math.random() * s);
+            }
+        }
+        var channels = ChannelMapUtil.e2cb(data.type, shank, data.electrodes);
+
+        assertArrayEquals(
+          ChannelMapUtil.c2e(data.type, channels, shank),
+          ChannelMapUtilPlain.c2e(data.type, channels, shank)
+        );
+        assertArrayEquals(
+          ChannelMapUtilPlain.c2e(data.type, channels, shank),
+          ChannelMapUtilVec.c2e(data.type, channels, shank)
         );
     }
 }

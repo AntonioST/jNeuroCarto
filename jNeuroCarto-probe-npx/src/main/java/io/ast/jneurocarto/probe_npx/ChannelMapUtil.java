@@ -758,7 +758,8 @@ public final class ChannelMapUtil {
 
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T0base.cpp#L12)
     public static int c2e0(int channel, int bank) {
-        return bank * 384 + channel % 384;
+        var n = NpxProbeType.np0.nChannel();
+        return bank * n + channel % n;
     }
 
     /**
