@@ -12,13 +12,19 @@ public final class ChannelMapUtilValue {
         throw new RuntimeException();
     }
 
-    public /*value*/ record XY(int s, int x, int y) {
+    public value record
+
+    XY(int s, int x, int y) {
     }
 
-    public /*value*/ record CR(int s, int c, int r) {
+    public value record
+
+    CR(int s, int c, int r) {
     }
 
-    public /*value*/ record CB(int channel, int bank) {
+    public value record
+
+    CB(int channel, int bank) {
     }
 
 
