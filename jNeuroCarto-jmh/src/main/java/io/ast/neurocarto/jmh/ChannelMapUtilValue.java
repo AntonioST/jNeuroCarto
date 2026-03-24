@@ -1,92 +1,39 @@
 package io.ast.neurocarto.jmh;
 
-import java.util.Arrays;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
 
 import io.ast.jneurocarto.probe_npx.ChannelMapUtil;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
-public final class ChannelMapUtilPlain {
+public final class ChannelMapUtilValue {
 
-    private ChannelMapUtilPlain() {
+    private ChannelMapUtilValue() {
         throw new RuntimeException();
     }
 
-    /**
-     * @see ChannelMapUtil#empty(int)
-     */
-    static int[][] empty(int length) {
-        var ret = new int[3][];
-        ret[0] = new int[length];
-        ret[1] = new int[length];
-        ret[2] = new int[length];
-        return ret;
+    public /*value*/ record XY(int s, int x, int y) {
     }
 
-    /**
-     * @see ChannelMapUtil#empty(int, int)
-     */
-    static int[][] empty(int n, int length) {
-        var ret = new int[n][];
-        for (int i = 0; i < n; i++) {
-            ret[i] = new int[length];
-        }
-        return ret;
+    public /*value*/ record CR(int s, int c, int r) {
     }
 
-    /**
-     * @see ChannelMapUtil#check2N(int[][])
-     */
-    static int check2N(int[][] a) {
-        if (a.length != 2) throw new IllegalArgumentException("Not a 2,N array");
-        var length = a[0].length;
-        if (a[1].length != length) throw new IllegalArgumentException("Not a 2,N array: inconsistent length on 2nd row");
-        return length;
+    public /*value*/ record CB(int channel, int bank) {
     }
 
-    /**
-     * @see ChannelMapUtil#check3N(int[][])
-     */
-    static int check3N(int[][] a) {
-        if (a.length != 3) throw new IllegalArgumentException("Not a 3,N array");
-        var length = a[0].length;
-        if (a[1].length != length) throw new IllegalArgumentException("Not a 3,N array: inconsistent length on 2nd row");
-        if (a[2].length != length) throw new IllegalArgumentException("Not a 3,N array: inconsistent length on 3rd row");
-        return length;
-    }
-
-    /**
-     * @see ChannelMapUtil#like(int[][], boolean)
-     */
-    static int[][] like(int[][] a, boolean cloneFirst) {
-        var length = check3N(a);
-
-        var ret = new int[3][];
-        ret[0] = cloneFirst ? a[0].clone() : new int[length];
-        ret[1] = new int[length];
-        ret[2] = new int[length];
-
-        return ret;
-    }
 
     /**
      * @see ChannelMapUtil#electrodePosSCR(NpxProbeType)
      */
-    public static int[][] electrodePosSCR(NpxProbeType type) {
+    public static CR[] electrodePosSCR(NpxProbeType type) {
         var ns = type.nShank();
         var ne = type.nElectrodePerShank();
         var nc = type.nColumnPerShank();
 
-        var ret = empty(ns * ne);
+        var ret = new CR[ns * ne];
 
         for (int i = 0; i < ns * ne; i++) {
-            // shank
-            ret[0][i] = (i / ne);
-            // column
-            ret[1][i] = (i % ne) % nc;
-            // row
-            ret[2][i] = (i % ne) / nc;
+            ret[i] = new CR(i / ne, (i % ne) % nc, (i % ne) / nc);
         }
 
         return ret;
@@ -95,7 +42,7 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#electrodePosXY(NpxProbeType)
      */
-    public static int[][] electrodePosXY(NpxProbeType type) {
+    public static XY[] electrodePosXY(NpxProbeType type) {
         var ns = type.nShank();
         var ne = type.nElectrodePerShank();
         var nc = type.nColumnPerShank();
@@ -103,7 +50,7 @@ public final class ChannelMapUtilPlain {
         var pc = type.spacePerColumn();
         var pr = type.spacePerRow();
 
-        var ret = empty(ns * ne);
+        var ret = new XY[ns * ne];
 
         for (int i = 0; i < ns * ne; i++) {
             var s = i / ne;
@@ -111,12 +58,7 @@ public final class ChannelMapUtilPlain {
             var r = v / nc;
             var c = v % nc;
 
-            // s
-            ret[0][i] = s;
-            // x
-            ret[1][i] = (int) (s * ps + c * pc);
-            // y
-            ret[2][i] = (int) (pr * r);
+            ret[i] = new XY(s, (int) (s * ps + c * pc), (int) (pr * r));
         }
 
         return ret;
@@ -125,18 +67,17 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2xy(NpxProbeType, int, int[])
      */
-    public static int[][] e2xy(NpxProbeType type, int shank, int[] electrode) {
+    public static XY[] e2xy(NpxProbeType type, int shank, int[] electrode) {
         var cr = e2cr(type, electrode);
         var ps = type.spacePerShank();
         var pc = type.spacePerColumn();
         var pr = type.spacePerRow();
 
-        var ret = empty(electrode.length);
-        Arrays.fill(ret[0], shank);
+        var ret = new XY[electrode.length];
 
         for (int i = 0, length = electrode.length; i < length; i++) {
-            ret[1][i] = (int) (cr[1][i] * pc + shank * ps);
-            ret[2][i] = (int) (cr[2][i] * pr);
+            var t = cr[i];
+            ret[i] = new XY(shank, (int) (t.c * pc + shank * ps), (int) (t.r * pr));
         }
         return ret;
     }
@@ -144,14 +85,13 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2cr(NpxProbeType, int[])
      */
-    public static int[][] e2cr(NpxProbeType type, int[] electrode) {
+    public static CR[] e2cr(NpxProbeType type, int[] electrode) {
         var nc = type.nColumnPerShank();
 
-        var ret = empty(electrode.length);
+        var ret = new CR[electrode.length];
 
         for (int i = 0, length = electrode.length; i < length; i++) {
-            ret[1][i] = electrode[i] % nc;
-            ret[2][i] = electrode[i] / nc;
+            ret[i] = new CR(0, electrode[i] % nc, electrode[i] / nc);
         }
         return ret;
     }
@@ -159,16 +99,16 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2xy(NpxProbeType, int[][])
      */
-    public static int[][] e2xy(NpxProbeType type, int[][] scr) {
-        var ret = like(scr, true);
+    public static XY[] e2xy(NpxProbeType type, CR[] scr) {
+        var ret = new XY[scr.length];
 
         var ps = type.spacePerShank();
         var pc = type.spacePerColumn();
         var pr = type.spacePerRow();
 
-        for (int i = 0, length = ret[0].length; i < length; i++) {
-            ret[1][i] = (int) (scr[1][i] * pc + scr[0][i] * ps);
-            ret[2][i] = (int) (scr[2][i] * pr);
+        for (int i = 0, length = scr.length; i < length; i++) {
+            var t = scr[i];
+            ret[i] = new XY(t.s, (int) (t.c * pc + t.s * ps), (int) (t.r * pr));
         }
         return ret;
     }
@@ -176,13 +116,14 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#cr2e(NpxProbeType, int[][])
      */
-    public static int[] cr2e(NpxProbeType type, int[][] scr) {
-        var ret = new int[check3N(scr)];
+    public static int[] cr2e(NpxProbeType type, CR[] scr) {
+        var ret = new int[scr.length];
 
         var nc = type.nColumnPerShank();
 
         for (int i = 0, length = ret.length; i < length; i++) {
-            ret[i] = scr[1][i] + scr[2][i] * nc;
+            var t = scr[i];
+            ret[i] = t.c + t.r * nc;
         }
 
         return ret;
@@ -195,41 +136,45 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2c(NpxProbeType, int[][])
      */
-    public static int[] e2c(NpxProbeType type, int[][] scr) {
+    public static CB[] e2c(NpxProbeType type, CR[] scr) {
         var e = cr2e(type, scr);
-        var cb = e2cb(type, scr[0], e);
-        return cb[0];
+        var shank = new int[scr.length];
+        for (int i = 0, length = shank.length; i < length; i++) {
+            shank[i] = scr[i].s;
+        }
+        return e2cb(type, shank, e);
     }
 
-    public static int[] c2e(NpxProbeType type, int[][] channel, int shank) {
+    public static int[] c2e(NpxProbeType type, CB[] channel, int shank) {
         return switch (type) {
-            case NpxProbeType.NP21Base _ -> c2e(channel, ChannelMapUtilPlain::c2e21);
-            case NpxProbeType.NP24Base _ -> c2e(channel, shank, ChannelMapUtilPlain::c2e24);
-            case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtilPlain::c2e1110);
-            case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtilPlain::c2e2020);
-            case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtilPlain::c2e3010);
-            case NpxProbeType.NP3020 _ -> c2e(channel, shank, ChannelMapUtilPlain::c2e3020);
-            default -> c2e(channel, ChannelMapUtilPlain::c2e0);
+            case NpxProbeType.NP21Base _ -> c2e(channel, ChannelMapUtilValue::c2e21);
+            case NpxProbeType.NP24Base _ -> c2e(channel, shank, ChannelMapUtilValue::c2e24);
+            case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtilValue::c2e1110);
+            case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtilValue::c2e2020);
+            case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtilValue::c2e3010);
+            case NpxProbeType.NP3020 _ -> c2e(channel, shank, ChannelMapUtilValue::c2e3020);
+            default -> c2e(channel, ChannelMapUtilValue::c2e0);
         };
     }
 
-    public static int[] c2e(NpxProbeType type, int[][] channel, int[] shank) {
+    public static int[] c2e(NpxProbeType type, CB[] channel, int[] shank) {
         return switch (type) {
-            case NpxProbeType.NP21Base _ -> c2e(channel, ChannelMapUtilPlain::c2e21);
-            case NpxProbeType.NP24Base _ -> c2e(channel, shank, ChannelMapUtilPlain::c2e24);
-            case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtilPlain::c2e1110);
-            case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtilPlain::c2e2020);
-            case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtilPlain::c2e3010);
-            case NpxProbeType.NP3020 _ -> c2e(channel, shank, ChannelMapUtilPlain::c2e3020);
-            default -> c2e(channel, ChannelMapUtilPlain::c2e0);
+            case NpxProbeType.NP21Base _ -> c2e(channel, ChannelMapUtilValue::c2e21);
+            case NpxProbeType.NP24Base _ -> c2e(channel, shank, ChannelMapUtilValue::c2e24);
+            case NpxProbeType.NP1110 _ -> c2e(channel, ChannelMapUtilValue::c2e1110);
+            case NpxProbeType.NP2020 _ -> c2e(channel, shank, ChannelMapUtilValue::c2e2020);
+            case NpxProbeType.NP3010 _ -> c2e(channel, ChannelMapUtilValue::c2e3010);
+            case NpxProbeType.NP3020 _ -> c2e(channel, shank, ChannelMapUtilValue::c2e3020);
+            default -> c2e(channel, ChannelMapUtilValue::c2e0);
         };
     }
 
-    private static int[] c2e(int[][] channel, IntBinaryOperator func) {
-        int length = check2N(channel);
+
+    private static int[] c2e(CB[] channel, IntBinaryOperator func) {
+        int length = channel.length;
         var ret = new int[length];
         for (int i = 0; i < length; i++) {
-            ret[i] = func.applyAsInt(channel[0][i], channel[1][i]);
+            ret[i] = func.applyAsInt(channel[i].channel, channel[i].bank);
         }
         return ret;
     }
@@ -239,21 +184,21 @@ public final class ChannelMapUtilPlain {
         int apply(int a, int b, int c);
     }
 
-    private static int[] c2e(int[][] channel, int shank, IntTriFunction func) {
-        int length = check2N(channel);
+    private static int[] c2e(CB[] channel, int shank, IntTriFunction func) {
+        int length = channel.length;
         var ret = new int[length];
         for (int i = 0; i < length; i++) {
-            ret[i] = func.apply(channel[0][i], channel[1][i], shank);
+            ret[i] = func.apply(channel[i].channel, channel[i].bank, shank);
         }
         return ret;
     }
 
-    private static int[] c2e(int[][] channel, int[] shank, IntTriFunction func) {
-        int length = check2N(channel);
+    private static int[] c2e(CB[] channel, int[] shank, IntTriFunction func) {
+        int length = channel.length;
         if (shank.length != length) throw new IllegalArgumentException();
         var ret = new int[length];
         for (int i = 0; i < length; i++) {
-            ret[i] = func.apply(channel[0][i], channel[1][i], shank[i]);
+            ret[i] = func.apply(channel[i].channel, channel[i].bank, shank[i]);
         }
         return ret;
     }
@@ -261,39 +206,37 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2cb(NpxProbeType, int, int[])
      */
-    public static int[][] e2cb(NpxProbeType type, int shank, int[] electrode) {
+    public static CB[] e2cb(NpxProbeType type, int shank, int[] electrode) {
         return switch (type) {
-            case NpxProbeType.NP21Base _ -> e2cb(electrode, ChannelMapUtilPlain::e2c21);
-            case NpxProbeType.NP24Base _ -> e2cb(shank, electrode, ChannelMapUtilPlain::e2c24);
-            case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtilPlain::e2c1110);
-            case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtilPlain::e2c2020);
-            case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtilPlain::e2c3010);
-            case NpxProbeType.NP3020 _ -> e2cb(shank, electrode, ChannelMapUtilPlain::e2c3020);
-            default -> e2cb(electrode, ChannelMapUtilPlain::e2c0);
+            case NpxProbeType.NP21Base _ -> e2cb(electrode, ChannelMapUtilValue::e2c21);
+            case NpxProbeType.NP24Base _ -> e2cb(shank, electrode, ChannelMapUtilValue::e2c24);
+            case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtilValue::e2c1110);
+            case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtilValue::e2c2020);
+            case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtilValue::e2c3010);
+            case NpxProbeType.NP3020 _ -> e2cb(shank, electrode, ChannelMapUtilValue::e2c3020);
+            default -> e2cb(electrode, ChannelMapUtilValue::e2c0);
         };
     }
 
     /**
      * @see ChannelMapUtil#e2cb(NpxProbeType, int[], int[])
      */
-    public static int[][] e2cb(NpxProbeType type, int[] shank, int[] electrode) {
+    public static CB[] e2cb(NpxProbeType type, int[] shank, int[] electrode) {
         return switch (type) {
-            case NpxProbeType.NP21Base _ -> e2cb(electrode, ChannelMapUtilPlain::e2c21);
-            case NpxProbeType.NP24Base _ -> e2cb(shank, electrode, ChannelMapUtilPlain::e2c24);
-            case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtilPlain::e2c1110);
-            case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtilPlain::e2c2020);
-            case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtilPlain::e2c3010);
-            case NpxProbeType.NP3020 _ -> e2cb(shank, electrode, ChannelMapUtilPlain::e2c3020);
-            default -> e2cb(electrode, ChannelMapUtilPlain::e2c0);
+            case NpxProbeType.NP21Base _ -> e2cb(electrode, ChannelMapUtilValue::e2c21);
+            case NpxProbeType.NP24Base _ -> e2cb(shank, electrode, ChannelMapUtilValue::e2c24);
+            case NpxProbeType.NP1110 _ -> e2cb(electrode, ChannelMapUtilValue::e2c1110);
+            case NpxProbeType.NP2020 _ -> e2cb(shank, electrode, ChannelMapUtilValue::e2c2020);
+            case NpxProbeType.NP3010 _ -> e2cb(electrode, ChannelMapUtilValue::e2c3010);
+            case NpxProbeType.NP3020 _ -> e2cb(shank, electrode, ChannelMapUtilValue::e2c3020);
+            default -> e2cb(electrode, ChannelMapUtilValue::e2c0);
         };
     }
 
-    private static int[][] e2cb(int[] electrode, IntFunction<ChannelMapUtil.CB> func) {
-        var ret = empty(2, electrode.length);
+    private static CB[] e2cb(int[] electrode, IntFunction<CB> func) {
+        var ret = new CB[electrode.length];
         for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = func.apply(electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+            ret[i] = func.apply(electrode[i]);
         }
         return ret;
     }
@@ -304,24 +247,20 @@ public final class ChannelMapUtilPlain {
     }
 
 
-    private static int[][] e2cb(int shank, int[] electrode, BiIntFunction<ChannelMapUtil.CB> func) {
-        var ret = empty(2, electrode.length);
+    private static CB[] e2cb(int shank, int[] electrode, BiIntFunction<CB> func) {
+        var ret = new CB[electrode.length];
         for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = func.apply(shank, electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+            ret[i] = func.apply(shank, electrode[i]);
         }
         return ret;
     }
 
-    private static int[][] e2cb(int[] shank, int[] electrode, BiIntFunction<ChannelMapUtil.CB> func) {
+    private static CB[] e2cb(int[] shank, int[] electrode, BiIntFunction<CB> func) {
         if (shank.length != electrode.length) throw new IndexOutOfBoundsException();
 
-        var ret = empty(2, electrode.length);
+        var ret = new CB[electrode.length];
         for (int i = 0, length = electrode.length; i < length; i++) {
-            var tmp = func.apply(shank[i], electrode[i]);
-            ret[0][i] = tmp.channel();
-            ret[1][i] = tmp.bank();
+            ret[i] = func.apply(shank[i], electrode[i]);
         }
         return ret;
     }
@@ -341,9 +280,9 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2c0(int)
      */
-    public static ChannelMapUtil.CB e2c0(int electrode) {
+    public static CB e2c0(int electrode) {
         var n = NpxProbeType.np0.nChannel();
-        return new ChannelMapUtil.CB(electrode % n, electrode / n);
+        return new CB(electrode % n, electrode / n);
     }
 
     static final int[][] ELECTRODE_MAP_21 = new int[][]{
@@ -377,7 +316,7 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2c21(int)
      */
-    public static ChannelMapUtil.CB e2c21(int electrode) {
+    public static CB e2c21(int electrode) {
         var n = NpxProbeType.np21.nChannel();
         var bf = ELECTRODE_MAP_21[0];
         var ba = ELECTRODE_MAP_21[1];
@@ -388,7 +327,7 @@ public final class ChannelMapUtilPlain {
         var row = e2 / 2;
         var column = e2 % 2;
         var channel = 2 * ((row * bf[bank] + column * ba[bank]) % 16) + 32 * block + column;
-        return new ChannelMapUtil.CB(channel, bank);
+        return new CB(channel, bank);
     }
 
     static final int[][] ELECTRODE_MAP_24 = new int[][]{
@@ -419,14 +358,14 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2c24(int, int)
      */
-    public static ChannelMapUtil.CB e2c24(int shank, int electrode) {
+    public static CB e2c24(int shank, int electrode) {
         var n = NpxProbeType.np24.nChannel();
         var bank = electrode / n;
         var e1 = electrode % n;
         var b1 = e1 / 48/*type.nElectrodePerBlock()*/;
         var index = e1 % 48;
         var block = ELECTRODE_MAP_24[shank][b1];
-        return new ChannelMapUtil.CB(48 * block + index, bank);
+        return new CB(48 * block + index, bank);
     }
 
     /**
@@ -473,7 +412,7 @@ public final class ChannelMapUtilPlain {
         return r * 8 + c;
     }
 
-//    private static final LazyConstant<int[]> ELECTRODE_MAP_1110_CACHE = LazyConstant.of(ChannelMapUtilPlain::initNp1110E2CCache);
+    private static final LazyConstant<int[]> ELECTRODE_MAP_1110_CACHE = LazyConstant.of(ChannelMapUtilValue::initNp1110E2CCache);
 
     private static int[] initNp1110E2CCache() {
         var type = NpxProbeType.np1110;
@@ -494,14 +433,11 @@ public final class ChannelMapUtilPlain {
     /**
      * @see ChannelMapUtil#e2c1110(int)
      */
-    public static ChannelMapUtil.CB e2c1110(int electrode) {
-//        var cache = ELECTRODE_MAP_1110_CACHE.get();
-        var cache = initNp1110E2CCache();
+    public static CB e2c1110(int electrode) {
+        var cache = ELECTRODE_MAP_1110_CACHE.get();
         for (int i = 0, length = cache.length; i < length; i++) {
             if (cache[i] == electrode) {
-                var b = i / 384;
-                var c = i % 384;
-                return new ChannelMapUtil.CB(c, b);
+                return new CB(i % 384, i / 384);
             }
         }
         throw new IllegalArgumentException();
@@ -511,20 +447,20 @@ public final class ChannelMapUtilPlain {
         return bank * 384 + channel % 384;
     }
 
-    public static ChannelMapUtil.CB e2c2020(int shank, int electrode) {
+    public static CB e2c2020(int shank, int electrode) {
         var b = electrode / 384;
         var c = electrode % 384;
-        return new ChannelMapUtil.CB(shank * 384 + c, b);
+        return new CB(shank * 384 + c, b);
     }
 
     public static int c2e3010(int channel, int bank) {
         return bank * 912 + channel;
     }
 
-    public static ChannelMapUtil.CB e2c3010(int electrode) {
+    public static CB e2c3010(int electrode) {
         var b = electrode / 912;
         var c = electrode % 912;
-        return new ChannelMapUtil.CB(c, b);
+        return new CB(c, b);
     }
 
     static final int[][] ELECTRODE_MAP_3020 = new int[][]{//  4 shanks X 32 blocks, 99 = forbidden
@@ -550,13 +486,13 @@ public final class ChannelMapUtilPlain {
         return bank * 912 + b * 48 + i;
     }
 
-    public static ChannelMapUtil.CB e2c3020(int shank, int electrode) {
+    public static CB e2c3020(int shank, int electrode) {
         var b = electrode / 912;
         var e = electrode % 912;
         var k = e / 48; // block
         var i = e % 48; // index
         k = np3020IndexOfBlock(shank, k);
-        return new ChannelMapUtil.CB(k * 48 + i, b);
+        return new CB(k * 48 + i, b);
     }
 
 }

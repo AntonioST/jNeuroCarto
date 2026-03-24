@@ -54,6 +54,7 @@ public class BM_ChannelmapUtil {
         int[] shank;
         int[] electrodes;
         int[][] channels;
+        ChannelMapUtilValue.CB[] channels_value;
 
         @Setup
         public synchronized void setup() {
@@ -68,68 +69,98 @@ public class BM_ChannelmapUtil {
                 electrodes[i] = i;
             }
             channels = ChannelMapUtilPlain.e2cb(type, 0, electrodes);
+            channels_value = ChannelMapUtilValue.e2cb(type, 0, electrodes);
         }
     }
 
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[][] measureCUP_e2cr(Shared shared) {
+    public int[][] measure_e2cr_plain(Shared shared) {
         return ChannelMapUtilPlain.e2cr(shared.type, shared.electrodes);
     }
 
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    public ChannelMapUtilValue.CR[] measure_e2cr_value(Shared shared) {
+        return ChannelMapUtilValue.e2cr(shared.type, shared.electrodes);
+    }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[][] measureCUV_e2cr(Shared shared) {
+    public int[][] measure_e2cr_vector(Shared shared) {
         return ChannelMapUtilVec.e2cr(shared.type, shared.electrodes);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[][] measureCUP_e2xy(Shared shared) {
+    public int[][] measure_e2xy_plain(Shared shared) {
         return ChannelMapUtilPlain.e2xy(shared.type, 0, shared.electrodes);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[][] measureCUV_e2xy(Shared shared) {
+    public ChannelMapUtilValue.XY[] measure_e2xy_value(Shared shared) {
+        return ChannelMapUtilValue.e2xy(shared.type, 0, shared.electrodes);
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    public int[][] measure_e2xy_vector(Shared shared) {
         return ChannelMapUtilVec.e2xy(shared.type, 0, shared.electrodes);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[][] measureCUP_e2cb(Shared shared) {
+    public int[][] measure_e2cb_plain(Shared shared) {
         return ChannelMapUtilPlain.e2cb(shared.type, 0, shared.electrodes);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[][] measureCUV_e2cb(Shared shared) {
+    public ChannelMapUtilValue.CB[] measure_e2cb_value(Shared shared) {
+        return ChannelMapUtilValue.e2cb(shared.type, 0, shared.electrodes);
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    public int[][] measure_e2cb_vector(Shared shared) {
         return ChannelMapUtilVec.e2cb(shared.type, 0, shared.electrodes);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[] measureCUP_c2e(Shared shared) {
+    public int[] measure_c2e_plain(Shared shared) {
         return ChannelMapUtilPlain.c2e(shared.type, shared.channels, 0);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[] measureCUP_c2ea(Shared shared) {
+    public int[] measure_c2ea_plain(Shared shared) {
         return ChannelMapUtilPlain.c2e(shared.type, shared.channels, shared.shank);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[] measureCUV_c2e(Shared shared) {
+    public int[] measure_c2e_value(Shared shared) {
+        return ChannelMapUtilValue.c2e(shared.type, shared.channels_value, 0);
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    public int[] measure_c2ea_value(Shared shared) {
+        return ChannelMapUtilValue.c2e(shared.type, shared.channels_value, shared.shank);
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    public int[] measure_c2e_vector(Shared shared) {
         return ChannelMapUtilVec.c2e(shared.type, shared.channels, 0);
     }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
-    public int[] measureCUV_c2ea(Shared shared) {
+    public int[] measure_c2ea_vector(Shared shared) {
         return ChannelMapUtilVec.c2e(shared.type, shared.channels, shared.shank);
     }
 }

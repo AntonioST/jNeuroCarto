@@ -903,7 +903,7 @@ public final class ChannelMapUtil {
         return r * 8 + c;
     }
 
-    private static final LazyConstant<int[]> ELECTRODE_MAP_1110_CACHE = LazyConstant.of(ChannelMapUtil::initNp1110E2CCache);
+//    private static final LazyConstant<int[]> ELECTRODE_MAP_1110_CACHE = LazyConstant.of(ChannelMapUtil::initNp1110E2CCache);
 
     private static int[] initNp1110E2CCache() {
         var type = NpxProbeType.np1110;
@@ -922,7 +922,8 @@ public final class ChannelMapUtil {
     }
 
     public static CB e2c1110(int electrode) {
-        var cache = ELECTRODE_MAP_1110_CACHE.get();
+//        var cache = ELECTRODE_MAP_1110_CACHE.get();
+        var cache = initNp1110E2CCache();
         for (int i = 0, length = cache.length; i < length; i++) {
             if (cache[i] == electrode) {
                 var b = i / 384;
