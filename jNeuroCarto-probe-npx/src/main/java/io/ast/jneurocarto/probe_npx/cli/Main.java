@@ -19,6 +19,7 @@ import picocli.CommandLine;
         Create.class,
         Select.class,
         Density.class,
+      Efficiency.class,
     }
 )
 public final class Main implements Runnable {
