@@ -1,6 +1,5 @@
 target/
 generated/
-.idea/
 
 # Neuropixels files
 *.imro

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="jNeuroCarto-test" />
+        <module name="jNeuroCarto-kotlin" />
+        <module name="jNeuroCarto-probe-npx" />
+        <module name="jNeuroCarto-jmh" />
+        <module name="jNeuroCarto-core" />
+        <module name="jNeuroCarto-probe-npx-javafx" />
+        <module name="jNeuroCarto-javafx-chart" />
+        <module name="jNeuroCarto-javafx" />
+        <module name="jNeuroCarto-atlas" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="jNeuroCarto-javafx" options="--enable-preview" />
+      <module name="jNeuroCarto-javafx-app" options="--enable-preview" />
+      <module name="jNeuroCarto-javafx-chart" options="--enable-preview" />
+      <module name="jNeuroCarto-jmh" options="--enable-preview --add-modules=jdk.incubator.vector" />
+      <module name="jNeuroCarto-probe-npx" options="--enable-preview" />
+      <module name="jNeuroCarto-probe-npx-javafx" options="--enable-preview" />
+    </option>
+  </component>
+</project>
