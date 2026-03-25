@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Main (Atlas Slice)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="io.ast.jneurocarto.javafx.cli.Slice"/>
+    <module name="jNeuroCarto-javafx"/>
+    <option name="PROGRAM_PARAMETERS" value="--name=allen_mouse_25um_v1.2"/>
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.ast.jneurocarto.javafx.cli.*"/>
+        <option name="ENABLED" value="true"/>
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true"/>
+    </method>
+  </configuration>
+</component>

@@ -1,15 +1,18 @@
 #! /bin/bash
 
+VERSION_picocli=4.7.7
+VERSION_slf4j=2.0.17
+
 M=$HOME/.m2/repository
 read -d '' -r CP << EOF
-$M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
-$M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
-$M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
+$M/info/picocli/picocli/$VERSION_picocli/picocli-$VERSION_picocli.jar
+$M/org/slf4j/slf4j-api/$VERSION_slf4j/slf4j-api-$VERSION_slf4j.jar
+$M/org/slf4j/slf4j-simple/$VERSION_slf4j/slf4j-simple-$VERSION_slf4j.jar
 ../jNeuroCarto-core/target/classes
 target/classes
 EOF
 
-archlinux-java-run --min 24 -- \
+archlinux-java-run --min 26 -- \
     --enable-preview \
     -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
     --add-modules=info.picocli \

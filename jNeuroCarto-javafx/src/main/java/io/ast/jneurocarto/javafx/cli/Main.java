@@ -4,6 +4,7 @@ import javafx.stage.Stage;
 
 import org.slf4j.LoggerFactory;
 
+import io.ast.jneurocarto.core.ProbeDescription;
 import io.ast.jneurocarto.core.cli.CartoConfig;
 import io.ast.jneurocarto.javafx.app.Application;
 import io.ast.jneurocarto.javafx.atlas.AtlasBrainService;
@@ -20,6 +21,11 @@ public class Main {
 
         if (config.debug) {
             System.setProperty("org.slf4j.simpleLogger.log.io.ast.jneurocarto", "debug");
+        }
+
+        if (config.listProbeFamily) {
+            System.out.println(ProbeDescription.listProbeDescriptions());
+            return;
         }
 
         if (config.atlasName != null && !config.atlasName.isEmpty() && AtlasBrainService.isPreloadAtlasBrain()) {

@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Main (chart)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="io.ast.jneurocarto.javafx.chart.cli.Main"/>
+    <module name="jNeuroCarto-javafx-chart"/>
+    <option name="PROGRAM_PARAMETERS" value="click"/>
+    <option name="VM_PARAMETERS" value="--enable-preview --enable-native-access=javafx.graphics --add-modules=info.picocli -Dorg.slf4j.simpleLogger.defaultLogLevel=warn"/>
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.ast.jneurocarto.javafx.chart.cli.*"/>
+        <option name="ENABLED" value="true"/>
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true"/>
+    </method>
+  </configuration>
+</component>

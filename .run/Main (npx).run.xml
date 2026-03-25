@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Main (npx)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="io.ast.jneurocarto.probe_npx.cli.Main"/>
+    <module name="jNeuroCarto-probe-npx"/>
+    <option name="VM_PARAMETERS" value="--enable-preview -Dorg.slf4j.simpleLogger.defaultLogLevel=warn --add-modules=info.picocli -Dio.ast.jneurocarto.probe_npx.print_probe_symbol=42"/>
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.ast.jneurocarto.probe_npx.cli.*"/>
+        <option name="ENABLED" value="true"/>
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true"/>
+    </method>
+  </configuration>
+</component>

@@ -1,31 +1,40 @@
 #! /bin/bash
 
+VERSION_javafx=26
+VERSION_jackson=2.21.2
+VERSION_jackson_annotations=2.21
+VERSION_picocli=4.7.7
+VERSION_slf4j=2.0.17
+VERSION_imageio=3.13.1
+VERSION_compress=1.28.0
+VERSION_kotlin=2.3.20
+
 M=$HOME/.m2/repository
 read -d '' -r CP << EOF
-$M/info/picocli/picocli/4.7.7/picocli-4.7.7.jar
-$M/com/fasterxml/jackson/core/jackson-databind/2.18.3/jackson-databind-2.18.3.jar
-$M/com/fasterxml/jackson/core/jackson-core/2.18.3/jackson-core-2.18.3.jar
-$M/com/fasterxml/jackson/core/jackson-annotations/2.18.3/jackson-annotations-2.18.3.jar
+$M/info/picocli/picocli/$VERSION_picocli/picocli-$VERSION_picocli.jar
+$M/com/fasterxml/jackson/core/jackson-databind/$VERSION_jackson/jackson-databind-$VERSION_jackson.jar
+$M/com/fasterxml/jackson/core/jackson-core/$VERSION_jackson/jackson-core-$VERSION_jackson.jar
+$M/com/fasterxml/jackson/core/jackson-annotations/$VERSION_jackson_annotations/jackson-annotations-$VERSION_jackson_annotations.jar
 $M/org/apache/commons/commons-lang3/3.16.0/commons-lang3-3.16.0.jar
-$M/org/apache/commons/commons-compress/1.27.1/commons-compress-1.27.1.jar
+$M/org/apache/commons/commons-compress/$VERSION_compress/commons-compress-$VERSION_compress.jar
 $M/commons-io/commons-io/2.16.1/commons-io-2.16.1.jar
 $M/commons-codec/commons-codec/1.17.1/commons-codec-1.17.1.jar
-$M/com/twelvemonkeys/common/common-io/3.12.0/common-io-3.12.0.jar
-$M/com/twelvemonkeys/common/common-lang/3.12.0/common-lang-3.12.0.jar
-$M/com/twelvemonkeys/common/common-image/3.12.0/common-image-3.12.0.jar
-$M/com/twelvemonkeys/imageio/imageio-core/3.12.0/imageio-core-3.12.0.jar
-$M/com/twelvemonkeys/imageio/imageio-metadata/3.12.0/imageio-metadata-3.12.0.jar
-$M/com/twelvemonkeys/imageio/imageio-tiff/3.12.0/imageio-tiff-3.12.0.jar
-$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1.jar
-$M/org/openjfx/javafx-base/24.0.1/javafx-base-24.0.1-linux.jar
-$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1.jar
-$M/org/openjfx/javafx-controls/24.0.1/javafx-controls-24.0.1-linux.jar
-$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1.jar
-$M/org/openjfx/javafx-graphics/24.0.1/javafx-graphics-24.0.1-linux.jar
+$M/com/twelvemonkeys/common/common-io/$VERSION_imageio/common-io-$VERSION_imageio.jar
+$M/com/twelvemonkeys/common/common-lang/$VERSION_imageio/common-lang-$VERSION_imageio.jar
+$M/com/twelvemonkeys/common/common-image/$VERSION_imageio/common-image-$VERSION_imageio.jar
+$M/com/twelvemonkeys/imageio/imageio-core/$VERSION_imageio/imageio-core-$VERSION_imageio.jar
+$M/com/twelvemonkeys/imageio/imageio-metadata/$VERSION_imageio/imageio-metadata-$VERSION_imageio.jar
+$M/com/twelvemonkeys/imageio/imageio-tiff/$VERSION_imageio/imageio-tiff-$VERSION_imageio.jar
+$M/org/openjfx/javafx-base/$VERSION_javafx/javafx-base-$VERSION_javafx.jar
+$M/org/openjfx/javafx-base/$VERSION_javafx/javafx-base-$VERSION_javafx-linux.jar
+$M/org/openjfx/javafx-controls/$VERSION_javafx/javafx-controls-$VERSION_javafx.jar
+$M/org/openjfx/javafx-controls/$VERSION_javafx/javafx-controls-$VERSION_javafx-linux.jar
+$M/org/openjfx/javafx-graphics/$VERSION_javafx/javafx-graphics-$VERSION_javafx.jar
+$M/org/openjfx/javafx-graphics/$VERSION_javafx/javafx-graphics-$VERSION_javafx-linux.jar
 $M/io/github/classgraph/classgraph/4.8.179/classgraph-4.8.179.jar
-$M/org/slf4j/slf4j-api/2.0.14/slf4j-api-2.0.14.jar
-$M/org/slf4j/slf4j-simple/2.0.14/slf4j-simple-2.0.14.jar
-$M/org/jetbrains/kotlin/kotlin-stdlib/2.1.21/kotlin-stdlib-2.1.21.jar
+$M/org/slf4j/slf4j-api/$VERSION_slf4j/slf4j-api-$VERSION_slf4j.jar
+$M/org/slf4j/slf4j-simple/$VERSION_slf4j/slf4j-simple-$VERSION_slf4j.jar
+$M/org/jetbrains/kotlin/kotlin-stdlib/$VERSION_kotlin/kotlin-stdlib-$VERSION_kotlin.jar
 ../jNeuroCarto-core/target/classes
 ../jNeuroCarto-probe-npx/target/classes
 ../jNeuroCarto-probe-npx-javafx/target/classes
@@ -35,7 +44,7 @@ $M/org/jetbrains/kotlin/kotlin-stdlib/2.1.21/kotlin-stdlib-2.1.21.jar
 target/classes
 EOF
 
-archlinux-java-run --min 24 -- \
+archlinux-java-run --min 26 -- \
     --enable-preview \
     --enable-native-access=javafx.graphics \
     -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
