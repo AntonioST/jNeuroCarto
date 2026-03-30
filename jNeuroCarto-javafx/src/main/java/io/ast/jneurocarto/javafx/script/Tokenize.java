@@ -261,34 +261,88 @@ public class Tokenize {
         if (line.charAt(x - 1) != '}') throwIAE("not a python dict", i, x);
         if (line.charAt(i + 1) == ',') throwIAE("not a python dict", i, x);
 
-        var keys = new ArrayList<String>();
+        var strkeys = new ArrayList<String>();
+        var genkeys = new ArrayList<PyValue>();
         var values = new ArrayList<PyValue>();
+        boolean strTest = true;
 
         var s = nextNonSpaceChar(i + 1, x - 1);
         while (s < x - 1) {
             int e = nextToken(s, x - 1);
             int t = prevNonSpaceChar(s, e - 1) + 1;
-            parseDictEntry(s, t, keys, values);
+            if (strTest) {
+                if (!parseStrDictEntry(s, t, strkeys, values)) {
+                    if (!strkeys.isEmpty()) {
+                        strkeys.stream()
+                          .map(PyValue.PyStr::new)
+                          .forEach(genkeys::add);
+                        strkeys.clear();
+                    }
+                    strTest = false;
+                    continue;
+                }
+            } else {
+                parseDictEntry(s, t, genkeys, values);
+            }
             s = nextNonSpaceChar(e + 1, x - 1);
         }
 
-        if (keys.isEmpty()) return PyValue.EMPTY_DICT;
-        return new PyValue.PyDict(keys, values);
+        if (values.isEmpty()) return PyValue.EMPTY_DICT;
+        return strTest ? new PyValue.PyStrDict(strkeys, values) : new PyValue.PyGeneralDict(genkeys, values);
     }
 
-    private void parseDictEntry(int i, int x, List<String> keys, List<PyValue> values) {
+    private boolean parseStrDictEntry(int i, int x, List<String> keys, List<PyValue> values) {
         i = nextNonSpaceChar(i, x);
         int d = nextTokenUntil(i, ':', x);
+        PyValue key;
+        PyValue value;
         if (d < 0) {
             int k = prevNonSpaceChar(i, x - 1) + 1;
-            keys.add(line.substring(i, k));
-            values.add(PyValue.None);
+            key = parseValue(i, k);
+            value = PyValue.None;
+
         } else {
             int k = prevNonSpaceChar(i, d - 1) + 1;
-            keys.add(line.substring(i, k));
+            key = parseValue(i, k);
             d = nextNonSpaceChar(d + 1, x);
-            values.add(parseValue(d, x));
+            value = parseValue(d, x);
         }
+
+        if (key instanceof PyValue.PyToken(var str)) {
+            keys.add(str);
+            values.add(value);
+            return true;
+        } else if (key instanceof PyValue.PyStr(var str)) {
+            keys.add(str);
+            values.add(value);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void parseDictEntry(int i, int x, List<PyValue> keys, List<PyValue> values) {
+        i = nextNonSpaceChar(i, x);
+        int d = nextTokenUntil(i, ':', x);
+        PyValue key;
+        PyValue value;
+        if (d < 0) {
+            int k = prevNonSpaceChar(i, x - 1) + 1;
+            key = parseValue(i, k);
+            value = PyValue.None;
+        } else {
+            int k = prevNonSpaceChar(i, d - 1) + 1;
+            key = parseValue(i, k);
+            d = nextNonSpaceChar(d + 1, x);
+            value = parseValue(d, x);
+        }
+
+        if (key instanceof PyValue.PyToken(var str)) {
+            keys.add(new PyValue.PyStr(str));
+        } else {
+            keys.add(key);
+        }
+        values.add(value);
     }
 
     public PyValue.PyStr parseStr() {

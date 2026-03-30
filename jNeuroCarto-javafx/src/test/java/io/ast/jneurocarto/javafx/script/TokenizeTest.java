@@ -4,64 +4,64 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static io.ast.jneurocarto.javafx.script.PyValue.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TokenizeTest {
 
     @Test
     public void purePyNone() {
         assertEquals(
-            PyValue.None,
-            new Tokenize("None").parseValue()
+          None,
+          new Tokenize("None").parseValue()
         );
         assertEquals(
-            PyValue.None,
-            new Tokenize("").parseValue()
+          None,
+          new Tokenize("").parseValue()
         );
     }
 
     @Test
     public void purePyInt() {
         assertEquals(
-            new PyValue.PyInt32(123),
-            new Tokenize("123").parseValue()
+          PyInt.of(123),
+          new Tokenize("123").parseValue()
         );
     }
 
     @Test
     public void purePyFloat() {
         assertEquals(
-            new PyValue.PyFloat(123.3),
-            new Tokenize("123.3").parseValue()
+          PyFloat.of(123.3),
+          new Tokenize("123.3").parseValue()
         );
     }
 
     @Test
     public void purePyStr() {
         assertEquals(
-            new PyValue.PyStr("123"),
-            new Tokenize("'123'").parseValue()
+          PyStr.of("123"),
+          new Tokenize("'123'").parseValue()
         );
         assertEquals(
-            new PyValue.PyStr("a"),
-            new Tokenize("'a'").parseValue()
+          PyStr.of("a"),
+          new Tokenize("'a'").parseValue()
         );
     }
 
     @Test
     public void purePySymbol() {
         assertEquals(
-            new PyValue.PyToken("a"),
-            new Tokenize("a").parseValue()
+          new PyToken("a"),
+          new Tokenize("a").parseValue()
         );
     }
 
     @Test
     public void purePyEmptyList() {
         assertEquals(
-            PyValue.EMPTY_LIST,
-            new Tokenize("[]").parseValue()
+          EMPTY_LIST,
+          new Tokenize("[]").parseValue()
         );
     }
 
@@ -74,44 +74,68 @@ public class TokenizeTest {
             new Tokenize("[,,]").parseValue();
         });
         assertEquals(
-            new PyValue.PyToken("[,,"),
-            new Tokenize("[,,").parseValue()
+          new PyToken("[,,"),
+          new Tokenize("[,,").parseValue()
         );
     }
 
     @Test
     public void purePyList() {
         assertEquals(
-            new PyValue.PyList(new PyValue.PyInt32(123)),
-            new Tokenize("[123]").parseValue()
+          PyList.of(PyInt.of(123)),
+          new Tokenize("[123]").parseValue()
         );
         assertEquals(
-            new PyValue.PyList(new PyValue.PyInt32(123), new PyValue.PyInt32(321)),
-            new Tokenize("[123, 321]").parseValue()
+          PyList.of(PyInt.of(123), PyInt.of(321)),
+          new Tokenize("[123, 321]").parseValue()
         );
         assertEquals(
-            new PyValue.PyList(new PyValue.PyInt32(123), new PyValue.PyStr("321")),
-            new Tokenize("[123, '321']").parseValue()
+          PyList.of(PyInt.of(123), PyStr.of("321")),
+          new Tokenize("[123, '321']").parseValue()
         );
     }
 
     @Test
     public void purePyListWithTailingComma() {
         assertEquals(
-            new PyValue.PyList(new PyValue.PyInt32(123)),
-            new Tokenize("[123,]").parseValue()
+          PyList.of(PyInt.of(123)),
+          new Tokenize("[123,]").parseValue()
         );
         assertEquals(
-            new PyValue.PyList(new PyValue.PyInt32(123), new PyValue.PyInt32(321)),
-            new Tokenize("[123, 321,]").parseValue()
+          PyList.of(PyInt.of(123), PyInt.of(321)),
+          new Tokenize("[123, 321,]").parseValue()
         );
     }
 
     @Test
     public void purePyEmptyTuple() {
         assertEquals(
-            PyValue.EMPTY_TUPLE,
-            new Tokenize("()").parseValue()
+          EMPTY_TUPLE,
+          new Tokenize("()").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyTupleEquals() {
+        assertEquals(
+          PyTuple.of(PyInt.of(1)),
+          PyTuple.of(List.of(PyInt.of(1)))
+        );
+        assertEquals(
+          PyTuple.of(PyInt.of(1)),
+          new PyTupleN(List.of(PyInt.of(1)))
+        );
+        assertEquals(
+          PyTuple.of(PyInt.of(1), PyInt.of(2)),
+          PyTuple.of(List.of(PyInt.of(1), PyInt.of(2)))
+        );
+        assertEquals(
+          PyTuple.of(PyInt.of(1), PyInt.of(2)),
+          new PyTupleN(List.of(PyInt.of(1), PyInt.of(2)))
+        );
+        assertEquals(
+          new PyTupleN(List.of(PyInt.of(1), PyInt.of(2))),
+          PyTuple.of(PyInt.of(1), PyInt.of(2))
         );
     }
 
@@ -124,38 +148,38 @@ public class TokenizeTest {
             new Tokenize("(,,)").parseValue();
         });
         assertEquals(
-            new PyValue.PyToken("(,,"),
-            new Tokenize("(,,").parseValue()
+          new PyToken("(,,"),
+          new Tokenize("(,,").parseValue()
         );
     }
 
     @Test
     public void purePyTupleButWithSingleElement() {
         assertEquals(
-            new PyValue.PyInt32(123),
-            new Tokenize("(123)").parseValue()
+          PyInt.of(123),
+          new Tokenize("(123)").parseValue()
         );
     }
 
     @Test
     public void purePyTuple() {
         assertEquals(
-            new PyValue.PyTuple2(new PyValue.PyInt32(123), new PyValue.PyInt32(321)),
-            new Tokenize("(123, 321)").parseValue()
+          PyTuple.of(PyInt.of(123), PyInt.of(321)),
+          new Tokenize("(123, 321)").parseValue()
         );
         assertEquals(
-            new PyValue.PyTuple2(new PyValue.PyInt32(123), new PyValue.PyStr("321")),
-            new Tokenize("(123, '321')").parseValue()
+          PyTuple.of(PyInt.of(123), PyStr.of("321")),
+          new Tokenize("(123, '321')").parseValue()
         );
         assertEquals(
-            new PyValue.PyTuple3(new PyValue.PyInt32(1), new PyValue.PyInt32(2), new PyValue.PyInt32(3)),
-            new Tokenize("(1,2,3)").parseValue()
+          PyTuple.of(PyInt.of(1), PyInt.of(2), PyInt.of(3)),
+          new Tokenize("(1,2,3)").parseValue()
         );
         assertEquals(
-            new PyValue.PyTupleN(List.of(
-                new PyValue.PyInt32(1), new PyValue.PyInt32(2), new PyValue.PyInt32(3), new PyValue.PyInt32(4)
-            )),
-            new Tokenize("(1,2,3,4)").parseValue()
+          PyTuple.of(List.of(
+            PyInt.of(1), PyInt.of(2), PyInt.of(3), PyInt.of(4)
+          )),
+          new Tokenize("(1,2,3,4)").parseValue()
         );
     }
 
@@ -163,45 +187,127 @@ public class TokenizeTest {
     @Test
     public void purePyTupleWithTailingComma() {
         assertEquals(
-            new PyValue.PyTuple1(new PyValue.PyInt32(123)),
-            new Tokenize("(123,)").parseValue()
+          PyTuple.of(PyInt.of(123)),
+          new Tokenize("(123,)").parseValue()
         );
         assertEquals(
-            new PyValue.PyTuple2(new PyValue.PyInt32(123), new PyValue.PyInt32(321)),
-            new Tokenize("(123, 321,)").parseValue()
+          PyTuple.of(PyInt.of(123), PyInt.of(321)),
+          new Tokenize("(123, 321,)").parseValue()
         );
     }
 
     @Test
     public void purePyEmptyDict() {
         assertEquals(
-            PyValue.EMPTY_DICT,
-            new Tokenize("{}").parseValue()
+          EMPTY_DICT,
+          new Tokenize("{}").parseValue()
         );
+    }
+
+    @Test
+    public void prePyDictEquals() {
+        var sd = PyDict.of("1", PyInt.of(1));
+        var gd = PyDict.of(PyStr.of("1"), PyInt.of(1));
+        assertNotSame(sd, gd);
+        assertInstanceOf(PyStrDict.class, sd);
+        assertInstanceOf(PyGeneralDict.class, gd);
+        assertTrue(sd.equals(gd));
+        assertTrue(gd.equals(sd));
     }
 
     @Test
     public void purePyDict() {
         assertEquals(
-            new PyValue.PyDict(List.of("1"), List.of(new PyValue.PyInt32(1))),
-            new Tokenize("{1:1}").parseValue()
+          PyDict.of(PyInt.of(1), PyInt.of(1)),
+          new Tokenize("{1:1}").parseValue()
         );
+    }
+
+    @Test
+    public void purePyDictTokenAsStrKey() {
+        assertEquals(
+          new PyStrDict(List.of("a"), List.of(PyInt.of(1))),
+          new Tokenize("{a:1}").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyDictStrAsKey() {
+        assertEquals(
+          PyDict.of("a", PyInt.of(1)),
+          new Tokenize("{'a':1}").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyDictIntAsKey() {
+        assertEquals(
+          PyDict.of(PyInt.of(1), PyInt.of(1)),
+          new Tokenize("{1:1}").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyDictFloatAsKey() {
+        assertEquals(
+          PyDict.of(PyFloat.of(1.23), PyInt.of(1)),
+          new Tokenize("{1.23:1}").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyDictTupleAsKey() {
+        assertEquals(
+          PyDict.of(PyTuple.of(), PyInt.of(1)),
+          new Tokenize("{():1}").parseValue()
+        );
+        assertEquals(
+          PyDict.of(
+            PyTuple.of(), PyInt.of(1),
+            PyTuple.of(PyInt.of(1)), PyInt.of(2)),
+          new Tokenize("{():1, (1,): 2}").parseValue()
+        );
+    }
+
+    @Test
+    public void purePyDictListAsKey() {
+        var e1 = assertThrows(RuntimeException.class, () -> {
+            PyDict.of(PyList.of(), PyInt.of(1));
+        });
+        assertEquals("unhashable type : list", e1.getMessage());
+
+        var e2 = assertThrows(RuntimeException.class, () -> {
+            new Tokenize("{[]:1}").parseValue();
+        });
+        assertEquals("unhashable type : list", e2.getMessage());
+    }
+
+    @Test
+    public void purePyDictDictAsKey() {
+        var e1 = assertThrows(RuntimeException.class, () -> {
+            PyDict.of(PyDict.of(), PyInt.of(1));
+        });
+        assertEquals("unhashable type : dict", e1.getMessage());
+
+        var e2 = assertThrows(RuntimeException.class, () -> {
+            new Tokenize("{{}:1}").parseValue();
+        });
+        assertEquals("unhashable type : dict", e2.getMessage());
     }
 
     @Test
     public void purePyDictAsSet() {
         assertEquals(
-            new PyValue.PyDict(List.of("1", "2"),
-                List.of(PyValue.None, PyValue.None)),
-            new Tokenize("{1,2}").parseValue()
+          PyDict.of(PyInt.of(1), None, PyInt.of(2), None),
+          new Tokenize("{1,2}").parseValue()
         );
     }
 
     @Test
     public void purePyDictWithTailComma() {
         assertEquals(
-            new PyValue.PyDict(List.of("1"), List.of(new PyValue.PyInt32(1))),
-            new Tokenize("{1:1,}").parseValue()
+          PyDict.of(PyInt.of(1), PyInt.of(1)),
+          new Tokenize("{1:1,}").parseValue()
         );
     }
 
@@ -215,101 +321,101 @@ public class TokenizeTest {
     @Test
     public void combine() {
         assertEquals(
-            new PyValue.PyDict(List.of("a"),
-                List.of(new PyValue.PyList(new PyValue.PyTuple1(new PyValue.PyInt32(123))))),
-            new Tokenize("{a: [(123,)]}").parseValue()
+          new PyStrDict(List.of("a"),
+            List.of(PyList.of(PyTuple.of(PyInt.of(123))))),
+          new Tokenize("{a: [(123,)]}").parseValue()
         );
     }
 
     @Test
     public void structureInStr() {
         assertEquals(
-            new PyValue.PyStr("[]"),
-            new Tokenize("'[]'").parseValue()
+          PyStr.of("[]"),
+          new Tokenize("'[]'").parseValue()
         );
         assertEquals(
-            new PyValue.PyStr("[()]"),
-            new Tokenize("'[()]'").parseValue()
+          PyStr.of("[()]"),
+          new Tokenize("'[()]'").parseValue()
         );
     }
 
     @Test
     public void parseLine() {
         assertEquals(List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyIndexParameter(1, "2", 2, new PyValue.PyInt32(2)),
-                new PyValue.PyIndexParameter(2, "3", 4, new PyValue.PyInt32(3))),
-            new Tokenize("1,2,3").parse().values
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyIndexParameter(1, "2", 2, PyInt.of(2)),
+            new PyIndexParameter(2, "3", 4, PyInt.of(3))),
+          new Tokenize("1,2,3").parse().values
         );
     }
 
     @Test
     public void parseLineWithNullValue() {
         assertEquals(
-            List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyIndexParameter(1, "", 2, null),
-                new PyValue.PyIndexParameter(2, "3", 3, new PyValue.PyInt32(3))),
-            new Tokenize("1,,3").parse().values
+          List.of(
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyIndexParameter(1, "", 2, null),
+            new PyIndexParameter(2, "3", 3, PyInt.of(3))),
+          new Tokenize("1,,3").parse().values
         );
         assertEquals(
-            List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyIndexParameter(1, "2", 2, new PyValue.PyInt32(2)),
-                new PyValue.PyIndexParameter(2, "", 4, null)),
-            new Tokenize("1,2,").parse().values
+          List.of(
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyIndexParameter(1, "2", 2, PyInt.of(2)),
+            new PyIndexParameter(2, "", 4, null)),
+          new Tokenize("1,2,").parse().values
         );
         assertEquals(
-            List.of(
-                new PyValue.PyIndexParameter(0, "", 0, null),
-                new PyValue.PyIndexParameter(1, "", 1, null),
-                new PyValue.PyIndexParameter(2, "", 2, null)),
-            new Tokenize(",, ").parse().values
+          List.of(
+            new PyIndexParameter(0, "", 0, null),
+            new PyIndexParameter(1, "", 1, null),
+            new PyIndexParameter(2, "", 2, null)),
+          new Tokenize(",, ").parse().values
         );
         assertEquals(
-            List.of(
-                new PyValue.PyIndexParameter(0, "", 0, null),
-                new PyValue.PyIndexParameter(1, "", 1, null),
-                new PyValue.PyIndexParameter(2, "", 2, null)),
-            new Tokenize(",,").parse().values
+          List.of(
+            new PyIndexParameter(0, "", 0, null),
+            new PyIndexParameter(1, "", 1, null),
+            new PyIndexParameter(2, "", 2, null)),
+          new Tokenize(",,").parse().values
         );
     }
 
     @Test
     public void parseLineWithName() {
         assertEquals(List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyNamedParameter("a", "2", 4, new PyValue.PyInt32(2)),
-                new PyValue.PyNamedParameter("b", "3", 8, new PyValue.PyInt32(3))),
-            new Tokenize("1,a=2,b=3").parse().values
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyNamedParameter("a", "2", 4, PyInt.of(2)),
+            new PyNamedParameter("b", "3", 8, PyInt.of(3))),
+          new Tokenize("1,a=2,b=3").parse().values
         );
     }
 
     @Test
     public void parseLineWithNameAndNullValue() {
         assertEquals(List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyNamedParameter("a", "", 4, null),
-                new PyValue.PyNamedParameter("b", "3", 7, new PyValue.PyInt32(3))),
-            new Tokenize("1,a=,b=3").parse().values
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyNamedParameter("a", "", 4, null),
+            new PyNamedParameter("b", "3", 7, PyInt.of(3))),
+          new Tokenize("1,a=,b=3").parse().values
         );
 
         assertEquals(List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyNamedParameter("a", "2", 4, new PyValue.PyInt32(2)),
-                new PyValue.PyNamedParameter("b", "", 8, null)),
-            new Tokenize("1,a=2,b=").parse().values
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyNamedParameter("a", "2", 4, PyInt.of(2)),
+            new PyNamedParameter("b", "", 8, null)),
+          new Tokenize("1,a=2,b=").parse().values
         );
     }
 
     @Test
     public void parseLineWithUnresolvedToken() {
         assertEquals(List.of(
-                new PyValue.PyIndexParameter(0, "1", 0, new PyValue.PyInt32(1)),
-                new PyValue.PyIndexParameter(1, "1+1", 2, new PyValue.PyToken("1+1")),
-                new PyValue.PyIndexParameter(2, "1+[1]", 6, new PyValue.PyToken("1+[1]")),
-                new PyValue.PyIndexParameter(3, "()+[]", 12, new PyValue.PyToken("()+[]"))),
-            new Tokenize("1,1+1,1+[1],()+[]").parse().values
+            new PyIndexParameter(0, "1", 0, PyInt.of(1)),
+            new PyIndexParameter(1, "1+1", 2, new PyToken("1+1")),
+            new PyIndexParameter(2, "1+[1]", 6, new PyToken("1+[1]")),
+            new PyIndexParameter(3, "()+[]", 12, new PyToken("()+[]"))),
+          new Tokenize("1,1+1,1+[1],()+[]").parse().values
         );
     }
 }

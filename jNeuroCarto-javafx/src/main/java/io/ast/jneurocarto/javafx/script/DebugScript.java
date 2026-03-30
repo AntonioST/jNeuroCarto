@@ -120,7 +120,7 @@ public class DebugScript {
     }
 
     /**
-     * test {@link AtlasPlugin#updateMaskedRegion()}
+     * test {@link AtlasPlugin} region masking.
      */
 //    @BlueprintScript("mask")
     public void atlasMaskRegion(
