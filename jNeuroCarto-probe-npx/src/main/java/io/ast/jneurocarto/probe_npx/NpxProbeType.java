@@ -563,7 +563,7 @@ public sealed interface NpxProbeType {
 
         @Override
         public float spacePerColumn() {
-            return 3;
+            return 0;
         }
 
         @Override
@@ -783,7 +783,7 @@ public sealed interface NpxProbeType {
 
         @Override
         public int nColumnPerShank() {
-            return 2;
+            return 1;
         }
 
         @Override
@@ -798,7 +798,7 @@ public sealed interface NpxProbeType {
 
         @Override
         public float spacePerColumn() {
-            return 15;
+            return 0;
         }
 
         @Override
@@ -845,7 +845,7 @@ public sealed interface NpxProbeType {
 
         @Override
         public int nChannel() {
-            return 912;
+            return 1536;
         }
 
         @Override
@@ -897,7 +897,7 @@ public sealed interface NpxProbeType {
 
         @Override
         public int nChannel() {
-            return 912;
+            return 1536;
         }
 
         @Override

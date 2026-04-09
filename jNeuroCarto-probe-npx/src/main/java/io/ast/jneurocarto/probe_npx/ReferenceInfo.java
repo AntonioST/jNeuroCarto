@@ -14,6 +14,7 @@ public record ReferenceInfo(
   int code,
   ReferenceType type,
   int shank,
+  int bank,
   int channel
 ) {
     public enum ReferenceType {
@@ -32,37 +33,37 @@ public record ReferenceInfo(
             throw new IllegalArgumentException("reference id out of boundary for probe type " + type.code() + ": " + reference);
         }
 
-        if (reference == 0) return new ReferenceInfo(0, ReferenceType.EXT, 0, 0);
+        if (reference == 0) return new ReferenceInfo(0, ReferenceType.EXT, 0, 0, 0);
 
         if (type instanceof NpxProbeType.NP21 np21) {
-            if (reference == 1) return new ReferenceInfo(reference, ReferenceType.TIP, 0, 0);
-            if (reference - 1 < type.nShank()) {
-                assert np21.reference().length == 4;
-                return new ReferenceInfo(reference, ReferenceType.BANK, reference - 1, np21.reference()[reference - 1]);
+            assert np21.nShank() == 1;
+            if (reference == 1) return new ReferenceInfo(reference, ReferenceType.TIP, 0, 0, 0);
+            if (reference - 2 < np21.reference().length) {
+                return new ReferenceInfo(reference, ReferenceType.BANK, 0, reference - 2, np21.reference()[reference - 2]);
             }
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("reference id out of boundary for probe type " + type.code() + ": " + reference);
         } else if (type instanceof NpxProbeType.NP24 np24) {
             if (reference - 1 < type.nShank()) {
-                return new ReferenceInfo(reference, ReferenceType.TIP, reference - 1, 0);
+                return new ReferenceInfo(reference, ReferenceType.TIP, reference - 1, 0, 0);
             }
-            var r = reference - 1 - type.nShank();
-            assert np24.reference().length == 4;
+            var n = type.nShank();
+            var r = reference - 1 - n;
 
-            var shank = r / 4;
-            var index = r % 4;
-            return new ReferenceInfo(reference, ReferenceType.BANK, shank, np24.reference()[index]);
+            var shank = r / n;
+            var index = r % n;
+            return new ReferenceInfo(reference, ReferenceType.BANK, shank, index, np24.reference()[index]);
         } else {
             return switch (type.code()) {
                 case 2003, 2013, 2020, 3010, 3020 -> {
-                    if (reference == 1) yield new ReferenceInfo(reference, ReferenceType.GROUND, 0, 0);
-                    if (reference - 2 == type.nShank()) yield new ReferenceInfo(reference, ReferenceType.TIP, reference - 2, 0);
+                    if (reference == 1) yield new ReferenceInfo(reference, ReferenceType.GROUND, 0, 0, 0);
+                    if (reference - 2 < type.nShank()) yield new ReferenceInfo(reference, ReferenceType.TIP, reference - 2, 0, 0);
                     // XXX probe 2013 has 7 references, but SpikeGLX only said what 6 is.
-                    yield new ReferenceInfo(reference, ReferenceType.UNKNOWN, 0, 0);
+                    yield new ReferenceInfo(reference, ReferenceType.UNKNOWN, 0, 0, 0);
                 }
                 default -> {
                     assert type.nShank() == 1;
-                    if (reference == 1) yield new ReferenceInfo(reference, ReferenceType.TIP, 0, 0);
-                    yield new ReferenceInfo(reference, ReferenceType.BANK, reference - 2, 0);
+                    if (reference == 1) yield new ReferenceInfo(reference, ReferenceType.TIP, 0, 0, 0);
+                    yield new ReferenceInfo(reference, ReferenceType.BANK, 0, reference - 2, 0);
                 }
             };
         }

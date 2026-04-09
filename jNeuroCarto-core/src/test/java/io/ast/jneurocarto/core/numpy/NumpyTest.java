@@ -63,8 +63,8 @@ public class NumpyTest {
     }
 
     @ParameterizedTest
-    @MethodSource()
-    public void numpyHeaderData(NumpyHeaderTestData data) {
+    @MethodSource("numpyHeaderData")
+    public void numpyHeaderDataValue(NumpyHeaderTestData data) {
         var header = new NumpyHeader(0, 0, data.data);
         assertEquals(data.data.strip(), header.data());
         assertEquals(data.descr, header.descr());

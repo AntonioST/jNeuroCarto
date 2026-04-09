@@ -62,7 +62,7 @@ public class NpxProbeTypeTest {
 
     @Test
     public void np1121() {
-        assertProbeTypeValue(NpxProbeType.np1121, 1121, 1, 1, 384, 384, 3, 3, 0, 2);
+        assertProbeTypeValue(NpxProbeType.np1121, 1121, 1, 1, 384, 384, 0, 3, 0, 2);
     }
 
     @Test
@@ -102,17 +102,17 @@ public class NpxProbeTypeTest {
 
     @Test
     public void np3000() {
-        assertProbeTypeValue(NpxProbeType.np3000, 3000, 1, 2, 128, 128, 15, 15, 0, 2);
+        assertProbeTypeValue(NpxProbeType.np3000, 3000, 1, 1, 128, 128, 0, 15, 0, 2);
     }
 
     @Test
     public void np3010() {
-        assertProbeTypeValue(NpxProbeType.np3010, 3010, 1, 2, 1280, 912, 32, 15, 0, 3);
+        assertProbeTypeValue(NpxProbeType.np3010, 3010, 1, 2, 1280, 1536, 32, 15, 0, 3);
     }
 
     @Test
     public void np3020() {
-        assertProbeTypeValue(NpxProbeType.np3020, 3020, 4, 2, 1280, 912, 32, 15, 250, 7);
+        assertProbeTypeValue(NpxProbeType.np3020, 3020, 4, 2, 1280, 1536, 32, 15, 250, 7);
     }
 
 }
