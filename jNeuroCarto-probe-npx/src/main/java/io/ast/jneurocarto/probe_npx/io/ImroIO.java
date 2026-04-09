@@ -12,7 +12,7 @@ import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 @NullMarked
-abstract class ImroIO {
+public abstract class ImroIO {
 
     public final NpxProbeType type;
     protected @Nullable List<Electrode> electrodes;
@@ -63,4 +63,43 @@ abstract class ImroIO {
     }
 
     public abstract void stringElectrode(PrintStream out, int channel, Electrode e);
+
+    public interface RestrictedGainValue {
+        int[] apGain();
+
+        int[] lfGain();
+
+
+        default int checkApGainValue(int value) {
+            var gain = apGain();
+            for (int j : gain) {
+                if (value == j) return value;
+            }
+            throw new IllegalArgumentException("unallowed apGain value: " + value);
+        }
+
+        default int checkApGainValue(int value, int defaultGain) {
+            var gain = apGain();
+            for (int j : gain) {
+                if (value == j) return value;
+            }
+            return checkApGainValue(defaultGain);
+        }
+
+        default int checkLfGainValue(int value) {
+            var gain = lfGain();
+            for (int j : gain) {
+                if (value == j) return value;
+            }
+            throw new IllegalArgumentException("unallowed lfGain value: " + value);
+        }
+
+        default int checkLfGainValue(int value, int defaultGain) {
+            var gain = lfGain();
+            for (int j : gain) {
+                if (value == j) return value;
+            }
+            return checkLfGainValue(defaultGain);
+        }
+    }
 }

@@ -11,7 +11,7 @@ import io.ast.jneurocarto.probe_npx.Electrode;
 import io.ast.jneurocarto.probe_npx.NpxProbeType;
 
 @NullMarked
-class ImroNp1110 extends ImroIO {
+class ImroNp1110 extends ImroIO implements ImroIO.RestrictedGainValue {
 
     public static final int INNER = 0;
     public static final int OUTER = 1;
@@ -27,14 +27,24 @@ class ImroNp1110 extends ImroIO {
     }
 
     @Override
+    public int[] apGain() {
+        return ImroNp1.AP_GAIN_LIST;
+    }
+
+    @Override
+    public int[] lfGain() {
+        return ImroNp1.LF_GAIN_LIST;
+    }
+
+    @Override
     public void parseHeader(int[] headers) {
         assert headers.length == 6;
         if (headers[0] != type.code()) throw new IllegalArgumentException();
         var mode = headers[1];
         if (mode < 0 || mode > ALL) throw new IllegalArgumentException();
         reference = headers[2];
-        this.ap = headers[3];
-        this.lf = headers[4];
+        this.ap = checkApGainValue(headers[3], 250);
+        this.lf = checkLfGainValue(headers[4], 250);
         this.ft = headers[5];
         this.mode = mode;
         electrodes = new ArrayList<>();
@@ -110,13 +120,9 @@ class ImroNp1110 extends ImroIO {
     public void stringHeader(PrintStream out, ChannelMap map) {
         if (map.type() != type) throw new IllegalArgumentException();
         var e = map.getChannel(0);
-        out.printf("(%d,%d,%d,%d,%d,%d)",
-          type.code(),
-          mode,
-          reference,
-          e.apBandGain,
-          e.lfBandBain,
-          e.apHpFilter ? 1 : 0);
+        var ap = checkApGainValue(e.apBandGain);
+        var lf = checkLfGainValue(e.lfBandBain);
+        out.printf("(%d,%d,%d,%d,%d,%d)", type.code(), mode, reference, ap, lf, e.apHpFilter ? 1 : 0);
     }
 
     /// [reference](https://github.com/billkarsh/SpikeGLX/blob/bc2c10e99e68dcc9ec6b9a9c75272a74c7e53034/Src-imro/IMROTbl_T1110.cpp#L32)

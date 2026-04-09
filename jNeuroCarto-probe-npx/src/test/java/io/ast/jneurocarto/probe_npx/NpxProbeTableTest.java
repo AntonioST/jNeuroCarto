@@ -11,11 +11,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import io.ast.jneurocarto.probe_npx.io.ImroIO;
 import io.ast.jneurocarto.probe_npx.table.ProbeFormats;
 import io.ast.jneurocarto.probe_npx.table.ProbeTables;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class NpxProbeTableTest {
 
@@ -30,6 +30,13 @@ public class NpxProbeTableTest {
 
     public record ProbeFormatPair(int type, ProbeFormats.ProbeFormat format) {
 
+        public String name() {
+            if (type == 0 || type == 21 || type == 24) { // special cass
+                return format.name.toUpperCase();
+            }
+            return "NP" + type;
+        }
+
         @Override
         public String toString() {
             return format.name + "/" + type;
@@ -39,13 +46,6 @@ public class NpxProbeTableTest {
     public static Set<String> allProbeTypes() {
         return TABLES.probes.keySet();
     }
-
-    public static Stream<ProbeFormatPair> allProbeFormats() {
-        return TABLES.formats.keys().stream()
-          .map(name -> TABLES.formats.get(name))
-          .flatMap(format -> Arrays.stream(format.types()).mapToObj(type -> new ProbeFormatPair(type, format)));
-    }
-
 
     @ParameterizedTest
     @MethodSource(value = "allProbeTypes")
@@ -67,6 +67,11 @@ public class NpxProbeTableTest {
         assertEquals(t.shankUm, p.spacePerShank(), "spacePerShank");
     }
 
+    public static Stream<ProbeFormatPair> allProbeFormats() {
+        return TABLES.formats.keys().stream()
+          .map(name -> TABLES.formats.get(name))
+          .flatMap(format -> Arrays.stream(format.types()).mapToObj(type -> new ProbeFormatPair(type, format)));
+    }
 
     @ParameterizedTest
     @MethodSource(value = "allProbeFormats")
@@ -87,12 +92,12 @@ public class NpxProbeTableTest {
     @MethodSource(value = "allProbeFormats")
     public void probeMatchRefIdFormat(ProbeFormatPair pair) {
         var refs = new ArrayList<>(pair.format.refIds());
-        var name = "NP" + pair.type;
+        var name = pair.name();
         var p = NpxProbeType.of(name);
 
         // FIXME number of references is not match between SpikeGLX source code and ProbeTable
         //   in certain probe
-        if (name.equals("NP21")) {
+        if (name.equals("NP2000")) { // NP21
             refs.add(new String[]{"bnk3"});
         }
 
@@ -150,4 +155,32 @@ public class NpxProbeTableTest {
             }
         }
     }
+
+    public static Stream<ProbeFormatPair> allProbeFormatsWithApLfGainList() {
+        return TABLES.formats.keys().stream()
+          .map(name -> TABLES.formats.get(name))
+          .filter(format -> format.apGain() != null && format.lfGain() != null)
+          .flatMap(format -> Arrays.stream(format.types()).mapToObj(type -> new ProbeFormatPair(type, format)));
+    }
+
+    @ParameterizedTest
+    @MethodSource(value = "allProbeFormatsWithApLfGainList")
+    public void probeMatchApLfGainList(ProbeFormatPair pair) {
+        var name = pair.name();
+        var p = NpxProbeType.of(name);
+
+        assertEquals("ap_gain_list", pair.format.apGain());
+        assertEquals("lf_gain_list", pair.format.lfGain());
+        var t = Objects.requireNonNull(TABLES.probes.get(name));
+
+        if (t.apGainList.length > 1 || t.lfGainList.length > 1) {
+            var io = ImroIO.of(p);
+            assertInstanceOf(ImroIO.RestrictedGainValue.class, io);
+
+            var rio = (ImroIO.RestrictedGainValue) io;
+            assertArrayEquals(t.apGainList, rio.apGain());
+            assertArrayEquals(t.lfGainList, rio.lfGain());
+        }
+    }
+
 }
